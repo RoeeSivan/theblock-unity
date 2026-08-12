@@ -8,24 +8,28 @@ this file is.
 
 ## RESUME HERE
 
-**Next action:** U3 — the `Convert` handedness helper.
+**Next action:** U4 — `export-config.mjs` → `theblock-config.json`.
 
-**The answer is already known and verified — this unit is now just writing it down in code.**
-glTFast negates **X** and passes Y and Z through untouched:
+Write a script that reads the game repo's `src/config.ts` and emits a flat JSON snapshot Unity can
+consume, then land it **in the game repo** — this is the one and only change that repo is ever
+permitted to receive (`scripts/export-config.mjs`). Never refactor anything else there, never touch
+its runtime.
 
-```csharp
-public static Vector3 Pos(Vector3 p) => new Vector3(-p.x, p.y, p.z);
-public static float   Yaw(float yaw) => -yaw;
-```
+- Emit raw three.js values. **The conversion belongs in U5's WorldBuilder, not in the exporter** —
+  the exporter is a dumb dump so it stays diffable against `config.ts`.
+- Start with what U5 needs to place the world: `city`, `districts[]`, `sevenEleven`, `gasStation`,
+  `policeStation`, `parkingLot`, `roads`, plus `vehicle.cars` and `traffic.models`.
+- Write the output to `Assets/StreamingAssets/theblock-config.json` — already gitignored here.
+- Re-runnable: same input must give byte-identical output, so a stale export is obvious in `git
+  status` rather than silently wrong.
 
-Evidence (see memory `handedness-negate-x`): `procedural-city-2` submesh 1 came in as
-`X[-33.13, 33.38]` from glTF `X[-33.38, 33.13]` with Z unchanged; confirmed again on cities 3–6;
-and city 2 placed at Unity `x:+150` reproduces the "~14 m gap west of downtown" that `config.ts`
-documents, measured at 14.3 m. Put it in `Assets/Scripts/Core/Convert.cs`. **Never inline a sign
-flip anywhere else.**
+Then U5 (`WorldBuilder`), which reads that JSON, applies `Convert`, and replaces the hand placement
+described below.
 
-Then U4 (`export-config.mjs` → JSON) and U5 (`WorldBuilder`), which together replace the hand
-placement described below.
+**U3 is done** — `Assets/Scripts/Core/Convert.cs`. Note it was accepted on a programmatic check
+rather than a user play-test, because a static math helper has nothing to look at: all eight placed
+objects' `config.ts` positions run back through `Convert.Pos` reproduce their actual transforms
+exactly (8/8), and `Convert.RotFromRadians(-PI/2)` reproduces the 7-Eleven's `(0, 90, 0)`.
 
 ---
 
@@ -98,7 +102,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | U0 | Project setup — Unity, MCP, git, LFS, docs | done | `dacca07` | Unity 6000.5.8f1 URP; MCP v10.1.2 HTTP Local :8080; remote pushed |
 | U1 | glTF import path — glTFast + Draco, downtown solid | done | `5a0b58f` | glTFast 6.19.0 + Draco 5.4.3; `World.unity` is build scene 0; asset needed zero fixup |
 | U2 | Character import — Mixamo FBX as Humanoid, walk clip | todo | | Humanoid retargeting kills the `mixamorig:` bug class |
-| U3 | `Convert` handedness helper | todo | | **Answer known:** negate X. Verified on 5 assets + a landmark. Just needs writing |
+| U3 | `Convert` handedness helper | done | `16fe0ee` | Negate X. `Assets/Scripts/Core/Convert.cs`; verified 8/8 against the placed scene objects |
 | U4 | `export-config.mjs` → `theblock-config.json` | todo | | Lives in the GAME repo — its only permitted change |
 | U5 | `WorldBuilder` Editor script | todo | | Re-runnable; conversion happens here, not in the exporter |
 
