@@ -1,5 +1,9 @@
 # The Block — Unity Port
 
+> **READ `PORT-STATUS.md` NEXT, BEFORE DOING ANYTHING.** It is the living ledger: what is done,
+> what is half-built, and the single next action. This file holds the stable rules; that file holds
+> the state. Conversation history is never a source of truth — the ledger is.
+
 Loaded every session. This project is a **rebuild of an existing, finished game** in Unity. Most
 of the knowledge you need is not here — it is in the original project, and this file tells you
 where.
@@ -19,13 +23,21 @@ experience — not a product need. It is a **side project with no deadline**.
 1 Oct 2026). The only change ever made to that repo for this port is one additive script,
 `scripts/export-config.mjs`. Never refactor it, never "improve" it, never touch its runtime.
 
-### Current scope: vertical slice, NOT the full campaign
+### Scope: the full game
 
-One district (**First One**, downtown) + the motorcycle + the **pizza delivery mission**, playable
-end to end. Deliberately excluded until the slice is done and judged: police pursuit, run-over,
-traffic, crowd, day/night, fuel, district streaming, the other 3 missions, multiplayer.
+Not a slice, not a demo — **the whole game rebuilt in Unity**: all 4 missions, the free-roam
+systems, the world, the shell. Sequenced as **32 numbered units** in `PORT-STATUS.md`, ordered by
+dependency. Multiplayer is deferred to the last unit (U32).
 
-Target: **macOS desktop build** first. iPad/iOS is a wanted bonus, not a constraint on the slice.
+Target: **macOS desktop** first. iPad/iOS is a wanted bonus, never a constraint on design.
+
+Settled decisions (full list in `PORT-STATUS.md` → Decisions log):
+
+- **Unity-idiomatic, same game.** Same missions, same world, same feel — built the Unity way.
+  Where Unity offers a better mechanism than the web version's workaround, **Unity wins**.
+- **Autonomous units, one checkpoint each.** Build a unit fully → update `PORT-STATUS.md` →
+  commit → report. The user play-tests at unit boundaries.
+- **No deadline.** Resumability matters more than speed.
 
 Plan file: `~/.claude/plans/i-want-to-consult-indexed-willow.md`
 
@@ -119,20 +131,23 @@ Most relevant here: `run_over_mechanic`, `police_pursuit`, `mixamo_bone_namespac
 
 ## 5 — Next steps
 
-1. **Phase 1 — import spike.** Get `first-one.glb` and one Mixamo character standing in a scene,
-   correct scale and orientation, with a borrowed walk clip playing. Needs **glTFast**
-   (`com.unity.cloud.gltfast`) + the **Draco** package, since the only downtown file is Draco'd.
-   Import characters as **Animation Type = Humanoid** — Unity retargets by bone *role*, which
-   deletes the original's entire `mixamorig:` namespace bug class.
-   **Gate: screenshot confirming it before anything else starts.**
-2. **Phase 2 — config as data.** `scripts/export-config.mjs` in the original emits
-   `theblock-config.json`; a C# `WorldBuilder` **Editor script** here reads it and builds the scene.
-   The export is a faithful mirror — **coordinate conversion happens in C#, not in the exporter.**
-   Tuning values become **ScriptableObjects** so they stay Inspector-editable.
-3. **Phase 3 — the slice.** Character controller → motorcycle → enter/exit state machine → pizza
-   mission → UI Toolkit HUD → audio.
-4. **Phase 4 — decision gate.** Play it, then decide whether to continue. **Stopping is a
-   legitimate outcome** and still leaves a real Unity portfolio piece.
+**See `PORT-STATUS.md`.** Its `RESUME HERE` block is the single source of truth for what to do
+next; this file deliberately does not duplicate it, because two copies of a moving state is how
+they drift apart.
+
+**Closing a unit — all three, or it is not done:**
+
+1. It play-tests correctly in the Editor, confirmed **by the user**.
+2. `PORT-STATUS.md` updated — state, commit hash, and a rewritten `RESUME HERE`.
+3. The commit lands.
+
+If a unit cannot be finished, mark it `wip` and write exactly what is built, what is not, and the
+next concrete action. **A `wip` unit with a vague note is the failure mode this system exists to
+prevent.**
+
+Record genuinely new gotchas as memory files in
+`~/.claude/projects/-Users-roeesivan-TheBlockUnity/memory/` (this project starts with empty memory —
+it is keyed by path).
 
 ---
 
