@@ -84,12 +84,21 @@ Most relevant here: `run_over_mechanic`, `police_pursuit`, `mixamo_bone_namespac
 
 **These are specific to this repo and override habits from the original.**
 
-1. **Handedness.** three.js is right-handed Y-up; Unity is **left-handed** Y-up. glTF import flips
-   mesh data, but every hand-authored number in `config.ts` — district offsets, spawn points, road
-   polylines, mission waypoints, POIs — does not flip itself. Missing this mirrors the city against
-   the mission locations and it looks *almost* right.
-   → **One static `Convert.Pos()` / `Convert.Yaw()` helper, one place. Never inline a sign flip.**
-   → Confirm the convention **empirically** against a known landmark. Do not assume.
+1. **Handedness — SOLVED 2026-08-12: negate X.** three.js is right-handed Y-up; Unity is
+   **left-handed** Y-up. glTFast negates **X** on import and passes Y and Z through untouched:
+
+   ```csharp
+   Convert.Pos(p) => new Vector3(-p.x, p.y, p.z);
+   Convert.Yaw(y) => -y;
+   ```
+
+   Verified on five district assets and a landmark gap measurement — not assumed. The importer
+   flips mesh data, but every hand-authored number in `config.ts` — district offsets, spawn points,
+   road polylines, mission waypoints, POIs — does not flip itself. Missing one mirrors that thing
+   against everything else and it looks *almost* right.
+   → **One static helper, one place. Never inline a sign flip.**
+   → When a genuinely new *category* of coordinate appears, still cross-check it against a
+   landmark before trusting it wholesale.
 2. **Physics numbers are void.** Rapier ≠ PhysX. Every mass, friction, suspension and impulse value
    from the original is meaningless here. Re-derive by feel. Do not port them and do not cite them
    as a starting point — they will mislead.

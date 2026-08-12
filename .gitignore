@@ -56,3 +56,9 @@ crashlytics-build.properties
 # Editor screenshots — throwaway captures, would otherwise eat the shared LFS quota
 /Assets/Screenshots/
 /Assets/Screenshots.meta
+
+# District source GLBs — 40-70 MB each, authoritative copies live in
+# ~/TheBlockSource/cities/. Free LFS is 1 GiB and shared with the original repo,
+# so these stay out. first-one.glb is exempt: 240 KB and the ONLY copy anywhere.
+/Assets/Models/City/procedural-city-*.glb
+/Assets/Models/City/procedural-city-*.glb.meta
