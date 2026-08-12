@@ -62,3 +62,8 @@ crashlytics-build.properties
 # so these stay out. first-one.glb is exempt: 240 KB and the ONLY copy anywhere.
 /Assets/Models/City/procedural-city-*.glb
 /Assets/Models/City/procedural-city-*.glb.meta
+
+# Character source FBX over 10 MB — raw Mixamo downloads, authoritative copies live in
+# the game repo at source-assets/models/. Same LFS reasoning as the district GLBs.
+/Assets/Models/Characters/Joe.fbx
+/Assets/Models/Characters/Joe.fbx.meta
