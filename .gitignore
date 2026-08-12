@@ -52,3 +52,7 @@ crashlytics-build.properties
 
 # Port pipeline: generated from the web project, never hand-edited
 /[Aa]ssets/StreamingAssets/theblock-config.json
+
+# Editor screenshots — throwaway captures, would otherwise eat the shared LFS quota
+/Assets/Screenshots/
+/Assets/Screenshots.meta
