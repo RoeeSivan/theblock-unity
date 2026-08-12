@@ -1,0 +1,54 @@
+# Unity generated — all rebuildable from Assets/ + ProjectSettings/ + Packages/
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# Asset meta files for folders Unity ignores
+/[Aa]ssets/AssetStoreTools*
+/[Aa]ssets/Plugins/Editor/JetBrains*
+
+# IDE / editor
+.vscode/
+.idea/
+.vs/
+*.csproj
+*.unityproj
+*.sln
+*.slnx
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Gradle / iOS build leftovers
+ExportedObj/
+.consulo/
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Crashlytics
+crashlytics-build.properties
+
+# Port pipeline: generated from the web project, never hand-edited
+/[Aa]ssets/StreamingAssets/theblock-config.json
