@@ -36,7 +36,15 @@ zips archived in `~/TheBlockSource/cities/zips/`. A fresh clone will open `World
 districts missing until those glbs are restored — this is deliberate, free LFS is 1 GiB and shared
 with the original repo.
 
-**Still to ingest:** `procedural-city-7`, `reichman`, `parking-lot`.
+All seven districts (`first-one` + `procedural-city-2..7`) are placed: **963 × 805 m, 2.31M tris**.
+`Place_SevenEleven` is in too, from `source-assets/seven-eleven/seven-eleven-lot-raw.glb` — it keeps
+its gameplay marker nodes (`pu_slot_*`, `se_entry_*`, `se_door_trigger`, `se_register`,
+`se_cam_shop`) and its animated door nodes, and it independently confirmed the **yaw** conversion:
+`config.ts` says the forecourt's far edge lands at `x16`, and Unity measures `max.x = -16.0`.
+
+**Still to ingest:** `reichman`, `parking-lot` — both hand-modelled in Blender, so there is no
+Sketchfab original. Check `blender/` in the game repo and `source-assets/Untitled.blend`, else fall
+back to the shipped GLBs (271 KB / 497 KB, so the loss is small).
 
 **Known issues, both belong to U11:**
 - No colliders on any district except downtown. These assets *do* need the foliage exclusion
@@ -103,7 +111,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 ### Tier 2 — Vehicles
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
-| U8 | Vehicle base + one drivable car | todo | | Rigidbody + WheelColliders |
+| U8 | Vehicle base + one drivable car | todo | | **Use `mustang`** — the only car with separate wheel nodes. tesla/audi/avenger/police had wheels merged by `merge-car-meshes.py` (a three.js draw-call fix) so they can only be traffic |
 | U9 | Enter/exit state machine + seated driver | todo | | mirrors `game/game-state.ts` mode enum |
 | U10 | Motorcycle | todo | | feel is re-derived, not ported — budget real time |
 
