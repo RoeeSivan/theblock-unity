@@ -8,20 +8,31 @@ this file is.
 
 ## RESUME HERE
 
-**Next action:** U1 — glTF import path.
+**Next action:** U2 — character import.
 
-Install **glTFast** (`com.unity.cloud.gltfast`) and the **Draco** decompression package via
-Package Manager, then import the downtown district and make it solid.
+Bring one Mixamo character into Unity as a **Humanoid** rig with a walk clip that plays. Importing
+as Humanoid is the point of the unit: it retargets onto Unity's own bone map and makes the
+`mixamorig:` namespace bug class from the web build structurally impossible.
 
-- File: `<game-repo>/public/models/optimized/first-one.glb` (240 KB, **Draco-compressed** — there
-  is no uncompressed original of this one anywhere, it is the only copy).
-- Verify: real-world metres, +Y up, ground at y=0, centred at origin.
-- Add a MeshCollider so it is walkable.
-- The building facade tint is **not in the asset** — the web version applies it in code at load.
-  See `config.ts` → `city.facadeColor` (`0x7b7c7e`) and `city.facadeMaterials`. Re-implement it.
-- Also skip colliders on foliage: `city.noCollidePatterns` lists tree/foliage/leaf/etc.
+- Source: `<game-repo>/source-assets/models/*.fbx` — these are the raw Mixamo downloads (~45–63 MB
+  each), which is what rule 3 asks for. `joe idle.fbx` + `Walking man.fbx` are the obvious pair.
+- In the FBX importer: **Rig → Animation Type: Humanoid**, then **Configure…** and confirm every
+  required bone mapped green.
+- Split it the Unity way: **one** model as the avatar/mesh, the rest imported animation-only with
+  **Avatar Definition: Copy From Other Avatar**. Do not import the same skeleton nine times.
+- Drop it in `World.unity` on the downtown pavement (ground is y≈0.15) and confirm the walk clip
+  loops in the Animation preview.
 
-**Nothing is half-built.** No `wip` units. Clean start.
+**Do NOT** build the character controller here — that is U6. U2 ends when a character stands in the
+scene with a looping walk clip.
+
+**Nothing is half-built.** No `wip` units.
+
+**Open thread — district source assets.** Every district (`first-one`, `procedural-city-2`…`-7`,
+`reichman`, plus `parking-lot` and `road-straight`) exists **only** as its Draco/webp-1024²
+shipped GLB. `source-assets/` holds characters, vehicles and props — no city. The user is looking
+for the original downloads. If they land, put them in a gitignored folder **outside** the repo
+(free LFS is 1 GiB, shared with the original project) and prefer them in U11/U12/U13.
 
 **Requires:** a session with cwd `~/TheBlockUnity` (the MCP server is scoped to that path) and the
 game repo added via `/add-dir`. See `CLAUDE.md` §2.
@@ -36,7 +47,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
 | U0 | Project setup — Unity, MCP, git, LFS, docs | done | `dacca07` | Unity 6000.5.8f1 URP; MCP v10.1.2 HTTP Local :8080; remote pushed |
-| U1 | glTF import path — glTFast + Draco, downtown solid | todo | | Draco is mandatory; facade tint is code-side |
+| U1 | glTF import path — glTFast + Draco, downtown solid | done | `5a0b58f` | glTFast 6.19.0 + Draco 5.4.3; `World.unity` is build scene 0; asset needed zero fixup |
 | U2 | Character import — Mixamo FBX as Humanoid, walk clip | todo | | Humanoid retargeting kills the `mixamorig:` bug class |
 | U3 | `Convert` handedness helper | todo | | Verify empirically vs a landmark, never assume |
 | U4 | `export-config.mjs` → `theblock-config.json` | todo | | Lives in the GAME repo — its only permitted change |
@@ -58,7 +69,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 ### Tier 3 — World
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
-| U11 | All 9 districts via WorldBuilder | todo | | |
+| U11 | All 9 districts via WorldBuilder | todo | | No district has a source original — see the open thread in RESUME HERE |
 | U12 | Roads, ground, sea | todo | | |
 | U13 | Places — pizza + interior, gas, police station, lot cars | todo | | |
 | U14 | Map + minimap | todo | | |
@@ -133,3 +144,11 @@ Dated one-liners. These are settled — do not re-litigate them without the user
   (it bills credits), no Asset Store, no paid LFS.
 - **2026-08-12** — Transport for MCP is **HTTP Local**; the remote option requires a Coplay API key
   and is off the table for the same reason.
+- **2026-08-12** (U1) — **The facade tint is a material asset, not code.** The web build recolours
+  `facade_5` in code at load because it cannot author materials; Unity can. `Facade.mat` costs
+  nothing at runtime and is editable without a rebuild. Unity wins, per the rule above.
+- **2026-08-12** (U1) — **Downtown gets one collider over the whole mesh.** `city.noCollidePatterns`
+  matches node *or* material names; `first-one.glb` has no per-object nodes and its only foliage
+  material (`AM113_072_Washingtonia_filifera`) matches no pattern — so the shipped web build
+  collides with its palms too. This is faithful, not a shortcut. Build the noCollide filtering when
+  the first multi-node district lands, not before.
