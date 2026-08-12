@@ -26,6 +26,10 @@ its runtime.
 Then U5 (`WorldBuilder`), which reads that JSON, applies `Convert`, and replaces the hand placement
 described below.
 
+**U2 is done.** `Player_Joe` stands on the downtown plaza at `(-24, 0.15, -15)` and the Main Camera
+is aimed at him, so **pressing Play walks him on the spot**. He has no controller and no collider —
+that is U6 — and root motion is off deliberately so he does not wander off during the check.
+
 **U3 is done** — `Assets/Scripts/Core/Convert.cs`. Note it was accepted on a programmatic check
 rather than a user play-test, because a static math helper has nothing to look at: all eight placed
 objects' `config.ts` positions run back through `Convert.Pos` reproduce their actual transforms
@@ -101,7 +105,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | --- | --- | --- | --- | --- |
 | U0 | Project setup — Unity, MCP, git, LFS, docs | done | `dacca07` | Unity 6000.5.8f1 URP; MCP v10.1.2 HTTP Local :8080; remote pushed |
 | U1 | glTF import path — glTFast + Draco, downtown solid | done | `5a0b58f` | glTFast 6.19.0 + Draco 5.4.3; `World.unity` is build scene 0; asset needed zero fixup |
-| U2 | Character import — Mixamo FBX as Humanoid, walk clip | todo | | Humanoid retargeting kills the `mixamorig:` bug class |
+| U2 | Character import — Mixamo FBX as Humanoid, walk clip | done | `13cea9f` | `JoeAvatar` isHuman, 52 bones; clips `Joe_Idle`/`Joe_Walk` loop. Bones were `mixamorig7:` — suffix varies per export, Humanoid makes it moot |
 | U3 | `Convert` handedness helper | done | `16fe0ee` | Negate X. `Assets/Scripts/Core/Convert.cs`; verified 8/8 against the placed scene objects |
 | U4 | `export-config.mjs` → `theblock-config.json` | todo | | Lives in the GAME repo — its only permitted change |
 | U5 | `WorldBuilder` Editor script | todo | | Re-runnable; conversion happens here, not in the exporter |
