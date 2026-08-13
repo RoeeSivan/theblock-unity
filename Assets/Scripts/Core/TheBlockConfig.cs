@@ -61,12 +61,15 @@ namespace TheBlock.Core
         /// <summary>Mirrors the top level of <c>config.ts</c>. Only the ported sections are declared.</summary>
         public class Root
         {
+            public Vec3 Gravity;
             public CitySpec City;
             public List<DistrictSpec> Districts;
             public PlaceSpec PizzaPlace;
             public PlaceSpec GasStation;
             public PlaceSpec PoliceStation;
             public PlaceSpec SevenEleven;
+            public CameraSpec Camera;
+            public PlayerSpec Player;
         }
 
         /// <summary>A three.js <c>{x, y, z}</c> literal. Still right-handed — convert before use.</summary>
@@ -125,6 +128,83 @@ namespace TheBlock.Core
 
             /// <summary>When set, only meshes topping out at or below this height get a collider.</summary>
             public float? CollideMaxY;
+        }
+
+        /// <summary>Lens settings. The offsets on this object belong to the vehicle camera, not the player's.</summary>
+        public class CameraSpec
+        {
+            public float Fov = 75f;
+            public float Near = 0.1f;
+            public float Far = 320f;
+        }
+
+        /// <summary>
+        /// The on-foot player. Speeds and stamina are gameplay tuning and port straight across;
+        /// the collider dimensions describe a body, not a physics response, so they port too.
+        /// </summary>
+        public class PlayerSpec
+        {
+            public float Scale = 1f;
+
+            /// <summary>The parking lot. Unusable until that district is ingested — see PORT-STATUS.</summary>
+            public Vec3 Spawn;
+
+            public ColliderSpec Collider;
+
+            /// <summary>Skin width: how far the controller is allowed to sink into geometry.</summary>
+            public float CharacterOffset = 0.05f;
+
+            public MovementSpec Movement;
+            public StaminaSpec Stamina;
+            public float AnimCrossfadeSec = 0.18f;
+
+            /// <summary>Radians per second.</summary>
+            public float TurnSpeed = 6f;
+
+            public float JumpForce = 5f;
+
+            /// <summary>Descent speed past which the face-down free-fall pose takes over.</summary>
+            public float FallSpeedThreshold = 8f;
+
+            public PlayerCameraSpec Camera;
+        }
+
+        /// <summary>Capsule: total height is <c>2 * (HalfHeight + Radius)</c>, origin at the feet.</summary>
+        public class ColliderSpec
+        {
+            public float Radius = 0.3f;
+            public float HalfHeight = 0.6f;
+        }
+
+        /// <summary>Three-tier gait in m/s: no modifier walks, Alt jogs, Shift sprints.</summary>
+        public class MovementSpec
+        {
+            public float WalkSpeed = 2f;
+            public float JogSpeed = 4.5f;
+            public float SprintSpeed = 7f;
+        }
+
+        /// <summary>Sprint budget. Empty forces a walk until it climbs back to <see cref="ResumeThreshold"/>.</summary>
+        public class StaminaSpec
+        {
+            public float Max = 100f;
+            public float DrainPerSec = 25f;
+            public float RegenPerSec = 18f;
+            public float JogRegenPerSec = 6f;
+            public float ResumeThreshold = 20f;
+        }
+
+        /// <summary>
+        /// The third-person boom, in the player's LOCAL frame. Run it through
+        /// <see cref="Convert.ModelOffset"/>, not <see cref="Convert.Pos"/> — three.js faces -Z.
+        /// </summary>
+        public class PlayerCameraSpec
+        {
+            public Vec3 Offset;
+            public float LookYOffset = 1.8f;
+
+            /// <summary>Fraction of the remaining distance closed per frame at 60 fps.</summary>
+            public float FollowLerp = 0.25f;
         }
     }
 }

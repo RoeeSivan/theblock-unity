@@ -8,13 +8,30 @@ this file is.
 
 ## RESUME HERE
 
-**Next action:** confirm U5 by play-test, then start U6 — character controller + camera follow.
+**Next action:** play-test U6 — walk Joe around downtown and say whether the movement feels right.
 
-U5 is built and screenshot-verified but **not user-confirmed**, so it is `wip`. To close it: open
-`Assets/Scenes/World.unity`, run **The Block → Build World**, and check the console report and the
-Scene view. If the world looks right, U5 flips to `done` and nothing else changes.
+U6 is built and compiles clean; the camera lands behind Joe on Play and he stands on the plaza
+instead of falling through. What it cannot verify without the user is **feel**, which is the whole
+point of the unit. Controls:
 
-**The world is now generated, not hand-placed.** `World.unity` holds four roots:
+| key | does |
+| --- | --- |
+| `W` / `S` | forward / back along whatever Joe faces |
+| `A` / `D` | turn Joe left / right (tank controls — the camera follows the body, it does not steer it) |
+| `Shift` | sprint, 7.0 m/s, drains stamina |
+| `Alt` | jog, 4.5 m/s |
+| nothing | walk, 2.0 m/s |
+| `Space` | jump |
+
+What to judge: does the turn rate feel right, does the camera trail nicely or lag/whip, do curbs
+step up cleanly, does Joe stop at walls. Speeds and stamina are ported values, not re-derived, so
+they may want tuning by eye. **Joe will slide in a fixed walk pose — that is expected, the animator
+is U7.**
+
+Then U7 (animator state machine) reads `PlayerController.CurrentGait` / `.CurrentPose`, which are
+already published for it.
+
+**The world is generated, not hand-placed.** `World.unity` holds four roots:
 `Main Camera`, `Directional Light`, `Player_Joe`, and `World` — everything under `World` is
 WorldBuilder's output and is destroyed and rebuilt on every run. **Never hand-edit anything under
 `World`**; change `config.ts` or `WorldBuilder.cs` instead.
@@ -85,13 +102,13 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | U2 | Character import — Mixamo FBX as Humanoid, walk clip | done | `13cea9f` | `JoeAvatar` isHuman, 52 bones; clips `Joe_Idle`/`Joe_Walk` loop. Bones were `mixamorig7:` — suffix varies per export, Humanoid makes it moot |
 | U3 | `Convert` handedness helper | done | `16fe0ee` | Negate X. `Assets/Scripts/Core/Convert.cs`; verified 8/8 against the placed scene objects |
 | U4 | `export-config.mjs` → `theblock-config.json` | done | `62d917a` | Whole config, not a subset — the game repo gets one change ever, so a subset would force re-editing it at U12/U13/U17. 61 KB, byte-identical across runs |
-| U5 | `WorldBuilder` Editor script | wip | `62d917a` | **Built and screenshot-verified; awaiting the user's play-test.** Menu **The Block → Build World**. Next action: user opens `World.unity`, runs it, confirms → flip to `done`. Nothing left to code |
+| U5 | `WorldBuilder` Editor script | done | `62d917a` | Menu **The Block → Build World**. User-confirmed 2026-08-13: their run reproduced the report line for line — 9 placed, 4 missing, 96 colliders |
 
 ### Tier 1 — Traversal
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
-| U6 | Character controller + camera follow | todo | | ports `src/player/` |
-| U7 | Animator state machine (idle/walk/run/jump) | todo | | |
+| U6 | Character controller + camera follow | wip | `pending` | **Built, compiles clean, camera verified behind Joe; awaiting the user's feel test.** `Assets/Scripts/Player/{PlayerController,FollowCamera}.cs` on `Player_Joe` / `Main Camera`. Next action: user walks him around and says whether it feels right. Nothing left to code |
+| U7 | Animator state machine (idle/walk/run/jump) | todo | | Reads `PlayerController.CurrentGait` / `.CurrentPose`, already published. `Joe.controller` currently has no parameters and one looping clip |
 
 ### Tier 2 — Vehicles
 | id | unit | state | commit | notes |
@@ -208,6 +225,20 @@ Dated one-liners. These are settled — do not re-litigate them without the user
 - **2026-08-13** (U5) — **Substitute models go in `WorldBuilder.AssetAliases`, never renamed on
   disk.** A rename hides the substitution; the alias table warns on every build. First entry is the
   pizza place.
+- **2026-08-13** (U6) — **Model-local offsets need `Convert.ModelOffset`, not `Convert.Pos`.** A
+  world position only crosses the handedness change; an offset in a model's own frame also crosses a
+  convention change, because three.js faces `-Z` and Unity faces `+Z`. Through `Pos` the chase
+  camera lands in the character's face. Z verified against Joe; X is still unverified, since every
+  offset ported so far has `x = 0`.
+- **2026-08-13** (U6) — **Tank controls carry over.** A/D turn the body, W/S drive along its facing,
+  and the camera trails rather than steers. This is the original's design, not a three.js
+  limitation, so rule 5 says it stays.
+- **2026-08-13** (U6) — **Unity's `CharacterController` replaces the Rapier kinematic capsule plus
+  hand-rolled collide-and-slide.** Same behaviour, one component, and it brings `stepOffset` — which
+  the web build had no equivalent for and which is what gets Joe up a Florentin curb.
+- **2026-08-13** (U6) — **No Cinemachine yet.** The chase camera is fifteen lines with a specific
+  feel to reproduce; a camera framework earns its place at U23's helicopter and U26's menus, not
+  here.
 - **2026-08-12** (U1) — **Downtown gets one collider over the whole mesh.** `city.noCollidePatterns`
   matches node *or* material names; `first-one.glb` has no per-object nodes and its only foliage
   material (`AM113_072_Washingtonia_filifera`) matches no pattern — so the shipped web build
