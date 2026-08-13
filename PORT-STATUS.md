@@ -80,11 +80,22 @@ rebinds to `Facade.mat` on its own.
 For the two hand-modelled ones, check `blender/` in the game repo and `source-assets/Untitled.blend`
 first; else fall back to the shipped GLBs (271 KB / 497 KB, so the loss is small).
 
-**Pizza place is a stand-in.** `Assets/Models/Places/low_poly_pizza_restaurant.glb` (370 KB, user
-sourced 2026-08-13) fills in for `pizza-lila.glb` via `WorldBuilder.AssetAliases`, which warns on
-every build so a substitute never quietly passes for the real thing. Its node `PizzaLight` matched
-the config's `hideNodes`, which suggests it is the same Sketchfab base the original was built from —
-so `scale: 1.6` is probably right, but it still wants an eyeball.
+**Pizza place is a stand-in, and it needed three fixes** — all of them in
+`WorldBuilder.AssetAliases` rather than baked into the file, so the download stays as downloaded and
+the correction stays visible in the build report. User-confirmed 2026-08-13.
+
+- It shipped a **collision proxy**: a `Collider` node holding a coarse box at 100× non-uniform
+  scale, meant for physics and never to be drawn. It rendered as a grey slab over the shop and was
+  the first thing a downward raycast hit, so ground probes read its roof. `HideCollisionProxies`
+  now disables `Collider*` nodes on every place. Expect this on any Sketchfab prop — see memory
+  `sketchfab-collider-proxy-node`.
+- It **lay on its back**: the GLB's node chain leaves local Y and Z swapped, so the lamp post ran
+  3.28 m along Z instead of standing up. Corrected with `ExtraEuler = (-90, 0, 0)`.
+- Its **pivot is at the model's centre**, not its base, so half of it was underground.
+  `ExtraY = 0.15` rests it on the pavement.
+
+Stand-ins also **skip the config's `hideNodes`**: those name parts of the original model, and this
+one happens to share the name `PizzaLight` — which is its lamp post, not the original's light.
 
 **Known issues, all belong to U11:**
 - Foliage renders as white shards — imported `alphaMode: BLEND` with ZWrite off. Alpha-clip is the
@@ -239,9 +250,13 @@ Dated one-liners. These are settled — do not re-litigate them without the user
 - **2026-08-13** (U5) — **Foliage is excluded from collision only when the WHOLE renderer is
   foliage.** The district GLBs are merged meshes; "any material matches" stripped collision from
   entire districts. A mixed mesh collides, palms included — the same hole the web build has.
-- **2026-08-13** (U5) — **Substitute models go in `WorldBuilder.AssetAliases`, never renamed on
-  disk.** A rename hides the substitution; the alias table warns on every build. First entry is the
-  pizza place.
+- **2026-08-13** (U5) — **Substitute models go in `WorldBuilder.AssetAliases`, never renamed or
+  re-authored on disk.** A rename hides the substitution and an edited file hides the fix; the alias
+  table carries the file name plus whatever rotation and lift that stand-in needs, and warns on
+  every build. First entry is the pizza place, which needed all three.
+- **2026-08-13** (U5) — **A stand-in ignores the config's `hideNodes`.** Those names describe the
+  original model's parts, and a shared name means the wrong thing: the pizza substitute's `PizzaLight`
+  is its lamp post, not the light the web build hides.
 - **2026-08-13** (U6) — **Model-local offsets need `Convert.ModelOffset`, not `Convert.Pos`.** A
   world position only crosses the handedness change; an offset in a model's own frame also crosses a
   convention change, because three.js faces `-Z` and Unity faces `+Z`. Through `Pos` the chase

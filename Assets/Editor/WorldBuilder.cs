@@ -33,18 +33,43 @@ namespace TheBlock.EditorTools
         private static readonly string[] LegacyRootPrefixes = { "District_", "Place_" };
 
         /// <summary>
-        /// Stand-ins for models the web build has and this project does not.
+        /// A stand-in for a model the web build has and this project does not, plus whatever it takes
+        /// to make that stand-in sit where the original would have.
         ///
-        /// Keyed by the file name in <c>config.ts</c>, valued with the file actually in the project.
-        /// A substitute is NOT the same model, so its config-side `scale`, `yaw` and `hideNodes` were
-        /// tuned for something else and will need re-tuning by eye. Every use is called out in the
-        /// build report so a stand-in never quietly passes for the real thing.
+        /// The correction lives here rather than being baked into the asset on disk: the file stays
+        /// exactly as it was downloaded, and the fix stays visible and re-runnable. Every use is
+        /// called out in the build report, so a substitute never quietly passes for the real thing.
         /// </summary>
-        private static readonly Dictionary<string, string> AssetAliases = new()
+        private sealed class Substitute
+        {
+            /// <summary>File name as it exists under <c>Assets/Models</c>.</summary>
+            public string File;
+
+            /// <summary>Rotation applied in the model's OWN frame, before the config's yaw.</summary>
+            public Vector3 ExtraEuler;
+
+            /// <summary>Lift above the config position, to rest the model on the ground it actually meets.</summary>
+            public float ExtraY;
+
+            public string Note;
+        }
+
+        /// <summary>Keyed by the file name <c>config.ts</c> asks for.</summary>
+        private static readonly Dictionary<string, Substitute> AssetAliases = new()
         {
             // Pizza Lila is hand-modelled and has no distributable source; this is a low-poly
-            // substitute the user sourced. Scale/yaw are the original's and are almost certainly wrong.
-            ["pizza-lila.glb"] = "low_poly_pizza_restaurant.glb",
+            // substitute the user sourced. config's scale 1.6 and yaw 0 were tuned for the original.
+            ["pizza-lila.glb"] = new Substitute
+            {
+                File = "low_poly_pizza_restaurant.glb",
+                // The GLB's node chain leaves the model lying on its back — its local Y and Z end up
+                // swapped, so the lamp post runs along Z instead of standing up. Rx(-90) rights it and
+                // lands the base exactly on the model's own zero.
+                ExtraEuler = new Vector3(-90f, 0f, 0f),
+                // config says y=0, which was correct for the original. The pavement here is at 0.15.
+                ExtraY = 0.15f,
+                Note = "lies on its back out of the box; righted and lifted onto the pavement",
+            },
         };
 
         [MenuItem("The Block/Build World", priority = 0)]
@@ -163,11 +188,12 @@ namespace TheBlock.EditorTools
             List<string> hideMaterials, List<string> noCollidePatterns, List<string> facadeMaterials,
             Options options, Report report)
         {
-            var instance = Instantiate(url, name, parent, report);
+            var instance = Instantiate(url, name, parent, report, out var substitute);
             if (instance == null) return;
 
             instance.name = $"District_{Sanitize(name)}";
-            instance.transform.position = Convert.Pos(position.Raw);
+            instance.transform.position = Convert.Pos(position.Raw) + Vector3.up * (substitute?.ExtraY ?? 0f);
+            instance.transform.rotation = Quaternion.Euler(substitute?.ExtraEuler ?? Vector3.zero);
             instance.transform.localScale = Vector3.one * (scale <= 0f ? 1f : scale);
             SetDistrictStaticFlags(instance);
 
@@ -183,15 +209,27 @@ namespace TheBlock.EditorTools
         {
             if (place == null) return;
 
-            var instance = Instantiate(place.Url, label, parent, report);
+            var instance = Instantiate(place.Url, label, parent, report, out var substitute);
             if (instance == null) return;
 
             instance.name = $"Place_{Sanitize(label)}";
-            instance.transform.position = Convert.Pos(place.Position.Raw);
-            instance.transform.rotation = Convert.RotFromRadians(place.Yaw);
+            instance.transform.position =
+                Convert.Pos(place.Position.Raw) + Vector3.up * (substitute?.ExtraY ?? 0f);
+            // The stand-in's correction goes on the right, so it stays in the model's own frame and
+            // the config's yaw still means the same thing it means for the real asset.
+            instance.transform.rotation =
+                Convert.RotFromRadians(place.Yaw) * Quaternion.Euler(substitute?.ExtraEuler ?? Vector3.zero);
             instance.transform.localScale = Vector3.one * (place.Scale <= 0f ? 1f : place.Scale);
 
-            if (place.HideNodes != null) HideByNode(instance, place.HideNodes, report);
+            HideCollisionProxies(instance, report);
+
+            // hideNodes names parts of the ORIGINAL model. A stand-in that happens to share a node
+            // name would lose a piece it needs — the pizza substitute's lamp post is called
+            // PizzaLight, the same name the original build hides.
+            if (substitute != null)
+                report.Notes.Add($"{instance.name}: hideNodes skipped — they name the original model's parts");
+            else if (place.HideNodes != null)
+                HideByNode(instance, place.HideNodes, report);
             if (options.Colliders)
                 AddColliders(instance, null, place.NoCollideNodes, place.CollideMaxY, report);
 
@@ -204,8 +242,10 @@ namespace TheBlock.EditorTools
         /// this project by file name. The web build's folder layout (optimized/, split/) is a download
         /// concern that does not exist here, so only the base name is matched.
         /// </summary>
-        private static GameObject Instantiate(string url, string label, Transform parent, Report report)
+        private static GameObject Instantiate(
+            string url, string label, Transform parent, Report report, out Substitute substitute)
         {
+            substitute = null;
             if (string.IsNullOrEmpty(url))
             {
                 report.Missing.Add($"{label} — config has no url");
@@ -213,10 +253,11 @@ namespace TheBlock.EditorTools
             }
 
             var fileName = url.Substring(url.LastIndexOf('/') + 1);
-            if (AssetAliases.TryGetValue(fileName, out var alias))
+            if (AssetAliases.TryGetValue(fileName, out substitute))
             {
-                report.Warnings.Add($"{label} — using stand-in {alias} for {fileName}; scale/yaw need re-tuning by eye");
-                fileName = alias;
+                report.Warnings.Add(
+                    $"{label} — stand-in {substitute.File} for {fileName}: {substitute.Note}");
+                fileName = substitute.File;
             }
 
             var bareName = System.IO.Path.GetFileNameWithoutExtension(fileName);
@@ -318,6 +359,30 @@ namespace TheBlock.EditorTools
             if (partial > 0)
                 report.Warnings.Add(
                     $"{instance.name}: {partial} renderer(s) mix baked cars with real geometry — left visible, needs a submesh split");
+        }
+
+        /// <summary>
+        /// Hides the crude collision proxy that Sketchfab-sourced props ship alongside their real
+        /// geometry — a node named <c>Collider</c> holding a coarse box, meant to be collided with
+        /// and never drawn.
+        ///
+        /// Imported straight, it renders as a grey slab swallowing the prop, and it is the first
+        /// thing a downward raycast hits, so ground probes read its roof instead of the pavement.
+        /// Hiding it also drops it from the collider pass, which only looks at active meshes — and
+        /// the real geometry makes a better collider than the box did.
+        /// </summary>
+        private static void HideCollisionProxies(GameObject instance, Report report)
+        {
+            var hidden = new List<string>();
+            foreach (var child in instance.GetComponentsInChildren<Transform>(true))
+            {
+                if (!child.name.StartsWith("Collider", StringComparison.OrdinalIgnoreCase)) continue;
+                child.gameObject.SetActive(false);
+                hidden.Add(child.name);
+            }
+
+            if (hidden.Count > 0)
+                report.Notes.Add($"{instance.name}: hid collision prox{(hidden.Count == 1 ? "y" : "ies")} {string.Join(", ", hidden)}");
         }
 
         private static void HideByNode(GameObject instance, List<string> hideNodes, Report report)

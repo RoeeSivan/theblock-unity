@@ -92,13 +92,24 @@ namespace TheBlock.Player
         public Vector3 LookTarget =>
             transform.position + Vector3.up * (_spec?.Camera?.LookYOffset ?? 1.8f);
 
-        private void Awake()
+        private void Awake() => Bind();
+
+        /// <summary>
+        /// Reads the config and shapes the capsule from it.
+        ///
+        /// Called from Awake, and again from Update if the spec has gone null. That happens when
+        /// scripts recompile while the Editor is in Play mode: the domain reloads, every field that
+        /// is not serializable comes back null, and Awake does NOT run again. Without this the
+        /// controller throws once per frame for the rest of the session.
+        /// </summary>
+        private void Bind()
         {
             _controller = GetComponent<CharacterController>();
 
             var snapshot = TheBlockConfig.Load();
-            if (snapshot == null)
+            if (snapshot?.Config?.Player == null)
             {
+                Debug.LogError("PlayerController: config has no `player` section.", this);
                 enabled = false;
                 return;
             }
@@ -126,6 +137,9 @@ namespace TheBlock.Player
 
         private void Update()
         {
+            if (_spec == null) Bind();
+            if (_spec == null) return;
+
             var keyboard = Keyboard.current;
             if (keyboard == null) return;
 
