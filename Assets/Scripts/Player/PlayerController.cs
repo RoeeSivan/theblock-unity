@@ -70,6 +70,16 @@ namespace TheBlock.Player
         /// <summary>Transient pose this frame; outranks <see cref="CurrentGait"/> when not Locomotion.</summary>
         public Pose CurrentPose { get; private set; } = Pose.Locomotion;
 
+        /// <summary>
+        /// Horizontal speed in m/s that the player is ASKING for this frame, not what it achieved.
+        /// Intent is the right input for the animator: pressed against a wall the achieved speed
+        /// drops to zero, and blending back to idle there would look like a bug, not a collision.
+        /// </summary>
+        public float PlanarSpeed { get; private set; }
+
+        /// <summary>Fires on the frame a jump leaves the ground. The animator listens for this.</summary>
+        public event System.Action Jumped;
+
         /// <summary>Sprint budget in [0,1], for the U25 HUD.</summary>
         public float StaminaFraction => _spec == null ? 1f : _stamina / _spec.Stamina.Max;
 
@@ -154,9 +164,12 @@ namespace TheBlock.Player
             {
                 _verticalSpeed = _spec.JumpForce;
                 _jumping = true;
+                Jumped?.Invoke();
             }
 
             _verticalSpeed += _gravity * dt;
+
+            PlanarSpeed = Mathf.Abs(moveDir) * speed;
 
             var velocity = transform.forward * (moveDir * speed);
             velocity.y = _verticalSpeed;
