@@ -8,25 +8,56 @@ this file is.
 
 ## RESUME HERE
 
-**Next action:** play-test U8 — press **V** to get into the Mustang and drive it. If it feels
-right, flip U8 to `done` and start U9.
+**Next action:** start **U9 — enter/exit state machine + seated driver.**
 
-**U8 is built and verified programmatically, but NOT yet by eye.** Everything below was measured in
-Play mode by driving the car with synthetic keyboard input; none of it has been watched by a human.
-What was confirmed: the car spawns at its config spawn on the lot with all four wheels grounded,
-accelerates to exactly the 20 m/s cap (72.4 km/h), reverses to exactly −7.03 m/s, brakes through
-zero when W is held while reversing, steers right on D, tracks straight to within 0.045 m over
-176 m, stays upright (1.0000) through a 72° turn at speed, and stops dead against a building.
+**U8 is done**, user-confirmed 2026-08-13: the Mustang drives and feels right.
 
-**What still needs a human:** how it FEELS, and whether the wheels look right while turning. Both
-are the whole point of the unit and neither is measurable from here.
+### What U9 has to build
 
-**The one thing that could not be tested at all is the V switch itself.** Injected key presses get
-batched into a single frame, so `wasPressedThisFrame` never fired and the swap never ran under test.
-The code path is ordinary, but treat V as unverified — if it does nothing, look there first.
+Replace `DebugVehicleSwitch.cs` — **delete that file**, it is U8 scaffolding that teleports on `V`
+with no door, no proximity test and no animation. What it does leave behind is the right shape for
+the swap: disable the controller you are leaving, enable the one you are taking, point the camera at
+the new `IChaseTarget`. Keep that much.
 
-**Tuning knobs, all serialized on `CarController`** (select the spawned `Mustang` during Play and
-edit in the Inspector; the values live on `Assets/Prefabs/Vehicles/Mustang.prefab`):
+The web build's mode enum is in `src/game/modes.ts` and is only six labels:
+
+```
+'onFoot' | 'entering' | 'driving' | 'exiting' | 'transition' | 'rhythm'
+```
+
+`entering`/`exiting` exist to freeze input while the door swings, so a trigger cannot fire
+mid-teleport. `transition` is for the interior fade (U13) and `rhythm` for U22 — U9 needs the first
+four. Run state lives in `src/game/game-state.ts`; the fields U9 cares about are `mode` and
+`activeVehicle`.
+
+Timings and geometry already in `config.vehicle`, all ported gameplay numbers:
+
+| field | value | means |
+| --- | --- | --- |
+| `enterRadius` | 4.5 m | how close Joe must stand — already on `TheBlockConfig.VehicleSpec` |
+| `enterDoorOpenTime` | 0.55 s | door swings before Joe is hidden |
+| `enterDoorCloseDelay` | 0.5 s | after hiding, before the door shuts → `driving` |
+| `exitDoorCloseTime` | 0.6 s | door open while stepping out, then shuts |
+| `exitSideOffset` | 1.8 m | how far beside the car Joe reappears |
+
+**The door is already rigged and needs no new asset.** `config.vehicle.cars[].door` for the Mustang
+is `{ jointName: 'Door_L_6', axis: 'z', openAngle: -1.134, lerpRate: 8 }`, and
+`TheBlockConfig.DoorSpec` already carries it. The GLB's armature puts the joint at the real hinge,
+so rotating the bone is enough and the skinned mesh follows — same trick `CarWheel` uses. Note
+`axis` is in the MODEL's frame, and `openAngle` is a three.js radian, so both need converting.
+
+**⚠ The seated driver is where `Convert.ModelOffset`'s unverified X finally gets tested.** The
+Mustang's seat block is `config.vehicle.driver.seats['/models/optimized/mustang.glb']` =
+`{ x: -2.31, y: -0.84, z: -0.1, yaw: -π/2, scale: 0.95 }`. Every model-local offset ported so far
+has had `x = 0`, so the X negation in `ModelOffset` has never once been exercised — its own doc
+comment says to check it against a landmark the first time a non-zero X appears, and calls out a
+driver's seat by name. **This is that moment.** If the driver ends up sitting in the passenger seat,
+the sign is wrong; fix it in `Convert`, never at the call site.
+
+### U8 reference — tuning knobs
+
+All serialized on `CarController` (select the spawned `Mustang` during Play and edit in the
+Inspector; the values live on `Assets/Prefabs/Vehicles/Mustang.prefab`):
 
 | feels wrong | knob | now |
 | --- | --- | --- |
@@ -42,8 +73,13 @@ Suspension and tyre-grip numbers are NOT here — they are baked into the prefab
 live as constants at the top of `Assets/Editor/CarBuilder.cs`. Change them there and re-run
 **The Block → Build Mustang**, which rebuilds the prefab in place so the scene keeps its reference.
 
-Controls while driving: `W`/`S` throttle and brake-then-reverse, `A`/`D` steer, `Space` handbrake,
-`V` in/out.
+Controls while driving: `W`/`S` throttle and brake-then-reverse, `A`/`D` steer, `Space` handbrake.
+`V` gets in and out until U9 replaces it with `E` and a real door.
+
+Measured in Play with synthetic input, if any of it ever looks wrong later: spawns on the lot with
+four wheels grounded, caps at 20.10 m/s and −7.03 m/s, brakes through zero, steers right on `D`,
+tracks straight to 0.045 m over 176 m, holds upright 1.0000 through a 72° turn at speed, and stops
+dead against a building.
 
 **U7 is done** — the user confirmed walk, sprint and jump all read right on 2026-08-13.
 
@@ -206,8 +242,8 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 ### Tier 2 — Vehicles
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
-| U8 | Vehicle base + one drivable car | wip | `b789c5a` | **Built and measured; awaiting the user's eyes only.** Rigidbody + 4 WheelColliders, NOT a port of the kinematic `vehicle.ts`. `Assets/Scripts/Vehicle/{CarController,CarWheel,CarSpawner,DebugVehicleSwitch}.cs`; prefab generated by **The Block → Build Mustang** (`Assets/Editor/CarBuilder.cs`). Press **V** to drive. Next action: play-test for feel, then flip to `done`. See RESUME HERE for the tuning table and the untested V switch |
-| U9 | Enter/exit state machine + seated driver | todo | | mirrors `game/game-state.ts` mode enum |
+| U8 | Vehicle base + one drivable car | done | `b789c5a` | Rigidbody + 4 WheelColliders, NOT a port of the kinematic `vehicle.ts`. `Assets/Scripts/Vehicle/{CarController,CarWheel,CarSpawner,DebugVehicleSwitch}.cs`; prefab generated by **The Block → Build Mustang** (`Assets/Editor/CarBuilder.cs`). User-confirmed 2026-08-13: it drives and feels right. Tuning table in RESUME HERE. `DebugVehicleSwitch` (`V`) is scaffolding U9 deletes |
+| U9 | Enter/exit state machine + seated driver | todo | | **Next unit.** Mirrors `game/modes.ts` — `onFoot`/`entering`/`driving`/`exiting`. Deletes `DebugVehicleSwitch.cs`. Door bone + timings are already in config and in `TheBlockConfig.DoorSpec`; the seat offset is the first non-zero X ever ported, so it finally tests `Convert.ModelOffset`. Full brief in RESUME HERE |
 | U10 | Motorcycle | todo | | feel is re-derived, not ported — budget real time |
 
 ### Tier 3 — World
