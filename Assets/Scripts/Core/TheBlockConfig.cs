@@ -197,10 +197,72 @@ namespace TheBlock.Core
             /// <summary>Steering lock in RADIANS (0.6 → ~34°). Degrees at the WheelCollider.</summary>
             public float MaxWheelAngle = 0.6f;
 
-            /// <summary>How near the player must be to enter. U9's number, parked here with its family.</summary>
+            /// <summary>How near the player must be to enter, in metres, measured on the ground plane.</summary>
             public float EnterRadius = 4.5f;
 
+            /// <summary>
+            /// Quick-enter timings, in seconds. These are the fallback path: the door swings for
+            /// <see cref="EnterDoorOpenTime"/>, the driver appears, and
+            /// <see cref="EnterDoorCloseDelay"/> later it shuts and the car is drivable. A car with
+            /// a <see cref="DriverSpec"/> seat block uses its entry CLIP instead and ignores both —
+            /// the same split the web build makes between tuned and untuned cars.
+            /// </summary>
+            public float EnterDoorOpenTime = 0.55f;
+
+            public float EnterDoorCloseDelay = 0.5f;
+
+            /// <summary>How long the door stays open behind you on the way out, in seconds.</summary>
+            public float ExitDoorCloseTime = 0.6f;
+
+            /// <summary>How far beside the car the driver is set down, in metres.</summary>
+            public float ExitSideOffset = 1.8f;
+
+            public DriverSpec Driver;
+
             public List<CarSpec> Cars;
+        }
+
+        /// <summary>
+        /// The seated driver: where the entry animation starts, per car model, and when the door
+        /// swings during it.
+        ///
+        /// The seat block is NOT the seat cushion. It is where the entry clip's own origin goes —
+        /// the driver standing beside the door at road level — and the clip's baked hip travel
+        /// carries him from there into the car. That is why the Mustang's <c>x</c> is 2.31 m, which
+        /// would be outside a 2 m-wide car if it meant the cushion.
+        /// </summary>
+        public class DriverSpec
+        {
+            /// <summary>Entry-clip progress in [0,1] at which the door starts opening.</summary>
+            public float DoorOpenAt = 0.25f;
+
+            /// <summary>Entry-clip progress at which it starts shutting again.</summary>
+            public float DoorCloseAt = 0.7f;
+
+            /// <summary>Keyed by <c>modelUrl</c> — a car with no entry here gets the quick enter.</summary>
+            public Dictionary<string, SeatSpec> Seats;
+        }
+
+        /// <summary>
+        /// One car model's driver anchor, in the car's own local frame, measured from the BODY
+        /// CENTRE — the web build recentres each car inside a holder, so that is what its numbers
+        /// are relative to. Unity's prefab root sits on the tyre contact patch instead, so
+        /// <c>CarBuilder</c> adds the measured body centre back before placing the anchor.
+        /// </summary>
+        public class SeatSpec
+        {
+            public float X;
+            public float Y;
+            public float Z;
+
+            /// <summary>Radians, right-handed. Use <see cref="Convert.RotFromRadians"/>.</summary>
+            public float Yaw;
+
+            /// <summary>Uniform scale on the driver, so a body that sits a touch large is trimmed.</summary>
+            public float Scale = 1f;
+
+            /// <summary>Unconverted. Feed it to <see cref="Convert.ModelOffset"/>, never <see cref="Convert.Pos"/>.</summary>
+            public Vector3 Raw => new Vector3(X, Y, Z);
         }
 
         /// <summary>One drivable car. The web build lists 16; U8 builds the Mustang.</summary>
@@ -245,17 +307,22 @@ namespace TheBlock.Core
             public Vector3 Raw => new Vector3(X, 0f, Z);
         }
 
-        /// <summary>The single hinged driver door. U9 animates it; U8 only carries it across.</summary>
+        /// <summary>
+        /// The single hinged driver door, as a bone in the car's own armature. The GLB puts that
+        /// joint at the real hinge, so rotating the bone is enough and the skinned mesh follows —
+        /// no pivot wrapper, the same trick <c>CarWheel</c> uses.
+        /// </summary>
         public class DoorSpec
         {
             public string JointName;
 
-            /// <summary>Hinge axis in the MODEL's frame: "x", "y" or "z".</summary>
+            /// <summary>Hinge axis in the BONE's own local frame: "x", "y" or "z".</summary>
             public string Axis;
 
-            /// <summary>Open angle in radians.</summary>
+            /// <summary>Open angle in radians, right-handed. See <see cref="Convert.ModelAxis"/>.</summary>
             public float OpenAngle;
 
+            /// <summary>Exponential smoothing rate; higher is snappier. Frame-rate independent.</summary>
             public float LerpRate = 8f;
         }
 

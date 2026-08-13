@@ -94,7 +94,10 @@ namespace TheBlock.EditorTools
 
                 BuildChassis(root, bounds, log);
                 var wheels = BuildWheels(root.transform, wheelBones, bounds, log);
-                Wire(root, wheels, log);
+                var door = BuildDoor(root, visual.transform, spec, log);
+                var anchor = BuildDriverAnchor(
+                    root.transform, spec, bounds, snapshot.Config.Vehicle.Driver, log);
+                Wire(root, wheels, anchor, door, log);
                 if (spec.BodyColor.HasValue) Paint(visual, carName, spec.BodyColor.Value, log);
 
                 var path = SavePrefab(root, carName);
@@ -322,7 +325,114 @@ namespace TheBlock.EditorTools
             log.AppendLine($"mass    {Mass:0} kg");
         }
 
-        private static void Wire(GameObject root, Dictionary<Corner, WheelCollider> wheels, StringBuilder log)
+        // --- cabin -------------------------------------------------------------------------------
+
+        private static readonly Dictionary<string, Vector3> DoorAxes = new()
+        {
+            { "x", Vector3.right },
+            { "y", Vector3.up },
+            { "z", Vector3.forward },
+        };
+
+        /// <summary>
+        /// Adds the driver's door, hinged on the armature joint the config names.
+        ///
+        /// The axis is the only part that needs thought. It is written in the JOINT's own local
+        /// frame, which glTFast has already re-expressed on import, so it goes through
+        /// <see cref="Convert.ModelAxis"/> — and the ANGLE is left exactly as authored, because
+        /// reading an axis-angle out of a converted quaternion moves the sign onto the axis and not
+        /// onto the angle. Getting that backwards swings the door into the cabin instead of out.
+        /// </summary>
+        private static CarDoor BuildDoor(
+            GameObject root, Transform visual, TheBlockConfig.CarSpec spec, StringBuilder log)
+        {
+            if (spec.Door == null || string.IsNullOrEmpty(spec.Door.JointName))
+            {
+                log.AppendLine("door    none in config — this car has no opening door");
+                return null;
+            }
+
+            var joint = visual.GetComponentsInChildren<Transform>(true)
+                .FirstOrDefault(t => t.name == spec.Door.JointName);
+            if (joint == null)
+            {
+                log.AppendLine($"door    SKIPPED — no joint named '{spec.Door.JointName}' in the rig");
+                return null;
+            }
+
+            var key = (spec.Door.Axis ?? "z").ToLowerInvariant();
+            if (!DoorAxes.TryGetValue(key, out var axis))
+            {
+                log.AppendLine($"door    SKIPPED — axis '{spec.Door.Axis}' is not x, y or z");
+                return null;
+            }
+
+            var unityAxis = Convert.ModelAxis(axis);
+            var degrees = spec.Door.OpenAngle * Mathf.Rad2Deg;
+
+            var component = root.AddComponent<CarDoor>();
+            component.Configure(joint, unityAxis, degrees, spec.Door.LerpRate);
+
+            log.AppendLine($"door    {spec.Door.JointName} hinged on local {Fmt(unityAxis)} " +
+                           $"at {degrees:0.#}° (config axis '{key}', {spec.Door.OpenAngle:0.###} rad)");
+            return component;
+        }
+
+        /// <summary>
+        /// Places the driver's entry anchor — where the seated-driver animation STARTS.
+        ///
+        /// Not the seat cushion. <c>config.vehicle.driver.seats</c> holds the transform of the entry
+        /// clip's own origin, which is the driver standing beside the door at road level; the clip's
+        /// baked hip travel carries him from there into the car. That is why the Mustang's x is
+        /// 2.31 m, well outside a 2 m-wide body.
+        ///
+        /// Two corrections turn that block into a Unity local transform:
+        ///
+        ///  - The web build recentres each car inside a holder, so its numbers are measured from the
+        ///    BODY CENTRE. This prefab's origin is the tyre contact patch instead, so the measured
+        ///    centre is added back.
+        ///  - <see cref="Convert.ModelOffset"/> for the offset and <see cref="Convert.RotFromRadians"/>
+        ///    for the yaw. The web build adds a π to that yaw to turn a Mixamo body that faces +Z in
+        ///    a -Z-forward engine; Unity's forward IS +Z, so that π is exactly what is not needed
+        ///    here and a plain negation is the whole conversion.
+        ///
+        /// This is the first non-zero X ever put through <c>ModelOffset</c>, and it is what caught
+        /// the sign that used to be in there — see that method's history.
+        /// </summary>
+        private static Transform BuildDriverAnchor(
+            Transform root, TheBlockConfig.CarSpec spec, Bounds bounds,
+            TheBlockConfig.DriverSpec driver, StringBuilder log)
+        {
+            TheBlockConfig.SeatSpec seat = null;
+            var seats = driver?.Seats;
+            if (seats != null && !string.IsNullOrEmpty(spec.ModelUrl))
+                seats.TryGetValue(spec.ModelUrl, out seat);
+
+            if (seat == null)
+            {
+                log.AppendLine($"seat    none for {spec.ModelUrl} — this car uses the quick enter");
+                return null;
+            }
+
+            var anchor = new GameObject("DriverAnchor");
+            anchor.transform.SetParent(root, false);
+            anchor.transform.localPosition = bounds.center + Convert.ModelOffset(seat.Raw);
+            anchor.transform.localRotation = Convert.RotFromRadians(seat.Yaw);
+            anchor.transform.localScale = Vector3.one * (seat.Scale <= 0f ? 1f : seat.Scale);
+
+            var side = anchor.transform.localPosition.x < 0f ? "left" : "right";
+            log.AppendLine(
+                $"seat    config ({seat.X:0.##}, {seat.Y:0.##}, {seat.Z:0.##}) about the body centre " +
+                $"→ local {Fmt(anchor.transform.localPosition)}, the car's {side}");
+            log.AppendLine(
+                $"        yaw {seat.Yaw:0.###} rad → {anchor.transform.localEulerAngles.y:0.#}°, " +
+                $"scale {anchor.transform.localScale.x:0.##}");
+            return anchor.transform;
+        }
+
+        private static void Wire(
+            GameObject root, Dictionary<Corner, WheelCollider> wheels, Transform driverAnchor,
+            CarDoor door, StringBuilder log)
         {
             var car = root.AddComponent<CarController>();
             var serialized = new SerializedObject(car);
@@ -330,8 +440,12 @@ namespace TheBlock.EditorTools
             serialized.FindProperty("frontRight").objectReferenceValue = wheels[Corner.FrontRight];
             serialized.FindProperty("rearLeft").objectReferenceValue = wheels[Corner.RearLeft];
             serialized.FindProperty("rearRight").objectReferenceValue = wheels[Corner.RearRight];
+            serialized.FindProperty("driverAnchor").objectReferenceValue = driverAnchor;
+            serialized.FindProperty("door").objectReferenceValue = door;
             serialized.ApplyModifiedPropertiesWithoutUndo();
-            log.AppendLine("wired   CarController to all four wheels");
+            log.AppendLine($"wired   CarController to all four wheels" +
+                           $"{(driverAnchor == null ? "" : ", the driver anchor")}" +
+                           $"{(door == null ? "" : ", the door")}");
         }
 
         // --- paint -------------------------------------------------------------------------------

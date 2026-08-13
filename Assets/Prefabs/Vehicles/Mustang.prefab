@@ -340,6 +340,37 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Vehicles.CarWheel
   bone: {fileID: 1206193406274554883}
+--- !u!1 &3986025426668928693
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6370438840362036079}
+  m_Layer: 0
+  m_Name: DriverAnchor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6370438840362036079
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3986025426668928693}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: -2.3100004, y: -0.03452903, z: 0.048164226}
+  m_LocalScale: {x: 0.95, y: 0.95, z: 0.95}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7369646303076228716}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &5337864890113706055
 GameObject:
   m_ObjectHideFlags: 0
@@ -386,6 +417,7 @@ GameObject:
   - component: {fileID: 7369646303076228716}
   - component: {fileID: 6299141599857580872}
   - component: {fileID: 9081003142918932460}
+  - component: {fileID: 5711726039461162507}
   - component: {fileID: 5105086891097756978}
   m_Layer: 0
   m_Name: Mustang
@@ -409,6 +441,7 @@ Transform:
   m_Children:
   - {fileID: 7862991254805504854}
   - {fileID: 7632122239469819839}
+  - {fileID: 6370438840362036079}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &6299141599857580872
@@ -459,6 +492,22 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.3822775, y: 1.3609419, z: 5.6496005}
   m_Center: {x: -0.00000047683716, y: 0.93047094, z: -0.051835775}
+--- !u!114 &5711726039461162507
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7917530804302240422}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57f628e9ae564818a2c1e3d600492360, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Vehicles.CarDoor
+  hinge: {fileID: 5779098166374793485}
+  openAxis: {x: 0, y: -0, z: -1}
+  openAngle: -64.97341
+  lerpRate: 8
 --- !u!114 &5105086891097756978
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -484,6 +533,8 @@ MonoBehaviour:
   steerAtTopSpeed: 0.35
   centerOfMass: {x: 0, y: 0.35, z: -0.1}
   downforce: 0.6
+  driverAnchor: {fileID: 6370438840362036079}
+  door: {fileID: 5711726039461162507}
   fallbackLookYOffset: 0.5
 --- !u!1001 &1614021242806799256
 PrefabInstance:
@@ -559,6 +610,11 @@ Transform:
 --- !u!4 &5104088025337259561 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -3408245524147311183, guid: 9133068c0c0634889a78f164d80174fd, type: 3}
+  m_PrefabInstance: {fileID: 1614021242806799256}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &5779098166374793485 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5068059128745593493, guid: 9133068c0c0634889a78f164d80174fd, type: 3}
   m_PrefabInstance: {fileID: 1614021242806799256}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &6372752028079615703 stripped

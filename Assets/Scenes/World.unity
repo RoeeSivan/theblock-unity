@@ -1842,13 +1842,20 @@ MonoBehaviour:
   m_GameObject: {fileID: 776202320}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d8efb31a552f548b4822c4e1580737c1, type: 3}
+  m_Script: {fileID: 11500000, guid: 9952d8f2f70d448da908a376963e6f83, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Vehicles.DebugVehicleSwitch
+  m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Vehicles.VehicleEnterExit
   player: {fileID: 0}
+  playerAnimator: {fileID: 0}
   followCamera: {fileID: 0}
   spawner: {fileID: 0}
-  exitOffset: {x: -2, y: 0, z: 0}
+  exitProbeHeight: 5
+  exitProbeDepth: 25
+  mode: 0
+  activeVehicle: {fileID: 0}
+  timer: 0
+  usingEntryClip: 0
+  driverHidden: 0
 --- !u!114 &776202322
 MonoBehaviour:
   m_ObjectHideFlags: 0

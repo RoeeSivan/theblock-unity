@@ -76,15 +76,22 @@ namespace TheBlock.Player
             transform.LookAt(_target.LookTarget);
         }
 
-        /// <summary>Points the camera at a new target and cuts to it. Null falls back to the player.</summary>
-        public void Follow(IChaseTarget target)
+        /// <summary>
+        /// Points the camera at a new target. Null falls back to the player.
+        ///
+        /// <paramref name="snap"/> cuts to the new boom; without it the camera eases across on its
+        /// usual lerp. Enter and exit pass <c>false</c>: the two booms are metres apart and a cut
+        /// there reads as a glitch, where a sweep reads as the camera pulling back off the car.
+        /// A teleport across the city is what <see cref="SnapToTarget"/> is for.
+        /// </summary>
+        public void Follow(IChaseTarget target, bool snap = true)
         {
             _target = target ?? player;
-            SnapToTarget();
+            if (snap) SnapToTarget();
         }
 
         /// <summary>Back to the on-foot boom — what leaving a vehicle calls.</summary>
-        public void FollowPlayer() => Follow(player);
+        public void FollowPlayer(bool snap = true) => Follow(player, snap);
 
         /// <summary>Jumps the camera onto its mark with no smoothing — spawn, teleport, cut.</summary>
         public void SnapToTarget()

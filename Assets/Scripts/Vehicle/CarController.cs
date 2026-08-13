@@ -70,6 +70,13 @@ namespace TheBlock.Vehicles
                  "loaded over crests so it does not take off on a curb.")]
         [SerializeField] private float downforce = 0.6f;
 
+        [Header("Cabin — wired by CarBuilder from config.vehicle.driver / .cars[].door")]
+        [Tooltip("Where the driver's entry animation starts: beside the door, at road level. The " +
+                 "clip's own travel carries him from here into the seat.")]
+        [SerializeField] private Transform driverAnchor;
+
+        [SerializeField] private CarDoor door;
+
         [Header("Camera")]
         [Tooltip("Look point height above the body origin, if config.camera.lookYOffset is missing.")]
         [SerializeField] private float fallbackLookYOffset = 0.5f;
@@ -85,6 +92,18 @@ namespace TheBlock.Vehicles
 
         /// <summary>False while nobody is at the wheel: the car sits there and ignores the keyboard.</summary>
         public bool Driven { get; set; }
+
+        /// <summary>
+        /// Where the driver is parented on the way in, or null on a car with no seat block in
+        /// <c>config.vehicle.driver.seats</c> — which is the signal to use the quick enter instead.
+        /// </summary>
+        public Transform DriverAnchor => driverAnchor;
+
+        /// <summary>The driver's door, or null if this model's rig has no door joint.</summary>
+        public CarDoor Door => door;
+
+        /// <summary>The car's left, which is the side the driver's door is on.</summary>
+        public Vector3 DriverSide => -transform.right;
 
         /// <summary>Signed speed along the car's nose in m/s. Negative is reversing.</summary>
         public float ForwardSpeed => Vector3.Dot(_body.linearVelocity, transform.forward);

@@ -47,21 +47,46 @@ namespace TheBlock.Core
         /// An offset expressed in a MODEL's own local frame — a camera boom, a seat anchor, a
         /// muzzle point. This is not the same conversion as <see cref="Pos"/>.
         ///
-        /// A world position only has to survive the handedness change (negate X). A model-local
-        /// offset also has to survive a change of convention: three.js treats an object's forward
-        /// as <c>-Z</c>, Unity treats it as <c>+Z</c>. So the same physical spot behind a character
-        /// is <c>z = +2.5</c> in the web build and <c>z = -2.5</c> here. Feed a config offset
+        /// ONLY Z FLIPS. Both engines put a model's right at local <c>+X</c> and its up at
+        /// <c>+Y</c>; they disagree only about forward, which is <c>-Z</c> in three.js and
+        /// <c>+Z</c> here. So the same physical spot behind a character is <c>z = +2.5</c> in the
+        /// web build and <c>z = -2.5</c> in Unity, while left stays left. Feed a config offset
         /// through <see cref="Pos"/> by mistake and the camera ends up in the character's face.
         ///
         /// Z verified 2026-08-13 against Joe: the U2 checkpoint camera sits along his
         /// <c>transform.forward</c> and looks at his face, so his visual front is Unity's local
         /// <c>+Z</c>, and "behind" is local <c>-Z</c>.
         ///
-        /// X is negated for the same mirroring reason as <see cref="Pos"/>, but is UNVERIFIED — the
-        /// only offsets ported so far have <c>x = 0</c>. Check it against a landmark the first time
-        /// a non-zero X shows up (a driver's seat, a left-hand mirror).
+        /// X NEGATION REMOVED 2026-08-13 (U9) — it was here on the assumption that this shared
+        /// <see cref="Pos"/>'s mirroring, and the first non-zero X proved otherwise. A world
+        /// position flips because the whole world is mirrored on import. A model-local offset gets
+        /// that same flip from glTFast AND a second one from <see cref="ModelFacing"/>, which turns
+        /// the model back around — two flips, so none. Measured, not reasoned: the Mustang's rig
+        /// names its own corners, and <c>wheel_Front_L_0</c> at three.js-local
+        /// <c>(-0.992, 0.479, -1.562)</c> (left of centre, ahead of the origin) has to land on
+        /// Unity's left at <c>(-0.992, 0.479, +1.562)</c>, which is exactly where the imported
+        /// bone sits once <see cref="ModelFacing"/> is applied. Negating X put it on the right.
+        /// Cross-checked against <c>config.vehicle.driver.seats</c>, whose Mustang block places the
+        /// driver at <c>x = -2.31</c> — beside the LEFT-hand door the rig calls <c>Door_L_6</c>.
         /// </summary>
-        public static Vector3 ModelOffset(Vector3 offset) => new Vector3(-offset.x, offset.y, -offset.z);
+        public static Vector3 ModelOffset(Vector3 offset) => new Vector3(offset.x, offset.y, -offset.z);
+
+        /// <summary>
+        /// A rotation axis expressed in a MODEL's own local frame, in Unity space — a door hinge, a
+        /// rotor mast, a turret pin. Pair it with the config angle in degrees, unchanged.
+        ///
+        /// This is not <see cref="ModelOffset"/>: an axis is a pseudo-vector and does not transform
+        /// like a point. glTFast converts a node's local rotation quaternion
+        /// <c>(x, y, z, w)</c> → <c>(x, -y, -z, w)</c>, which is conjugation by <c>i</c> — an
+        /// automorphism, so it applies to a hinge delta exactly as it applies to the bone's rest
+        /// pose, and the two still compose. Reading the axis out of
+        /// <c>(a·sin(θ/2), cos(θ/2))</c> leaves the ANGLE alone and negates Y and Z of the axis.
+        ///
+        /// So <c>config.vehicle.cars[].door.axis = 'z'</c> with <c>openAngle = -1.134</c> rad
+        /// becomes Unity's local <c>(0, 0, -1)</c> at <c>-64.97°</c> — the same swing, read in a
+        /// left-handed frame.
+        /// </summary>
+        public static Vector3 ModelAxis(Vector3 axis) => new Vector3(axis.x, -axis.y, -axis.z);
 
         /// <summary>
         /// Turns a three.js-authored model so the thing it calls its front faces Unity's <c>+Z</c>.

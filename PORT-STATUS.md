@@ -8,51 +8,75 @@ this file is.
 
 ## RESUME HERE
 
-**Next action:** start **U9 — enter/exit state machine + seated driver.**
+**Next action:** start **U10 — motorcycle.**
 
-**U8 is done**, user-confirmed 2026-08-13: the Mustang drives and feels right.
+**U9 is done**, user-confirmed 2026-08-13: the walk-in reads right and the car still drives well.
 
-### What U9 has to build
+### What U9 built
 
-Replace `DebugVehicleSwitch.cs` — **delete that file**, it is U8 scaffolding that teleports on `V`
-with no door, no proximity test and no animation. What it does leave behind is the right shape for
-the swap: disable the controller you are leaving, enable the one you are taking, point the camera at
-the new `IChaseTarget`. Keep that much.
+`E` near a car → Joe walks up, opens the door, gets in (5.47 s). `E` again → he steps out 1.8 m to
+the car's left and the door shuts behind him. Input is frozen for the whole of both. `V` and
+`DebugVehicleSwitch.cs` are gone.
 
-The web build's mode enum is in `src/game/modes.ts` and is only six labels:
+| file | is |
+| --- | --- |
+| `Assets/Scripts/Core/GameMode.cs` | the four-label enum from `src/game/modes.ts` |
+| `Assets/Scripts/Vehicle/VehicleEnterExit.cs` | the machine, on the `Vehicles` root beside `CarSpawner` |
+| `Assets/Scripts/Vehicle/CarDoor.cs` | one rigged joint, exponential lerp to rest or open |
+| `Assets/Editor/JoeClipImporter.cs` | **The Block → Import Joe Clips** — the borrowed-clip import recipe, scripted |
+
+**There are two ways in, and both are the web build's.** A car with a seat block in
+`config.vehicle.driver.seats` plays the entry ANIMATION and its progress drives the door
+(`doorOpenAt` 0.25 → `doorCloseAt` 0.7). Anything else — the bike, the jetski, the heli, an untuned
+car, or the Mustang if the clip is ever missing — gets the QUICK enter off `enterDoorOpenTime` 0.55
+and `enterDoorCloseDelay` 0.5, with the rider simply hidden. **U10 needs the second path and it is
+already written**; do not add a third.
+
+**⚠ `Convert.ModelOffset` was wrong and is now fixed: X passes through, only Z flips.**
+`(x, y, -z)`. It had an X negation from U6 that no unit had ever exercised, because every offset
+ported until now had `x = 0`. Both engines put a model's right at local `+X`; only forward differs.
+The measurement is in the method's own doc comment. Nothing else moved — both camera booms are
+`x = 0` — but **anything that trusted the old shape is suspect**. `Convert.ModelAxis` is new and is a
+third conversion again: a rotation axis negates Y and Z and leaves the ANGLE alone.
+
+**⚠ The seat block is not a seat.** `{ x: -2.31, y: -0.84, z: -0.1, yaw: -π/2, scale: 0.95 }` is
+where the entry clip's ORIGIN goes — Joe standing beside the door at road level — and the clip's
+~1.9 m of baked hip travel does the sitting. Read as a cushion those numbers are absurd: 2.31 m
+sideways is outside a 2.38 m-wide car. `CarBuilder` adds the measured body centre back (the web
+build recentres each car in a holder; this prefab's origin is the tyre contact patch) and lands the
+anchor at car-local **(-2.31, -0.035, 0.048)** — the car's left, 3.5 cm off the road. The height
+falling out at ~0 is the cross-check: `y: -0.84` is half the measured 1.611 m body height.
+
+The clip is `Assets/Models/Characters/Joe_EnterCar.fbx`, the Mixamo source FBX (754 KB,
+animation-only). **Its travel must stay in the pose, not become root motion** — Bake Into Pose on
+rotation, position Y and position XZ, all Based Upon Original. `JoeClipImporter` sets that; add a
+row to its `Clips` table for the next one rather than clicking through the Inspector.
+
+### U10 — motorcycle
+
+`config.vehicle.motorcycle`, whole thing:
 
 ```
-'onFoot' | 'entering' | 'driving' | 'exiting' | 'transition' | 'rhythm'
+modelUrl: /models/pizza_delivery_bike_wolt.glb   modelScale 0.66   modelYaw π
+spawn (x -198, z -236)   roadSurfaceY 0.1   groundClearance 0.12
+rider: { scale 1.1, yaw 0, seat { x 0.01, y -0.49, z 0.23 } }
 ```
 
-`entering`/`exiting` exist to freeze input while the door swings, so a trigger cannot fire
-mid-teleport. `transition` is for the interior fade (U13) and `rhythm` for U22 — U9 needs the first
-four. Run state lives in `src/game/game-state.ts`; the fields U9 cares about are `mode` and
-`activeVehicle`.
+Note the spawn is 8 m from the Mustang's, so both are in the parking lot and `enterRadius` will
+have to choose between them — which is what `VehicleEnterExit.Nearest()` already does, except that
+it only walks `CarSpawner.Spawned`. **The bike is not a `CarController`**, so U10's real design
+question is what `Nearest()` iterates over: extract an interface both implement, or a registry that
+anything enterable adds itself to. U16's pedestrians and U17's traffic do not enter it; U23's
+helicopter and U24's jetski do.
 
-Timings and geometry already in `config.vehicle`, all ported gameplay numbers:
+Its rider IS a seat, unlike the car's: `src/vehicle/seated-rider.ts` freezes **frame 0** of a
+sitting clip and parents it to the bike, so the offsets are a real seated position. Source clip is
+`source-assets/models/Driving.fbx` (55 MB, ships a body — import animation only). U24's jetski
+reuses the identical rig, which is why that file exists at all.
 
-| field | value | means |
-| --- | --- | --- |
-| `enterRadius` | 4.5 m | how close Joe must stand — already on `TheBlockConfig.VehicleSpec` |
-| `enterDoorOpenTime` | 0.55 s | door swings before Joe is hidden |
-| `enterDoorCloseDelay` | 0.5 s | after hiding, before the door shuts → `driving` |
-| `exitDoorCloseTime` | 0.6 s | door open while stepping out, then shuts |
-| `exitSideOffset` | 1.8 m | how far beside the car Joe reappears |
-
-**The door is already rigged and needs no new asset.** `config.vehicle.cars[].door` for the Mustang
-is `{ jointName: 'Door_L_6', axis: 'z', openAngle: -1.134, lerpRate: 8 }`, and
-`TheBlockConfig.DoorSpec` already carries it. The GLB's armature puts the joint at the real hinge,
-so rotating the bone is enough and the skinned mesh follows — same trick `CarWheel` uses. Note
-`axis` is in the MODEL's frame, and `openAngle` is a three.js radian, so both need converting.
-
-**⚠ The seated driver is where `Convert.ModelOffset`'s unverified X finally gets tested.** The
-Mustang's seat block is `config.vehicle.driver.seats['/models/optimized/mustang.glb']` =
-`{ x: -2.31, y: -0.84, z: -0.1, yaw: -π/2, scale: 0.95 }`. Every model-local offset ported so far
-has had `x = 0`, so the X negation in `ModelOffset` has never once been exercised — its own doc
-comment says to check it against a landmark the first time a non-zero X appears, and calls out a
-driver's seat by name. **This is that moment.** If the driver ends up sitting in the passenger seat,
-the sign is wrong; fix it in `Convert`, never at the call site.
+**Feel is re-derived, not ported** (port rule 2) — and a two-wheeler is not a `CarController` with
+two wheels deleted. Budget real play-testing time. Whether PhysX WheelColliders can carry a bike at
+all, or whether it wants a leaning Rigidbody with raycast wheels, is the first thing to settle.
 
 ### U8 reference — tuning knobs
 
@@ -74,7 +98,7 @@ live as constants at the top of `Assets/Editor/CarBuilder.cs`. Change them there
 **The Block → Build Mustang**, which rebuilds the prefab in place so the scene keeps its reference.
 
 Controls while driving: `W`/`S` throttle and brake-then-reverse, `A`/`D` steer, `Space` handbrake.
-`V` gets in and out until U9 replaces it with `E` and a real door.
+`E` gets in and out.
 
 Measured in Play with synthetic input, if any of it ever looks wrong later: spawns on the lot with
 four wheels grounded, caps at 20.10 m/s and −7.03 m/s, brakes through zero, steers right on `D`,
@@ -242,9 +266,9 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 ### Tier 2 — Vehicles
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
-| U8 | Vehicle base + one drivable car | done | `b789c5a` | Rigidbody + 4 WheelColliders, NOT a port of the kinematic `vehicle.ts`. `Assets/Scripts/Vehicle/{CarController,CarWheel,CarSpawner,DebugVehicleSwitch}.cs`; prefab generated by **The Block → Build Mustang** (`Assets/Editor/CarBuilder.cs`). User-confirmed 2026-08-13: it drives and feels right. Tuning table in RESUME HERE. `DebugVehicleSwitch` (`V`) is scaffolding U9 deletes |
-| U9 | Enter/exit state machine + seated driver | todo | | **Next unit.** Mirrors `game/modes.ts` — `onFoot`/`entering`/`driving`/`exiting`. Deletes `DebugVehicleSwitch.cs`. Door bone + timings are already in config and in `TheBlockConfig.DoorSpec`; the seat offset is the first non-zero X ever ported, so it finally tests `Convert.ModelOffset`. Full brief in RESUME HERE |
-| U10 | Motorcycle | todo | | feel is re-derived, not ported — budget real time |
+| U8 | Vehicle base + one drivable car | done | `b789c5a` | Rigidbody + 4 WheelColliders, NOT a port of the kinematic `vehicle.ts`. `Assets/Scripts/Vehicle/{CarController,CarWheel,CarSpawner}.cs`; prefab generated by **The Block → Build Mustang** (`Assets/Editor/CarBuilder.cs`). User-confirmed 2026-08-13: it drives and feels right. Tuning table in RESUME HERE |
+| U9 | Enter/exit state machine + seated driver | done | `PENDING` | `E` and a real door. `Assets/Scripts/{Core/GameMode,Vehicle/VehicleEnterExit,Vehicle/CarDoor}.cs`; `DebugVehicleSwitch.cs` deleted. Both of the web build's enter paths — the 5.47 s entry clip for a car with a seat block, the timed door swing for everything else. **Caught and fixed a wrong X in `Convert.ModelOffset`.** User-confirmed 2026-08-13 |
+| U10 | Motorcycle | todo | | **Next unit.** Config, rider rig and the enterable-vehicle question are all briefed in RESUME HERE. Feel is re-derived, not ported — budget real time |
 
 ### Tier 3 — World
 | id | unit | state | commit | notes |
@@ -427,6 +451,35 @@ Dated one-liners. These are settled — do not re-litigate them without the user
   WorldBuilder just says "missing" while the real error hides in the Inspector. The fallback demotes
   it to extensionsUsed. Forcing JPEG would be smaller but drops alpha, and Reichman's flag is an
   alpha decal.
+- **2026-08-13** (U9) — **`Convert.ModelOffset` negates Z only; X passes through.** The negation it
+  carried since U6 was inherited from `Pos` on the assumption that both mirror, and no unit had ever
+  exercised it because every offset ported until now had `x = 0`. Both engines put a model's right
+  at local `+X` and its up at `+Y`; they disagree only about forward. Equivalently, glTFast's X
+  negation and `ModelFacing`'s 180° cancel. Measured against the Mustang's own rig, whose
+  `wheel_Front_L_0` has to stay on the left. A world position and a model-local offset are
+  permanently different conversions — see memory `model-offset-x-passes-through`.
+- **2026-08-13** (U9) — **One Joe, reparented — not a second body in the seat.** The web build hides
+  the walking player and mounts a separate skinned driver, because three.js had no cheap way to hand
+  one skeleton between two animation graphs; Unity does, so the same GameObject is parented to the
+  car's driver anchor with its controller switched off. One body, one Animator, and U29's character
+  roster reaches the seat for free instead of needing a second swap path. Unity wins, per the
+  standing rule.
+- **2026-08-13** (U9) — **The entry clip's travel is baked into its pose, never root motion.** The
+  seat anchor is a fixed child of the car prefab and the driver must not move relative to it, so the
+  clip has to carry its own travel visually — Bake Into Pose on rotation, position Y and position
+  XZ, all Based Upon Original. That is also what makes `config.vehicle.driver.seats` usable as
+  written, since it was authored against the clip's own origin. U18's run-over is the deliberate
+  opposite and is the only place root motion goes on.
+- **2026-08-13** (U9) — **Borrowed Mixamo clips are imported by a script, not by hand.** Same
+  reasoning as every other builder here: the settings are six checkboxes across two Inspector tabs,
+  invisible in review, and wrong ones fail as a T-pose or a driver sliding out of the car — which
+  reads as an animation bug, not an import mistake. `JoeClipImporter` states them once; a new clip
+  is one table row.
+- **2026-08-13** (U9) — **A state machine's run state is serialized, its cached config is not.** A
+  recompile during Play reloads the domain but the SCENE survives, so a machine that forgets its
+  mode wakes up disagreeing with the world — Joe parented inside a car while the machine believes he
+  is on foot, which no `Bind()` guard recovers. `[SerializeField, HideInInspector]` on the state
+  fields, and the existing null-check rebind for everything derived from config.
 - **2026-08-12** (U1) — **Downtown gets one collider over the whole mesh.** `city.noCollidePatterns`
   matches node *or* material names; `first-one.glb` has no per-object nodes and its only foliage
   material (`AM113_072_Washingtonia_filifera`) matches no pattern — so the shipped web build

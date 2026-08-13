@@ -43,6 +43,10 @@ namespace TheBlock.EditorTools
             var jump = FindClip("Joe_Jumping.fbx", "Joe_Jump");
             if (idle == null || walk == null || sprint == null || jump == null) return;
 
+            // Optional: without it the enter/exit machine falls back to config's quick-enter
+            // timings, which is a real path in the game rather than a degraded one.
+            var enterCar = FindClip("Joe_EnterCar.fbx", "Joe_EnterCar", optional: true);
+
             var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath)
                              ?? AnimatorController.CreateAnimatorControllerAtPath(ControllerPath);
             Wipe(controller);
@@ -50,6 +54,7 @@ namespace TheBlock.EditorTools
             controller.AddParameter("Speed", AnimatorControllerParameterType.Float);
             controller.AddParameter("Grounded", AnimatorControllerParameterType.Bool);
             controller.AddParameter("Jump", AnimatorControllerParameterType.Trigger);
+            controller.AddParameter("EnterCar", AnimatorControllerParameterType.Bool);
 
             // One 1-D tree covers the whole gait ladder. Jog (4.5 m/s) needs no clip and no state of
             // its own: it is simply where the blend sits between walk and sprint.
@@ -74,6 +79,9 @@ namespace TheBlock.EditorTools
             // Any State, so a jump reads instantly from any gait rather than waiting out a cycle.
             var toJump = stateMachine.AddAnyStateTransition(jumpState);
             toJump.AddCondition(AnimatorConditionMode.If, 0f, "Jump");
+            // ...but never out of the car. A trigger left set from the frame before E was pressed
+            // would otherwise have the driver hop in his seat.
+            toJump.AddCondition(AnimatorConditionMode.IfNot, 0f, "EnterCar");
             toJump.hasExitTime = false;
             // Fixed duration, or `duration` is read as a fraction of the clip: 0.18 of the 1.9 s jump
             // is a third of a second, and Joe keeps jogging for a beat after he lands.
@@ -88,6 +96,32 @@ namespace TheBlock.EditorTools
             toLocomotion.hasFixedDuration = true;
             toLocomotion.duration = CrossfadeSec;
 
+            // Getting into a car. One state, played once, holding its last frame — which IS the
+            // seated pose, so the whole drive is the tail of the entry animation. That is the web
+            // build's arrangement too (`clampWhenFinished`), and it means no separate driving clip.
+            if (enterCar != null)
+            {
+                var enterState = stateMachine.AddState("EnterCar");
+                enterState.motion = enterCar;
+
+                var toEnter = stateMachine.AddAnyStateTransition(enterState);
+                toEnter.AddCondition(AnimatorConditionMode.If, 0f, "EnterCar");
+                toEnter.hasExitTime = false;
+                toEnter.hasFixedDuration = true;
+                // Short, so the clip's first frame — standing at the door — is reached before the
+                // door starts to swing at 25% progress.
+                toEnter.duration = 0.1f;
+                toEnter.canTransitionToSelf = false;
+
+                var outOfCar = enterState.AddTransition(locomotion);
+                outOfCar.AddCondition(AnimatorConditionMode.IfNot, 0f, "EnterCar");
+                // No exit time: leaving is a key press part-way through a held pose, not the clip
+                // running out. It never runs out — that is the point of holding the last frame.
+                outOfCar.hasExitTime = false;
+                outOfCar.hasFixedDuration = true;
+                outOfCar.duration = CrossfadeSec;
+            }
+
             EditorUtility.SetDirty(controller);
             AssetDatabase.SaveAssets();
             Debug.Log(
@@ -95,6 +129,10 @@ namespace TheBlock.EditorTools
                 $"  Locomotion blend: idle 0 / walk {WalkSpeed} / sprint {SprintSpeed} m/s " +
                 $"(sprint plays at {SprintSpeed / SprintClipSpeed:0.00}x so its cadence matches)\n" +
                 "  Jump: Any State on the Jump trigger, back to Locomotion on Grounded\n" +
+                (enterCar == null
+                    ? "  EnterCar: NO CLIP — enter/exit falls back to config's quick-enter timings\n"
+                    : $"  EnterCar: {enterCar.length:0.00}s, Any State on the EnterCar bool, holds " +
+                      "its last frame as the seated pose\n") +
                 "  No clip yet for exhausted or falling — both fall through to the states above",
                 controller);
         }
@@ -129,18 +167,26 @@ namespace TheBlock.EditorTools
             directBlendParameter = "Speed",
         };
 
-        /// <summary>Pulls a named clip out of an FBX's sub-assets, skipping Unity's preview clips.</summary>
-        private static AnimationClip FindClip(string fileName, string clipName)
+        /// <summary>
+        /// Pulls a named clip out of an FBX's sub-assets, skipping Unity's preview clips.
+        ///
+        /// <paramref name="optional"/> downgrades a miss to a warning: some clips have a working
+        /// fallback and their absence is a state of the project, not a mistake.
+        /// </summary>
+        private static AnimationClip FindClip(string fileName, string clipName, bool optional = false)
         {
             var path = $"{CharactersPath}/{fileName}";
             var clip = AssetDatabase.LoadAllAssetsAtPath(path)
                 .OfType<AnimationClip>()
                 .FirstOrDefault(c => c.name == clipName);
 
-            if (clip == null)
-                Debug.LogError($"JoeAnimatorBuilder: no clip '{clipName}' in {path}. Import it first.");
+            if (clip != null) return clip;
 
-            return clip;
+            var message = $"JoeAnimatorBuilder: no clip '{clipName}' in {path}.";
+            if (optional) Debug.LogWarning($"{message} Skipping the states that need it.");
+            else Debug.LogError($"{message} Import it first.");
+
+            return null;
         }
     }
 }
