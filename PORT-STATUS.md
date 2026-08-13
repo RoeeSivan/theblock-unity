@@ -107,7 +107,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 ### Tier 1 — Traversal
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
-| U6 | Character controller + camera follow | wip | `pending` | **Built, compiles clean, camera verified behind Joe; awaiting the user's feel test.** `Assets/Scripts/Player/{PlayerController,FollowCamera}.cs` on `Player_Joe` / `Main Camera`. Next action: user walks him around and says whether it feels right. Nothing left to code |
+| U6 | Character controller + camera follow | wip | `1905f94` | **Built, compiles clean, camera verified behind Joe; awaiting the user's feel test.** `Assets/Scripts/Player/{PlayerController,FollowCamera}.cs` on `Player_Joe` / `Main Camera`. Next action: user walks him around and says whether it feels right. Nothing left to code |
 | U7 | Animator state machine (idle/walk/run/jump) | todo | | Reads `PlayerController.CurrentGait` / `.CurrentPose`, already published. `Joe.controller` currently has no parameters and one looping clip |
 
 ### Tier 2 — Vehicles
