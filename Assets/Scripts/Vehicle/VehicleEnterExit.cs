@@ -51,7 +51,7 @@ namespace TheBlock.Vehicles
         // Unity preserves serialized fields across the reload, so the machine wakes up where it was.
 
         [SerializeField, HideInInspector] private GameMode mode = GameMode.OnFoot;
-        [SerializeField, HideInInspector] private CarController activeVehicle;
+        [SerializeField, HideInInspector] private IEnterable activeVehicle;
         [SerializeField, HideInInspector] private float timer;
         [SerializeField, HideInInspector] private bool usingEntryClip;
         [SerializeField, HideInInspector] private bool driverHidden;
@@ -63,8 +63,8 @@ namespace TheBlock.Vehicles
         /// <summary>What the run is doing. U25's HUD and U20's mission framework both read this.</summary>
         public GameMode Mode => mode;
 
-        /// <summary>The car being entered, driven or left, or null while on foot.</summary>
-        public CarController ActiveVehicle => activeVehicle;
+        /// <summary>The vehicle being entered, driven or left, or null while on foot.</summary>
+        public CarController ActiveVehicle => activeVehicle as CarController;
 
         private void Awake() => Bind();
 
@@ -151,7 +151,7 @@ namespace TheBlock.Vehicles
             if (_capsule != null) _capsule.enabled = false;
 
             var seconds = playerAnimator == null ? 0f : playerAnimator.EnterCarSeconds;
-            usingEntryClip = car.DriverAnchor != null && seconds > 0f;
+            usingEntryClip = car.RiderAnchor != null && seconds > 0f;
 
             if (usingEntryClip)
             {
@@ -159,7 +159,7 @@ namespace TheBlock.Vehicles
                 // baked hip travel is what carries Joe from there into the seat, so his transform
                 // never has to move again until he gets out.
                 SetDriverVisible(true);
-                player.transform.SetParent(car.DriverAnchor, false);
+                player.transform.SetParent(car.RiderAnchor, false);
                 player.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
                 playerAnimator.SeatIn();
             }
@@ -203,9 +203,9 @@ namespace TheBlock.Vehicles
             {
                 driverHidden = true;
                 SetDriverVisible(false);
-                var seat = activeVehicle.DriverAnchor != null
-                    ? activeVehicle.DriverAnchor
-                    : activeVehicle.transform;
+                var seat = activeVehicle.RiderAnchor != null
+                    ? activeVehicle.RiderAnchor
+                    : activeVehicle.GetTransform();
                 player.transform.SetParent(seat, false);
                 player.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
             }
@@ -256,25 +256,26 @@ namespace TheBlock.Vehicles
         ///
         /// The probe matters more than it looks: hard-coding the road height drops anyone stepping
         /// out of a car parked on lot asphalt through the tarmac, and would put U23's helicopter
-        /// pilot at street level the moment he lands on a roof. The car's own colliders are skipped
+        /// pilot at street level the moment he lands on a roof. The vehicle's own colliders are skipped
         /// — otherwise the first thing the ray finds is the chassis box it just left.
         /// </summary>
-        private Vector3 ExitSpot(CarController car)
+        private Vector3 ExitSpot(IEnterable vehicle)
         {
-            var beside = car.transform.position + car.DriverSide * _spec.ExitSideOffset;
-            var from = new Vector3(beside.x, car.transform.position.y + exitProbeHeight, beside.z);
+            var transform = vehicle.GetTransform();
+            var beside = transform.position + vehicle.DriverSide * _spec.ExitSideOffset;
+            var from = new Vector3(beside.x, transform.position.y + exitProbeHeight, beside.z);
 
             var best = float.NegativeInfinity;
             foreach (var hit in Physics.RaycastAll(
                          from, Vector3.down, exitProbeDepth, ~0, QueryTriggerInteraction.Ignore))
             {
-                if (hit.collider.transform.IsChildOf(car.transform)) continue;
+                if (hit.collider.transform.IsChildOf(transform)) continue;
                 if (hit.point.y > best) best = hit.point.y;
             }
 
             return new Vector3(
                 beside.x,
-                float.IsNegativeInfinity(best) ? car.transform.position.y : best,
+                float.IsNegativeInfinity(best) ? transform.position.y : best,
                 beside.z);
         }
 
@@ -292,25 +293,23 @@ namespace TheBlock.Vehicles
         // --- helpers -----------------------------------------------------------------------------
 
         /// <summary>
-        /// The nearest car within <c>enterRadius</c>, measured on the ground plane so standing on a
+        /// The nearest enterable vehicle within <c>enterRadius</c>, measured on the ground plane so standing on a
         /// kerb beside one still counts.
         /// </summary>
-        private CarController Nearest()
+        private IEnterable Nearest()
         {
-            if (spawner == null) return null;
-
-            CarController best = null;
+            IEnterable best = null;
             var bestDistance = _spec.EnterRadius * _spec.EnterRadius;
             var here = player.transform.position;
 
-            foreach (var car in spawner.Spawned)
+            foreach (var vehicle in EnterableRegistry.All)
             {
-                if (car == null) continue;
-                var offset = car.transform.position - here;
+                if (vehicle == null) continue;
+                var offset = vehicle.Position - here;
                 var distance = offset.x * offset.x + offset.z * offset.z;
                 if (distance > bestDistance) continue;
                 bestDistance = distance;
-                best = car;
+                best = vehicle;
             }
 
             return best;

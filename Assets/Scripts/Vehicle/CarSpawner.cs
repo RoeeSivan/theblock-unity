@@ -94,7 +94,11 @@ namespace TheBlock.Vehicles
             var car = Instantiate(prefab, position, rotation, transform);
             car.name = spec.Name;
 
-            if (car.TryGetComponent<CarController>(out var controller)) _spawned.Add(controller);
+            if (car.TryGetComponent<CarController>(out var controller))
+            {
+                _spawned.Add(controller);
+                EnterableRegistry.Register(controller);
+            }
             else Debug.LogWarning($"CarSpawner: {spec.Name} has no CarController.", car);
         }
 

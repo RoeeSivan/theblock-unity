@@ -217,9 +217,50 @@ namespace TheBlock.Core
             /// <summary>How far beside the car the driver is set down, in metres.</summary>
             public float ExitSideOffset = 1.8f;
 
+            // --- Arcade driving model (not in cars.[] but applies to every car and the motorcycle) ---
+            public float Accel = 14f;
+            public float BrakeDecel = 30f;
+            public float Friction = 7f;
+            public float SteerRatio = 0.25f;
+            public float WheelReturn = 8f;
+
             public DriverSpec Driver;
 
             public List<CarSpec> Cars;
+
+            public MotorcycleSpec Motorcycle;
+        }
+
+        /// <summary>Pizza-delivery motorcycle (Mission 1). Door-less; rider uses the shared Driving animation.</summary>
+        public class MotorcycleSpec
+        {
+            public string ModelUrl;
+            public float ModelScale = 0.66f;
+            public float ModelYaw;
+            public SpawnSpec Spawn;
+            public float RoadSurfaceY;
+            public float GroundClearance = 0.12f;
+
+            /// <summary>Rider placement in holder-local space.</summary>
+            public RiderSpec Rider;
+        }
+
+        /// <summary>Rider placement on a two-wheeler (motorcycle, jetski).</summary>
+        public class RiderSpec
+        {
+            public float Scale = 1f;
+            public float Yaw;
+            public PositionSpec Seat;
+        }
+
+        /// <summary>A 3D position: X, Y, Z.</summary>
+        public class PositionSpec
+        {
+            public float X;
+            public float Y;
+            public float Z;
+
+            public Vector3 Raw => new Vector3(X, Y, Z);
         }
 
         /// <summary>

@@ -1,3 +1,4 @@
+using System.Linq;
 using TheBlock.Core;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -23,7 +24,7 @@ namespace TheBlock.Vehicles
     /// Its forward is <c>+Z</c>. The imported GLB's is not; see <see cref="Convert.ModelFacing"/>.
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
-    public class CarController : MonoBehaviour, IChaseTarget
+    public class CarController : MonoBehaviour, IEnterable
     {
         [Header("Wheels — front pair steers, rear pair drives")]
         [SerializeField] private WheelCollider frontLeft;
@@ -93,11 +94,17 @@ namespace TheBlock.Vehicles
         /// <summary>False while nobody is at the wheel: the car sits there and ignores the keyboard.</summary>
         public bool Driven { get; set; }
 
+        /// <summary>IEnterable interface: get the Transform.</summary>
+        public Transform GetTransform() => transform;
+
         /// <summary>
         /// Where the driver is parented on the way in, or null on a car with no seat block in
         /// <c>config.vehicle.driver.seats</c> — which is the signal to use the quick enter instead.
         /// </summary>
         public Transform DriverAnchor => driverAnchor;
+
+        /// <summary>IEnterable interface: same as DriverAnchor.</summary>
+        public Transform RiderAnchor => driverAnchor;
 
         /// <summary>The driver's door, or null if this model's rig has no door joint.</summary>
         public CarDoor Door => door;
@@ -280,5 +287,39 @@ namespace TheBlock.Vehicles
             transform.position + Vector3.up * (_cameraSpec?.LookYOffset ?? fallbackLookYOffset);
 
         public float FollowLerp => _cameraSpec?.FollowLerp ?? 0.12f;
+
+        // --- IEnterable implementation -------------------------------------------------------
+
+        /// <summary>Try to enter the car (always succeeds; entry logic is in VehicleEnterExit).</summary>
+        public bool TryEnter() => true;
+
+        /// <summary>Exit the car (handled by VehicleEnterExit; this is a pass-through).</summary>
+        public void Exit() { }
+
+        /// <summary>Respawn to the configured spawn point.</summary>
+        public void Respawn()
+        {
+            var snapshot = TheBlockConfig.Load();
+            var cars = snapshot?.Config?.Vehicle?.Cars;
+            if (cars == null || cars.Count == 0) return;
+
+            // Find this car's spec by matching the model URL
+            var thisSpec = cars.FirstOrDefault(c => c.ModelUrl == _spec?.ModelUrl);
+            if (thisSpec == null) return;
+
+            // Reset to spawn position and heading
+            _position = Convert.Pos(thisSpec.Spawn.Raw);
+            transform.position = _position;
+            _yaw = 0f;
+            transform.rotation = Quaternion.identity;
+
+            // Stop all motion
+            _body.linearVelocity = Vector3.zero;
+            _body.angularVelocity = Vector3.zero;
+            foreach (var wheel in new[] { frontLeft, frontRight, rearLeft, rearRight })
+            {
+                if (wheel != null) wheel.motorTorque = 0f;
+            }
+        }
     }
 }
