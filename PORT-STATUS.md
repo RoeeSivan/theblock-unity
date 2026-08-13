@@ -8,88 +8,65 @@ this file is.
 
 ## RESUME HERE
 
-**Next action:** U4 — `export-config.mjs` → `theblock-config.json`.
+**Next action:** confirm U5 by play-test, then start U6 — character controller + camera follow.
 
-Write a script that reads the game repo's `src/config.ts` and emits a flat JSON snapshot Unity can
-consume, then land it **in the game repo** — this is the one and only change that repo is ever
-permitted to receive (`scripts/export-config.mjs`). Never refactor anything else there, never touch
-its runtime.
+U5 is built and screenshot-verified but **not user-confirmed**, so it is `wip`. To close it: open
+`Assets/Scenes/World.unity`, run **The Block → Build World**, and check the console report and the
+Scene view. If the world looks right, U5 flips to `done` and nothing else changes.
 
-- Emit raw three.js values. **The conversion belongs in U5's WorldBuilder, not in the exporter** —
-  the exporter is a dumb dump so it stays diffable against `config.ts`.
-- Start with what U5 needs to place the world: `city`, `districts[]`, `sevenEleven`, `gasStation`,
-  `policeStation`, `parkingLot`, `roads`, plus `vehicle.cars` and `traffic.models`.
-- Write the output to `Assets/StreamingAssets/theblock-config.json` — already gitignored here.
-- Re-runnable: same input must give byte-identical output, so a stale export is obvious in `git
-  status` rather than silently wrong.
+**The world is now generated, not hand-placed.** `World.unity` holds four roots:
+`Main Camera`, `Directional Light`, `Player_Joe`, and `World` — everything under `World` is
+WorldBuilder's output and is destroyed and rebuilt on every run. **Never hand-edit anything under
+`World`**; change `config.ts` or `WorldBuilder.cs` instead.
 
-Then U5 (`WorldBuilder`), which reads that JSON, applies `Convert`, and replaces the hand placement
-described below.
+The pipeline, end to end:
 
-**U2 is done.** `Player_Joe` stands on the downtown plaza at `(-24, 0.15, -15)` and the Main Camera
-is aimed at him, so **pressing Play walks him on the spot**. He has no controller and no collider —
-that is U6 — and root motion is off deliberately so he does not wander off during the check.
+```
+game repo  src/config.ts
+   → scripts/export-config.mjs            (the game repo's ONLY permitted change)
+   → tools/export-config.sh               (this repo — holds the port-specific paths)
+   → Assets/StreamingAssets/theblock-config.json   (gitignored, 61 KB, whole config)
+   → TheBlockConfig.Load()                (Assets/Scripts/Core/TheBlockConfig.cs)
+   → The Block → Build World              (Assets/Editor/WorldBuilder.cs, applies Convert)
+```
 
-**U3 is done** — `Assets/Scripts/Core/Convert.cs`. Note it was accepted on a programmatic check
-rather than a user play-test, because a static math helper has nothing to look at: all eight placed
-objects' `config.ts` positions run back through `Convert.Pos` reproduce their actual transforms
-exactly (8/8), and `Convert.RotFromRadians(-PI/2)` reproduces the 7-Eleven's `(0, 90, 0)`.
+Last build: **9 placed, 4 missing, 96 colliders, 0.6 s** — 7 districts, the 7-Eleven, the pizza
+place. Every district reproduces its previously hand-placed transform exactly, and the facade tint
+rebinds to `Facade.mat` on its own.
 
----
+**Missing assets — the world builds fine without them, they are logged not fatal:**
 
-**Districts are ingested and hand-placed** (verification only — U5 owns real placement):
-downtown + `procedural-city-2..6` sit in `World.unity` at their converted positions,
-1.66M tris, world span 563 × 805 m. Source glbs are in `Assets/Models/City/` and **gitignored**;
-zips archived in `~/TheBlockSource/cities/zips/`. A fresh clone will open `World.unity` with the
-districts missing until those glbs are restored — this is deliberate, free LFS is 1 GiB and shared
-with the original repo.
+| config url | needed for | status |
+| --- | --- | --- |
+| `reichman.glb` | Reichman University district | hand-modelled, no Sketchfab original |
+| `parking-lot.glb` | Parking Lot district | hand-modelled, no Sketchfab original |
+| `gas-station.glb` | U13, fuel | not yet ingested |
+| `police-station.glb` | U13, U19 | not yet ingested |
 
-All seven districts (`first-one` + `procedural-city-2..7`) are placed: **963 × 805 m, 2.31M tris**.
-`Place_SevenEleven` is in too, from `source-assets/seven-eleven/seven-eleven-lot-raw.glb` — it keeps
-its gameplay marker nodes (`pu_slot_*`, `se_entry_*`, `se_door_trigger`, `se_register`,
-`se_cam_shop`) and its animated door nodes, and it independently confirmed the **yaw** conversion:
-`config.ts` says the forecourt's far edge lands at `x16`, and Unity measures `max.x = -16.0`.
+For the two hand-modelled ones, check `blender/` in the game repo and `source-assets/Untitled.blend`
+first; else fall back to the shipped GLBs (271 KB / 497 KB, so the loss is small).
 
-**Still to ingest:** `reichman`, `parking-lot` — both hand-modelled in Blender, so there is no
-Sketchfab original. Check `blender/` in the game repo and `source-assets/Untitled.blend`, else fall
-back to the shipped GLBs (271 KB / 497 KB, so the loss is small).
+**Pizza place is a stand-in.** `Assets/Models/Places/low_poly_pizza_restaurant.glb` (370 KB, user
+sourced 2026-08-13) fills in for `pizza-lila.glb` via `WorldBuilder.AssetAliases`, which warns on
+every build so a substitute never quietly passes for the real thing. Its node `PizzaLight` matched
+the config's `hideNodes`, which suggests it is the same Sketchfab base the original was built from —
+so `scale: 1.6` is probably right, but it still wants an eyeball.
 
-**Known issues, both belong to U11:**
-- No colliders on any district except downtown. These assets *do* need the foliage exclusion
-  (`FoliageTrees.*`, `CityGenBark.*` match `noCollidePatterns`), which downtown did not.
+**Known issues, all belong to U11:**
 - Foliage renders as white shards — imported `alphaMode: BLEND` with ZWrite off. Alpha-clip is the
   right fix but glTFast's Shader Graph ignores `_AlphaClip`; the surface mode has to be driven
   another way. Attempted and reverted, not left half-applied.
+- Cities 2 and 3 each have one renderer that mixes the baked-in parked cars with real geometry, so
+  `hideMaterials` cannot strip them without taking buildings too. They stay visible; a submesh split
+  in Blender is the fix. Every other district hides its cars cleanly.
+- Districts are merged meshes, so `noCollidePatterns` almost never matches — a district gets 2–4
+  whole-mesh colliders, palms included. The web build has the same hole, so this is faithful rather
+  than broken, but raw multi-node sources would let the filter actually work.
 
-**U2 (character import) is untouched, not half-built** — deferred when the district assets arrived.
-
----
-
-**Superseded plan for U2, kept for when it resumes:**
-
-Bring one Mixamo character into Unity as a **Humanoid** rig with a walk clip that plays. Importing
-as Humanoid is the point of the unit: it retargets onto Unity's own bone map and makes the
-`mixamorig:` namespace bug class from the web build structurally impossible.
-
-- Source: `<game-repo>/source-assets/models/*.fbx` — these are the raw Mixamo downloads (~45–63 MB
-  each), which is what rule 3 asks for. `joe idle.fbx` + `Walking man.fbx` are the obvious pair.
-- In the FBX importer: **Rig → Animation Type: Humanoid**, then **Configure…** and confirm every
-  required bone mapped green.
-- Split it the Unity way: **one** model as the avatar/mesh, the rest imported animation-only with
-  **Avatar Definition: Copy From Other Avatar**. Do not import the same skeleton nine times.
-- Drop it in `World.unity` on the downtown pavement (ground is y≈0.15) and confirm the walk clip
-  loops in the Animation preview.
-
-**Do NOT** build the character controller here — that is U6. U2 ends when a character stands in the
-scene with a looping walk clip.
-
-**Nothing is half-built.** No `wip` units.
-
-**Open thread — district source assets.** Every district (`first-one`, `procedural-city-2`…`-7`,
-`reichman`, plus `parking-lot` and `road-straight`) exists **only** as its Draco/webp-1024²
-shipped GLB. `source-assets/` holds characters, vehicles and props — no city. The user is looking
-for the original downloads. If they land, put them in a gitignored folder **outside** the repo
-(free LFS is 1 GiB, shared with the original project) and prefer them in U11/U12/U13.
+**District GLBs are gitignored** (40–85 MB each; free LFS is 1 GiB and shared with the original
+repo). Working copies live in `Assets/Models/City/`, zips in `~/TheBlockSource/cities/zips/`. A
+fresh clone opens `World.unity` with the districts missing until those are restored — deliberate.
+`first-one.glb` is the exception: 240 KB and the only copy anywhere, so it is committed.
 
 **Requires:** a session with cwd `~/TheBlockUnity` (the MCP server is scoped to that path) and the
 game repo added via `/add-dir`. See `CLAUDE.md` §2.
@@ -107,8 +84,8 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | U1 | glTF import path — glTFast + Draco, downtown solid | done | `5a0b58f` | glTFast 6.19.0 + Draco 5.4.3; `World.unity` is build scene 0; asset needed zero fixup |
 | U2 | Character import — Mixamo FBX as Humanoid, walk clip | done | `13cea9f` | `JoeAvatar` isHuman, 52 bones; clips `Joe_Idle`/`Joe_Walk` loop. Bones were `mixamorig7:` — suffix varies per export, Humanoid makes it moot |
 | U3 | `Convert` handedness helper | done | `16fe0ee` | Negate X. `Assets/Scripts/Core/Convert.cs`; verified 8/8 against the placed scene objects |
-| U4 | `export-config.mjs` → `theblock-config.json` | todo | | Lives in the GAME repo — its only permitted change |
-| U5 | `WorldBuilder` Editor script | todo | | Re-runnable; conversion happens here, not in the exporter |
+| U4 | `export-config.mjs` → `theblock-config.json` | done | `pending` | Whole config, not a subset — the game repo gets one change ever, so a subset would force re-editing it at U12/U13/U17. 61 KB, byte-identical across runs |
+| U5 | `WorldBuilder` Editor script | wip | `pending` | **Built and screenshot-verified; awaiting the user's play-test.** Menu **The Block → Build World**. Next action: user opens `World.unity`, runs it, confirms → flip to `done`. Nothing left to code |
 
 ### Tier 1 — Traversal
 | id | unit | state | commit | notes |
@@ -126,7 +103,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 ### Tier 3 — World
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
-| U11 | All 9 districts via WorldBuilder | todo | | Raw sources ingested for 2–6; needs colliders + foliage exclusion + the alpha-clip fix |
+| U11 | All 9 districts via WorldBuilder | todo | | Placement, colliders and the foliage filter already ship in U5's WorldBuilder. What is left: ingest `reichman` + `parking-lot`, the alpha-clip fix, and the city 2/3 submesh split |
 | U12 | Roads, ground, sea | todo | | |
 | U13 | Places — pizza + interior, gas, police station, lot cars | todo | | |
 | U14 | Map + minimap | todo | | |
@@ -215,6 +192,22 @@ Dated one-liners. These are settled — do not re-litigate them without the user
   with the original repo. Working copies in `Assets/Models/City/` are gitignored, zips archived in
   `~/TheBlockSource/cities/zips/`. `first-one.glb` is the exception — 240 KB and the only copy in
   existence, so it is committed.
+- **2026-08-13** (U4) — **The exporter dumps the WHOLE config, not the subset U5 needs.** The game
+  repo is permitted exactly one added file, so a subset would force re-editing it at U12, U13, U17
+  and U20. The whole thing is 61 KB and `TheBlockConfig` ignores unknown fields, so the C# model can
+  stay a subset and grow per unit while the exporter never changes again.
+- **2026-08-13** (U4) — **No timestamp in the export; a `$sourceSha256` instead.** A timestamp would
+  break byte-identical re-runs, which is what makes a stale export detectable at all.
+- **2026-08-13** (U5) — **The scene is a pure function of the config plus the assets on disk.**
+  WorldBuilder destroys its own root and rebuilds every run, so nothing under `World` may be
+  hand-edited. Placement, the facade rebind, car hiding and colliders all live in the builder — not
+  in the scene file, where they would be invisible and unreproducible.
+- **2026-08-13** (U5) — **Foliage is excluded from collision only when the WHOLE renderer is
+  foliage.** The district GLBs are merged meshes; "any material matches" stripped collision from
+  entire districts. A mixed mesh collides, palms included — the same hole the web build has.
+- **2026-08-13** (U5) — **Substitute models go in `WorldBuilder.AssetAliases`, never renamed on
+  disk.** A rename hides the substitution; the alias table warns on every build. First entry is the
+  pizza place.
 - **2026-08-12** (U1) — **Downtown gets one collider over the whole mesh.** `city.noCollidePatterns`
   matches node *or* material names; `first-one.glb` has no per-object nodes and its only foliage
   material (`AM113_072_Washingtonia_filifera`) matches no pattern — so the shipped web build

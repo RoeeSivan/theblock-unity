@@ -67,3 +67,4 @@ crashlytics-build.properties
 # the game repo at source-assets/models/. Same LFS reasoning as the district GLBs.
 /Assets/Models/Characters/Joe.fbx
 /Assets/Models/Characters/Joe.fbx.meta
+/[Aa]ssets/StreamingAssets/theblock-config.json.meta
