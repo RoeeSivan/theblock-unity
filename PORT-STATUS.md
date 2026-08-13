@@ -84,8 +84,8 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | U1 | glTF import path — glTFast + Draco, downtown solid | done | `5a0b58f` | glTFast 6.19.0 + Draco 5.4.3; `World.unity` is build scene 0; asset needed zero fixup |
 | U2 | Character import — Mixamo FBX as Humanoid, walk clip | done | `13cea9f` | `JoeAvatar` isHuman, 52 bones; clips `Joe_Idle`/`Joe_Walk` loop. Bones were `mixamorig7:` — suffix varies per export, Humanoid makes it moot |
 | U3 | `Convert` handedness helper | done | `16fe0ee` | Negate X. `Assets/Scripts/Core/Convert.cs`; verified 8/8 against the placed scene objects |
-| U4 | `export-config.mjs` → `theblock-config.json` | done | `pending` | Whole config, not a subset — the game repo gets one change ever, so a subset would force re-editing it at U12/U13/U17. 61 KB, byte-identical across runs |
-| U5 | `WorldBuilder` Editor script | wip | `pending` | **Built and screenshot-verified; awaiting the user's play-test.** Menu **The Block → Build World**. Next action: user opens `World.unity`, runs it, confirms → flip to `done`. Nothing left to code |
+| U4 | `export-config.mjs` → `theblock-config.json` | done | `62d917a` | Whole config, not a subset — the game repo gets one change ever, so a subset would force re-editing it at U12/U13/U17. 61 KB, byte-identical across runs |
+| U5 | `WorldBuilder` Editor script | wip | `62d917a` | **Built and screenshot-verified; awaiting the user's play-test.** Menu **The Block → Build World**. Next action: user opens `World.unity`, runs it, confirms → flip to `done`. Nothing left to code |
 
 ### Tier 1 — Traversal
 | id | unit | state | commit | notes |
