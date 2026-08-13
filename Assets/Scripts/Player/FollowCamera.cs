@@ -11,15 +11,22 @@ namespace TheBlock.Player
     /// of behaviour with a specific feel to reproduce, and pulling in a whole camera framework to
     /// get it would be the tail wagging the dog. Cinemachine earns its place when the mission
     /// cameras land (U23's helicopter, U26's menus), not here.
+    ///
+    /// It follows an <see cref="IChaseTarget"/> rather than the player specifically, so the boom
+    /// numbers and the look point come from whatever is being driven. U8 added that seam; U9's
+    /// enter/exit is what actually swaps it mid-game via <see cref="Follow"/>.
     /// </summary>
     [RequireComponent(typeof(Camera))]
     public class FollowCamera : MonoBehaviour
     {
-        [SerializeField] private PlayerController target;
+        [Tooltip("Target held while on foot. The camera returns to it whenever a vehicle is left.")]
+        [SerializeField] private PlayerController player;
 
-        private Vector3 _localOffset;
-        private float _followLerp;
+        private IChaseTarget _target;
         private Camera _camera;
+
+        /// <summary>Whatever the camera is behind right now.</summary>
+        public IChaseTarget Target => _target;
 
         private void Awake()
         {
@@ -32,47 +39,59 @@ namespace TheBlock.Player
                 return;
             }
 
-            var camera = snapshot.Config.Camera;
-            _camera.fieldOfView = camera.Fov;
-            _camera.nearClipPlane = camera.Near;
-            _camera.farClipPlane = camera.Far;
+            var lens = snapshot.Config.Camera;
+            _camera.fieldOfView = lens.Fov;
+            _camera.nearClipPlane = lens.Near;
+            _camera.farClipPlane = lens.Far;
 
-            var boom = snapshot.Config.Player.Camera;
-            // ModelOffset, not Pos: this is an offset in the player's own frame, and three.js
-            // faces -Z where Unity faces +Z. Through Pos() the camera would sit in Joe's face.
-            _localOffset = Convert.ModelOffset(boom.Offset.Raw);
-            _followLerp = boom.FollowLerp;
-
-            if (target == null) target = FindFirstObjectByType<PlayerController>();
-            if (target == null)
+            if (player == null) player = FindAnyObjectByType<PlayerController>();
+            if (player == null)
             {
                 Debug.LogError("FollowCamera: no PlayerController in the scene.", this);
                 enabled = false;
-                return;
             }
+        }
 
+        /// <summary>
+        /// Snapping happens in Start, not Awake: the boom comes off the target now, and a target
+        /// reads it out of the config in its own Awake. Start runs after every Awake has, so the
+        /// numbers are there whichever order the two components happened to wake up in.
+        /// </summary>
+        private void Start()
+        {
+            _target = player;
             SnapToTarget();
         }
 
         private void LateUpdate()
         {
-            if (target == null) return;
+            if (_target == null || _target.Anchor == null) return;
 
-            var desired = target.transform.TransformPoint(_localOffset);
+            var desired = _target.Anchor.TransformPoint(_target.LocalBoom);
 
             // The web build lerps by a fixed fraction per frame, which ties the feel to the frame
             // rate. This reproduces that fraction exactly at 60 fps and stays stable off it.
-            var t = 1f - Mathf.Pow(1f - _followLerp, Time.deltaTime * 60f);
+            var t = 1f - Mathf.Pow(1f - _target.FollowLerp, Time.deltaTime * 60f);
             transform.position = Vector3.Lerp(transform.position, desired, t);
-            transform.LookAt(target.LookTarget);
+            transform.LookAt(_target.LookTarget);
         }
+
+        /// <summary>Points the camera at a new target and cuts to it. Null falls back to the player.</summary>
+        public void Follow(IChaseTarget target)
+        {
+            _target = target ?? player;
+            SnapToTarget();
+        }
+
+        /// <summary>Back to the on-foot boom — what leaving a vehicle calls.</summary>
+        public void FollowPlayer() => Follow(player);
 
         /// <summary>Jumps the camera onto its mark with no smoothing — spawn, teleport, cut.</summary>
         public void SnapToTarget()
         {
-            if (target == null) return;
-            transform.position = target.transform.TransformPoint(_localOffset);
-            transform.LookAt(target.LookTarget);
+            if (_target == null || _target.Anchor == null) return;
+            transform.position = _target.Anchor.TransformPoint(_target.LocalBoom);
+            transform.LookAt(_target.LookTarget);
         }
     }
 }

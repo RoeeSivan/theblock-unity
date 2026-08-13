@@ -28,6 +28,7 @@ namespace TheBlock.EditorTools
     {
         private const string RootName = "World";
         private const string FacadeMaterialPath = "Assets/Materials/City/Facade.mat";
+        private const string GroundMaterialPath = "Assets/Materials/World/Ground.mat";
 
         /// <summary>Scene roots the hand-built phase left behind, replaced by the generated world.</summary>
         private static readonly string[] LegacyRootPrefixes = { "District_", "Place_" };
@@ -80,6 +81,7 @@ namespace TheBlock.EditorTools
 
         public class Options
         {
+            public bool Ground = true;
             public bool Districts = true;
             public bool Places = true;
             public bool Colliders = true;
@@ -106,6 +108,8 @@ namespace TheBlock.EditorTools
 
             var root = ResetRoot(scene, report);
             root.SourceSha256 = snapshot.SourceSha256;
+
+            if (options.Ground) BuildGround(root.transform, snapshot.Config.Ground, report);
 
             if (options.Districts)
             {
@@ -179,6 +183,65 @@ namespace TheBlock.EditorTools
             var group = new GameObject(name);
             group.transform.SetParent(parent, worldPositionStays: false);
             return group.transform;
+        }
+
+        // --- ground ----------------------------------------------------------------------------
+
+        /// <summary>
+        /// The flat plate under everything, from <c>config.ground</c>.
+        ///
+        /// Belongs to U12 with the roads and the sea, and is built here early because U8's car needs
+        /// somewhere to land: the districts are islands, and a car that leaves one had nothing under
+        /// it at all — it drove off the edge and fell forever, which is not a thing a play-test can
+        /// survive. This is only the plate. Roads, kerbs and the sea are still U12's.
+        ///
+        /// It sits at <c>y = -0.05</c>, marginally below every district, so wherever the two overlap
+        /// the district's own ground is what a wheel or a ground probe finds.
+        /// </summary>
+        private static void BuildGround(Transform parent, TheBlockConfig.GroundSpec ground, Report report)
+        {
+            if (ground == null)
+            {
+                report.Warnings.Add("ground skipped — config has no `ground` section");
+                return;
+            }
+
+            var plane = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            plane.name = "Ground";
+            plane.transform.SetParent(parent, worldPositionStays: false);
+            plane.transform.position = new Vector3(0f, ground.Y, 0f);
+            // Unity's Plane primitive is 10 m across at scale 1.
+            plane.transform.localScale = Vector3.one * (ground.Size / 10f);
+
+            var material = LoadOrCreateGroundMaterial(ground, report);
+            if (material != null) plane.GetComponent<MeshRenderer>().sharedMaterial = material;
+
+            SetDistrictStaticFlags(plane);
+            report.Placed.Add($"Ground {ground.Size:0} x {ground.Size:0} m @ y {ground.Y:0.##}");
+        }
+
+        private static Material LoadOrCreateGroundMaterial(TheBlockConfig.GroundSpec ground, Report report)
+        {
+            var existing = AssetDatabase.LoadAssetAtPath<Material>(GroundMaterialPath);
+            if (existing != null) return existing;
+
+            var shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader == null)
+            {
+                report.Warnings.Add("ground material skipped — URP/Lit shader not found");
+                return null;
+            }
+
+            var material = new Material(shader) { name = "Ground" };
+            // sRGB, not .linear — same trap as glTFast's baseColorFactor.
+            material.SetColor("_BaseColor", TheBlockConfig.ColorFromHex(ground.Color));
+            material.SetFloat("_Smoothness", 0f);
+
+            var folder = System.IO.Path.GetDirectoryName(GroundMaterialPath).Replace('\\', '/');
+            if (!AssetDatabase.IsValidFolder(folder)) AssetDatabase.CreateFolder("Assets/Materials", "World");
+            AssetDatabase.CreateAsset(material, GroundMaterialPath);
+            report.Notes.Add($"created {GroundMaterialPath}");
+            return material;
         }
 
         // --- placement -------------------------------------------------------------------------

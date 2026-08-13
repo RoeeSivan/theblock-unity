@@ -62,6 +62,7 @@ namespace TheBlock.Core
         public class Root
         {
             public Vec3 Gravity;
+            public GroundSpec Ground;
             public CitySpec City;
             public List<DistrictSpec> Districts;
             public PlaceSpec PizzaPlace;
@@ -70,6 +71,7 @@ namespace TheBlock.Core
             public PlaceSpec SevenEleven;
             public CameraSpec Camera;
             public PlayerSpec Player;
+            public VehicleSpec Vehicle;
         }
 
         /// <summary>A three.js <c>{x, y, z}</c> literal. Still right-handed — convert before use.</summary>
@@ -81,6 +83,22 @@ namespace TheBlock.Core
 
             /// <summary>The raw three.js vector, unconverted. Feed it to <see cref="Convert.Pos(Vector3)"/>.</summary>
             public Vector3 Raw => new Vector3(X, Y, Z);
+        }
+
+        /// <summary>
+        /// The flat plate every district sits on — the web build's safety floor, and what stops
+        /// anything that leaves the city plate falling forever. Square and centred on the origin.
+        /// </summary>
+        public class GroundSpec
+        {
+            /// <summary>Edge length in metres.</summary>
+            public float Size = 1400f;
+
+            /// <summary>Packed <c>0xRRGGBB</c>. See <see cref="ColorFromHex"/>.</summary>
+            public int Color;
+
+            /// <summary>Height. Slightly below zero so district ground wins wherever they overlap.</summary>
+            public float Y = -0.05f;
         }
 
         /// <summary>Downtown. Unlike the other districts it carries the facade tint list.</summary>
@@ -130,13 +148,129 @@ namespace TheBlock.Core
             public float? CollideMaxY;
         }
 
-        /// <summary>Lens settings. The offsets on this object belong to the vehicle camera, not the player's.</summary>
+        /// <summary>
+        /// Lens settings, plus the VEHICLE chase boom — the on-foot boom lives on
+        /// <see cref="PlayerCameraSpec"/>. That split is the web build's, kept so the two files stay
+        /// diffable: <c>config.camera.localOffset</c> is what <c>vehicle.ts</c>'s <c>follow()</c> reads.
+        /// </summary>
         public class CameraSpec
         {
             public float Fov = 75f;
             public float Near = 0.1f;
             public float Far = 320f;
+
+            /// <summary>
+            /// The chase boom in the VEHICLE's own frame. Run it through
+            /// <see cref="Convert.ModelOffset"/>, never <see cref="Convert.Pos"/>.
+            /// </summary>
+            public Vec3 LocalOffset;
+
+            public float LookYOffset = 0.5f;
+
+            /// <summary>Fraction of the remaining distance closed per frame at 60 fps.</summary>
+            public float FollowLerp = 0.12f;
         }
+
+        /// <summary>
+        /// Vehicles. Only the fields that survive the engine change are declared.
+        ///
+        /// Most of <c>config.vehicle</c> is deliberately ABSENT: <c>accel</c>, <c>brakeDecel</c>,
+        /// <c>friction</c>, <c>steerRatio</c>, <c>wheelReturn</c>, <c>colliderHeight</c>,
+        /// <c>colliderBottomGap</c>, <c>blockedRatio</c>, <c>blockBleedMinSpeed</c>,
+        /// <c>maxClimbRate</c> and <c>characterOffset</c> all describe a KINEMATIC car — a scalar
+        /// speed pushed through a Rapier character controller with a ground ray under it. Unity
+        /// drives a Rigidbody on four WheelColliders, where those quantities are outputs of mass,
+        /// suspension and tyre friction rather than inputs. Declaring them would invite someone to
+        /// wire them up, and they would be wrong (CLAUDE.md port rule 2). Their Unity replacements
+        /// are serialized on <c>CarController</c>, where they can be tuned against the real thing.
+        ///
+        /// What is left is gameplay: how fast the car may go, how far the wheels turn, how close you
+        /// must stand to get in.
+        /// </summary>
+        public class VehicleSpec
+        {
+            /// <summary>Forward speed cap in m/s (20 → ~72 km/h).</summary>
+            public float MaxSpeed = 20f;
+
+            public float ReverseMaxSpeed = 7f;
+
+            /// <summary>Steering lock in RADIANS (0.6 → ~34°). Degrees at the WheelCollider.</summary>
+            public float MaxWheelAngle = 0.6f;
+
+            /// <summary>How near the player must be to enter. U9's number, parked here with its family.</summary>
+            public float EnterRadius = 4.5f;
+
+            public List<CarSpec> Cars;
+        }
+
+        /// <summary>One drivable car. The web build lists 16; U8 builds the Mustang.</summary>
+        public class CarSpec
+        {
+            public string Name;
+            public string ModelUrl;
+            public float ModelScale = 1f;
+
+            /// <summary>
+            /// Radians, right-handed, rotating the model so its front faces three.js's <c>-Z</c>.
+            /// Compose it with <see cref="Convert.ModelFacing"/> to reach Unity's <c>+Z</c>.
+            /// </summary>
+            public float ModelYaw;
+
+            /// <summary>
+            /// Packed <c>0xRRGGBB</c>, applied to the <c>CarPrimaryColor</c> material slot. Null
+            /// keeps the model's own paint. These are sRGB bytes — see
+            /// <see cref="ColorFromHex"/> for why that matters.
+            /// </summary>
+            public int? BodyColor;
+
+            /// <summary>Ground-plane spawn. There is no Y: the car settles onto whatever is under it.</summary>
+            public SpawnSpec Spawn;
+
+            /// <summary>Initial heading in radians, right-handed. Absent → 0.</summary>
+            public float? SpawnYaw;
+
+            /// <summary>Surface height the web build's ground ray expected. Unity's suspension finds it instead.</summary>
+            public float RoadSurfaceY;
+
+            public DoorSpec Door;
+        }
+
+        /// <summary>A car spawn: X and Z only, in three.js's frame.</summary>
+        public struct SpawnSpec
+        {
+            public float X;
+            public float Z;
+
+            /// <summary>Unconverted, at <c>y = 0</c>. Feed it to <see cref="Convert.Pos(Vector3)"/>.</summary>
+            public Vector3 Raw => new Vector3(X, 0f, Z);
+        }
+
+        /// <summary>The single hinged driver door. U9 animates it; U8 only carries it across.</summary>
+        public class DoorSpec
+        {
+            public string JointName;
+
+            /// <summary>Hinge axis in the MODEL's frame: "x", "y" or "z".</summary>
+            public string Axis;
+
+            /// <summary>Open angle in radians.</summary>
+            public float OpenAngle;
+
+            public float LerpRate = 8f;
+        }
+
+        /// <summary>
+        /// A packed <c>0xRRGGBB</c> from config as a Unity colour.
+        ///
+        /// Built with <c>new Color(r, g, b)</c> and NOT <c>.linear</c>: those bytes are sRGB, and a
+        /// URP material's <c>_BaseColor</c> takes sRGB. Converting to linear first darkens the paint
+        /// to near-black — the same trap glTFast's <c>baseColorFactor</c> sets (see the
+        /// <c>gltfast-basecolorfactor-gamma</c> memory).
+        /// </summary>
+        public static Color ColorFromHex(int packed) => new Color(
+            ((packed >> 16) & 0xFF) / 255f,
+            ((packed >> 8) & 0xFF) / 255f,
+            (packed & 0xFF) / 255f);
 
         /// <summary>
         /// The on-foot player. Speeds and stamina are gameplay tuning and port straight across;

@@ -63,6 +63,26 @@ namespace TheBlock.Core
         /// </summary>
         public static Vector3 ModelOffset(Vector3 offset) => new Vector3(-offset.x, offset.y, -offset.z);
 
+        /// <summary>
+        /// Turns a three.js-authored model so the thing it calls its front faces Unity's <c>+Z</c>.
+        ///
+        /// This is the rotational twin of <see cref="ModelOffset"/> and it exists for the same
+        /// reason: three.js drives an object along <c>-Z</c>, Unity along <c>+Z</c>. A model with no
+        /// front — a district, a building — never needs it. A model that drives, walks or aims does.
+        ///
+        /// The two flips compose into exactly one 180° yaw, which is worth seeing spelled out.
+        /// Verified 2026-08-13 on the Mustang, whose rig names its own corners:
+        /// <c>wheel_Front_L_0</c> imports at <c>(0.992, 0.479, -1.562)</c> — the +X side, and behind
+        /// the origin. Rotated by this, it lands at <c>(-0.992, 0.479, +1.562)</c>: in front (z &gt; 0)
+        /// and on the left (x &lt; 0), which is what the bone calls itself. So the same 180° that
+        /// points the nose down +Z also puts the L/R names back on Unity's hands. If a model ever
+        /// needs one but not the other, this assumption has broken — re-measure before working round it.
+        ///
+        /// A per-model <c>modelYaw</c> from config composes on top: both are rotations about Y, so
+        /// <c>RotFromRadians(modelYaw) * ModelFacing</c> is order-independent.
+        /// </summary>
+        public static readonly Quaternion ModelFacing = Quaternion.Euler(0f, 180f, 0f);
+
         /// <summary>A Unity Y-rotation from a three.js yaw in radians (what config.ts stores).</summary>
         public static Quaternion RotFromRadians(float yawRadians) =>
             Quaternion.Euler(0f, -yawRadians * Mathf.Rad2Deg, 0f);

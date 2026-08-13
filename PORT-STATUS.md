@@ -8,14 +8,48 @@ this file is.
 
 ## RESUME HERE
 
-**Next action:** close U7 — get the user's sign-off, flip it to `done`, then start U8.
+**Next action:** play-test U8 — press **V** to get into the Mustang and drive it. If it feels
+right, flip U8 to `done` and start U9.
 
-U7 is **built, nothing left to code**. The user play-tested it on 2026-08-13 and called walking and
-jumping good. They first thought sprint had got slower, then on a second look said it was fine, and
-chose to finish the unit in a later session rather than sign it off then. So it stays `wip` — but
-the only thing missing is the word, not any work.
+**U8 is built and verified programmatically, but NOT yet by eye.** Everything below was measured in
+Play mode by driving the car with synthetic keyboard input; none of it has been watched by a human.
+What was confirmed: the car spawns at its config spawn on the lot with all four wheels grounded,
+accelerates to exactly the 20 m/s cap (72.4 km/h), reverses to exactly −7.03 m/s, brakes through
+zero when W is held while reversing, steers right on D, tracks straight to within 0.045 m over
+176 m, stays upright (1.0000) through a 72° turn at speed, and stops dead against a building.
 
-**If sprint does come up again**, the two candidates, in order:
+**What still needs a human:** how it FEELS, and whether the wheels look right while turning. Both
+are the whole point of the unit and neither is measurable from here.
+
+**The one thing that could not be tested at all is the V switch itself.** Injected key presses get
+batched into a single frame, so `wasPressedThisFrame` never fired and the swap never ran under test.
+The code path is ordinary, but treat V as unverified — if it does nothing, look there first.
+
+**Tuning knobs, all serialized on `CarController`** (select the spawned `Mustang` during Play and
+edit in the Inspector; the values live on `Assets/Prefabs/Vehicles/Mustang.prefab`):
+
+| feels wrong | knob | now |
+| --- | --- | --- |
+| sluggish / too eager off the line | `motorTorque` | 1600 Nm |
+| won't stop, or stops dead | `brakeTorque` | 3000 Nm |
+| coasts forever / drags to a halt | `coastBrake` | 450 Nm |
+| understeers, or spins at speed | `steerAtTopSpeed` | 0.35 |
+| steering too slow/twitchy to reach lock | `steerRate` | 120 °/s |
+| leans or rolls in corners | `centerOfMass` | (0, 0.35, −0.1) |
+| handbrake won't step the back out | `handbrakeGrip` | 0.45 |
+
+Suspension and tyre-grip numbers are NOT here — they are baked into the prefab by `CarBuilder` and
+live as constants at the top of `Assets/Editor/CarBuilder.cs`. Change them there and re-run
+**The Block → Build Mustang**, which rebuilds the prefab in place so the scene keeps its reference.
+
+Controls while driving: `W`/`S` throttle and brake-then-reverse, `A`/`D` steer, `Space` handbrake,
+`V` in/out.
+
+**U7 is done** — the user confirmed walk, sprint and jump all read right on 2026-08-13.
+
+Its blend was verified programmatically too: `Joe_Idle` at 0 m/s, `Joe_Walk` at 2, a 50/50
+walk-sprint blend at 4.5 and `Joe_Sprint` at 7, with the jump transition entering and returning on
+landing. **If sprint ever comes up again**, the two candidates, in order:
 
 1. `PlayerAnimator.speedBlendRate` (12 m/s per second) means a standing start takes ~0.6 s for the
    blend to climb 0 → 7, while the controller is already at full speed on frame one. A short burst
@@ -23,10 +57,6 @@ the only thing missing is the word, not any work.
    up faster than it slows down, is the first thing to try.
 2. `JoeAnimatorBuilder.SprintClipSpeed` (5.58) sets the 1.25× playback correction. Movement speed
    itself is `config.player.movement.sprintSpeed` = 7.0 and was never touched by U7.
-
-It was verified programmatically too: the blend resolves to `Joe_Idle` at 0 m/s, `Joe_Walk` at 2, a
-50/50 walk-sprint blend at 4.5 and `Joe_Sprint` at 7, and the jump transition enters and returns on
-landing.
 
 Rebuild the graph any time with **The Block → Build Joe Animator** — `Joe.controller` is generated
 from `Assets/Editor/JoeAnimatorBuilder.cs`, not hand-authored, so re-run it after any new clip
@@ -65,6 +95,11 @@ is why the world felt right and looked shredded — and why it survived the U1 c
 WorldBuilder's output and is destroyed and rebuilt on every run. **Never hand-edit anything under
 `World`**; change `config.ts` or `WorldBuilder.cs` instead.
 
+**Cars are spawned at runtime, not placed in the scene.** `CarSpawner` on the `Vehicles` root reads
+`config.vehicle.cars`, probes for ground under each spawn, and instantiates the prefab. WorldBuilder
+owns the static world; anything that drives away from where it started belongs to the spawner. U13's
+lot cars and U17's traffic grow from there.
+
 The pipeline, end to end:
 
 ```
@@ -76,21 +111,39 @@ game repo  src/config.ts
    → The Block → Build World              (Assets/Editor/WorldBuilder.cs, applies Convert)
 ```
 
-Last build: **9 placed, 4 missing, 96 colliders, 0.6 s** — 7 districts, the 7-Eleven, the pizza
-place. Every district reproduces its previously hand-placed transform exactly, and the facade tint
-rebinds to `Facade.mat` on its own.
+**The ground plate is built too, and it belongs to U12.** `config.ground` is a 1400 × 1400 m plane
+at y −0.05, and it was pulled forward because the districts are islands: a car that left one had
+nothing under it and fell forever, which no play-test survives. Only the plate — roads, kerbs and
+the sea are still U12's. It sits marginally below every district so district ground always wins a
+ground probe.
+
+Last build: **12 placed, 2 missing, 109 colliders** — the ground plate, 8 districts, the 7-Eleven,
+the pizza place.
 
 **Missing assets — the world builds fine without them, they are logged not fatal:**
 
 | config url | needed for | status |
 | --- | --- | --- |
-| `reichman.glb` | Reichman University district | hand-modelled, no Sketchfab original |
-| `parking-lot.glb` | Parking Lot district | hand-modelled, no Sketchfab original |
 | `gas-station.glb` | U13, fuel | not yet ingested |
 | `police-station.glb` | U13, U19 | not yet ingested |
 
-For the two hand-modelled ones, check `blender/` in the game repo and `source-assets/Untitled.blend`
-first; else fall back to the shipped GLBs (271 KB / 497 KB, so the loss is small).
+**The parking lot and Reichman are in** (2026-08-13). The user re-modelled both in Blender rather
+than falling back on the shipped GLBs, and both reproduce `config.ts`'s stated geometry exactly:
+
+- **Parking lot** — 165 × 116 m, asphalt top at y 0.08, stall lines 0.09–0.11. Spans Unity
+  X[134.4, 299.4] / Z[−304, −188], the mirror of the web build's X[−299, −134].
+- **Reichman** — 36.1 × 31.6 m, 31 m tall. Its south edge lands at z −185.08 against the
+  `config.ts` note "the school's south edge (z~-185.1)", clearing the lot's near edge by 2.92 m
+  against its "~3 m", with both centred at x 216.90 against its "aligned in X". Three independent
+  landmarks, so the export orientation is confirmed rather than assumed.
+
+Sources are `blender/parkinglot.blend` and `blender/reichman.blend` **in the game repo**, exported
+by `tools/blend-to-glb.sh` here. That script only ever READS the .blend (Blender runs `-b` and never
+saves), so port rule 4 holds.
+
+**Hebrew text is NOT mirrored by the X negation** — checked by eye on Reichman's sign, which reads
+`אוניברסיטת רייכמן` correctly. Worth knowing before someone "fixes" it; see memory
+`x-negation-does-not-mirror-text`.
 
 **Pizza place is a stand-in, and it needed three fixes** — all of them in
 `WorldBuilder.AssetAliases` rather than baked into the file, so the download stays as downloaded and
@@ -148,20 +201,20 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
 | U6 | Character controller + camera follow | done | `1905f94` | `Assets/Scripts/Player/{PlayerController,FollowCamera}.cs` on `Player_Joe` / `Main Camera`. User-confirmed 2026-08-13: controls feel right |
-| U7 | Animator state machine (idle/walk/run/jump) | wip | `2525c3b` | **Built; nothing left to code.** Graph generated by **The Block → Build Joe Animator**; `PlayerAnimator.cs` drives it. User play-tested 2026-08-13 — walk and jump good, sprint fine on a second look — but chose to sign the unit off in a later session. Next action: confirm and flip to `done`. Missing jog/falling/exhausted clips all fall through cleanly |
+| U7 | Animator state machine (idle/walk/run/jump) | done | `2525c3b` | Graph generated by **The Block → Build Joe Animator**; `PlayerAnimator.cs` drives it. User-confirmed 2026-08-13: walk, sprint and jump all read right. Missing jog/falling/exhausted clips all fall through cleanly — see the clip table below |
 
 ### Tier 2 — Vehicles
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
-| U8 | Vehicle base + one drivable car | todo | | **Use `mustang`** — the only car with separate wheel nodes. tesla/audi/avenger/police had wheels merged by `merge-car-meshes.py` (a three.js draw-call fix) so they can only be traffic |
+| U8 | Vehicle base + one drivable car | wip | | **Built and measured; awaiting the user's eyes only.** Rigidbody + 4 WheelColliders, NOT a port of the kinematic `vehicle.ts`. `Assets/Scripts/Vehicle/{CarController,CarWheel,CarSpawner,DebugVehicleSwitch}.cs`; prefab generated by **The Block → Build Mustang** (`Assets/Editor/CarBuilder.cs`). Press **V** to drive. Next action: play-test for feel, then flip to `done`. See RESUME HERE for the tuning table and the untested V switch |
 | U9 | Enter/exit state machine + seated driver | todo | | mirrors `game/game-state.ts` mode enum |
 | U10 | Motorcycle | todo | | feel is re-derived, not ported — budget real time |
 
 ### Tier 3 — World
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
-| U11 | All 9 districts via WorldBuilder | todo | | Placement, colliders and the foliage filter already ship in U5's WorldBuilder. What is left: ingest `reichman` + `parking-lot`, the alpha-clip fix, and the city 2/3 submesh split |
-| U12 | Roads, ground, sea | todo | | |
+| U11 | All 9 districts via WorldBuilder | todo | | Placement, colliders and the foliage filter ship in U5's WorldBuilder; `reichman` + `parking-lot` were ingested during U8 (both re-modelled in Blender). What is left: the foliage alpha-clip fix and the city 2/3 submesh split |
+| U12 | Roads, ground, sea | todo | | The 1400 m ground plate was pulled forward into U8 — a car needs somewhere to land. Roads, kerbs and the sea are still open |
 | U13 | Places — pizza + interior, gas, police station, lot cars | todo | | |
 | U14 | Map + minimap | todo | | |
 | U15 | Addressables streaming | todo | | ONLY if the profiler says so — measure first |
@@ -301,6 +354,43 @@ Dated one-liners. These are settled — do not re-litigate them without the user
 - **2026-08-13** (U6) — **No Cinemachine yet.** The chase camera is fifteen lines with a specific
   feel to reproduce; a camera framework earns its place at U23's helicopter and U26's menus, not
   here.
+- **2026-08-13** (U8) — **The car is a Rigidbody on four WheelColliders, not a port of `vehicle.ts`.**
+  The web build's car is kinematic — a scalar speed and heading pushed through a Rapier character
+  controller with a ray snapping it to the road — because Rapier's vehicle controller was unusable
+  there. That is scar tissue under port rule 5, and PhysX gives real suspension, momentum and
+  collisions that U17's traffic, U18's run-over and U19's ramming all inherit for free. Gameplay
+  numbers carry (20 m/s cap, 7 m/s reverse, ~34° lock); every physics number is re-derived.
+  Chosen by the user over a raycast-suspension middle path and a 1:1 kinematic port.
+- **2026-08-13** (U8) — **`config.vehicle`'s physics fields are deliberately NOT in the C# model.**
+  `accel`, `brakeDecel`, `friction`, `steerRatio`, `wheelReturn`, `colliderHeight`,
+  `colliderBottomGap`, `blockedRatio`, `blockBleedMinSpeed`, `maxClimbRate` and `characterOffset`
+  all describe the kinematic car. Under PhysX they are outputs of mass, suspension and tyre
+  friction, not inputs. Declaring them would invite someone to wire them up and be wrong, so their
+  absence is the statement. Replacements are serialized on `CarController` where they can be tuned
+  against the real thing.
+- **2026-08-13** (U8) — **`Convert.ModelFacing` is the rotational twin of `ModelOffset`.** three.js
+  drives an object down `-Z`, Unity down `+Z`, so a model with a FRONT needs a 180° yaw that a
+  district never does. The Mustang proves the two flips compose into exactly that one rotation: its
+  `wheel_Front_L_0` bone imports at `(0.992, 0.479, -1.562)` and lands at `(-0.992, 0.479, 1.562)`
+  — front and left, which is what the bone calls itself. The same 180° that points the nose down
+  `+Z` also puts the L/R names back on Unity's hands.
+- **2026-08-13** (U8) — **A car prefab is generated by `CarBuilder`, never assembled by hand.** Same
+  reasoning as WorldBuilder and JoeAnimatorBuilder: four WheelColliders dragged into place are
+  invisible in review and silently wrong after a re-export. Wheel radius and corner assignment are
+  MEASURED off the rig — corners by the sign of the bone's position, never by its name, because the
+  X negation makes `_L_` arrive on Unity's right until the facing rotation is applied.
+- **2026-08-13** (U8) — **The prefab root's origin is the tyre contact patch.** The model's own
+  origin sits 0.1 m below its tyres, so anchoring there makes `config`'s Y-less `spawn` plus
+  `roadSurfaceY` directly usable as "put the car here" instead of burying or floating it.
+- **2026-08-13** (U8) — **`x-negation-does-not-mirror-text`.** Checked by eye rather than reasoned:
+  Reichman's Hebrew sign reads `אוניברסיטת רייכמן` correctly after import. The negate-X convention
+  is a change of basis, not a visual mirror, so signage needs no compensation.
+- **2026-08-13** (U8) — **Blender exports get `export_image_webp_fallback=True`.** A texture stored
+  as .webp in a .blend exports as one, which writes `EXT_texture_webp` into extensions**Required**;
+  glTFast cannot read it and rejects the entire file, importing it as a `DefaultAsset` so
+  WorldBuilder just says "missing" while the real error hides in the Inspector. The fallback demotes
+  it to extensionsUsed. Forcing JPEG would be smaller but drops alpha, and Reichman's flag is an
+  alpha decal.
 - **2026-08-12** (U1) — **Downtown gets one collider over the whole mesh.** `city.noCollidePatterns`
   matches node *or* material names; `first-one.glb` has no per-object nodes and its only foliage
   material (`AM113_072_Washingtonia_filifera`) matches no pattern — so the shipped web build

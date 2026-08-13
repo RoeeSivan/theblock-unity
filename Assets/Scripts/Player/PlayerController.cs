@@ -39,7 +39,7 @@ namespace TheBlock.Player
     /// Animation is U7's job. This component only publishes what it is doing.
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
-    public class PlayerController : MonoBehaviour
+    public class PlayerController : MonoBehaviour, IChaseTarget
     {
         [Header("Spawn")]
         [Tooltip("Spawn at config.player.spawn — the parking lot. Leave OFF until that district " +
@@ -91,6 +91,19 @@ namespace TheBlock.Player
         /// <summary>Where the follow camera should look: roughly the player's head.</summary>
         public Vector3 LookTarget =>
             transform.position + Vector3.up * (_spec?.Camera?.LookYOffset ?? 1.8f);
+
+        // --- IChaseTarget ----------------------------------------------------------------------
+
+        public Transform Anchor => transform;
+
+        /// <summary>
+        /// ModelOffset, not Pos: this is an offset in the player's own frame, and three.js faces
+        /// -Z where Unity faces +Z. Through Pos() the camera would sit in Joe's face.
+        /// </summary>
+        public Vector3 LocalBoom =>
+            _spec?.Camera == null ? new Vector3(0f, 2f, -2.5f) : Convert.ModelOffset(_spec.Camera.Offset.Raw);
+
+        public float FollowLerp => _spec?.Camera?.FollowLerp ?? 0.25f;
 
         private void Awake() => Bind();
 
