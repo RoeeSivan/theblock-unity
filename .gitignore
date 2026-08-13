@@ -68,3 +68,7 @@ crashlytics-build.properties
 /Assets/Models/Characters/Joe.fbx
 /Assets/Models/Characters/Joe.fbx.meta
 /[Aa]ssets/StreamingAssets/theblock-config.json.meta
+
+# Jump animation FBX — 54 MB raw Mixamo download, same LFS reasoning as Joe.fbx.
+/Assets/Models/Characters/Joe_Jumping.fbx
+/Assets/Models/Characters/Joe_Jumping.fbx.meta

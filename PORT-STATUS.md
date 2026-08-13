@@ -8,11 +8,16 @@ this file is.
 
 ## RESUME HERE
 
-**Next action:** play-test U6 — walk Joe around downtown and say whether the movement feels right.
+**Next action:** U7 — animator state machine.
 
-U6 is built and compiles clean; the camera lands behind Joe on Play and he stands on the plaza
-instead of falling through. What it cannot verify without the user is **feel**, which is the whole
-point of the unit. Controls:
+Everything it needs is in place: `PlayerController` publishes `CurrentGait`
+(Idle/Walk/Jog/Sprint/Exhausted) and `CurrentPose` (Locomotion/Jump/Falling), and the clips
+`Joe_Idle`, `Joe_Walk` and `Joe_Jump` are imported on `JoeAvatar`. `Assets/Animation/Joe.controller`
+still has no parameters and one looping clip. Crossfade time is `config.player.animCrossfadeSec`
+(0.18 s). There is no jog or sprint clip yet — until one lands, drive their speed off the walk clip
+via the Animator's speed multiplier rather than inventing a state with nothing to play.
+
+**U6 is done** — the user confirmed the controls feel right. Controls:
 
 | key | does |
 | --- | --- |
@@ -23,13 +28,11 @@ point of the unit. Controls:
 | nothing | walk, 2.0 m/s |
 | `Space` | jump |
 
-What to judge: does the turn rate feel right, does the camera trail nicely or lag/whip, do curbs
-step up cleanly, does Joe stop at walls. Speeds and stamina are ported values, not re-derived, so
-they may want tuning by eye. **Joe will slide in a fixed walk pose — that is expected, the animator
-is U7.**
-
-Then U7 (animator state machine) reads `PlayerController.CurrentGait` / `.CurrentPose`, which are
-already published for it.
+**Downtown was rendering as a nest of grey spikes and is fixed** (2026-08-13). Unity's static
+batching had replaced its 122,678-vertex mesh with a `Combined Mesh (root: scene)` built on a 16-bit
+index buffer, so every index past 65,535 wrapped. The collider kept using the real asset mesh, which
+is why the world felt right and looked shredded — and why it survived the U1 checkpoint. See memory
+`static-batching-shreds-big-meshes`.
 
 **The world is generated, not hand-placed.** `World.unity` holds four roots:
 `Main Camera`, `Directional Light`, `Player_Joe`, and `World` — everything under `World` is
@@ -107,8 +110,8 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 ### Tier 1 — Traversal
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
-| U6 | Character controller + camera follow | wip | `1905f94` | **Built, compiles clean, camera verified behind Joe; awaiting the user's feel test.** `Assets/Scripts/Player/{PlayerController,FollowCamera}.cs` on `Player_Joe` / `Main Camera`. Next action: user walks him around and says whether it feels right. Nothing left to code |
-| U7 | Animator state machine (idle/walk/run/jump) | todo | | Reads `PlayerController.CurrentGait` / `.CurrentPose`, already published. `Joe.controller` currently has no parameters and one looping clip |
+| U6 | Character controller + camera follow | done | `1905f94` | `Assets/Scripts/Player/{PlayerController,FollowCamera}.cs` on `Player_Joe` / `Main Camera`. User-confirmed 2026-08-13: controls feel right |
+| U7 | Animator state machine (idle/walk/run/jump) | todo | | Reads `PlayerController.CurrentGait` / `.CurrentPose`, already published. Clips `Joe_Idle`/`Joe_Walk`/`Joe_Jump` are on `JoeAvatar`; **no jog or sprint clip exists** — drive those off the walk clip's speed until one lands |
 
 ### Tier 2 — Vehicles
 | id | unit | state | commit | notes |
@@ -236,6 +239,13 @@ Dated one-liners. These are settled — do not re-litigate them without the user
 - **2026-08-13** (U6) — **Unity's `CharacterController` replaces the Rapier kinematic capsule plus
   hand-rolled collide-and-slide.** Same behaviour, one component, and it brings `stepOffset` — which
   the web build had no equivalent for and which is what gets Joe up a Florentin curb.
+- **2026-08-13** (U5) — **Districts are never `BatchingStatic`.** Batching rebuilds a >65k-vertex
+  mesh on a 16-bit index buffer and shreds it, while the collider keeps using the real asset mesh —
+  so the world feels right and looks wrong, which is how it survived a checkpoint. Nothing to win
+  either way: a district is one to four huge meshes and batching exists to merge small draws. The
+  flags are listed one by one in `SetDistrictStaticFlags`, because passing "everything except
+  batching" as an all-bits value is normalised back to Everything. See memory
+  `static-batching-shreds-big-meshes`.
 - **2026-08-13** (U6) — **No Cinemachine yet.** The chase camera is fifteen lines with a specific
   feel to reproduce; a camera framework earns its place at U23's helicopter and U26's menus, not
   here.

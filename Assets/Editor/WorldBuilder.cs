@@ -169,7 +169,7 @@ namespace TheBlock.EditorTools
             instance.name = $"District_{Sanitize(name)}";
             instance.transform.position = Convert.Pos(position.Raw);
             instance.transform.localScale = Vector3.one * (scale <= 0f ? 1f : scale);
-            SetStaticRecursively(instance, true);
+            SetDistrictStaticFlags(instance);
 
             if (facadeMaterials != null) ApplyFacadeMaterial(instance, facadeMaterials, report);
             if (hideMaterials != null) HideByMaterial(instance, hideMaterials, report);
@@ -418,10 +418,33 @@ namespace TheBlock.EditorTools
 
         // --- reporting -------------------------------------------------------------------------
 
-        private static void SetStaticRecursively(GameObject go, bool isStatic)
+        /// <summary>
+        /// Marks a district static for occlusion, GI, navmesh and reflection probes — but NOT for
+        /// batching.
+        ///
+        /// Static batching rewrites the MeshFilter to point at a "Combined Mesh (root: scene)" that
+        /// Unity builds with a 16-bit index buffer. Downtown has 122,678 vertices, so every index
+        /// past 65,535 wraps and its triangles reach across the mesh: the block renders as a nest
+        /// of giant spikes, while its collider (which still uses the real asset mesh) stays correct,
+        /// so the world feels right and looks shredded.
+        ///
+        /// There is nothing to win here anyway. Batching exists to merge many small draw calls, and
+        /// a district is one to four huge meshes.
+        /// </summary>
+        private static void SetDistrictStaticFlags(GameObject go)
         {
+            // Listed one by one rather than "everything except batching": passing an all-bits value
+            // is normalised straight back to Everything, which quietly puts BatchingStatic back.
+            const StaticEditorFlags flags =
+                StaticEditorFlags.ContributeGI |
+                StaticEditorFlags.OccluderStatic |
+                StaticEditorFlags.OccludeeStatic |
+                StaticEditorFlags.NavigationStatic |
+                StaticEditorFlags.OffMeshLinkGeneration |
+                StaticEditorFlags.ReflectionProbeStatic;
+
             foreach (var child in go.GetComponentsInChildren<Transform>(true))
-                child.gameObject.isStatic = isStatic;
+                GameObjectUtility.SetStaticEditorFlags(child.gameObject, flags);
         }
 
         private static string Sanitize(string name) => name.Replace(" ", string.Empty);
