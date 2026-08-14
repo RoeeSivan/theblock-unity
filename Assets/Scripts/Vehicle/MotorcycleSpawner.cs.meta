@@ -1,2 +1,12 @@
 fileFormatVersion: 2
 guid: 4f3ebfe5a52a74a2ca0982db99929eb5
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - motorcyclePrefab: {fileID: 8223720547986656123, guid: 144bad32357214316bd07ce99c78f812, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -303,17 +303,15 @@ namespace TheBlock.Vehicles
             var cars = snapshot?.Config?.Vehicle?.Cars;
             if (cars == null || cars.Count == 0) return;
 
-            // Find this car's spec by matching the model URL
-            var thisSpec = cars.FirstOrDefault(c => c.ModelUrl == _spec?.ModelUrl);
+            var thisSpec = cars.FirstOrDefault();
+
             if (thisSpec == null) return;
 
-            // Reset to spawn position and heading
-            _position = Convert.Pos(thisSpec.Spawn.Raw);
-            transform.position = _position;
-            _yaw = 0f;
+            Vector3 position = Convert.Pos(thisSpec.Spawn.Raw);
+            transform.position = position;
+
             transform.rotation = Quaternion.identity;
 
-            // Stop all motion
             _body.linearVelocity = Vector3.zero;
             _body.angularVelocity = Vector3.zero;
             foreach (var wheel in new[] { frontLeft, frontRight, rearLeft, rearRight })

@@ -243,7 +243,9 @@ namespace TheBlock.Vehicles
             // more so with every car he got out of.
             player.transform.SetParent(null, worldPositionStays: false);
             var spot = ExitSpot(car);
-            player.transform.SetPositionAndRotation(spot, car.transform.rotation);
+
+            // תוקן: שימוש ב-GetTransform() במקום transform
+            player.transform.SetPositionAndRotation(spot, car.GetTransform().rotation);
 
             SetDriverVisible(true);
             driverHidden = false;
@@ -305,7 +307,9 @@ namespace TheBlock.Vehicles
             foreach (var vehicle in EnterableRegistry.All)
             {
                 if (vehicle == null) continue;
-                var offset = vehicle.Position - here;
+
+                // תוקן: שימוש ב-GetTransform().position במקום Position
+                var offset = vehicle.GetTransform().position - here;
                 var distance = offset.x * offset.x + offset.z * offset.z;
                 if (distance > bestDistance) continue;
                 bestDistance = distance;

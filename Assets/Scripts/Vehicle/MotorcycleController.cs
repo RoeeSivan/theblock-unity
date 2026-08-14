@@ -163,14 +163,14 @@ namespace TheBlock.Vehicles
 
         private void HandleInput()
         {
-            var input = InputSystem.GetDevice<Gamepad>() ?? (InputDevice)Keyboard.current;
-            if (input == null) return;
+            var keyboard = Keyboard.current;
+            if (keyboard == null) return;
 
-            var fwd = input.IsPressed(Key.W) || input.IsPressed(Key.UpArrow);
-            var back = input.IsPressed(Key.S) || input.IsPressed(Key.DownArrow);
-            var braking = input.IsPressed(Key.Space);
-            var left = input.IsPressed(Key.A) || input.IsPressed(Key.LeftArrow);
-            var right = input.IsPressed(Key.D) || input.IsPressed(Key.RightArrow);
+            var fwd = keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed;
+            var back = keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed;
+            var braking = keyboard.spaceKey.isPressed;
+            var left = keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed;
+            var right = keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed;
 
             // Throttle/brake
             if (fwd)
@@ -190,7 +190,6 @@ namespace TheBlock.Vehicles
             var targetWheel = steer * _maxWheelAngle;
             _wheel += (targetWheel - _wheel) * Mathf.Min(1f, _wheelReturn * Time.deltaTime);
         }
-
         private void UpdatePhysics(float dt)
         {
             // Ground follow via raycast

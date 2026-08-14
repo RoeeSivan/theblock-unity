@@ -1826,6 +1826,7 @@ GameObject:
   - component: {fileID: 776202323}
   - component: {fileID: 776202322}
   - component: {fileID: 776202321}
+  - component: {fileID: 776202324}
   m_Layer: 0
   m_Name: Vehicles
   m_TagString: Untagged
@@ -1852,7 +1853,6 @@ MonoBehaviour:
   exitProbeHeight: 5
   exitProbeDepth: 25
   mode: 0
-  activeVehicle: {fileID: 0}
   timer: 0
   usingEntryClip: 0
   driverHidden: 0
@@ -1887,6 +1887,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &776202324
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 776202320}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f3ebfe5a52a74a2ca0982db99929eb5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Vehicles.MotorcycleSpawner
+  motorcyclePrefab: {fileID: 8223720547986656123, guid: 144bad32357214316bd07ce99c78f812, type: 3}
+  probeHeight: 20
+  settleGap: 0.05
 --- !u!64 &784180774
 MeshCollider:
   m_ObjectHideFlags: 0
