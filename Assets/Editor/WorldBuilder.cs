@@ -30,6 +30,34 @@ namespace TheBlock.EditorTools
         private const string FacadeMaterialPath = "Assets/Materials/City/Facade.mat";
         private const string GroundMaterialPath = "Assets/Materials/World/Ground.mat";
 
+        /// <summary>Generated alpha-clipped stand-ins for imported blended materials. Rebuilt every build.</summary>
+        private const string CutoutMaterialFolder = "Assets/Materials/City/Cutout";
+
+        /// <summary>Generated meshes with hidden submeshes removed. Rebuilt every build, gitignored.</summary>
+        private const string GeneratedMeshFolder = "Assets/Meshes/Generated";
+
+        /// <summary>
+        /// Imported materials whose alpha is a CUTOUT MASK — leaf cards, railings, grating — and not
+        /// real translucency.
+        ///
+        /// glTF has one `alphaMode: BLEND` for both, and these assets use it for both, so glTFast
+        /// imports the tree canopies as transparent surfaces with ZWrite off: hundreds of unsorted
+        /// leaf quads blending over each other and over the buildings behind them, which reads as
+        /// white shards rather than trees. Alpha CLIPPING is what these actually want — hard edges,
+        /// depth written, sorted with the opaque geometry, and a shadow that has leaf-shaped holes
+        /// in it, which the blended version cannot produce at all.
+        ///
+        /// This list is a port-side judgement, not config: the web build has one material path and
+        /// never had to make the distinction. Anything NOT listed here stays blended, and every
+        /// blended material left in the world is named in the build report so a wrong call is
+        /// visible rather than silent.
+        /// </summary>
+        private static readonly string[] CutoutMaterialPatterns =
+        {
+            "foliage", "tree", "leaf", "leaves", "vegetation", "plant", "bush", "shrub",
+            "street_assets", "firescape",
+        };
+
         /// <summary>Scene roots the hand-built phase left behind, replaced by the generated world.</summary>
         private static readonly string[] LegacyRootPrefixes = { "District_", "Place_" };
 
@@ -140,6 +168,8 @@ namespace TheBlock.EditorTools
                 BuildPlace(places, snapshot.Config.GasStation, "Gas Station", options, report);
                 BuildPlace(places, snapshot.Config.PoliceStation, "Police Station", options, report);
             }
+
+            SweepGenerated(report);
 
             stopwatch.Stop();
             var text = report.Compose(snapshot, stopwatch.Elapsed, options);
@@ -262,6 +292,9 @@ namespace TheBlock.EditorTools
 
             if (facadeMaterials != null) ApplyFacadeMaterial(instance, facadeMaterials, report);
             if (hideMaterials != null) HideByMaterial(instance, hideMaterials, report);
+            ApplyCutoutMaterials(instance, report);
+            // After the cutout pass, so anything reported is genuinely still blended.
+            report.NoteTransparentMaterials(instance);
             if (options.Colliders) AddColliders(instance, noCollidePatterns, null, null, report);
 
             report.Placed.Add($"{instance.name} @ {Fmt(instance.transform.position)}");
@@ -293,6 +326,10 @@ namespace TheBlock.EditorTools
                 report.Notes.Add($"{instance.name}: hideNodes skipped — they name the original model's parts");
             else if (place.HideNodes != null)
                 HideByNode(instance, place.HideNodes, report);
+
+            ApplyCutoutMaterials(instance, report);
+            report.NoteTransparentMaterials(instance);
+
             if (options.Colliders)
                 AddColliders(instance, null, place.NoCollideNodes, place.CollideMaxY, report);
 
@@ -390,15 +427,25 @@ namespace TheBlock.EditorTools
         }
 
         /// <summary>
-        /// Hides the districts' baked-in parked cars. A renderer is only disabled when EVERY slot on
-        /// it is a hidden material — a partial match would take real geometry with it, so those are
-        /// reported instead of guessed at.
+        /// Removes the districts' baked-in parked cars.
+        ///
+        /// A renderer whose every slot is a hidden material is simply switched off. A renderer that
+        /// MIXES them with real geometry — cities 2 and 3 each merge their cars into the same
+        /// 300k-vertex mesh as their streets and buildings — gets the car SUBMESHES stripped out of
+        /// a generated copy of its mesh instead, which is the thing the web build could not do:
+        /// three.js had one material path per draw and no edit-time asset step, so it could only
+        /// hide a whole object. Unity owns the mesh at build time, so the split is a build step and
+        /// the .glb on disk is never touched.
+        ///
+        /// Stripping rather than tinting also takes the cars out of collision, since the collider
+        /// pass reads the same (now stripped) mesh — an invisible but solid parked car is exactly
+        /// the kind of thing U17's traffic would pile into.
         /// </summary>
         private static void HideByMaterial(GameObject instance, List<string> hideMaterials, Report report)
         {
             if (hideMaterials.Count == 0) return;
 
-            int hidden = 0, partial = 0;
+            int hidden = 0, stripped = 0, strippedSubmeshes = 0;
             foreach (var renderer in instance.GetComponentsInChildren<MeshRenderer>(true))
             {
                 var materials = renderer.sharedMaterials;
@@ -411,17 +458,365 @@ namespace TheBlock.EditorTools
                 {
                     renderer.gameObject.SetActive(false);
                     hidden++;
+                    continue;
                 }
-                else
+
+                if (StripSubmeshes(instance, renderer, hideMaterials, report, out var removed))
                 {
-                    partial++;
+                    stripped++;
+                    strippedSubmeshes += removed;
                 }
             }
 
             if (hidden > 0) report.Notes.Add($"{instance.name}: hid {hidden} baked-car renderer(s)");
-            if (partial > 0)
-                report.Warnings.Add(
-                    $"{instance.name}: {partial} renderer(s) mix baked cars with real geometry — left visible, needs a submesh split");
+            if (stripped > 0)
+                report.Notes.Add(
+                    $"{instance.name}: stripped {strippedSubmeshes} baked-car submesh(es) out of {stripped} merged mesh(es)");
+        }
+
+        /// <summary>
+        /// Rebuilds a renderer's mesh without the submeshes whose material is in
+        /// <paramref name="hideMaterials"/>, and drops the matching material slots.
+        ///
+        /// The vertices are compacted, not just the indices dropped: in city 2 the parked cars are
+        /// 186,186 of the mesh's 216,515 triangles, so leaving their vertices behind unreferenced
+        /// would mean shipping a buffer that is 86% dead weight. Reindexing what survives is cheap
+        /// by comparison — it is a few tens of thousands of triangles.
+        ///
+        /// The result is saved as an asset because a mesh created here and left unsaved is
+        /// serialized INTO the scene file. Written under <see cref="GeneratedMeshFolder"/>,
+        /// gitignored for the same reason the district .glbs are.
+        /// </summary>
+        private static bool StripSubmeshes(
+            GameObject instance, MeshRenderer renderer, List<string> hideMaterials, Report report, out int removed)
+        {
+            removed = 0;
+            if (!renderer.TryGetComponent<MeshFilter>(out var filter)) return false;
+
+            var source = filter.sharedMesh;
+            var materials = renderer.sharedMaterials;
+            if (source == null || source.subMeshCount != materials.Length) return false;
+
+            var keep = new List<int>();
+            for (int i = 0; i < materials.Length; i++)
+            {
+                if (materials[i] != null && hideMaterials.Contains(materials[i].name)) removed++;
+                else keep.Add(i);
+            }
+
+            if (removed == 0 || keep.Count == 0) return false;
+
+            var indices = keep.Select(source.GetTriangles).ToList();
+            var mesh = Compact(source, indices, $"{Sanitize(instance.name)}_{Sanitize(source.name)}_stripped");
+
+            EnsureFolder(GeneratedMeshFolder);
+            var assetPath = $"{GeneratedMeshFolder}/{mesh.name}.asset";
+            report.Generated.Add(assetPath);
+            AssetDatabase.CreateAsset(mesh, assetPath);
+
+            filter.sharedMesh = mesh;
+            renderer.sharedMaterials = keep.Select(i => materials[i]).ToArray();
+            return true;
+        }
+
+        /// <summary>
+        /// Builds a mesh holding only the vertices <paramref name="indices"/> still reach, with the
+        /// index lists remapped onto them — one submesh per list, in the order given.
+        ///
+        /// Vertex order is first-use order, which keeps the surviving triangles' vertices roughly
+        /// as locally coherent as they were.
+        /// </summary>
+        private static Mesh Compact(Mesh source, List<int[]> indices, string name)
+        {
+            var remap = new Dictionary<int, int>();
+            var order = new List<int>();
+            foreach (var submesh in indices)
+            {
+                for (int i = 0; i < submesh.Length; i++)
+                {
+                    if (remap.ContainsKey(submesh[i])) continue;
+                    remap[submesh[i]] = order.Count;
+                    order.Add(submesh[i]);
+                }
+            }
+
+            var mesh = new Mesh
+            {
+                name = name,
+                indexFormat = order.Count > ushort.MaxValue
+                    ? UnityEngine.Rendering.IndexFormat.UInt32
+                    : UnityEngine.Rendering.IndexFormat.UInt16,
+            };
+
+            mesh.SetVertices(Gather(source.vertices, order));
+            if (source.normals.Length > 0) mesh.SetNormals(Gather(source.normals, order));
+            if (source.tangents.Length > 0) mesh.SetTangents(Gather(source.tangents, order));
+            if (source.colors.Length > 0) mesh.SetColors(Gather(source.colors, order));
+
+            // glTF allows up to eight TEXCOORD sets and these districts use two; asking for all of
+            // them costs nothing and means a re-export with a lightmap UV does not quietly lose it.
+            var uvs = new List<Vector4>();
+            for (int channel = 0; channel < 8; channel++)
+            {
+                source.GetUVs(channel, uvs);
+                if (uvs.Count > 0) mesh.SetUVs(channel, Gather(uvs.ToArray(), order));
+            }
+
+            mesh.subMeshCount = indices.Count;
+            for (int i = 0; i < indices.Count; i++)
+            {
+                var remapped = new int[indices[i].Length];
+                for (int j = 0; j < remapped.Length; j++) remapped[j] = remap[indices[i][j]];
+                mesh.SetTriangles(remapped, i, calculateBounds: false);
+            }
+
+            mesh.RecalculateBounds();
+            return mesh;
+        }
+
+        private static List<T> Gather<T>(T[] source, List<int> order)
+        {
+            var gathered = new List<T>(order.Count);
+            foreach (var index in order) gathered.Add(source[index]);
+            return gathered;
+        }
+
+        /// <summary>
+        /// Rebinds every imported material whose alpha is really a cutout mask (see
+        /// <see cref="CutoutMaterialPatterns"/>) to a generated alpha-clipped URP/Lit material.
+        ///
+        /// glTFast's own Shader Graph will not do this: its surface mode is decided at import from
+        /// the glTF's <c>alphaMode</c>, and <c>_AlphaClip</c> on the imported material is inert
+        /// because the graph's keywords were baked for the blended variant. So the fix is a separate
+        /// material asset, the same answer U1 reached for the facade tint — the imported material is
+        /// read for its texture and factors and otherwise left exactly as imported.
+        ///
+        /// The generated material is rewritten in place on every build rather than reused as found,
+        /// so it stays a pure function of the imported one; a re-export of a district changes the
+        /// texture and the next build picks it up.
+        /// </summary>
+        private static void ApplyCutoutMaterials(GameObject instance, Report report)
+        {
+            var shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader == null)
+            {
+                report.Warnings.Add("alpha-clip pass skipped — URP/Lit shader not found");
+                return;
+            }
+
+            var converted = new Dictionary<Material, Material>();
+            var names = new SortedSet<string>(StringComparer.Ordinal);
+            var defaults = 0;
+
+            foreach (var renderer in instance.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                var materials = renderer.sharedMaterials;
+                var changed = false;
+                for (int i = 0; i < materials.Length; i++)
+                {
+                    var source = materials[i];
+
+                    // A submesh whose glTF primitive names no material. Unity draws an empty slot
+                    // with the magenta error shader — small pink rectangles scattered over the
+                    // pavement — where glTF says it is the spec's default PBR material.
+                    if (source == null)
+                    {
+                        materials[i] = GltfDefaultMaterial(shader, report);
+                        changed = true;
+                        defaults++;
+                        continue;
+                    }
+
+                    if (!IsBlended(source)) continue;
+                    if (!ContainsAny(source.name, CutoutMaterialPatterns)) continue;
+                    if (IsGeneratedCutout(source)) continue;
+
+                    if (!converted.TryGetValue(source, out var cutout))
+                    {
+                        cutout = BuildCutoutMaterial(instance, source, shader, report);
+                        converted[source] = cutout;
+                        names.Add(source.name);
+                    }
+
+                    materials[i] = cutout;
+                    changed = true;
+                }
+
+                if (changed) renderer.sharedMaterials = materials;
+            }
+
+            if (names.Count > 0)
+                report.Notes.Add($"{instance.name}: alpha-clipped {string.Join(", ", names)}");
+            if (defaults > 0)
+                report.Notes.Add($"{instance.name}: filled {defaults} empty material slot(s) — were rendering magenta");
+        }
+
+        /// <summary>
+        /// glTF's default material, as the spec states it: white, fully metallic, fully rough.
+        ///
+        /// Deliberately not something prettier. A submesh with no material is the asset saying
+        /// nothing, and inventing a look for it would hide that; this is drab and correct, and it is
+        /// what a glTF viewer shows.
+        /// </summary>
+        private static Material GltfDefaultMaterial(Shader shader, Report report)
+        {
+            EnsureFolder(CutoutMaterialFolder);
+            var assetPath = $"{CutoutMaterialFolder}/GltfDefault.mat";
+            report.Generated.Add(assetPath);
+
+            var material = AssetDatabase.LoadAssetAtPath<Material>(assetPath);
+            if (material == null)
+            {
+                material = new Material(shader) { name = "GltfDefault" };
+                AssetDatabase.CreateAsset(material, assetPath);
+            }
+
+            material.shader = shader;
+            material.SetColor("_BaseColor", Color.white);
+            material.SetFloat("_Metallic", 1f);
+            material.SetFloat("_Smoothness", 0f);
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        /// <summary>
+        /// True when a material actually renders in the transparent queue — the precondition for the
+        /// alpha-clip pass, and not merely a tidiness check.
+        ///
+        /// <see cref="CutoutMaterialPatterns"/> is matched as substrings, and "tree" is a substring
+        /// of "CityGen_S<i>tree</i>ts": without this guard the pass converted every district's road
+        /// surface, which is opaque and has nothing to clip. An alpha cutout only ever fixes
+        /// something that is blended in the first place, so ask that first and the name match only
+        /// has to choose among the blended ones.
+        /// </summary>
+        private static bool IsBlended(Material material) =>
+            material.renderQueue >= (int)UnityEngine.Rendering.RenderQueue.Transparent;
+
+        private static bool IsGeneratedCutout(Material material) =>
+            AssetDatabase.GetAssetPath(material)
+                .StartsWith(CutoutMaterialFolder, StringComparison.Ordinal);
+
+        /// <summary>
+        /// Copies an imported glTF material onto a URP/Lit one with alpha clipping on.
+        ///
+        /// Only the base map, its tiling, the base colour and the metallic/roughness SCALARS carry
+        /// over. glTF packs metal-roughness into G and B of one texture and occlusion into R of
+        /// another; URP/Lit wants metallic in R and smoothness in A, so copying those maps across
+        /// would be silently wrong. None of the materials this pass touches has one.
+        /// </summary>
+        private static Material BuildCutoutMaterial(
+            GameObject instance, Material source, Shader shader, Report report)
+        {
+            EnsureFolder(CutoutMaterialFolder);
+            var assetPath = $"{CutoutMaterialFolder}/{Sanitize(instance.name)}_{Sanitize(source.name)}.mat";
+            report.Generated.Add(assetPath);
+
+            var material = AssetDatabase.LoadAssetAtPath<Material>(assetPath);
+            if (material == null)
+            {
+                material = new Material(shader);
+                AssetDatabase.CreateAsset(material, assetPath);
+            }
+            else
+            {
+                material.shader = shader;
+            }
+
+            if (source.HasProperty("baseColorTexture"))
+                material.SetTexture("_BaseMap", source.GetTexture("baseColorTexture"));
+            if (source.HasProperty("baseColorTexture_ST"))
+                material.SetVector("_BaseMap_ST", UnflipV(source.GetVector("baseColorTexture_ST")));
+
+            // glTFast's `baseColorFactor` holds an sRGB value (memory: gltfast-basecolorfactor-gamma),
+            // while URP/Lit's `_BaseColor` is an untagged colour property and so is read as linear.
+            // Every material this pass touches is pure white, where the two agree — the conversion is
+            // here to be right rather than to be visible.
+            if (source.HasProperty("baseColorFactor"))
+                material.SetColor("_BaseColor", source.GetColor("baseColorFactor").linear);
+            if (source.HasProperty("metallicFactor"))
+                material.SetFloat("_Metallic", source.GetFloat("metallicFactor"));
+            if (source.HasProperty("roughnessFactor"))
+                material.SetFloat("_Smoothness", 1f - source.GetFloat("roughnessFactor"));
+
+            // Opaque surface + alpha clip. The imported `alphaCutoff` is 0 on a BLEND material —
+            // glTF only defines it for MASK — so a real threshold has to be chosen here.
+            material.SetFloat("_Surface", 0f);
+            material.SetFloat("_AlphaClip", 1f);
+            material.SetFloat("_Cutoff", 0.5f);
+            // Leaf cards and railings are single-sided geometry seen from both sides.
+            material.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Off);
+            material.doubleSidedGI = true;
+
+            // Keywords, render queue, the TransparentCutout RenderType tag and _AlphaToMask all
+            // follow from those four floats — and getting any of them wrong by hand is how a
+            // material ends up clipping in the colour pass but not in the shadow pass.
+            BaseShaderGUI.SetupMaterialBlendMode(material);
+
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        /// <summary>
+        /// Deletes anything in the generated folders that THIS build did not write.
+        ///
+        /// Without it the generated folders are append-only and a rename, a re-export or a corrected
+        /// pattern list leaves a plausible-looking .mat behind that nothing references — which is
+        /// the same "invisible and unreproducible" failure that keeps the world itself out of the
+        /// scene file. The build is a pure function of the config and the assets; its output folders
+        /// have to be too.
+        /// </summary>
+        private static void SweepGenerated(Report report)
+        {
+            foreach (var folder in new[] { CutoutMaterialFolder, GeneratedMeshFolder })
+            {
+                if (!AssetDatabase.IsValidFolder(folder)) continue;
+
+                foreach (var guid in AssetDatabase.FindAssets(string.Empty, new[] { folder }))
+                {
+                    var path = AssetDatabase.GUIDToAssetPath(guid);
+                    if (AssetDatabase.IsValidFolder(path) || report.Generated.Contains(path)) continue;
+                    AssetDatabase.DeleteAsset(path);
+                    report.Notes.Add($"deleted stale generated asset {path}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Takes glTFast's tiling/offset back out of glTFast's own V convention.
+        ///
+        /// glTFast decides per TEXTURE whether the imported image ended up vertically flipped, and
+        /// compensates by writing a negative Y scale into the material — an identity glTF transform
+        /// comes out as <c>(1, -1, 0, 1)</c>. In these districts that decision is WRONG, and it is
+        /// wrong inconsistently: <c>FoliageTrees.001</c> through <c>.004</c> all sample the same
+        /// image through four different glTF texture entries, and only .001 came out unflipped.
+        ///
+        /// Which of them is right is measurable, not a matter of taste. The leaves occupy
+        /// u [0, 0.25] × v [0, 0.25] of the imported Texture2D — the bottom-left sixteenth, the rest
+        /// of the atlas being blank white — and the canopy meshes' UVs are in exactly that range.
+        /// So the identity is correct and the flip is what sends three materials out of four into
+        /// the white part of the atlas. THAT is the white shards, all along: not a blend-mode fault
+        /// at all, which is why alpha-clipping alone left them white.
+        ///
+        /// Undoing the flip rather than forcing the identity keeps a genuine
+        /// KHR_texture_transform — tiling, offset — intact if a future district ships one.
+        /// </summary>
+        private static Vector4 UnflipV(Vector4 scaleOffset) =>
+            scaleOffset.y >= 0f
+                ? scaleOffset
+                : new Vector4(scaleOffset.x, -scaleOffset.y, scaleOffset.z, 1f - scaleOffset.w);
+
+        private static void EnsureFolder(string path)
+        {
+            if (AssetDatabase.IsValidFolder(path)) return;
+
+            var parts = path.Split('/');
+            var current = parts[0];
+            for (int i = 1; i < parts.Length; i++)
+            {
+                var next = $"{current}/{parts[i]}";
+                if (!AssetDatabase.IsValidFolder(next)) AssetDatabase.CreateFolder(current, parts[i]);
+                current = next;
+            }
         }
 
         /// <summary>
@@ -534,7 +929,7 @@ namespace TheBlock.EditorTools
             return true;
         }
 
-        private static bool ContainsAny(string text, List<string> patterns)
+        private static bool ContainsAny(string text, IEnumerable<string> patterns)
         {
             foreach (var pattern in patterns)
             {
@@ -586,7 +981,33 @@ namespace TheBlock.EditorTools
             public readonly List<string> Warnings = new();
             public readonly List<string> Notes = new();
             public readonly List<string> RemovedLegacy = new();
+            public readonly SortedSet<string> StillBlended = new(StringComparer.Ordinal);
+
+            /// <summary>Asset paths this build wrote under the generated folders. Anything else there is stale.</summary>
+            public readonly HashSet<string> Generated = new(StringComparer.Ordinal);
             public int Colliders;
+
+            /// <summary>
+            /// Records every material still on a transparent surface after the alpha-clip pass.
+            ///
+            /// Deciding which blended materials are really cutouts is a judgement call made in
+            /// <see cref="CutoutMaterialPatterns"/>, and the ones left over are exactly the
+            /// candidates if something else in the world still renders as a pale smear. Naming them
+            /// costs a line of report and turns "the trees look wrong" into a list to check.
+            /// </summary>
+            public void NoteTransparentMaterials(GameObject instance)
+            {
+                foreach (var renderer in instance.GetComponentsInChildren<MeshRenderer>(true))
+                {
+                    if (!renderer.gameObject.activeInHierarchy) continue;
+                    foreach (var material in renderer.sharedMaterials)
+                    {
+                        if (material == null) continue;
+                        if (material.renderQueue >= (int)UnityEngine.Rendering.RenderQueue.Transparent)
+                            StillBlended.Add(material.name);
+                    }
+                }
+            }
 
             public string Compose(TheBlockConfig.Snapshot snapshot, TimeSpan elapsed, Options options)
             {
@@ -600,6 +1021,9 @@ namespace TheBlock.EditorTools
                 Section(sb, "MISSING — asset not in the project yet", Missing);
                 Section(sb, "WARNINGS", Warnings);
                 Section(sb, "REPLACED hand-placed roots", RemovedLegacy);
+                if (StillBlended.Count > 0)
+                    Section(sb, "STILL BLENDED — deliberate; suspects if anything else renders pale",
+                        new List<string> { string.Join(", ", StillBlended) });
                 Section(sb, "NOTES", Notes);
                 return sb.ToString().TrimEnd();
             }

@@ -63,6 +63,15 @@ crashlytics-build.properties
 /Assets/Models/City/procedural-city-*.glb
 /Assets/Models/City/procedural-city-*.glb.meta
 
+# WorldBuilder's generated output. The stripped district meshes are ~15 MB each and the
+# alpha-clip materials point at textures inside those same gitignored .glbs — both are
+# derived assets that every Build World rewrites from scratch and sweeps when stale, so
+# committing them would cost LFS quota to store something that is never read.
+/Assets/Meshes/Generated/
+/Assets/Meshes/Generated.meta
+/Assets/Materials/City/Cutout/
+/Assets/Materials/City/Cutout.meta
+
 # Character source FBX over 10 MB — raw Mixamo downloads, authoritative copies live in
 # the game repo at source-assets/models/. Same LFS reasoning as the district GLBs.
 /Assets/Models/Characters/Joe.fbx

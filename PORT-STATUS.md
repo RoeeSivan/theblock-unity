@@ -21,7 +21,9 @@ Already banked, as evidence this is a real rule and not a slogan: the facade tin
 asset instead of a load-time recolour (U1); `CharacterController` with `stepOffset` replaces
 hand-rolled collide-and-slide (U6); the car is a Rigidbody on WheelColliders instead of a kinematic
 capsule snapped to the road (U8); one Joe is reparented into the seat instead of a second skinned
-body being mounted (U9); the bike leans and has real suspension and real collisions (U10). Still
+body being mounted (U9); the bike leans and has real suspension and real collisions (U10); the
+baked-in parked cars are cut out at the submesh level at build time, which the web build had no
+edit-time step to do (U11). Still
 queued: NavMesh police instead of "drive straight at the player" (U19), Addressables instead of
 one big download (U15), UI Toolkit instead of DOM overlays (U25).
 
@@ -34,24 +36,86 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-**Next action:** **U11 — all 9 districts.** WorldBuilder already places and collides every one of
-them; the last build reported 12 placed, 2 missing, 109 colliders. What is actually left is two
-rendering faults and one honest limitation, all described under "Known issues" further down:
+**Next action: play-test U11, then close it.** All three of its known issues are fixed and the
+world builds clean — `12 placed, 2 missing, 109 colliders`, the two missing still being U13's gas
+station and police station. **U11 stays `wip` until the user says it looks right**, then flip it to
+`done`, fill the commit hash and rewrite this block to point at U12.
 
-1. **Foliage renders as white shards.** Imported `alphaMode: BLEND` with ZWrite off. Alpha-clip is
-   the right fix but glTFast's Shader Graph ignores `_AlphaClip`, so the surface mode has to be
-   driven another way. Attempted once and reverted — not left half-applied.
-2. **Cities 2 and 3 each mix baked-in parked cars with real geometry in one renderer**, so
-   `hideMaterials` cannot strip them without taking buildings too. A submesh split in Blender is the
-   fix; every other district hides its cars cleanly.
-3. **Districts are merged meshes**, so `noCollidePatterns` almost never matches and a district gets
-   2–4 whole-mesh colliders, palms included. The web build has the same hole, so this is faithful
-   rather than broken — decide whether to leave it or source raw multi-node models.
+**What to look at, in the Editor:**
 
-Ask the standing question first (see the remark at the top of this file): the web build's foliage
-looks the way it does because three.js had one material path. Unity has Shader Graph, per-material
-render queues and alpha-to-coverage — the fix should make the palms look BETTER than the original,
-not merely not-white.
+1. **Trees are green.** Fly over any district. Before, every canopy was a cluster of white shards;
+   they should now read as leaves, hard-edged rather than smeared, with no white halo.
+2. **No parked cars in cities 2 and 3** — the two districts either side of downtown, at Unity
+   x +150 and x −156. Their baked-in cars are gone from the streets AND from collision: drive into
+   a spot where one used to be and nothing should stop you.
+3. **No magenta.** Small pink rectangles used to sit on the pavement in every procedural district.
+4. Nothing else went pale or opaque. If something did, the build report's **STILL BLENDED** line
+   names every material that is still transparent — that list is the suspect pool.
+
+Reference shots from the last build are in `Assets/Screenshots/` (gitignored):
+`u11_top0.png` is the before, `u11_final0..3.png` the after.
+
+### What U11 built
+
+**All 9 districts were already placed by U5's WorldBuilder** — the unit's real content was three
+rendering faults, and the first one was not what it looked like.
+
+**⚠ The white shards were never a blending problem.** They were the wrong CORNER of the atlas.
+`assets_Foliage` is a 512² image whose leaves occupy only u [0, 0.25] × v [0, 0.25] — the
+bottom-left sixteenth — and the rest is blank white. glTFast decides per TEXTURE whether the
+imported image came out vertically flipped and compensates with a negative Y scale in the material's
+`_ST`; on these districts that decision is wrong, and wrong INCONSISTENTLY: `FoliageTrees.001`
+through `.004` all sample the same image through four different glTF texture entries and only `.001`
+came out unflipped. The other three sampled v ∈ [0.75, 1] — pure white. `WorldBuilder.UnflipV`
+takes the flip back out. See memory `gltfast-spurious-v-flip`.
+
+The diagnosis in the old note — `alphaMode: BLEND` with ZWrite off — was real but was the *second*
+fault, and fixing only it left the trees exactly as white as before. Alpha clipping went in anyway
+and is what makes them read as leaves rather than as translucent smears: hard edges, depth written,
+sorted with the opaque geometry, and a shadow with leaf-shaped holes, which a blended canopy cannot
+cast at all.
+
+**⚠ `_AlphaClip` on an imported glTFast material does nothing**, which is what the old note was
+reaching for. The surface mode is baked at import from the glTF's `alphaMode`. So the alpha-clip
+pass builds a separate URP/Lit material asset per district per material and rebinds the slot — the
+same answer U1 reached for the facade tint, and the imported material is only ever read.
+
+**⚠ A pattern list matched by substring will surprise you: "tree" is inside "CityGen_S`tree`ts".**
+The first build alpha-clipped every district's road surface. The guard is not a better pattern, it
+is asking the right question FIRST — `IsBlended()`, because an alpha cutout only ever fixes
+something that is blended to begin with, and the name match then only has to choose among those.
+
+**Cities 2 and 3 got a submesh split, in Unity, not in Blender.** Their parked cars are merged into
+the same 300k-vertex mesh as the streets and buildings, so `hideMaterials` could not disable the
+renderer without taking the district with it. WorldBuilder now rebuilds the mesh without those
+submeshes. **The cars were 86% of the geometry** — 186,186 of city 2's 216,515 triangles — so the
+surviving vertices are compacted rather than left in place, taking the mesh from 304,797 vertices to
+39,121 and the asset to 5.8 MB. They leave collision with the geometry, which matters: an invisible
+but solid parked car is exactly what U17's traffic would pile into.
+
+**Empty material slots were rendering magenta.** A glTF primitive that names no material leaves the
+Unity slot null and Unity draws the error shader — the small pink rectangles on the pavement in
+every procedural district. They now get the glTF spec's default material: white, metallic, rough.
+Deliberately drab; inventing a look for it would hide the fact that the asset says nothing there.
+
+**The generated folders are swept every build, and are gitignored.** `Assets/Materials/City/Cutout/`
+and `Assets/Meshes/Generated/` are output, so anything in them this build did not write is deleted —
+otherwise a corrected pattern list leaves a plausible-looking `.mat` behind that nothing references.
+That is how the six stale `CityGen_Streets` cutouts got cleaned up rather than lingering. Both
+folders derive entirely from the gitignored district GLBs, so a fresh clone rebuilds them along with
+everything else under `World`.
+
+**Foliage still collides, and that is the decision, not an oversight.** `noCollidePatterns` needs
+node or material names to match and a merged district has neither, so each district takes 2–4
+whole-mesh colliders with the palms inside them. The strip machinery could produce a foliage-free
+COLLIDER mesh too — it is the same five lines — but that is a second full copy of every district's
+geometry in memory to fix something no player can reach: these canopies start above head height and
+neither Joe nor a vehicle gets into one. The web build has the identical hole. Revisit at U30 if
+the profiler ever makes it a memory question rather than a gameplay one.
+
+**MSAA is off** (`PC_RPAsset`, `antiAliasing = 0`), so the `_AlphaToMask` the cutout materials carry
+is inert. Turning MSAA on would soften the leaf edges via alpha-to-coverage — a real improvement,
+and a global render-quality change with a cost, so it belongs to U30's perf pass and not here.
 
 ### U10 tuning knobs, if the bike ever needs re-feeling
 
@@ -388,16 +452,9 @@ the correction stays visible in the build report. User-confirmed 2026-08-13.
 Stand-ins also **skip the config's `hideNodes`**: those name parts of the original model, and this
 one happens to share the name `PizzaLight` — which is its lamp post, not the original's light.
 
-**Known issues, all belong to U11:**
-- Foliage renders as white shards — imported `alphaMode: BLEND` with ZWrite off. Alpha-clip is the
-  right fix but glTFast's Shader Graph ignores `_AlphaClip`; the surface mode has to be driven
-  another way. Attempted and reverted, not left half-applied.
-- Cities 2 and 3 each have one renderer that mixes the baked-in parked cars with real geometry, so
-  `hideMaterials` cannot strip them without taking buildings too. They stay visible; a submesh split
-  in Blender is the fix. Every other district hides its cars cleanly.
-- Districts are merged meshes, so `noCollidePatterns` almost never matches — a district gets 2–4
-  whole-mesh colliders, palms included. The web build has the same hole, so this is faithful rather
-  than broken, but raw multi-node sources would let the filter actually work.
+**Known issues — all three were U11's, and all three are closed.** Foliage, the mixed car renderers
+and the merged-mesh colliders are covered in "What U11 built" above; the collider one was decided
+rather than fixed, and the reasoning is written down there.
 
 **District GLBs are gitignored** (40–85 MB each; free LFS is 1 GiB and shared with the original
 repo). Working copies live in `Assets/Models/City/`, zips in `~/TheBlockSource/cities/zips/`. A
@@ -439,7 +496,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 ### Tier 3 — World
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
-| U11 | All 9 districts via WorldBuilder | todo | | Placement, colliders and the foliage filter ship in U5's WorldBuilder; `reichman` + `parking-lot` were ingested during U8 (both re-modelled in Blender). What is left: the foliage alpha-clip fix and the city 2/3 submesh split |
+| U11 | All 9 districts via WorldBuilder | wip | | **Built and verified in the Editor by render, NOT yet play-tested by the user** — that is the only thing standing between this and `done`. Placement and colliders shipped in U5; U11 fixed the three rendering faults. Foliage: the white shards were a spurious V flip in glTFast's `_ST`, not the blend mode — `WorldBuilder.UnflipV`, plus a real alpha-clip pass that rebinds to generated URP/Lit materials. Cities 2/3: baked cars stripped at the SUBMESH level in Unity (86% of the mesh) instead of a Blender split, out of collision as well as sight. Empty material slots were rendering magenta and now get glTF's default material. Foliage colliders left as-is, deliberately — see RESUME HERE |
 | U12 | Roads, ground, sea | todo | | The 1400 m ground plate was pulled forward into U8 — a car needs somewhere to land. Roads, kerbs and the sea are still open |
 | U13 | Places — pizza + interior, gas, police station, lot cars | todo | | |
 | U14 | Map + minimap | todo | | |
@@ -676,6 +733,36 @@ Dated one-liners. These are settled — do not re-litigate them without the user
 - **2026-08-15** (U10) — **A `[SerializeField]` on an interface type serializes NOTHING.** Unity
   writes no value and gives no warning, so `VehicleEnterExit`'s mid-Play-recompile guard was silently
   not guarding the one field it most needed to. Store the concrete `MonoBehaviour` and cast back.
+- **2026-08-15** (U11) — **Cutout foliage is a generated URP/Lit material, not a setting on the
+  imported one.** glTFast bakes the surface mode into its Shader Graph material at import from the
+  glTF's `alphaMode`, so `_AlphaClip` on it is inert — the fix has to be a separate material asset,
+  which is the same call U1 made for the facade tint and for the same reason. The imported material
+  is read for its texture and factors and never written. Its metal-roughness and occlusion MAPS are
+  deliberately not copied: glTF packs those channels differently from URP/Lit, so carrying them
+  across would be silently wrong. None of the materials this touches has one.
+- **2026-08-15** (U11) — **Which blended materials are really cutouts is a port-side judgement, and
+  the leftovers get named in the build report.** The web build had one material path and never made
+  the distinction, so there is nothing in `config.ts` to port. `CutoutMaterialPatterns` decides, and
+  every material still transparent after the pass is listed under STILL BLENDED — so a wrong call
+  shows up as a list to check rather than as a mystery.
+- **2026-08-15** (U11) — **Ask `IsBlended()` before matching the name.** Patterns are substrings and
+  "tree" is inside "CityGen_S`tree`ts", which alpha-clipped every road surface on the first build.
+  A tighter pattern is not the fix; the precondition is, because a cutout only ever repairs
+  something that is blended to begin with.
+- **2026-08-15** (U11) — **Baked-in parked cars are stripped at the submesh level in Unity, not
+  split in Blender.** WorldBuilder owns the mesh at build time, so the split is a build step and the
+  .glb on disk stays as downloaded — the same principle as `AssetAliases`. The vertices are
+  compacted, not just the indices dropped: the cars are 86% of city 2's triangles. Stripping also
+  takes them out of collision, which tinting or hiding would not have.
+- **2026-08-15** (U11) — **Generated asset folders are swept every build.** `Cutout/` and
+  `Meshes/Generated/` are build OUTPUT, so anything in them the current build did not write is
+  deleted. Without the sweep they are append-only and a corrected pattern list leaves behind a
+  plausible-looking material that nothing references — the same invisible-and-unreproducible failure
+  that keeps the world out of the scene file.
+- **2026-08-15** (U11) — **Foliage keeps its colliders.** A foliage-free collider mesh is now five
+  lines away, and the answer is still no: it is a second full copy of every district's geometry to
+  fix something unreachable, since these canopies start above head height. The web build has the
+  same hole. This is a U30 memory question if it is ever a question at all.
 - **2026-08-12** (U1) — **Downtown gets one collider over the whole mesh.** `city.noCollidePatterns`
   matches node *or* material names; `first-one.glb` has no per-object nodes and its only foliage
   material (`AM113_072_Washingtonia_filifera`) matches no pattern — so the shipped web build
