@@ -125,6 +125,15 @@ namespace TheBlock.EditorTools
         [MenuItem("The Block/Build World (no colliders)", priority = 1)]
         public static void BuildWorldNoCollidersMenu() => Build(new Options { Colliders = false });
 
+        /// <summary>
+        /// The full build INCLUDING the NavMesh bake. Off the default item because the bake is the
+        /// one step that freezes the editor for a minute or more with no progress bar, and a world
+        /// rebuild should not cost that every time a material is touched. The scene keeps its last
+        /// baked NavMesh across ordinary builds — see <see cref="Options.Navigation"/>.
+        /// </summary>
+        [MenuItem("The Block/Build World + NavMesh (slow)", priority = 2)]
+        public static void BuildWorldWithNavigationMenu() => Build(new Options { Navigation = true });
+
         public class Options
         {
             /// <summary>
@@ -142,9 +151,13 @@ namespace TheBlock.EditorTools
 
             /// <summary>
             /// U16's pedestrian world: the carriageway carve, the zebra crossings and the NavMesh
-            /// bake. Off is the only fast rebuild — the bake is the slowest thing in the build.
+            /// bake. OFF BY DEFAULT — the bake is main-thread, minute-plus, and shows no progress,
+            /// which twice read as a hang and got the editor force-quit. When off, the previously
+            /// baked <c>NavMesh.asset</c> is kept, and the crossings and carve volumes from the last
+            /// navigation build are left standing under the new root, so Play still has a crowd.
+            /// Run <c>Build World + NavMesh</c> after anything that moves a district or a street.
             /// </summary>
-            public bool Navigation = true;
+            public bool Navigation = false;
 
             /// <summary>
             /// Rebind materials onto <see cref="TextureCompressor"/>'s compressed textures (U15).
@@ -172,7 +185,7 @@ namespace TheBlock.EditorTools
             var report = new Report();
             var scene = EditorSceneManager.GetActiveScene();
 
-            var root = ResetRoot(scene, report);
+            var root = ResetRoot(scene, report, keepNavigation: !options.Navigation, out var keptNavigation);
             root.SourceSha256 = snapshot.SourceSha256;
             ResetTexturePass();
 
@@ -217,6 +230,7 @@ namespace TheBlock.EditorTools
             // Last, and it has to be: the carve raycasts for the street surface under every crossing,
             // and the bake reads the colliders every pass above put there.
             if (options.Navigation) BuildNavigation(root.transform, districts, snapshot.Config, options, report);
+            else ReattachNavigation(root, districts, keptNavigation, report);
 
             SweepGenerated(report);
 
@@ -235,13 +249,26 @@ namespace TheBlock.EditorTools
 
         // --- structure -------------------------------------------------------------------------
 
-        /// <summary>Clears the previous build (and the hand-placed roots it supersedes), returns a fresh root.</summary>
-        private static WorldRoot ResetRoot(UnityEngine.SceneManagement.Scene scene, Report report)
+        /// <summary>
+        /// Clears the previous build (and the hand-placed roots it supersedes), returns a fresh root.
+        ///
+        /// When <paramref name="keepNavigation"/> is set, the previous build's navigation objects —
+        /// the Crossings group, the carve volumes and the NavMeshSurface — are lifted out before
+        /// the root is destroyed and handed back for re-parenting, so a build that skips the bake
+        /// does not also silently delete the last one. The bake is expensive; nothing else about
+        /// the world build should be allowed to throw it away as a side effect.
+        /// </summary>
+        private static WorldRoot ResetRoot(
+            UnityEngine.SceneManagement.Scene scene, Report report, bool keepNavigation,
+            out List<GameObject> keptNavigation)
         {
+            keptNavigation = new List<GameObject>();
+
             foreach (var go in scene.GetRootGameObjects())
             {
                 if (go.GetComponent<WorldRoot>() != null)
                 {
+                    if (keepNavigation) keptNavigation.AddRange(DetachNavigation(go.transform));
                     UnityEngine.Object.DestroyImmediate(go);
                     continue;
                 }
@@ -255,6 +282,77 @@ namespace TheBlock.EditorTools
 
             var root = new GameObject(RootName);
             return root.AddComponent<WorldRoot>();
+        }
+
+        /// <summary>
+        /// Lifts the navigation objects out of an old root so they survive its destruction. The
+        /// NavMeshSurface lives on the Districts group itself, so that whole group is what has to
+        /// come out — carve volumes are its children and the surface only collects from children.
+        /// </summary>
+        private static List<GameObject> DetachNavigation(Transform oldRoot)
+        {
+            var kept = new List<GameObject>();
+            foreach (var name in new[] { "Crossings" })
+            {
+                var t = oldRoot.Find(name);
+                if (t == null) continue;
+                t.SetParent(null, worldPositionStays: true);
+                kept.Add(t.gameObject);
+            }
+
+            var districts = oldRoot.Find("Districts");
+            if (districts != null && districts.TryGetComponent<Unity.AI.Navigation.NavMeshSurface>(out var surface))
+            {
+                // Only the surface's DATA and the carve volumes are worth keeping — the districts
+                // themselves are about to be rebuilt. Move the surface onto a carrier along with the
+                // Navigation group, and let the new Districts group re-adopt both.
+                var carrier = new GameObject("__NavigationCarrier");
+                var nav = districts.Find("Navigation");
+                if (nav != null) nav.SetParent(carrier.transform, worldPositionStays: true);
+                var newSurface = carrier.AddComponent<Unity.AI.Navigation.NavMeshSurface>();
+                UnityEditorInternal.ComponentUtility.CopyComponent(surface);
+                UnityEditorInternal.ComponentUtility.PasteComponentValues(newSurface);
+                kept.Add(carrier);
+            }
+
+            return kept;
+        }
+
+        /// <summary>Puts kept navigation back under the new root, mirroring where the bake put it.</summary>
+        private static void ReattachNavigation(WorldRoot root, Transform districts, List<GameObject> kept, Report report)
+        {
+            int reattached = 0;
+            foreach (var go in kept)
+            {
+                if (go == null) continue;
+
+                if (go.name == "__NavigationCarrier")
+                {
+                    if (districts == null) { UnityEngine.Object.DestroyImmediate(go); continue; }
+                    var nav = go.transform.Find("Navigation");
+                    if (nav != null) { nav.SetParent(districts, worldPositionStays: true); reattached++; }
+                    if (go.TryGetComponent<Unity.AI.Navigation.NavMeshSurface>(out var carried))
+                    {
+                        if (!districts.TryGetComponent<Unity.AI.Navigation.NavMeshSurface>(out var surface))
+                            surface = districts.gameObject.AddComponent<Unity.AI.Navigation.NavMeshSurface>();
+                        UnityEditorInternal.ComponentUtility.CopyComponent(carried);
+                        UnityEditorInternal.ComponentUtility.PasteComponentValues(surface);
+                        // Pasting values onto a live component does not re-run OnEnable, and
+                        // OnEnable is where the surface registers its data with the NavMesh. Bounce
+                        // it, or the asset is referenced and nothing is walkable until a reload.
+                        surface.enabled = false;
+                        surface.enabled = true;
+                    }
+                    UnityEngine.Object.DestroyImmediate(go);
+                    continue;
+                }
+
+                go.transform.SetParent(root.transform, worldPositionStays: true);
+                reattached++;
+            }
+
+            if (reattached > 0)
+                report.Notes.Add($"navigation: kept the previous bake ({reattached} group(s) re-attached) — run Build World + NavMesh to redo it");
         }
 
         private static Transform NewGroup(string name, Transform parent)
@@ -957,7 +1055,7 @@ namespace TheBlock.EditorTools
             foreach (var folder in new[]
                      {
                          CutoutMaterialFolder, CompressedMaterialFolder, GeneratedMeshFolder,
-                         GeneratedWorldFolder, LotCarMaterialFolder, GeneratedNavigationFolder,
+                         GeneratedWorldFolder, LotCarMaterialFolder,
                      })
             {
                 if (!AssetDatabase.IsValidFolder(folder)) continue;

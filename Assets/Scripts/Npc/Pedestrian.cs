@@ -35,6 +35,14 @@ namespace TheBlock.Npc
         [Tooltip("Tries per re-target before the pedestrian gives up and waits a beat.")]
         [SerializeField] private int sampleAttempts = 6;
 
+        [Tooltip("Chance, per re-target, of heading for the far side of the nearest zebra instead of " +
+                 "wandering. With 8 m hops almost nobody would otherwise ever want the other pavement.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float crossingBias = 0.25f;
+
+        [Tooltip("How far a pedestrian will look for a zebra to be drawn to.")]
+        [SerializeField] private float crossingSearchRadius = 45f;
+
         private NavMeshAgent _agent;
         private Animator _animator;
         private System.Random _rng;
@@ -135,6 +143,13 @@ namespace TheBlock.Npc
         /// </summary>
         private void Retarget()
         {
+            // Some of the time, want the other side of the street. Left to pure wandering the
+            // crowd never crosses — not because it cannot, but because an 8 m hop from a pavement
+            // almost never lands on the opposite one, so the path that goes over a zebra is never
+            // the path that gets asked for. This is the ONLY steering the crowd has, and it steers
+            // towards a place, not along a route: how to get there is still the NavMesh's answer.
+            if (_rng.NextDouble() < crossingBias && TryTargetAcrossCrossing()) return;
+
             for (int attempt = 0; attempt < sampleAttempts; attempt++)
             {
                 var offset = _rng.InsideUnitCircle() * stepRadius;
@@ -150,6 +165,32 @@ namespace TheBlock.Npc
 
             // Boxed in — try again next second rather than every frame.
             _pauseLeft = 1f;
+        }
+
+        /// <summary>
+        /// Aims for the far kerb of the nearest zebra. False if there is none in range or the far
+        /// side is not on the NavMesh, in which case the caller wanders as usual.
+        /// </summary>
+        private bool TryTargetAcrossCrossing()
+        {
+            var crossing = CrossingRegistry.Nearest(transform.position, crossingSearchRadius);
+            if (crossing == null) return false;
+
+            // Whichever kerb is further from here is the one on the other side. A little past it,
+            // onto the pavement proper, so the destination is not the boundary of the carve.
+            var a = crossing.KerbA;
+            var b = crossing.KerbB;
+            bool aIsFar = (a - transform.position).sqrMagnitude > (b - transform.position).sqrMagnitude;
+            var far = aIsFar ? a : b;
+            var near = aIsFar ? b : a;
+            var beyond = far + (far - near).normalized * 2f;
+
+            if (!NavMesh.SamplePosition(beyond, out var hit, 3f, NavMesh.AllAreas)) return false;
+            if (Mathf.Abs(hit.position.y - transform.position.y) > sameStoreyBand) return false;
+
+            _agent.SetDestination(hit.position);
+            _pauseLeft = pauseTime;
+            return true;
         }
 
         // --- crossing ----------------------------------------------------------------------------

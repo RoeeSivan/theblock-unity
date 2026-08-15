@@ -14,11 +14,13 @@ namespace TheBlock.EditorTools
     /// build product, generated from a vendor asset plus a list of decisions written down here,
     /// rather than a thing assembled by hand in the Inspector and impossible to review.
     ///
-    /// THE PACK IS ALREADY WELL BUILT, which is worth stating because the plan assumed otherwise.
-    /// Each of the twelve character prefabs carries a real 5-level <c>LODGroup</c> over its thirty
-    /// SkinnedMeshRenderers (six parts × five LODs) and an Animator already bound to
-    /// <c>npc_hmn_01mAvatar</c>. There is no always-on renderer problem to solve and no bone
-    /// rebinding to do; this builder adds the game's own components and fixes one real fault.
+    /// THE PACK IS WELL BUILT AND TOO HEAVY, both at once. Each of the twelve character prefabs
+    /// carries a real 5-level <c>LODGroup</c> and an Animator already bound to
+    /// <c>npc_hmn_01mAvatar</c>, so there is no bone rebinding to do — but that LODGroup sits over
+    /// thirty-odd SkinnedMeshRenderers (six parts × five LODs), and a LODGroup only decides what
+    /// the camera draws; every one of those is still skinned each frame. See <see cref="KeepLods"/>
+    /// for what that cost and what is done about it. This builder adds the game's own components,
+    /// strips the ladder to two rungs, and fixes one real fault.
     ///
     /// THAT FAULT: the prefabs reference <c>npc_casual_set_00/Materials</c>, which is the BUILT-IN
     /// pipeline's Standard shader. This project is URP. The pack ships the URP set beside it as
@@ -96,7 +98,7 @@ namespace TheBlock.EditorTools
             var faceMaterials = LoadFaceMaterials(urpMaterials);
             var tintCache = new Dictionary<string, Material[]>();
             var built = new List<string>();
-            int rebound = 0, missingUrp = 0;
+            int rebound = 0, missingUrp = 0, smrsBefore = 0, smrsAfter = 0;
 
             foreach (var source in sources)
             {
@@ -106,9 +108,12 @@ namespace TheBlock.EditorTools
                 var instance = Object.Instantiate(prefab);
                 instance.name = $"Ped_{prefab.name.Replace("npc_csl_00_character_", string.Empty)}";
 
+                int smrBefore = instance.GetComponentsInChildren<SkinnedMeshRenderer>(true).Length;
                 RebindToUrp(instance, urpMaterials, ref rebound, ref missingUrp);
                 WireAgent(instance, controller);
                 WireAppearance(instance, prefab.name, faceMaterials, tintCache);
+                smrsBefore += smrBefore;
+                smrsAfter += instance.GetComponentsInChildren<SkinnedMeshRenderer>(true).Length;
 
                 var name = instance.name;
                 PrefabUtility.SaveAsPrefabAsset(instance, $"{PrefabFolder}/{name}.prefab");
@@ -126,6 +131,8 @@ namespace TheBlock.EditorTools
                 (missingUrp > 0
                     ? $" — {missingUrp} had NO URP twin and stay on the built-in shader (they will render magenta)\n"
                     : " (the pack's prefabs all point at the BUILT-IN set, which is magenta under URP)\n") +
+                $"  Skinned meshes: {smrsBefore} → {smrsAfter} across the set (LODs kept: " +
+                $"{string.Join("/", KeepLods)}; the rest destroyed, not disabled)\n" +
                 $"  NavMeshAgent r={AgentRadius} h={AgentHeight}, auto off-mesh traversal OFF so " +
                 "Pedestrian owns the kerb\n" +
                 "  Appearance: face material × shirt tint, both as shared assets so the SRP Batcher survives\n" +
@@ -236,16 +243,44 @@ namespace TheBlock.EditorTools
 
         // --- components --------------------------------------------------------------------------
 
+        /// <summary>
+        /// LOD levels kept, by index into the vendor's five. Everything else is deleted.
+        ///
+        /// The pack's LODGroup is real, but a LODGroup only decides which renderers the CAMERA
+        /// draws — every SkinnedMeshRenderer under it is still a live skinned mesh whose vertices
+        /// are re-posed each frame whether or not it is shown. Five LODs × six parts is 30–33 of
+        /// them per person, so a 90-person crowd was 2,960 skinned meshes being posed for 747 that
+        /// were visible, and the frame time went with it. It also produced the "exploding
+        /// pedestrian": a renderer that had sat unposed since spawn, swapped in by a LOD change,
+        /// draws its first frame at bind pose against a skeleton that has long since walked off —
+        /// which is a fan of black triangles reaching for the horizon.
+        ///
+        /// Two levels is the whole ladder a street crowd needs: full detail up close, and the ~800
+        /// tri LOD2 for everything past that. Nothing here is ever examined at LOD1 distance for
+        /// long enough to notice, and LOD3/4 are for a hundred metres out, where the animator is
+        /// culled entirely anyway.
+        /// </summary>
+        private static readonly int[] KeepLods = { 0, 2 };
+
+        /// <summary>Screen-height thresholds for the kept levels, then cull. Vendor's were 0.7/0.4/0.2/0.05/0.</summary>
+        private static readonly float[] KeepLodHeights = { 0.25f, 0.02f };
+
         private static void WireAgent(GameObject instance, RuntimeAnimatorController controller)
         {
+            StripLods(instance);
+
             if (instance.TryGetComponent<Animator>(out var animator))
             {
                 animator.runtimeAnimatorController = controller;
                 animator.applyRootMotion = false; // the agent drives movement, not the clip
-                // Off-screen pedestrians still need their transform kept up to date, because the
-                // agent is what moved it — CullCompletely would freeze them mid-street and they
-                // would still be there when you turned back round.
-                animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
+                // Cull completely off-screen. The agent still moves the root — that is a
+                // NavMeshAgent, not the animator — so a culled pedestrian keeps walking and is in
+                // the right place when it comes back into view; only its limbs stop being posed
+                // while nobody can see them. This was misread as the cause of the exploding
+                // pedestrian in an earlier pass and switched to AlwaysAnimate, which doubled the
+                // frame cost and fixed nothing: the real cause was renderers that had never been
+                // posed at all (see <see cref="KeepLods"/>), and StripLods removes them.
+                animator.cullingMode = AnimatorCullingMode.CullCompletely;
             }
 
             var agent = instance.GetComponent<NavMeshAgent>();
@@ -272,6 +307,50 @@ namespace TheBlock.EditorTools
             // every other pedestrian wait for it.
 
             if (!instance.TryGetComponent<Pedestrian>(out _)) instance.AddComponent<Pedestrian>();
+        }
+
+        /// <summary>
+        /// Rebuilds the LODGroup with only <see cref="KeepLods"/> and DESTROYS the renderers of every
+        /// other level. Destroyed, not disabled: a disabled SkinnedMeshRenderer is still a skinned
+        /// mesh the animator owns, and the cost is the ownership.
+        /// </summary>
+        private static void StripLods(GameObject instance)
+        {
+            var group = instance.GetComponentInChildren<LODGroup>();
+            if (group == null) return;
+
+            var lods = group.GetLODs();
+            var kept = new List<LOD>();
+            var doomed = new List<Renderer>();
+
+            for (int i = 0; i < lods.Length; i++)
+            {
+                int keepIndex = System.Array.IndexOf(KeepLods, i);
+                if (keepIndex < 0)
+                {
+                    doomed.AddRange(lods[i].renderers);
+                    continue;
+                }
+
+                var lod = lods[i];
+                lod.screenRelativeTransitionHeight = KeepLodHeights[keepIndex];
+                kept.Add(lod);
+            }
+
+            group.SetLODs(kept.ToArray());
+            group.RecalculateBounds();
+
+            foreach (var renderer in doomed)
+            {
+                if (renderer == null) continue;
+                // The vendor puts each LOD renderer on its own child object with nothing else on
+                // it, so the object goes with it. Anything else — a shared bone, a container — is
+                // left standing and only the renderer is removed.
+                var go = renderer.gameObject;
+                bool bare = go.transform.childCount == 0 && go.GetComponents<Component>().Length <= 2;
+                if (bare) Object.DestroyImmediate(go);
+                else Object.DestroyImmediate(renderer);
+            }
         }
 
         private static void WireAppearance(

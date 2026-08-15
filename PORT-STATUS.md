@@ -44,19 +44,37 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-**Next action: PLAY-TEST U16.** It is built and `wip`, waiting on the user's eyes — nothing else is
-half-built. Everything is generated and the scene is saved; press Play in `World` and look for, in
-order: (1) pedestrians exist at all, (2) none of them render magenta, (3) **nobody is standing in
-the road**, (4) zebras are painted ~10 m before every 3-way-or-bigger junction, (5) somebody waits
-at a kerb while your car is on the zebra and crosses once it moves, (6) nobody is walking on a roof.
-(3) and (6) are the two that can actually be wrong.
+**Next action: U17 — traffic (graph, cars, lights).** Nothing is half-built. U16 closed on
+2026-08-15 with the user's confirmation: pedestrians on the pavements, none in the road, zebras
+white, crossings used, no explosions, no stutter. **Flagged low-performance by the user, on purpose,
+to revisit** — see *U16's performance note* below; it is not blocking and it is not U17's job.
 
-**If it passes:** set U16 `done`, fill the commit hash, and the next unit is U17 — which inherits
-U16's traffic graph and crossings rather than building its own (see its row).
+**U17 starts from what U16 already ported.** `config.traffic` is in `TheBlockConfig` in full;
+`WorldBuilder.Navigation.cs` builds the 97-node / 142-street graph, finds the 70 lit intersections
+and places the 230 crossings. U17 adds cars, lights and phases ON that graph and replaces
+`Crossing.IsClearOfTraffic` (U16's stand-in gate) by assigning the light controller to
+`Crossing.Gate`. Do not build a second graph. `Crossing.NodeId` / `EdgeId` are already the keys the
+controller wants.
 
-**Rebuild order if anything is regenerated:** The Block → **Build NPC Animator** → **Build
-Pedestrians** → **Build World**. The world build now ends with the NavMesh bake, so it is the last
-word on navigation and the only step that has to be re-run after a district changes.
+**Rebuild order:** The Block → **Build NPC Animator** → **Build Pedestrians** → **Build World +
+NavMesh (slow)**. Plain **Build World** is the fast path and KEEPS the last bake — it lifts the
+`Crossings` group, the carve volumes and the `NavMeshSurface` out of the old root and re-attaches
+them, and it never sweeps `Assets/Navigation/Generated/`. Run the slow one after anything that
+moves a district or a street. In practice "slow" is ~3 s at 0.4 m voxels; the name is a warning
+that the bake is main-thread with no progress bar.
+
+**U16's performance note** (user's call, 2026-08-15: *"flag this step as low performance, we will
+try to make it better later"*). Measured, not guessed — the numbers are in the decisions log:
+- The crowd's steady cost is ~0: frame time is the same with the crowd on and off (`C` toggles it in
+  Play; that key is debug-only and can go). What stuttered was the SPAWN BURST — 90 agents
+  instantiated, warped and pathed in one frame — and the vendor's five-LOD skinned meshes stacking up
+  to 2,960 SMRs. Both are fixed (trickled spawn, LODs 0+2 only). What is left to improve is
+  density: 60 live agents at 20–60 m reads as a street but not a busy one, and pushing it up means
+  looking at NavMesh agent count and skinning cost together, with the profiler, not by feel.
+- The 111 build warnings (`Main Object Name … does not match filename`) are U15's compressed
+  material clones keeping their source name inside a district-prefixed file. Cosmetic, from URP's
+  material upgrader. One line in `WorldBuilder.Textures.cs` (`material.name = fileName`) silences
+  them; not done yet.
 
 **U7b is done** — swimming, user-confirmed 2026-08-15. It was **never a row in the 32**: the web
 build has the state, the sequence forgot it, and the port would have shipped a sea that drowns you.
@@ -118,7 +136,9 @@ rebinds by name: **455 slots**. Memory: `asset-store-prefabs-ship-built-in-mater
 **Known and deliberate:** rooftops bake walkable — the bake cannot tell a flat roof from a pavement,
 and downtown is one mesh so there is nothing to mark. Both the spawner and the re-target reject
 samples more than a storey off the current height. If anyone is ever seen on a roof, that band is
-the thing to tighten, not the bake.
+the thing to tighten, not the bake. **The car park is excluded outright** (`UnwalkableDistricts` in
+`WorldBuilder.Navigation.cs`) — one open slab swallowed the whole spawn ring, and the web build never
+seeded people there either.
 
 **U14 is done** — the user confirmed on 2026-08-15 that the minimap and the `M` map read right.
 
@@ -820,7 +840,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 ### Tier 4 — Living world
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
-| U16 | Pedestrian crowd (NavMesh agents) + zebra crossings | wip | `0dc4398` | **Built, not yet play-tested.** The pavement is not enforced, it is the only thing that exists: `WorldBuilder.Navigation.cs` carves all 12.7 km of `config.traffic.network` **Not Walkable** (172 volumes over 142 streets), which disconnects the two sides of every road, so the only route across is a gated `NavMeshLink` at one of **230 zebras** on 70 lit intersections — derived from the same graph and the same `stopLineDist + crossingSetback` as `traffic.ts`. NavMesh baked 963 × 805 m @ 0.25 m voxels over the DISTRICTS only (`CollectObjects.Children`, PhysicsColliders) → `Assets/Navigation/Generated/NavMesh.asset`. `config.traffic` ported (`TrafficSpec`, `StreetSpec` + its union converter). Crowd is a **pool of 40 that follows the player**, not the web build's ~400 seeded-at-boot-and-frozen — `CrowdSpawner`/`Pedestrian`/`NpcAppearance`. Zero of the 80 hand-recorded rectangles and strips in `npc.config.ts` are ported and none are needed. **Caught: the pack's prefabs reference the BUILT-IN Standard materials while the URP twins sit unused beside them — 455 slots rebound, or every pedestrian is magenta.** ⚠ Rooftops bake walkable and are filtered at spawn/re-target by a height band, not by the bake |
+| U16 | Pedestrian crowd (NavMesh agents) + zebra crossings | done | `0dc4398` + fixes | User-confirmed 2026-08-15 — flagged **low performance, revisit later** by the user (see RESUME HERE). The pavement is not enforced, it is the only thing that exists: `WorldBuilder.Navigation.cs` carves all 12.7 km of `config.traffic.network` **Not Walkable** (172 volumes over 142 streets), which disconnects the two sides of every road, so the only route across is a gated `NavMeshLink` at one of **230 zebras** on 70 lit intersections — derived from the same graph and the same `stopLineDist + crossingSetback` as `traffic.ts`. NavMesh baked 963 × 805 m @ 0.4 m voxels over the DISTRICTS only (car park excluded) (`CollectObjects.Children`, PhysicsColliders) → `Assets/Navigation/Generated/NavMesh.asset`. `config.traffic` ported (`TrafficSpec`, `StreetSpec` + its union converter). Crowd is a **pool of 60 that follows the player**, trickled in 6 per sweep, not the web build's ~400 seeded-at-boot-and-frozen — `CrowdSpawner`/`Pedestrian`/`NpcAppearance`. Zero of the 80 hand-recorded rectangles and strips in `npc.config.ts` are ported and none are needed. **Caught: the pack's prefabs reference the BUILT-IN Standard materials while the URP twins sit unused beside them — 455 slots rebound, or every pedestrian is magenta. Then, at play-test: zebras 2 cm UNDER the street (GroundY took the lowest hit — the ground plate — z-fighting up as orange); the vendor's five LODs are 33 skinned meshes per person, all posed every frame whether drawn or not, and an unposed one swapping in by LOD change draws at bind pose against a walked-off skeleton — the 'exploding pedestrian'; and 90 agents spawned in one frame was the stutter, not the crowd's steady cost, which measured as zero.** LODs 0+2 only now (395 → 158 SMRs), spawn trickled, car park excluded. ⚠ Rooftops bake walkable and are filtered at spawn/re-target by a height band, not by the bake |
 | U17 | Traffic — graph, cars, lights | todo | | **U16 already ported the graph and the crossings** — `config.traffic.network`, `snapDist`, `stopLineDist`, `crossingSetback`, `lights.sideOffset`, and the 97-node/142-edge graph builder in `WorldBuilder.Navigation.cs`. Do not build a second one. The one thing to change on the pedestrian side is `Crossing.Gate`: set it to the light controller and `Crossing.IsClearOfTraffic` (U16's stand-in) goes away |
 | U18 | Run-over + blood VFX | todo | | Root Motion ON — the clip's motion IS the knockback. **Owes U16 one thing:** a struck pedestrian must leave the NavMesh, so the agent has to be disabled for the knockback and re-`Warp`ed after. Panic-fleeing into the road (if it is wanted) is the same switch — the carve makes the road unreachable by pathfinding on purpose |
 | U19 | Police pursuit + wanted level | todo | | real NavMesh; do NOT inherit the straight-line hack untested |
@@ -888,7 +908,7 @@ would trigger it. A `wip` unit is work half-done; this is work deliberately not 
 
 Dated one-liners. These are settled — do not re-litigate them without the user reopening.
 
-- **2026-08-16** (U16) — **The pavement is not enforced, it is the only thing that exists.** The web
+- **2026-08-15** (U16) — **The pavement is not enforced, it is the only thing that exists.** The web
   build's pedestrians drift into the road because nothing there knows a road is a thing: a 4096²
   top-down material mask, a 67 MB GPU readback, a session-long boolean grid, straight-line movement
   between sampled points, and — when that was not enough — eighty rectangles and strips recorded by
@@ -897,21 +917,42 @@ Dated one-liners. These are settled — do not re-litigate them without the user
   of every street, so being in the road is not unlikely, it is unrepresentable. This is the answer
   to the standing remark for U16, and it is the strong form of it: the mechanism is not a better
   version of the web build's, there is no equivalent of the web build's at all.
-- **2026-08-16** (U16) — **A crossing is a hole in connectivity, not a scripted walk.** With the
+- **2026-08-15** (U16) — **A crossing is a hole in connectivity, not a scripted walk.** With the
   carriageway carved, the only route to the far pavement is a `NavMeshLink` at a zebra, so an
   ordinary wanderer crosses at a zebra because there is nowhere else — no pedestrian is assigned to
   a crossing at all. The web build's crossings are real (`traffic.ts`) but serve two dedicated
   pingpong walkers each while the rest of the crowd ignores roads entirely. `autoTraverseOffMeshLink`
   is OFF so `Pedestrian` owns the kerb, and `Crossing.Gate` is the seam U17 hands the light to —
   the same shape as `CrossingSpec.mayCross`.
-- **2026-08-16** (U16) — **The crowd is a pool that follows the player, not a population.** The web
+- **2026-08-15** (U16) — **The crowd is a pool that follows the player, not a population.** The web
   build creates several hundred pedestrians at boot and freezes them individually past 90 m, because
   a three.js pedestrian is cheap to hold and dear to create. A NavMeshAgent is the reverse, and a
   frozen one still sits in the avoidance solver. 40 live agents that recycle from behind you to
   ahead of you — rerolling face and shirt each time — read denser than 400 frozen ones and cost a
   fraction. It also means `npc.config.ts`'s `paintedZones`, `strips` and `zones` have no port: where
   people can stand is the NavMesh's answer now.
-- **2026-08-16** (U16) — **U17 inherits U16's traffic graph; it must not build a second one.**
+- **2026-08-15** (U16 play-test) — **The stutter was the spawn burst, not the crowd. Measured:
+  frame time with 60 agents on = frame time with them off = 20.0 ms.** So "too many people" was
+  never the fault; 90 `Instantiate`+`Warp`+`SetDestination` in one `Awake` was, and the vendor's
+  five LODs multiplied it (33 skinned meshes per person, all posed every frame regardless of what
+  the LODGroup draws — 2,960 SMRs for 90 people, 747 visible). Spawn is trickled 6 per sweep,
+  LODs 1/3/4 are DESTROYED at build (not disabled — a disabled SMR is still owned by the animator),
+  and the animator culls completely off-screen. `AlwaysAnimate` was tried in between and was
+  wrong: it doubled the cost and fixed nothing, because the "exploding pedestrian" was an SMR that
+  had never been posed drawing at bind pose on LOD swap, and removing those SMRs is the fix. The
+  user flagged the unit low-performance for later; the number to beat is density, not frame time.
+- **2026-08-15** (U16 play-test) — **`Build World` no longer bakes; `Build World + NavMesh (slow)`
+  does.** The 0.25 m bake froze the editor long enough, twice, that the user force-quit it, and a
+  main-thread freeze with no progress bar is indistinguishable from a crash. At 0.4 m the whole
+  bake is ~3 s, and the split is kept anyway: the fast build lifts the previous navigation out of
+  the old root and re-attaches it, and never sweeps `Assets/Navigation/Generated/` — which it did
+  once, deleting the zebras' mesh and material out from under 230 kept crossings.
+- **2026-08-15** (U16 play-test) — **`GroundY` is "lowest hit that is not the ground plate."** The
+  first version took the lowest hit outright, which under every district is the plate at −0.05,
+  2 cm below the street at 0 — and a zebra painted there z-fights up through the district mesh
+  as bars of that mesh's OWN texture. Orange stripes, in this case. It reads as a material fault
+  and is a 5 cm height fault; check the height before the shader.
+- **2026-08-15** (U16) — **U17 inherits U16's traffic graph; it must not build a second one.**
   `config.traffic` is ported in full (`TrafficSpec`, `StreetSpec` + a union `JsonConverter`,
   `LightsSpec`) and `WorldBuilder.Navigation.cs` already builds the 97-node graph, finds the 70 lit
   intersections and places the 230 crossings. U17 adds cars, lights and phases on top and replaces

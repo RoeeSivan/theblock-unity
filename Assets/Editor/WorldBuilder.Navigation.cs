@@ -67,10 +67,12 @@ namespace TheBlock.EditorTools
         /// Voxel size for the bake, overriding the agent-derived default of radius/3 ≈ 0.17 m.
         ///
         /// The districts span roughly 950 × 800 m. At the default that is 5,700 × 4,800 columns and
-        /// the bake stops being something you re-run casually; 0.25 m is a quarter of the cost and
-        /// still four times finer than the narrowest pavement in the world.
+        /// the bake stops being something you re-run casually. 0.25 m was the first pick and it
+        /// froze the editor for long enough, twice, that the user force-quit it — the bake is
+        /// main-thread with no progress bar, and on this machine, with this scene, that read as a
+        /// crash. 0.4 m is 2.5× cheaper again and still five times finer than a 2 m pavement.
         /// </summary>
-        private const float NavVoxelSize = 0.25f;
+        private const float NavVoxelSize = 0.4f;
 
         /// <summary>Square metres below which a baked island is dropped — awnings, ledges, kerb tops.</summary>
         private const float NavMinRegionArea = 4f;
@@ -134,6 +136,17 @@ namespace TheBlock.EditorTools
             int crossings = BuildCrossings(crossingGroup, nodes, edges, traffic, report);
 
             BakeNavMesh(districts, report);
+
+            // The navigation folder is swept HERE and only here — never by the ordinary build's
+            // sweep — so a build that skips the bake cannot delete the assets the kept crossings
+            // still point at. That happened once: the zebras went blank while the crossings stayed.
+            foreach (var guid in AssetDatabase.FindAssets(string.Empty, new[] { GeneratedNavigationFolder }))
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                if (AssetDatabase.IsValidFolder(path) || report.Generated.Contains(path)) continue;
+                AssetDatabase.DeleteAsset(path);
+                report.Notes.Add($"deleted stale navigation asset {path}");
+            }
 
             report.Placed.Add(
                 $"Navigation {edges.Count} street(s) carved into {carved} volume(s), " +
@@ -392,7 +405,9 @@ namespace TheBlock.EditorTools
             mesh.SetTriangles(new[] { 0, 2, 1, 2, 3, 1 }, 0);
             mesh.RecalculateBounds();
 
-            SaveGeneratedMesh(mesh, $"{GeneratedMeshFolder}/Zebra.asset", report);
+            EnsureFolder(GeneratedNavigationFolder);
+            AssetDatabase.CreateAsset(mesh, $"{GeneratedNavigationFolder}/ZebraMesh.asset");
+            report.Generated.Add($"{GeneratedNavigationFolder}/ZebraMesh.asset");
             return mesh;
         }
 
@@ -409,7 +424,7 @@ namespace TheBlock.EditorTools
                 return null;
             }
 
-            EnsureFolder(GeneratedWorldFolder);
+            EnsureFolder(GeneratedNavigationFolder);
 
             const int across = 256;
             var texture = new Texture2D(across, 4, TextureFormat.RGBA32, mipChain: true, linear: false)
@@ -435,7 +450,7 @@ namespace TheBlock.EditorTools
             texture.SetPixels(pixels);
             texture.Apply();
 
-            var texturePath = $"{GeneratedWorldFolder}/Zebra.asset";
+            var texturePath = $"{GeneratedNavigationFolder}/ZebraTexture.asset";
             AssetDatabase.CreateAsset(texture, texturePath);
             report.Generated.Add(texturePath);
 
@@ -451,7 +466,7 @@ namespace TheBlock.EditorTools
             material.EnableKeyword("_ALPHATEST_ON");
             material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.AlphaTest;
 
-            var materialPath = $"{GeneratedWorldFolder}/Zebra.mat";
+            var materialPath = $"{GeneratedNavigationFolder}/Zebra.mat";
             AssetDatabase.CreateAsset(material, materialPath);
             report.Generated.Add(materialPath);
             return material;
@@ -475,8 +490,32 @@ namespace TheBlock.EditorTools
         /// U11 gave every district a non-convex MeshCollider — except where they deliberately are
         /// not: foliage carries no collider, so a tree canopy does not become a first floor.
         /// </summary>
+        /// <summary>
+        /// Districts nobody walks. Marked Not Walkable as a whole before the bake, so no NavMesh
+        /// is generated over them at all.
+        ///
+        /// The car park is one open slab of asphalt, and an open slab is exactly what a random
+        /// spawn ring finds first: pavements are two metres wide and the lot is 165, so with the
+        /// player standing in it (which is where the game starts) most of the pool landed there.
+        /// The web build never seeded people in the lot either — none of its zones or strips
+        /// touch it — so removing it is a match, not a departure.
+        /// </summary>
+        private static readonly string[] UnwalkableDistricts = { "District_ParkingLot" };
+
         private static void BakeNavMesh(Transform districts, Report report)
         {
+            foreach (var name in UnwalkableDistricts)
+            {
+                var district = districts.Find(name);
+                if (district == null) { report.Warnings.Add($"navigation: no district named {name} to exclude"); continue; }
+                if (!district.TryGetComponent<NavMeshModifier>(out var modifier))
+                    modifier = district.gameObject.AddComponent<NavMeshModifier>();
+                modifier.overrideArea = true;
+                modifier.area = 1; // Not Walkable
+                modifier.applyToChildren = true;
+                report.Notes.Add($"navigation: {name} excluded from the NavMesh");
+            }
+
             if (!districts.TryGetComponent<NavMeshSurface>(out var surface))
                 surface = districts.gameObject.AddComponent<NavMeshSurface>();
 
@@ -546,9 +585,16 @@ namespace TheBlock.EditorTools
         /// <summary>
         /// The street surface under a point, by raycast — the port of the web build's <c>bakeY</c>.
         ///
-        /// LOWEST hit, not the first: downtown's canopies and the districts' overhangs sit above the
-        /// road, and taking the first would paint a zebra on an awning. Falls back to a hair above
-        /// zero, which is where the ground plate is, if nothing is under the point at all.
+        /// Not the FIRST hit: downtown's canopies and the districts' overhangs sit above the road,
+        /// and taking the first would paint a zebra on an awning. Not the LOWEST either, which is
+        /// what this did at first and what put every zebra 2 cm UNDER the street: the ground plate
+        /// runs beneath every district at −0.05, and a district's road surface sits at 0, so the
+        /// lowest hit is always the plate. Painted there, the zebra z-fought up through the district
+        /// mesh as a pattern of that mesh's own texture — orange bars, not white — which reads as a
+        /// material fault and is really a 5 cm height fault.
+        ///
+        /// So: the lowest hit that is not the ground plate. The plate is the fallback if it is the
+        /// only thing there — that is what the web build's <c>bakeY</c> returns off-district too.
         /// </summary>
         private static float GroundY(Vector3 point)
         {
@@ -556,8 +602,15 @@ namespace TheBlock.EditorTools
                 new Vector3(point.x, 50f, point.z), Vector3.down, 200f, ~0, QueryTriggerInteraction.Ignore);
 
             float lowest = float.MaxValue;
-            foreach (var hit in hits) lowest = Mathf.Min(lowest, hit.point.y);
-            return lowest == float.MaxValue ? 0f : lowest;
+            float plate = float.MaxValue;
+            foreach (var hit in hits)
+            {
+                if (hit.collider.name == "Ground Floor") { plate = hit.point.y; continue; }
+                lowest = Mathf.Min(lowest, hit.point.y);
+            }
+
+            if (lowest != float.MaxValue) return lowest;
+            return plate != float.MaxValue ? plate : 0f;
         }
     }
 }
