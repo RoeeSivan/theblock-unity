@@ -17,9 +17,12 @@ namespace TheBlock.Police
     /// torque), re-pose. A cutscene controller for a 2.2 s red screen would be a whole mechanism
     /// nothing else wants.
     ///
-    /// <b>What you lose.</b> There is no wallet in this port yet, so the fine is tallied and shown
-    /// rather than charged — U28 gets a real one and can bill it, the way U18 left its two sounds to
-    /// U27. What you actually lose is where you were, which in a city this size is the point.
+    /// <b>What you lose depends on whether you were driving, and that is the user's call.</b> Caught
+    /// in a vehicle, the car is impounded and you are both moved to the station — you lose where you
+    /// were, which in a city this size is the real cost. Caught on foot, you are cuffed where you
+    /// stand and lose only the money and the time: there is no car to impound, and hauling a
+    /// pedestrian across town for a hit-and-run they committed on foot is a punishment with no
+    /// mechanism behind it. Money goes either way.
     /// </summary>
     public class BustSequence : MonoBehaviour
     {
@@ -44,16 +47,16 @@ namespace TheBlock.Police
         }
 
         /// <summary>Starts the sequence. Ignored if one is already running.</summary>
-        public void Begin(Vector3 custody, float hold, int finesOwed, int fine)
+        public void Begin(Vector3 custody, float hold, int taken, int owed)
         {
             if (Running) return;
             if (player == null) Bind();
             if (player == null) return;
 
-            StartCoroutine(Run(custody, hold, finesOwed, fine));
+            StartCoroutine(Run(custody, hold, taken, owed));
         }
 
-        private IEnumerator Run(Vector3 custody, float hold, int finesOwed, int fine)
+        private IEnumerator Run(Vector3 custody, float hold, int taken, int owed)
         {
             Running = true;
             Busted?.Invoke();
@@ -86,24 +89,37 @@ namespace TheBlock.Police
                 frozeOnFoot = true;
             }
 
-            if (hud != null) hud.ShowBusted(fine);
+            if (hud != null) hud.ShowBusted(taken, owed, driving != null);
             yield return new WaitForSeconds(hold);
 
-            // Move. The car comes with you — the web keeps yours too, and walking back across the
-            // city for a wall scrape would be a punishment out of all proportion to the crime.
-            float yaw = 90f;
+            // IMPOUNDED, and only when there was something to impound. A driven vehicle goes to the
+            // station with you; on foot you are cuffed where you stand, so nothing moves and the
+            // camera does not need snapping either.
             if (driving is CarController driven)
             {
-                driven.Teleport(custody, Quaternion.Euler(0f, yaw, 0f));
+                driven.Teleport(custody, Quaternion.Euler(0f, 90f, 0f));
                 driven.Driven = true;
+                if (followCamera != null) followCamera.SnapToTarget();
             }
-            else
+            else if (driving != null)
             {
-                player.Teleport(custody, yaw);
+                // The bike has no Teleport of its own, so it rides along by hand — in the order
+                // CarController documents, because the reason for that order is the physics and not
+                // the class: stop the body, move it, then sync.
+                var root = driving.GetTransform();
+                if (root.TryGetComponent<Rigidbody>(out var body))
+                {
+                    body.linearVelocity = Vector3.zero;
+                    body.angularVelocity = Vector3.zero;
+                }
+
+                root.SetPositionAndRotation(custody, Quaternion.Euler(0f, 90f, 0f));
+                Physics.SyncTransforms();
+                driving.Driven = true;
+                if (followCamera != null) followCamera.SnapToTarget();
             }
 
             if (frozeOnFoot) player.enabled = true;
-            if (followCamera != null) followCamera.SnapToTarget();
             if (hud != null) hud.HideBusted();
 
             Running = false;

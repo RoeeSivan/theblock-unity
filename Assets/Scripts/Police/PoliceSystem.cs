@@ -36,6 +36,7 @@ namespace TheBlock.Police
         [SerializeField] private VehicleEnterExit vehicles;
         [SerializeField] private TrafficSystem traffic;
         [SerializeField] private BustSequence bust;
+        [SerializeField] private Game.Wallet wallet;
 
         [Header("Station")]
         [Tooltip("Bay poses, in Unity space, placed by WorldBuilder.Police from config.policeStation.")]
@@ -51,7 +52,7 @@ namespace TheBlock.Police
         [SerializeField] private bool drawGizmos = true;
 
         private readonly List<CopCar> _cops = new();
-        private readonly List<Vector3> _positions = new();
+        private readonly List<TrafficSystem.Pursuer> _positions = new();
         private PoliceTuning _tuning;
         private float _sinceSpawn;
         private RaycastHit[] _hits;
@@ -80,6 +81,7 @@ namespace TheBlock.Police
             if (vehicles == null) vehicles = FindAnyObjectByType<VehicleEnterExit>();
             if (traffic == null) traffic = FindAnyObjectByType<TrafficSystem>();
             if (bust == null) bust = FindAnyObjectByType<BustSequence>();
+            if (wallet == null) wallet = FindAnyObjectByType<Game.Wallet>();
 
             _tuning = heat != null ? heat.Tuning : new PoliceTuning();
             _hits ??= new RaycastHit[8];
@@ -144,7 +146,12 @@ namespace TheBlock.Police
                     continue;
                 }
 
-                _positions.Add(cop.transform.position);
+                // Handed to the traffic every step so ambient cars can pull over rather than stand
+                // in the way — a traffic car is kinematic, so to a cop it is a wall, not a nudge.
+                // A cop driving itself home is in the list too: it is still a car in the street and
+                // still worth clearing, even though nobody is being chased.
+                _positions.Add(new TrafficSystem.Pursuer(
+                    cop.transform.position, cop.transform.forward, cop.Car.ForwardSpeed));
 
                 if (cop.State == CopCar.Mode.Returning) StepReturn(cop, dt);
                 else Step(cop, focus, dt);
@@ -635,17 +642,28 @@ namespace TheBlock.Police
             return player != null ? player.PlanarSpeed : 0f;
         }
 
+        /// <summary>
+        /// Caught. The fine is CHARGED now, and whatever the wallet could not cover stays owed.
+        ///
+        /// The web build has no such split — its wallet floors at zero and the shortfall simply
+        /// evaporates — but this port already had a <see cref="FinesOwed"/> tally waiting for a
+        /// wallet that did not exist, and a debt is the honest thing for it to become. It also means
+        /// being broke is not a free pass: the third bust with $0 still costs you the street you
+        /// were on and puts another $100 on the slate.
+        /// </summary>
         private void Bust()
         {
-            FinesOwed += _tuning.BustFine;
+            int taken = wallet != null ? wallet.Charge(_tuning.BustFine) : 0;
+            FinesOwed += _tuning.BustFine - taken;
 
-            // Everyone home the short way. The player is being teleported to custody, so there is
-            // nobody left to see the drive back and a busted street should be clear at once.
+            // Everyone home the short way. A busted street should be clear at once, and on foot the
+            // player stays where they are — so a cruiser driving off would be the last thing they
+            // watch instead of the arrest.
             foreach (var cop in _cops)
                 if (cop.State != CopCar.Mode.Idle) SendHome(cop, true);
 
             heat.Clear();
-            if (bust != null) bust.Begin(custodyPoint, _tuning.BustHold, FinesOwed, _tuning.BustFine);
+            if (bust != null) bust.Begin(custodyPoint, _tuning.BustHold, taken, FinesOwed);
         }
 
         // --- measurement ---------------------------------------------------------------------------

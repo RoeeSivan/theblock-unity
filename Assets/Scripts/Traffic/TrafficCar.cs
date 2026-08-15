@@ -107,6 +107,13 @@ namespace TheBlock.Traffic
         /// <summary>The bezier through the junction. Allocated once, refilled on every turn.</summary>
         [System.NonSerialized] public readonly Vector3[] Corner = new Vector3[TrafficGeometry.CornerPoints];
 
+        /// <summary>
+        /// Metres this car is currently shifted OUTWARD from its lane centre to let a pursuing
+        /// police car past. Eased, never snapped — a car that jumps two metres sideways reads as a
+        /// glitch, and a car that drifts over reads as pulling in.
+        /// </summary>
+        [System.NonSerialized] public float Yield;
+
         [System.NonSerialized] public float Stuck;
         [System.NonSerialized] public float StuckLimit;
         [System.NonSerialized] public float Push;

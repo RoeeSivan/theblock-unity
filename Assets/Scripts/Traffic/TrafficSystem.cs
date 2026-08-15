@@ -150,11 +150,51 @@ namespace TheBlock.Traffic
         private readonly List<int> _nearbyEdges = new();
         private readonly List<Vector3> _crossers = new();
 
+        /// <summary>
+        /// One pursuing police car, as ambient traffic needs to see it: where it is, which way it is
+        /// pointed, and how fast. The heading is the part the position alone could not give — "a cop
+        /// is 20 m away" and "a cop is 20 m behind me and closing" are different instructions.
+        /// </summary>
+        public readonly struct Pursuer
+        {
+            public readonly Vector3 Position;
+            public readonly Vector3 Forward;
+            public readonly float Speed;
+
+            public Pursuer(Vector3 position, Vector3 forward, float speed)
+            {
+                Position = position;
+                Forward = forward;
+                Speed = speed;
+            }
+        }
+
         /// <summary>Live police cars this step. Filled by <see cref="SetPursuitObstacles"/>.</summary>
-        private readonly List<Vector3> _pursuit = new();
+        private readonly List<Pursuer> _pursuit = new();
 
         /// <summary>Half-width a cop car occupies for the gap scan. The cruiser is 2.09 m wide.</summary>
         private const float copRadius = 1.1f;
+
+        [Header("Yielding to a pursuit — U19b")]
+        [Tooltip("How far ahead of a pursuing cop a car starts pulling over, metres. It has to be " +
+                 "well beyond the closing distance of one step or the car moves after the impact " +
+                 "rather than before it.")]
+        [SerializeField] private float copYieldRange = 30f;
+
+        [Tooltip("Half-width of the cop's corridor, metres. Anything inside it is in the way.")]
+        [SerializeField] private float copYieldWidth = 4f;
+
+        [Tooltip("Metres outward from the lane centre a yielding car pulls. DERIVED: the cruiser is " +
+                 "2.09 m wide and a traffic car about 1.8, so clearing one needs the better part of " +
+                 "two metres before the cop can pass without touching.")]
+        [SerializeField] private float copYieldShift = 2f;
+
+        [Tooltip("Speed cap while yielding, m/s. Slowing helps the cop past; STOPPING does not — a " +
+                 "stopped car in the lane is the wall this whole mechanism exists to remove.")]
+        [SerializeField] private float copYieldSpeed = 6f;
+
+        [Tooltip("How fast the lateral shift eases in and out, m/s.")]
+        [SerializeField] private float copYieldRate = 3f;
         private System.Random _rng;
         private float _sweepIn;
         private int _cursor;
@@ -752,6 +792,11 @@ namespace TheBlock.Traffic
                 car.Stuck = 0f;
             }
 
+            // -- pull over for a pursuit -----------------------------------------------------------
+            bool yielding = _pursuit.Count > 0 && WantsToYield(car);
+            car.Yield = Mathf.MoveTowards(car.Yield, yielding ? copYieldShift : 0f, copYieldRate * dt);
+            if (yielding) target = Mathf.Min(target, copYieldSpeed);
+
             // -- ease the speed, advance along the lane -------------------------------------------
             float rate = target > car.Speed ? accel : decel;
             car.Speed += Mathf.Clamp(target - car.Speed, -rate * dt, rate * dt);
@@ -791,8 +836,13 @@ namespace TheBlock.Traffic
             }
             else
             {
+                // The yield rides on the lane offset, which is what makes it free: the lane sampler
+                // already knows which side of the centreline is outward, so pulling over is one
+                // added term and not a second positioning path. In a corner the bezier is already
+                // baked, so a car mid-junction only slows — it cannot also slide sideways.
                 network.SampleLane(
-                    car.EdgeId, car.S, car.Dir, network.LaneOffsetFor(car.EdgeId, car.Lane, laneGap),
+                    car.EdgeId, car.S, car.Dir,
+                    network.LaneOffsetFor(car.EdgeId, car.Lane, laneGap) + car.Yield,
                     out position, out forward);
             }
 
@@ -856,14 +906,54 @@ namespace TheBlock.Traffic
             // drives straight into looks like the traffic is broken, not like the cop is.
             foreach (var cop in _pursuit)
             {
+                var at = cop.Position;
                 if (!TrafficGeometry.InFrontCone(
-                        car.Box, cop.x, cop.z, copRadius, gapLateral, gapFollow)) continue;
+                        car.Box, at.x, at.z, copRadius, gapLateral, gapFollow)) continue;
 
-                float gap = TrafficGeometry.BumperGap(car.Box, cop.x, cop.z, copRadius);
+                float gap = TrafficGeometry.BumperGap(car.Box, at.x, at.z, copRadius);
                 if (gap < nearest) nearest = gap;
             }
 
             return nearest;
+        }
+
+        /// <summary>
+        /// How far outward this car should pull to let a pursuing cop through, in metres, and
+        /// whether it should be easing off the throttle while it does.
+        ///
+        /// <b>This is the fix for "the police never reach me".</b> A traffic car is a KINEMATIC
+        /// Rigidbody — an immovable wall to the cop's 1400 kg dynamic one — so a cruiser that caught
+        /// up with one did not shove past it, it wedged, reversed, and tried again. The web build
+        /// never had this problem and its config says why: its cops were kinematic character
+        /// controllers that collide-and-slide, so shoving through traffic was free. Here the honest
+        /// answer is the real-world one, and it looks better than shoving anyway: **traffic gets out
+        /// of the way**.
+        ///
+        /// Only a cop BEHIND and roughly in line counts. A cop ahead is already handled by the gap
+        /// scan above, and a car that pulled over for one coming the other way would be swerving at
+        /// nothing.
+        /// </summary>
+        private bool WantsToYield(TrafficCar car)
+        {
+            foreach (var cop in _pursuit)
+            {
+                var toCar = new Vector3(car.Box.X - cop.Position.x, 0f, car.Box.Z - cop.Position.z);
+
+                float ahead = toCar.x * cop.Forward.x + toCar.z * cop.Forward.z;
+                if (ahead <= 0f || ahead > copYieldRange) continue;
+
+                // Lateral distance from the cop's own line of travel. Cross product in the plane.
+                float lateral = Mathf.Abs(toCar.x * cop.Forward.z - toCar.z * cop.Forward.x);
+                if (lateral > copYieldWidth) continue;
+
+                // Facing roughly the same way: a car on the far carriageway is inside the corridor
+                // on a two-way street and has no reason to move.
+                if (car.Box.Fx * cop.Forward.x + car.Box.Fz * cop.Forward.z < 0.3f) continue;
+
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -872,11 +962,11 @@ namespace TheBlock.Traffic
         /// A list rather than a lookup because there are at most three of them: the cost is three
         /// extra cone tests per car per step against the ~1,000 this scan already does.
         /// </summary>
-        public void SetPursuitObstacles(IReadOnlyList<Vector3> positions)
+        public void SetPursuitObstacles(IReadOnlyList<Pursuer> pursuers)
         {
             _pursuit.Clear();
-            if (positions == null) return;
-            for (int i = 0; i < positions.Count; i++) _pursuit.Add(positions[i]);
+            if (pursuers == null) return;
+            for (int i = 0; i < pursuers.Count; i++) _pursuit.Add(pursuers[i]);
         }
 
         /// <summary>

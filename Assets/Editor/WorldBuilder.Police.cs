@@ -133,6 +133,12 @@ namespace TheBlock.EditorTools
             group.gameObject.AddComponent<CrimeWatch>();
             group.gameObject.AddComponent<BustSequence>();
 
+            // The wallet lives here rather than in a Game group of its own because the bust is the
+            // only thing that touches it so far. U28 owns the economy and can move it out; what it
+            // must not be is absent, or a fine is a number on a red screen and nothing else.
+            if (Object.FindAnyObjectByType<TheBlock.Game.Wallet>() == null)
+                group.gameObject.AddComponent<TheBlock.Game.Wallet>();
+
             var bays = new Vector3[StationBays.Length];
             for (int i = 0; i < StationBays.Length; i++)
             {

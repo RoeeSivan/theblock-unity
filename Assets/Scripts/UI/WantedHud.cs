@@ -18,15 +18,33 @@ namespace TheBlock.UI
     public class WantedHud : MonoBehaviour
     {
         [SerializeField] private Heat heat;
+        [SerializeField] private TheBlock.Game.Wallet wallet;
 
         private StarRow _stars;
         private VisualElement _bustOverlay;
         private Label _bustLabel;
+        private Label _bustDetail;
+        private Label _cash;
 
         private void Start()
         {
             if (heat == null) heat = FindAnyObjectByType<Heat>();
+            if (wallet == null) wallet = FindAnyObjectByType<TheBlock.Game.Wallet>();
             Build();
+
+            if (wallet == null) return;
+            wallet.BalanceChanged += ShowCash;
+            ShowCash(wallet.Balance);
+        }
+
+        private void OnDestroy()
+        {
+            if (wallet != null) wallet.BalanceChanged -= ShowCash;
+        }
+
+        private void ShowCash(int balance)
+        {
+            if (_cash != null) _cash.text = "$" + balance;
         }
 
         private void Build()
@@ -40,6 +58,20 @@ namespace TheBlock.UI
             _stars.style.width = 110f;
             _stars.style.height = 34f;
             root.Add(_stars);
+
+            // The cash readout sits under the stars. U25 owns the typography; what it owes here is
+            // legibility, not a design — a fine that is charged and never shown is a fine nobody
+            // can tell happened.
+            _cash = new Label("$0") { name = "cash" };
+            _cash.style.position = Position.Absolute;
+            _cash.style.top = 56f;
+            _cash.style.right = 24f;
+            _cash.style.fontSize = 22f;
+            _cash.style.unityFontStyleAndWeight = FontStyle.Bold;
+            _cash.style.unityTextAlign = TextAnchor.MiddleRight;
+            _cash.style.width = 110f;
+            _cash.style.color = new Color(0.55f, 0.92f, 0.55f);
+            root.Add(_cash);
 
             _bustOverlay = new VisualElement { name = "busted" };
             _bustOverlay.style.position = Position.Absolute;
@@ -58,6 +90,14 @@ namespace TheBlock.UI
             _bustLabel.style.fontSize = 64f;
             _bustLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
             _bustOverlay.Add(_bustLabel);
+
+            _bustDetail = new Label(string.Empty);
+            _bustDetail.style.color = Color.white;
+            _bustDetail.style.fontSize = 24f;
+            _bustDetail.style.unityTextAlign = TextAnchor.MiddleCenter;
+            _bustDetail.style.whiteSpace = WhiteSpace.Normal;
+            _bustOverlay.Add(_bustDetail);
+
             root.Add(_bustOverlay);
         }
 
@@ -72,11 +112,23 @@ namespace TheBlock.UI
             _stars.Set(heat.Tuning.MaxStars, heat.Stars, heat.Fraction, heat.Cooling);
         }
 
-        public void ShowBusted(int fine)
+        /// <summary>
+        /// The BUSTED screen. It names what actually happened rather than a flat fine, because the
+        /// two outcomes now differ: in a vehicle you and it are impounded at the station, on foot you
+        /// are cuffed where you stand. Both cost money, and <paramref name="owed"/> is whatever the
+        /// wallet could not cover.
+        /// </summary>
+        public void ShowBusted(int taken, int owed, bool impounded)
         {
             if (_bustOverlay == null) return;
 
-            _bustLabel.text = fine > 0 ? $"BUSTED — ${fine}" : "BUSTED";
+            _bustLabel.text = "BUSTED";
+
+            var line = taken > 0 ? $"−${taken}" : "nothing left to take";
+            if (owed > 0) line += $"   ·   ${owed} owed";
+            line += impounded ? "\nvehicle impounded — station" : "\ncuffed on the spot";
+
+            _bustDetail.text = line;
             _bustOverlay.style.display = DisplayStyle.Flex;
         }
 

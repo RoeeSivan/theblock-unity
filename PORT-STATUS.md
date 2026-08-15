@@ -55,6 +55,50 @@ unclear, re-test before inheriting.
 עובד … אני דורס אנשים והשוטרים לא באמת מגיעים אליי"* — run people over and no police car ever
 arrives. **The cause was found, fixed and measured 2026-08-15; it needs watching now.**
 
+### U19c, 2026-08-15 — the bust, the wallet, and why traffic was the wall
+
+**The user's second report: "police cars are not getting to me because they were blocked by other
+cars."** Correct, and the cause is structural: a `TrafficCar` is a **kinematic** Rigidbody
+(`TrafficCar.cs`, `_body.isKinematic = true`), so to the cop's 1400 kg dynamic body it is not a car
+to nudge past, it is a wall. The cruiser wedged, reversed, and tried again — which is the
+`wedges=2, v=0.00` in U19b's own measurements, read at the time as an approach problem.
+
+**The web build cannot hit this and its config says why:** its cops are kinematic character
+controllers, so `police.config.ts` notes they "collide-and-slide … around stopped cars, which reads
+as aggressive shoving". Shoving is free there and impossible here. **So traffic gets out of the way
+instead**, which is the real-world behaviour and looks better than shoving anyway: a car inside a
+pursuing cop's corridor eases 2 m outward onto the kerb side and caps at 6 m/s. It **never stops** —
+a stopped car in the lane is the wall this exists to remove. The shift rides on the lane-offset term
+the sampler already takes, so it is one added number rather than a second positioning path.
+
+**Measured in Play** (isolated with `timeScale = 0.02`, because a static synthetic pursuer falls
+behind a 12 m/s car between two MCP calls — the first attempt read 0 for exactly that reason):
+detection at 12 m behind, ease-in **0 → 2.000 m** against a 2.00 target, speed **12.0 → 6.00** against
+a 6.00 cap, and a clean ease-out when the pursuer is removed. Two cars in one corridor both yielded.
+
+**Getting caught now has two outcomes, the user's call.** In a vehicle, you and it are impounded at
+the station — you lose where you were, which in a city this size is the cost. On foot you are cuffed
+where you stand: there is nothing to impound, and hauling a pedestrian across town has no mechanism
+behind it. **Money goes either way**, and that needed a wallet, because there was none —
+`FinesOwed` was a tally nothing ever spent. `Assets/Scripts/Game/Wallet.cs` is the port of
+`game/wallet.ts` on `PlayerPrefs` (Unity's `localStorage`), floor-at-zero included. `Charge` returns
+**what it actually took**, so a $100 fine against $40 costs $40 and the rest becomes debt on
+`FinesOwed` — being broke is not a free pass. U28 still owns the economy.
+
+**Measured:** on-foot bust moved the player **0.04 m** (gravity settling, nothing else), cash
+**$500 → $400**, control returned, stars cleared, all cops sent home, 0 errors. **The in-vehicle
+bust is NOT verified** — synthetic `E` would not take (memory `synthetic-play-test-decays`), so
+nobody has watched a car get impounded.
+
+⚠ **`Wallet.resetOnPlay` is ON and `startingBalance` is 500** so the fine is visible in a play-test.
+Both are debug; turn them off when U20 pays for itself.
+
+⚠ **One thing seen and NOT explained:** during the traffic test a cop held 94% on-road at 20 m/s with
+zero wedges while its distance to the player **grew** from 241 m to 296 m. That may be an A\* route
+going the long way round a block, or it may be the player standing 6 m off a lane in a spot the
+planner snapped oddly. It is the single most important thing to watch in the play-test, because it
+is the same symptom as the original report.
+
 ### ⚠ MANUALLY CHECK COPS CHASE — 1 crime = 1 car
 
 `P` adds one star (debug-only, `CrimeWatch.debugStarKey`, alongside `T` and `C`). Drive into the

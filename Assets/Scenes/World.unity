@@ -33047,6 +33047,7 @@ GameObject:
   m_Component:
   - component: {fileID: 292118402}
   - component: {fileID: 292118403}
+  - component: {fileID: 292118404}
   m_Layer: 0
   m_Name: Lamp_2
   m_TagString: Untagged
@@ -33134,6 +33135,35 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &292118404
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 292118401}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &292252881
 GameObject:
   m_ObjectHideFlags: 0
@@ -47435,6 +47465,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TheBlock.UI.WantedHud
   heat: {fileID: 0}
+  wallet: {fileID: 0}
 --- !u!114 &407538993
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -103248,6 +103279,7 @@ GameObject:
   m_Component:
   - component: {fileID: 928582477}
   - component: {fileID: 928582478}
+  - component: {fileID: 928582479}
   m_Layer: 0
   m_Name: Lamp_0
   m_TagString: Untagged
@@ -103335,6 +103367,35 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &928582479
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 928582476}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &928779088
 GameObject:
   m_ObjectHideFlags: 0
@@ -136812,6 +136873,7 @@ GameObject:
   - component: {fileID: 1217612375}
   - component: {fileID: 1217612374}
   - component: {fileID: 1217612373}
+  - component: {fileID: 1217612377}
   m_Layer: 0
   m_Name: Police
   m_TagString: Untagged
@@ -136962,6 +137024,7 @@ MonoBehaviour:
   vehicles: {fileID: 0}
   traffic: {fileID: 0}
   bust: {fileID: 0}
+  wallet: {fileID: 0}
   bayPositions:
   - {x: 164, y: 0.25, z: -111}
   - {x: 160, y: 0.25, z: -111}
@@ -136969,6 +137032,20 @@ MonoBehaviour:
   bayYaw: -0
   custodyPoint: {x: 160, y: 0.1999, z: -106}
   drawGizmos: 1
+--- !u!114 &1217612377
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1217612371}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9cc758a5ea88442be98ae51f199a9e5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Game.Wallet
+  startingBalance: 500
+  resetOnPlay: 1
 --- !u!1 &1217969831
 GameObject:
   m_ObjectHideFlags: 0
@@ -150082,6 +150159,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1325162477}
   - component: {fileID: 1325162478}
+  - component: {fileID: 1325162479}
   m_Layer: 0
   m_Name: Lamp_1
   m_TagString: Untagged
@@ -150169,6 +150247,35 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &1325162479
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1325162476}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &1325477266
 GameObject:
   m_ObjectHideFlags: 0
@@ -189491,6 +189598,11 @@ MonoBehaviour:
   gasTriggerRadius: 4
   gasStopSeconds: 10
   gasCooldownSec: 30
+  copYieldRange: 30
+  copYieldWidth: 4
+  copYieldShift: 2
+  copYieldSpeed: 6
+  copYieldRate: 3
 --- !u!114 &1670596547
 MonoBehaviour:
   m_ObjectHideFlags: 0
