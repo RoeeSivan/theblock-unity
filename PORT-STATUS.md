@@ -44,8 +44,17 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-**Next action: U16 — pedestrian crowd (NavMesh agents).** Nothing is half-built; U15 closed clean
-and the two U12-era faults it uncovered are closed with it.
+**Next action: U16 — pedestrian crowd (NavMesh agents).** Nothing is half-built; U15 closed clean,
+the two U12-era faults it uncovered are closed with it, and U7b (swimming) closed on top.
+
+**U7b is done** — swimming, user-confirmed 2026-08-15. It was **never a row in the 32**: the web
+build has the state, the sequence forgot it, and the port would have shipped a sea that drowns you.
+Filed under U7 because it is one more pose on that state machine. See *What U7b built* below for the
+three things that were nearly wrong — the capsule-centre offset, the per-frame damping, and the
+shore wall that has to block cars while letting a swimmer through.
+
+**Worth a look while planning the rest:** the same "is it in config.ts but not in the 32?" question
+has not been asked systematically. Swimming was found by accident, from a question about animations.
 
 **U15 is done** — the user confirmed on 2026-08-15. The measurement its row demanded came back loud
 and rejected Addressables: 13.5 GB of scene memory, 96% textures, because glTFast's .glb textures
@@ -568,6 +577,37 @@ four wheels grounded, caps at 20.10 m/s and −7.03 m/s, brakes through zero, st
 tracks straight to 0.045 m over 176 m, holds upright 1.0000 through a 72° turn at speed, and stops
 dead against a building.
 
+### What U7b built — swimming
+
+**The sequence never had a row for swimming.** The web build has it (`config.sea.swim`, and
+`player.ts` carries the state), the 32 units did not, and nothing downstream would have noticed —
+the port would simply have shipped a sea you drown in. It is filed as `U7b` because it is U7's
+state machine plus one pose, but it could not be built until U12 put water in the world.
+
+Four pieces, no new systems:
+
+- **`SeaGeometry.IsSwimming`** — a region test, not a raycast, because the water deliberately has no
+  collider. The web writes `x < shoreX`; here it is `x > ShoreX`, and that sign lives in this one
+  method. Depth is measured from the swimmer's float height, not from sea level, which is what the
+  web does and is not a rounding detail: it starts the swim **6.4 m** past the waterline instead of
+  11.7 m.
+- **`PlayerController.Float`** — the buoyancy spring, replacing gravity outright rather than adding
+  to it. Two traps: `swim.surfaceY` is a **capsule-centre** height while Unity's transform is at the
+  feet, so it is used as `surfaceY − capsuleCenterY` (miss it and Joe floats waist-deep in his own
+  shins); and the web damps per **frame**, which quietly ties the settle to the frame rate — raised
+  to `Mathf.Pow(damping, dt * 60)` here, same curve at 60 fps and the same curve everywhere else.
+- **The shore wall had to stop blocking the player.** It is one collider serving two purposes: cars
+  must not drive out to sea, the swimmer must walk straight through. The web build solves it with a
+  per-obstacle `obstacleFilter` predicate; Unity has the mechanism built in —
+  `CharacterController.excludeLayers`, aimed at the Ignore Raycast layer that `WorldBuilder` already
+  puts the wall (and nothing else) on. One line, no new layer, no new marker component.
+- **`Joe_Swim`** — the animator gets a `Swim` bool and one looping state on an Any State transition,
+  same shape as `Ride`. Crossfade is 0.35 s rather than the gait 0.18: water is entered by walking
+  into it, so that blend IS the transition from upright to prone, and at 0.18 Joe snaps flat.
+
+Wading needs no state and does not have one — the seabed is a real MeshCollider, so under 6.4 m out
+the controller simply walks down it and gravity holds the feet on it.
+
 **U7 is done** — the user confirmed walk, sprint and jump all read right on 2026-08-13.
 
 Its blend was verified programmatically too: `Joe_Idle` at 0 m/s, `Joe_Walk` at 2, a 50/50
@@ -598,6 +638,11 @@ When one arrives: drop the FBX in `Assets/Models/Characters` as `Joe_<Thing>.fbx
 **The Block → Import Joe Clips**, then re-run the animator builder. `bakeRoot` is `false` for all
 three of these: they are locomotion cycles the controller drives, not clips that move the body
 through a fixed space.
+
+`Joe_Swim` (U7b) is the worked example of exactly that path — 55 MB with-skin FBX out of the
+original's `source-assets/`, one row in `JoeClipImporter.Clips` with `bakeRoot: false`, two menu
+items, done. **The original's `source-assets/models/` is worth reading before assuming a clip is
+missing**; it holds the raw Mixamo download for everything the web build animates.
 
 **U6 is done** — the user confirmed the controls feel right. Controls:
 
@@ -716,6 +761,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | --- | --- | --- | --- | --- |
 | U6 | Character controller + camera follow | done | `1905f94` | `Assets/Scripts/Player/{PlayerController,FollowCamera}.cs` on `Player_Joe` / `Main Camera`. User-confirmed 2026-08-13: controls feel right |
 | U7 | Animator state machine (idle/walk/run/jump) | done | `2525c3b` | Graph generated by **The Block → Build Joe Animator**; `PlayerAnimator.cs` drives it. User-confirmed 2026-08-13: walk, sprint and jump all read right. Missing jog/falling/exhausted clips all fall through cleanly — see the clip table below |
+| U7b | Swimming | done | `PENDING` | **Not in the original 32 — the sequence never had a row for it and the port would have silently lost it.** Belongs to U7's state machine, but needed U12's sea to exist, so it lands here. `Pose.Swim` outranks every other pose; buoyancy spring replaces gravity outright (`PlayerController.Float`); `SeaGeometry.IsSwimming` owns the region + depth test and its X sign. Clip is `Swimming.fbx` from the original's `source-assets/`, imported as `Joe_Swim`, `bakeRoot: false` — a locomotion cycle, not a fixed-space clip. **The player had to be let THROUGH the shore wall it shares with the cars** — `excludeLayers` on the CharacterController, which is Unity's answer to the web's `obstacleFilter`. User-confirmed 2026-08-15 |
 
 ### Tier 2 — Vehicles
 | id | unit | state | commit | notes |
@@ -804,6 +850,18 @@ would trigger it. A `wip` unit is work half-done; this is work deliberately not 
 
 Dated one-liners. These are settled — do not re-litigate them without the user reopening.
 
+- **2026-08-15** (U7b) — **The 32 units are not a complete inventory of the game.** Swimming is in
+  `config.ts`, in `player.ts` and in the shipped build, and no unit owned it; it surfaced only
+  because the user asked an unrelated question about animations. The sequence is a plan, not a
+  spec — `config.ts` is the spec. Filed as `U7b` rather than renumbering, and the same audit has
+  not been run against the rest of the config.
+- **2026-08-15** (U7b) — **One collider, two answers: `excludeLayers` is Unity's `obstacleFilter`.**
+  The shore wall must stop a car and pass a swimmer. The web build carries a predicate the character
+  controller calls per candidate obstacle; Unity puts the same idea on the collider itself, and
+  `WorldBuilder` had already parked that wall alone on Ignore Raycast for an unrelated reason (a
+  downward probe was reading its top as ground). Excluding that layer on the player's
+  `CharacterController` is the whole fix — no new layer, no marker component, nothing else on the
+  layer to catch by accident. **If anything else is ever put on Ignore Raycast, this becomes wrong.**
 - **2026-08-15** (U12 repair) — **`config.camera.far` is a three.js budget, not a design; the fog it
   came with is the design.** `far` 320 m, `fog` 70→280 m and `background` are ONE mechanism: the haze
   dissolves geometry into a sky painted the identical `#9FB8D4` long before the plane reaches it. The

@@ -77,6 +77,7 @@ namespace TheBlock.Core
             public CameraSpec Camera;
             public PlayerSpec Player;
             public VehicleSpec Vehicle;
+            public TrafficSpec Traffic;
 
             /// <summary>
             /// The street haze. Its colour is identical to <see cref="Background"/> in
@@ -160,6 +161,7 @@ namespace TheBlock.Core
             public SeaSurfaceSpec Surface;
             public BeachSpec Beach;
             public SeaWallSpec Wall;
+            public SwimSpec Swim;
         }
 
         /// <summary>Water shader tuning — every number is a material property on <c>TheBlock/Water</c>.</summary>
@@ -237,6 +239,37 @@ namespace TheBlock.Core
         {
             public float Height = 8f;
             public float Thickness = 3f;
+        }
+
+        /// <summary>
+        /// Surface swimming. Gameplay tuning, not physics: the buoyancy spring below replaces
+        /// gravity outright rather than adding a force to it, so none of these are Rapier numbers
+        /// and they port across unchanged.
+        /// </summary>
+        public class SwimSpec
+        {
+            /// <summary>Horizontal speed in water. Slower than the 2.0 walk on purpose.</summary>
+            public float Speed = 3f;
+
+            /// <summary>
+            /// Target height for the capsule's CENTRE, not its feet. Above sea level so the head and
+            /// shoulders stay out of the water. <see cref="Player.PlayerController"/> subtracts the
+            /// capsule's half-height before using it, because Unity's CharacterController origin is
+            /// at the feet while the web build's kinematic body position is the centre.
+            /// </summary>
+            public float SurfaceY = 0.45f;
+
+            /// <summary>Spring strength pulling the body up to <see cref="SurfaceY"/>.</summary>
+            public float Buoyancy = 8f;
+
+            /// <summary>
+            /// Vertical damping. The web build applies this per FRAME; here it is raised to the
+            /// frame time so the settle looks the same at 30 fps as at 120.
+            /// </summary>
+            public float Damping = 0.85f;
+
+            /// <summary>Water depth at which wading becomes swimming — about chest deep.</summary>
+            public float WadeDepth = 1f;
         }
 
         /// <summary>
@@ -801,6 +834,97 @@ namespace TheBlock.Core
 
             /// <summary>Fraction of the remaining distance closed per frame at 60 fps.</summary>
             public float FollowLerp = 0.25f;
+        }
+
+        /// <summary>
+        /// The DRIVABLE street network — not <see cref="RoadsSpec"/>, which is only the 13 painted
+        /// ribbons U12 draws. These 142 polylines are the authored graph the web build's traffic,
+        /// its lights and its zebra crossings are all derived from, and they cover the whole world
+        /// (12.7 km of street) rather than the handful of links between districts.
+        ///
+        /// U16 reads it for one thing: where a pedestrian is allowed to cross. U17 takes the rest.
+        /// </summary>
+        public class TrafficSpec
+        {
+            /// <summary>Street polylines. Endpoints within <see cref="SnapDist"/> are one intersection.</summary>
+            public List<StreetSpec> Network = new();
+
+            /// <summary>Metres. Two endpoints closer than this are the same node.</summary>
+            public float SnapDist = 6f;
+
+            /// <summary>Metres back from an intersection where cars stop.</summary>
+            public float StopLineDist = 8f;
+
+            /// <summary>Metres further back again where the zebra is painted, clear of the poles.</summary>
+            public float CrossingSetback = 2f;
+
+            /// <summary>Metres between parallel lanes on a divided road.</summary>
+            public float LaneGap = 3.2f;
+
+            public LightsSpec Lights;
+        }
+
+        /// <summary>
+        /// One authored street. The exporter emits two shapes for this — a bare array of points for
+        /// an ordinary street, or an object with lane metadata for a divided road — which is why it
+        /// needs <see cref="StreetSpecConverter"/> rather than falling out of the model.
+        /// </summary>
+        [JsonConverter(typeof(StreetSpecConverter))]
+        public class StreetSpec
+        {
+            public List<Vec3> Pts = new();
+
+            /// <summary>Lanes per direction. 1 for an ordinary street.</summary>
+            public int Lanes = 1;
+
+            /// <summary>Innermost lane's offset from the centreline; null falls back to the global one.</summary>
+            public float? LaneOffset;
+        }
+
+        /// <summary>Reads a street as either <c>[{x,z}, ...]</c> or <c>{pts, lanes, laneOffset}</c>.</summary>
+        public class StreetSpecConverter : JsonConverter
+        {
+            public override bool CanConvert(System.Type objectType) => objectType == typeof(StreetSpec);
+
+            public override bool CanWrite => false;
+
+            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) =>
+                throw new System.NotSupportedException();
+
+            public override object ReadJson(
+                JsonReader reader, System.Type objectType, object existingValue, JsonSerializer serializer)
+            {
+                var token = Newtonsoft.Json.Linq.JToken.ReadFrom(reader);
+                if (token.Type == Newtonsoft.Json.Linq.JTokenType.Array)
+                    return new StreetSpec { Pts = token.ToObject<List<Vec3>>() };
+
+                var obj = (Newtonsoft.Json.Linq.JObject)token;
+                return new StreetSpec
+                {
+                    Pts = obj["pts"]?.ToObject<List<Vec3>>() ?? new List<Vec3>(),
+                    Lanes = obj["lanes"]?.ToObject<int>() ?? 1,
+                    LaneOffset = obj["laneOffset"]?.ToObject<float>(),
+                };
+            }
+        }
+
+        /// <summary>
+        /// Traffic lights. U16 needs exactly one number from here — <see cref="SideOffset"/>, the
+        /// centreline-to-kerb distance that sets how wide a crossing is. The timings are declared
+        /// because U17 owns them and the section should be read once, not twice.
+        /// </summary>
+        public class LightsSpec
+        {
+            public float GreenSec = 8f;
+            public float YellowSec = 2.5f;
+            public float RedYellowSec = 1.5f;
+            public float AllRedSec = 1f;
+            public float PoleHeight = 4.5f;
+
+            /// <summary>Metres from the centreline to the kerb — half the carriageway.</summary>
+            public float SideOffset = 4.5f;
+
+            public string ModelUrl;
         }
     }
 }

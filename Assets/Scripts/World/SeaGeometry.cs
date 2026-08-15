@@ -35,5 +35,32 @@ namespace TheBlock.World
         /// <summary>Water depth at a Unity world X. Negative on dry sand.</summary>
         public static float Depth(TheBlockConfig.SeaSpec sea, float unityX) =>
             sea.Level - SeabedHeight(sea, unityX);
+
+        /// <summary>
+        /// Is this point inside the sea's rectangle? A region test, not a raycast — the water has no
+        /// collider to hit, by design (see <c>WorldBuilder.Sea</c>).
+        ///
+        /// The web build writes <c>x &lt; shoreX</c>; here it is <c>x &gt; ShoreX</c>, because X is
+        /// negated and the sea therefore lies at LARGER x. Z is not flipped, so the span test is the
+        /// web's verbatim. This is the one place that sign lives for the swim state.
+        /// </summary>
+        public static bool InSeaRegion(TheBlockConfig.SeaSpec sea, float unityX, float unityZ) =>
+            unityX > ShoreX(sea) && Mathf.Abs(unityZ - sea.CenterZ) < sea.Length * 0.5f;
+
+        /// <summary>
+        /// Is the water here deep enough to swim in? Inside the region and deeper than
+        /// <c>swim.wadeDepth</c>, measured from the swimmer's float height rather than from sea
+        /// level — which is what the web build does, and it matters: with the config's numbers the
+        /// swim starts about 6.4 m past the waterline instead of 11.7 m.
+        ///
+        /// Shallower than that is wading, and wading needs no state of its own: the seabed is a real
+        /// MeshCollider, so the controller walks down it and gravity keeps the feet on it.
+        /// </summary>
+        public static bool IsSwimming(TheBlockConfig.SeaSpec sea, Vector3 unityPos)
+        {
+            if (sea?.Swim == null) return false;
+            return InSeaRegion(sea, unityPos.x, unityPos.z)
+                   && sea.Swim.SurfaceY - SeabedHeight(sea, unityPos.x) > sea.Swim.WadeDepth;
+        }
     }
 }

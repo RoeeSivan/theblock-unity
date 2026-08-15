@@ -30,6 +30,7 @@ namespace TheBlock.Player
         private static readonly int JumpId = Animator.StringToHash("Jump");
         private static readonly int EnterCarId = Animator.StringToHash("EnterCar");
         private static readonly int RideId = Animator.StringToHash("Ride");
+        private static readonly int SwimId = Animator.StringToHash("Swim");
 
         /// <summary>Clip name the builder gives the entry animation, and the length probe looks for.</summary>
         private const string EnterCarClip = "Joe_EnterCar";
@@ -99,6 +100,10 @@ namespace TheBlock.Player
 
             _animator.SetFloat(SpeedId, _blendedSpeed);
             _animator.SetBool(GroundedId, !_inCar && controller.IsGrounded);
+
+            // Not while mounted: the jetski (U24) floats in the same water the swim test reads, and
+            // its rider must stay in the riding pose rather than start doing the crawl on the seat.
+            _animator.SetBool(SwimId, !_inCar && controller.IsSwimming);
         }
 
         private void OnJumped() => _animator.SetTrigger(JumpId);

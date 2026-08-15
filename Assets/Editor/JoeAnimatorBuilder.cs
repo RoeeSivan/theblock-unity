@@ -34,6 +34,21 @@ namespace TheBlock.EditorTools
         /// <summary>Gait blend time from <c>config.player.animCrossfadeSec</c>.</summary>
         private const float CrossfadeSec = 0.18f;
 
+        /// <summary>
+        /// Playback rate for the swim cycle. A first guess, not a measurement: unlike the sprint
+        /// clip there is nothing to match it against, because the controller moves the swimmer at
+        /// 3 m/s regardless and water gives the eye no stride length to check the cadence against.
+        /// Tune it by watching, and only if the stroke reads as too frantic or too slow.
+        /// </summary>
+        private const float SwimClipSpeed = 1f;
+
+        /// <summary>
+        /// Water is entered by walking, not by a key press, so this blend is the whole transition
+        /// from upright to prone. Longer than the gait crossfade, or Joe snaps flat in a fifth of a
+        /// second the moment the seabed drops past the wade depth.
+        /// </summary>
+        private const float SwimCrossfadeSec = 0.35f;
+
         [MenuItem("The Block/Build Joe Animator", priority = 20)]
         public static void Build()
         {
@@ -51,6 +66,10 @@ namespace TheBlock.EditorTools
             // standing Joe. The bike still works, which is why this is a warning and not an error.
             var ride = FindClip("Joe_Driving.fbx", "Joe_Ride", optional: true);
 
+            // Optional as well: without it deep water is swum in a running pose, which is silly but
+            // not broken — the buoyancy and the speed change are the controller's, not the clip's.
+            var swim = FindClip("Joe_Swim.fbx", "Joe_Swim", optional: true);
+
             var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath)
                              ?? AnimatorController.CreateAnimatorControllerAtPath(ControllerPath);
             Wipe(controller);
@@ -62,6 +81,7 @@ namespace TheBlock.EditorTools
             // Declared whether or not the clip exists: PlayerAnimator sets it on every mount, and
             // SetBool against a parameter the graph does not have warns once per call forever.
             controller.AddParameter("Ride", AnimatorControllerParameterType.Bool);
+            controller.AddParameter("Swim", AnimatorControllerParameterType.Bool);
 
             // One 1-D tree covers the whole gait ladder. Jog (4.5 m/s) needs no clip and no state of
             // its own: it is simply where the blend sits between walk and sprint.
@@ -90,6 +110,10 @@ namespace TheBlock.EditorTools
             // would otherwise have the driver hop in his seat.
             toJump.AddCondition(AnimatorConditionMode.IfNot, 0f, "EnterCar");
             toJump.AddCondition(AnimatorConditionMode.IfNot, 0f, "Ride");
+            // ...nor in the water. The controller makes Space inert while swimming, so this only
+            // catches a trigger set on the last dry frame — but that is exactly the frame you wade
+            // in on, and a hop mid-stroke would read as a bug.
+            toJump.AddCondition(AnimatorConditionMode.IfNot, 0f, "Swim");
             toJump.hasExitTime = false;
             // Fixed duration, or `duration` is read as a fraction of the clip: 0.18 of the 1.9 s jump
             // is a third of a second, and Joe keeps jogging for a beat after he lands.
@@ -152,6 +176,30 @@ namespace TheBlock.EditorTools
                 offBike.duration = CrossfadeSec;
             }
 
+            // Swimming. A looping cycle held for as long as the water is deep, same shape as Ride —
+            // but entered by where the body IS rather than by a key press, so the crossfade is what
+            // sells wading out into it. Longer than the gait crossfade on purpose: standing up out
+            // of the water is a slower change of posture than walk → jog.
+            if (swim != null)
+            {
+                var swimState = stateMachine.AddState("Swim");
+                swimState.motion = swim;
+                swimState.speed = SwimClipSpeed;
+
+                var toSwim = stateMachine.AddAnyStateTransition(swimState);
+                toSwim.AddCondition(AnimatorConditionMode.If, 0f, "Swim");
+                toSwim.hasExitTime = false;
+                toSwim.hasFixedDuration = true;
+                toSwim.duration = SwimCrossfadeSec;
+                toSwim.canTransitionToSelf = false;
+
+                var ashore = swimState.AddTransition(locomotion);
+                ashore.AddCondition(AnimatorConditionMode.IfNot, 0f, "Swim");
+                ashore.hasExitTime = false;
+                ashore.hasFixedDuration = true;
+                ashore.duration = SwimCrossfadeSec;
+            }
+
             EditorUtility.SetDirty(controller);
             AssetDatabase.SaveAssets();
             Debug.Log(
@@ -166,6 +214,10 @@ namespace TheBlock.EditorTools
                 (ride == null
                     ? "  Ride: NO CLIP — the bike gets ridden by a standing Joe\n"
                     : $"  Ride: {ride.length:0.00}s looping, Any State on the Ride bool\n") +
+                (swim == null
+                    ? "  Swim: NO CLIP — deep water is swum in a running pose\n"
+                    : $"  Swim: {swim.length:0.00}s looping at {SwimClipSpeed:0.00}x, Any State on " +
+                      $"the Swim bool, {SwimCrossfadeSec:0.00}s both ways\n") +
                 "  No clip yet for exhausted or falling — both fall through to the states above",
                 controller);
         }

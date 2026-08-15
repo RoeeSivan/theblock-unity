@@ -1,4 +1,5 @@
 using TheBlock.Core;
+using TheBlock.World;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
@@ -23,6 +24,9 @@ namespace TheBlock.Player
         Locomotion,
         Jump,
         Falling,
+
+        /// <summary>In deep water. Outranks every other pose — jump and falling are inert in the sea.</summary>
+        Swim,
     }
 
     /// <summary>
@@ -57,12 +61,20 @@ namespace TheBlock.Player
 
         private CharacterController _controller;
         private TheBlockConfig.PlayerSpec _spec;
+        private TheBlockConfig.SeaSpec _sea;
         private float _gravity;
 
         private float _stamina;
         private bool _exhausted;
         private float _verticalSpeed;
         private bool _jumping;
+        private bool _swimming;
+
+        /// <summary>
+        /// Where the capsule's centre sits above its origin. The config's swim target is a CENTRE
+        /// height and Unity's transform is at the feet, so this is the difference between the two.
+        /// </summary>
+        private float _capsuleCenterY;
 
         /// <summary>Locomotion tier this frame. U7's animator reads this.</summary>
         public Gait CurrentGait { get; private set; } = Gait.Idle;
@@ -87,6 +99,9 @@ namespace TheBlock.Player
         public bool Exhausted => _exhausted;
 
         public bool IsGrounded => _controller != null && _controller.isGrounded;
+
+        /// <summary>True while the water is deep enough to swim in. The animator reads this.</summary>
+        public bool IsSwimming => _swimming;
 
         /// <summary>Where the follow camera should look: roughly the player's head.</summary>
         public Vector3 LookTarget =>
@@ -128,17 +143,24 @@ namespace TheBlock.Player
             }
 
             _spec = snapshot.Config.Player;
+            _sea = snapshot.Config.Sea;
             _gravity = snapshot.Config.Gravity.Y;
             _stamina = _spec.Stamina.Max;
 
             // The capsule's origin is at the feet, so its centre sits half a body up.
-            var centerY = _spec.Collider.HalfHeight + _spec.Collider.Radius;
+            _capsuleCenterY = _spec.Collider.HalfHeight + _spec.Collider.Radius;
             _controller.radius = _spec.Collider.Radius;
-            _controller.height = centerY * 2f;
-            _controller.center = new Vector3(0f, centerY, 0f);
+            _controller.height = _capsuleCenterY * 2f;
+            _controller.center = new Vector3(0f, _capsuleCenterY, 0f);
             _controller.skinWidth = _spec.CharacterOffset;
             _controller.stepOffset = stepOffset;
             _controller.slopeLimit = slopeLimit;
+
+            // The shore wall stops cars driving out to sea, and the swimmer has to be the one thing
+            // that walks through it — which is exactly what the web build's `obstacleFilter` does.
+            // WorldBuilder puts that wall, and only that wall, on Ignore Raycast; excluding the layer
+            // here drops it out of this capsule's collisions while leaving everything else's alone.
+            _controller.excludeLayers = 1 << LayerMask.NameToLayer("Ignore Raycast");
 
             if (useConfigSpawn)
             {
@@ -158,6 +180,17 @@ namespace TheBlock.Player
 
             var dt = Time.deltaTime;
 
+            // Swim state is decided by POSITION, before anything reads it. Entering cancels whatever
+            // vertical momentum the walk down the seabed built up, so hitting deep water does not
+            // punch the body under and let the spring lob it back out.
+            var wasSwimming = _swimming;
+            _swimming = SeaGeometry.IsSwimming(_sea, transform.position);
+            if (_swimming && !wasSwimming)
+            {
+                _verticalSpeed = 0f;
+                _jumping = false;
+            }
+
             // Turning is pure yaw; it steers the forward vector rather than the velocity. Positive
             // is clockwise seen from above, so D turns right. The three.js source writes the same
             // intent with the opposite sign because +Y there is counter-clockwise.
@@ -172,13 +205,18 @@ namespace TheBlock.Player
             var wantJog = keyboard.altKey.isPressed && moving;
             UpdateStamina(wantSprint, wantJog, dt);
 
-            var speed = wantSprint ? _spec.Movement.SprintSpeed
+            // One speed in the water. Gait tiers do not apply — there is no sprinting a crawl stroke,
+            // and stamina keeps ticking back up while you swim.
+            var speed = _swimming ? _sea.Swim.Speed
+                : wantSprint ? _spec.Movement.SprintSpeed
                 : wantJog ? _spec.Movement.JogSpeed
                 : _spec.Movement.WalkSpeed;
 
             // Grounded check happens before Move(), so it describes last frame — which is exactly
             // what the jump wants: you may jump on the frame you land, not the frame you leave.
-            var grounded = _controller.isGrounded;
+            // Both of these are land-only: in water the seabed is 3 m down and grounded is false
+            // anyway, but the stick speed would fight the buoyancy spring on the way out.
+            var grounded = !_swimming && _controller.isGrounded;
             if (grounded && _verticalSpeed <= 0f)
             {
                 // A small constant downward push, not zero: CharacterController only reports
@@ -194,7 +232,8 @@ namespace TheBlock.Player
                 Jumped?.Invoke();
             }
 
-            _verticalSpeed += _gravity * dt;
+            if (_swimming) Float(dt);
+            else _verticalSpeed += _gravity * dt;
 
             PlanarSpeed = Mathf.Abs(moveDir) * speed;
 
@@ -203,6 +242,25 @@ namespace TheBlock.Player
             _controller.Move(velocity * dt);
 
             UpdatePose(moving, wantSprint, wantJog);
+        }
+
+        /// <summary>
+        /// Buoyancy instead of gravity: a spring that pulls the capsule's centre to the surface, and
+        /// a damper so it settles there rather than bobbing forever.
+        ///
+        /// <c>swim.surfaceY</c> is a CENTRE height, so the feet target is that much lower — miss the
+        /// offset and Joe floats with the waterline at his knees.
+        ///
+        /// The web build multiplies by <c>damping</c> once per frame, which silently ties how fast
+        /// the bob settles to the frame rate. Raising it to the frame time is the same curve at 60
+        /// fps and the same curve everywhere else too.
+        /// </summary>
+        private void Float(float dt)
+        {
+            var swim = _sea.Swim;
+            var targetFeetY = swim.SurfaceY - _capsuleCenterY;
+            _verticalSpeed += (targetFeetY - transform.position.y) * swim.Buoyancy * dt;
+            _verticalSpeed *= Mathf.Pow(swim.Damping, dt * 60f);
         }
 
         private void UpdateStamina(bool sprinting, bool jogging, float dt)
@@ -221,12 +279,16 @@ namespace TheBlock.Player
         }
 
         /// <summary>
-        /// Pose priority: falling beats jumping beats locomotion. Falling only wins once the drop
-        /// is faster than a hop ever reaches, so it fires off a ledge and never on a jump.
+        /// Pose priority: swimming beats falling beats jumping beats locomotion. Falling only wins
+        /// once the drop is faster than a hop ever reaches, so it fires off a ledge and never on a
+        /// jump — and never in water, where the body is never grounded and would otherwise read as
+        /// a permanent fall.
         /// </summary>
         private void UpdatePose(bool moving, bool sprinting, bool jogging)
         {
-            if (!_controller.isGrounded && _verticalSpeed < -_spec.FallSpeedThreshold)
+            if (_swimming)
+                CurrentPose = Pose.Swim;
+            else if (!_controller.isGrounded && _verticalSpeed < -_spec.FallSpeedThreshold)
                 CurrentPose = Pose.Falling;
             else if (_jumping)
                 CurrentPose = Pose.Jump;

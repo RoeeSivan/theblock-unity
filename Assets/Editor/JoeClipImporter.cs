@@ -67,6 +67,13 @@ namespace TheBlock.EditorTools
             // This FBX ships a body (55 MB, Mixamo's with-skin download) exactly as Joe_Sprint and
             // Joe_Jumping do. Only its animation is imported; the mesh inside it is never used.
             new("Joe_Driving.fbx", "Joe_Ride", loop: true, bakeRoot: true),
+
+            // Swimming. BakeRoot FALSE, unlike the two above: this is a locomotion cycle the
+            // controller drives, so the clip's forward travel must be extracted (and then discarded,
+            // because PlayerAnimator keeps root motion off) rather than left in the pose. Baked in,
+            // Joe would visibly crawl away from his own capsule and snap back every time the loop
+            // wrapped. Same arrangement as walk and sprint.
+            new("Joe_Swim.fbx", "Joe_Swim", loop: true, bakeRoot: false),
         };
 
         [MenuItem("The Block/Import Joe Clips", priority = 21)]
