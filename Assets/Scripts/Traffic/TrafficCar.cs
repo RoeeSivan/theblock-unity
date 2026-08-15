@@ -37,6 +37,14 @@ namespace TheBlock.Traffic
 
         // --- built by TrafficCarBuilder ------------------------------------------------------
 
+        [Tooltip("Which drivable car this model IS — the config.vehicle.cars name. U17b's carjack " +
+                 "swaps this car for that prefab, and reading it off the instance name would mean " +
+                 "parsing 'TrafficCar_07' back into 'Tesla', which it does not contain.")]
+        [SerializeField] private string modelName;
+
+        [Tooltip("Turns this car's rotation into the drivable prefab's — baked, see DriveRotation.")]
+        [SerializeField] private Quaternion driveRotationOffset = Quaternion.identity;
+
         [Tooltip("Half the body length, metres. Bumper-gap arithmetic.")]
         [SerializeField] private float halfLength = 2.2f;
 
@@ -105,6 +113,13 @@ namespace TheBlock.Traffic
         [System.NonSerialized] public float Gas;
         [System.NonSerialized] public float GasCool;
 
+        /// <summary>
+        /// Seconds left of standing still for the on-foot player walking over to steal it
+        /// (<c>config.traffic.hijack.holdSec</c>). Its whole purpose is that the light going green
+        /// mid-approach must not drive the prompt away from under you.
+        /// </summary>
+        [System.NonSerialized] public float Hold;
+
         /// <summary>Last pose, in the flat form every other car's obstacle scan reads.</summary>
         [System.NonSerialized] public TrafficGeometry.Box Box;
 
@@ -117,11 +132,36 @@ namespace TheBlock.Traffic
         public int PaintCount => paints.Length;
         public Rigidbody Body => _body;
 
+        /// <summary>The <c>config.vehicle.cars</c> name of the drivable twin of this model.</summary>
+        public string ModelName => modelName;
+
+        /// <summary>
+        /// The rotation a drivable copy of this car must take to face exactly the way it is facing.
+        ///
+        /// Not this transform's rotation, and this is the one place in the port where those two
+        /// really do differ rather than only looking as though they might.
+        /// <c>config.traffic.models[].modelYaw</c> is authored in the OPPOSITE convention to
+        /// <c>vehicle.cars[].modelYaw</c> — the traffic one turns the nose to the travel direction,
+        /// the car one turns it to three.js's -Z — and the same model is π apart between them. Steal
+        /// a car with the rotation copied straight across and you drive away facing backwards. The
+        /// offset is baked by <c>TrafficCarBuilder</c>, where both numbers are visible at once.
+        /// </summary>
+        public Quaternion DriveRotation => transform.rotation * driveRotationOffset;
+
+        /// <summary>
+        /// The paint material this car is currently wearing, so a carjack can hand the drivable copy
+        /// the same one. Null until the first <see cref="SetPaint"/>.
+        /// </summary>
+        public Material CurrentPaint { get; private set; }
+
         /// <summary>Set by <c>TrafficCarBuilder</c>.</summary>
         public void Configure(
+            string carName, Quaternion drivableOffset,
             float measuredHalfLength, float measuredHalfWidth, float measuredHeight,
             MeshRenderer[] renderers, int[] slots, Material[] palette)
         {
+            modelName = carName;
+            driveRotationOffset = drivableOffset;
             halfLength = measuredHalfLength;
             halfWidth = measuredHalfWidth;
             bodyHeight = measuredHeight;
@@ -151,6 +191,7 @@ namespace TheBlock.Traffic
         {
             if (paints.Length == 0) return;
             var material = paints[Mathf.Clamp(paintIndex, 0, paints.Length - 1)];
+            CurrentPaint = material;
 
             for (int i = 0; i < paintRenderers.Length; i++)
             {
@@ -193,6 +234,7 @@ namespace TheBlock.Traffic
             Stuck = 0f;
             Push = 0f;
             Gas = 0f;
+            Hold = 0f;
             UpdateBox(position, forward);
         }
 
@@ -219,6 +261,7 @@ namespace TheBlock.Traffic
         public void Retire()
         {
             Mode = State.Idle;
+            Hold = 0f;
             if (_body != null)
             {
                 ClearMotion();

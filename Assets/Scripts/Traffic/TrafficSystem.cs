@@ -128,6 +128,14 @@ namespace TheBlock.Traffic
         [SerializeField] private float stuckNudgeSec = 2f;
         [SerializeField] private float standoffPushSec = 2.5f;
 
+        // --- carjacking, from config.traffic.hijack ------------------------------------------------
+
+        [Tooltip("m/s below which a car counts as stopped, and so as stealable.")]
+        [SerializeField] private float hijackStoppedSpeed = 0.5f;
+
+        [Tooltip("Seconds a stopped car stands still once the on-foot player is in reach.")]
+        [SerializeField] private float hijackHoldSec = 5f;
+
         // --- gas stops ---------------------------------------------------------------------------
 
         [Tooltip("The pumps, already converted to Unity space by the builder.")]
@@ -204,6 +212,12 @@ namespace TheBlock.Traffic
             stuckJitterSec = spec.StuckJitterSec;
             stuckNudgeSec = spec.StuckNudgeSec;
             standoffPushSec = spec.StandoffPushSec;
+
+            if (spec.Hijack != null)
+            {
+                hijackStoppedSpeed = spec.Hijack.StoppedSpeed;
+                hijackHoldSec = spec.Hijack.HoldSec;
+            }
 
             if (spec.GasStops == null) return;
             gasTriggerRadius = spec.GasStops.TriggerRadius;
@@ -523,6 +537,90 @@ namespace TheBlock.Traffic
             return false;
         }
 
+        // --- carjack ------------------------------------------------------------------------------
+
+        /// <summary>
+        /// Everything the drivable copy of a stolen car needs, snapshotted the moment it is taken.
+        ///
+        /// There is no surface height in here and no heading in radians, unlike the web build's
+        /// <c>HijackSpec</c>. Both prefabs put their origin on the tyre contact patch, so the traffic
+        /// car's own transform IS where the drivable one goes — no ride-height arithmetic, no frame
+        /// conversion, and nothing that can be off by half a car.
+        /// </summary>
+        public readonly struct Claimed
+        {
+            public Claimed(string modelName, Material paint, Vector3 position, Quaternion rotation)
+            {
+                ModelName = modelName;
+                Paint = paint;
+                Position = position;
+                Rotation = rotation;
+            }
+
+            /// <summary>The <c>config.vehicle.cars</c> name to spawn — "Tesla", "Audi", "Avenger".</summary>
+            public string ModelName { get; }
+
+            /// <summary>The exact street-palette material it was wearing, so the theft keeps its colour.</summary>
+            public Material Paint { get; }
+
+            public Vector3 Position { get; }
+            public Quaternion Rotation { get; }
+        }
+
+        /// <summary>
+        /// The nearest STOPPED live car within <paramref name="radius"/> of a point, or null.
+        ///
+        /// A car mid-turn through a junction is never offered, which is the web build's rule and a
+        /// good one: stealing there leaves you parked diagonally across the intersection. A wreck is
+        /// not offered either — it is stopped, but it is not a car anyone is driving away.
+        /// </summary>
+        public TrafficCar NearestStopped(Vector3 point, float radius)
+        {
+            TrafficCar best = null;
+            float bestSqr = radius * radius;
+
+            foreach (var car in _cars)
+            {
+                if (car == null || car.Mode != TrafficCar.State.Driving) continue;
+                if (car.InCorner || car.Speed >= hijackStoppedSpeed) continue;
+
+                var offset = car.transform.position - point;
+                offset.y = 0f;
+                float sqr = offset.sqrMagnitude;
+                if (sqr > bestSqr) continue;
+
+                bestSqr = sqr;
+                best = car;
+            }
+
+            return best;
+        }
+
+        /// <summary>Freezes a stopped car for <c>hijack.holdSec</c> while the player walks over.</summary>
+        public void Hold(TrafficCar car)
+        {
+            if (car != null) car.Hold = hijackHoldSec;
+        }
+
+        /// <summary>
+        /// Takes the car: snapshot what the drivable copy needs, then hand the slot back to the pool.
+        ///
+        /// <b>The recycle is a retire</b>, and that is the whole of it. The web build has to teleport
+        /// the stolen car to a far-away lane picked over up to thirty tries, because its pool is a
+        /// fixed set of instanced-mesh slots allocated at boot and a car can never stop existing. This
+        /// pool already retires and re-places cars twice a second, from a ring 55–125 m out and
+        /// preferentially outside the view cone — so "recycle it somewhere you will not see it arrive"
+        /// is not a thing to build here, it is the thing that was already running.
+        /// </summary>
+        public Claimed Claim(TrafficCar car)
+        {
+            var snapshot = new Claimed(
+                car.ModelName, car.CurrentPaint, car.transform.position, car.transform.rotation);
+
+            car.Retire();
+            return snapshot;
+        }
+
         /// <summary>
         /// The people cars have to brake for: those actually standing on a carriageway.
         ///
@@ -580,7 +678,17 @@ namespace TheBlock.Traffic
 
             if (overlapYield) target = 0f;
 
-            bool heldByLight = false;
+            // Waiting to be stolen. Checked before the light, because it outranks it: the point of
+            // the hold is that a light going green mid-approach must not drive the car out from
+            // under the player walking towards it.
+            bool held = false;
+            if (car.Hold > 0f)
+            {
+                car.Hold -= dt;
+                target = 0f;
+                held = true;
+            }
+
             if (!car.InCorner && lights != null)
             {
                 int nodeId = car.Dir == 1 ? edge.B : edge.A;
@@ -610,13 +718,13 @@ namespace TheBlock.Traffic
                         if (brake < target)
                         {
                             target = brake;
-                            heldByLight = brake <= 0f;
+                            held = brake <= 0f;
                         }
                     }
                     else if (toStop > -lightCommitDist && car.Speed < lightCommitSpeed)
                     {
                         target = 0f;
-                        heldByLight = true;
+                        held = true;
                     }
                 }
             }
@@ -628,7 +736,7 @@ namespace TheBlock.Traffic
             // waived — and waiting at a red is explicitly not "stuck", because the longest red here
             // is ~11.5 s and `stuckAfterSec` is 20. The threshold is jittered per car so a blocked
             // ring unfreezes one car at a time instead of all at once.
-            if (car.Speed < 0.5f && (gap < gapFollow || overlapYield) && !heldByLight)
+            if (car.Speed < 0.5f && (gap < gapFollow || overlapYield) && !held)
             {
                 car.Stuck += dt;
                 if (car.Stuck > car.StuckLimit + stuckNudgeSec) car.Stuck = 0f;

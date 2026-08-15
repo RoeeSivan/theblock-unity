@@ -35,6 +35,64 @@ namespace TheBlock.Vehicles
         /// <summary>Every car currently in the world, in spawn order.</summary>
         public IReadOnlyList<CarController> Spawned => _spawned;
 
+        /// <summary>
+        /// The prefab for a <c>config.vehicle.cars</c> model name, or null if it was never built.
+        ///
+        /// This is also the carjack's lookup, which is why a missing entry is worth more than a
+        /// shrug: without it a stolen car cannot be spawned at all, and the street car has already
+        /// been retired by then. <c>The Block → Build Drivable Cars</c> fills the list itself.
+        /// </summary>
+        public GameObject PrefabFor(string carName)
+        {
+            if (string.IsNullOrEmpty(carName)) return null;
+
+            foreach (var prefab in carPrefabs)
+                if (prefab != null &&
+                    string.Equals(prefab.name, carName, System.StringComparison.OrdinalIgnoreCase))
+                    return prefab;
+
+            return null;
+        }
+
+        /// <summary>
+        /// Puts a drivable car exactly where something else was standing, wearing its paint — the
+        /// GTA-style promotion, shared by the parking lot and the street.
+        ///
+        /// <paramref name="position"/> is a CONTACT PATCH, not a body centre. Every car prefab in
+        /// this project — drivable, ambient, filler — has its origin on the ground under the tyres,
+        /// so a pose taken off one of the others drops in here with no ride-height arithmetic and
+        /// nothing to get wrong by half a car.
+        ///
+        /// The new car does not go home to the config spawn on <c>R</c>: home is where it was taken.
+        /// A Tesla stolen downtown teleporting itself back to the Reichman lot would be a bug that
+        /// looks like a feature.
+        /// </summary>
+        public CarController Take(string carName, Vector3 position, Quaternion rotation, Material paint)
+        {
+            var prefab = PrefabFor(carName);
+            if (prefab == null)
+            {
+                Debug.LogError(
+                    $"CarSpawner: nothing to promote — no drivable prefab named '{carName}'. Run " +
+                    "The Block → Build Drivable Cars.", this);
+                return null;
+            }
+
+            var car = Instantiate(prefab, position, rotation, transform);
+
+            if (car.TryGetComponent<CarPaint>(out var body)) body.Apply(paint);
+
+            if (!car.TryGetComponent<CarController>(out var controller))
+            {
+                Debug.LogError($"CarSpawner: {prefab.name} has no CarController.", car);
+                return null;
+            }
+
+            controller.BindHome($"{carName} (taken)", position, rotation);
+            _spawned.Add(controller);
+            return controller;
+        }
+
         private void Awake()
         {
             var snapshot = TheBlockConfig.Load();

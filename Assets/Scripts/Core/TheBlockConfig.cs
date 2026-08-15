@@ -955,8 +955,29 @@ namespace TheBlock.Core
 
             public GasStopsSpec GasStops;
 
-            // `hijack` is deliberately NOT declared. Carjacking is U17b — it needs CarBuilder
-            // generalised past the Mustang first — and an undeclared field is simply ignored.
+            /// <summary>U17b: what counts as a stealable car, and how long it waits for you.</summary>
+            public HijackSpec Hijack;
+        }
+
+        /// <summary>
+        /// Carjacking a stopped street car — <c>config.traffic.hijack</c>.
+        ///
+        /// Two of the original's four numbers are declared here and two are not, on purpose.
+        /// <c>recycleMargin</c> and <c>recycleTries</c> exist because the web build's traffic pool is
+        /// a fixed set of InstancedMesh slots allocated at boot: a stolen car cannot be destroyed, so
+        /// it has to be teleported somewhere far enough away that it is not seen arriving, and those
+        /// two numbers drive that search. Here a claimed car is simply retired to the pool, and the
+        /// ordinary sweep re-places it from the spawn ring — 55–125 m out and preferentially outside
+        /// the view cone, which is the same intent already measured and already running. Declaring
+        /// them would imply a mechanism this port does not have.
+        /// </summary>
+        public class HijackSpec
+        {
+            /// <summary>m/s below which a car counts as stopped, and so as stealable.</summary>
+            public float StoppedSpeed = 0.5f;
+
+            /// <summary>Seconds a stopped car waits once the on-foot player is in reach.</summary>
+            public float HoldSec = 5f;
         }
 
         /// <summary>One ambient traffic model. Same three GLBs the parking lot fills with.</summary>

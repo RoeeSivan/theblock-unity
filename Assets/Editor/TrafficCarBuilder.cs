@@ -38,12 +38,6 @@ namespace TheBlock.EditorTools
         private const string PrefabFolder = "Assets/Prefabs/Traffic";
         private const string MaterialFolder = "Assets/Materials/Traffic";
 
-        /// <summary>
-        /// What the source models call their body-paint material — the same convention
-        /// <c>traffic-cars.ts</c>, <c>lot-cars.ts</c> and <c>vehicle.ts</c> all match on.
-        /// </summary>
-        private static readonly string[] PaintMaterialNames = { "CarPrimaryColor", "primary" };
-
         /// <summary>Mass once a wrecked car becomes a real body. Same order as the Mustang's.</summary>
         private const float Mass = 1400f;
 
@@ -78,11 +72,11 @@ namespace TheBlock.EditorTools
                     continue;
                 }
 
-                var path = BuildOne(model, spec, traffic, name, written, log);
+                var path = BuildOne(model, spec, traffic, DrivableOffset(snapshot, name, log), name, written, log);
                 if (path != null) built.Add(path);
             }
 
-            SweepMaterials(written, log);
+            VehicleMaterials.Sweep(MaterialFolder, written, log);
             AssetDatabase.SaveAssets();
 
             var report = $"TrafficCarBuilder — {built.Count} prefab(s)\n{log}";
@@ -92,9 +86,38 @@ namespace TheBlock.EditorTools
 
         // --- one car ------------------------------------------------------------------------------
 
+        /// <summary>
+        /// The rotation that turns this model's TRAFFIC facing into its DRIVABLE facing, baked into
+        /// the prefab so a carjack can apply it without doing the algebra at runtime.
+        ///
+        /// The two conventions are π apart per model and in opposite directions
+        /// (<see cref="TheBlockConfig.TrafficModelSpec.ModelYaw"/> explains why), so this is not a
+        /// constant and it is not something to eyeball: it is
+        /// <c>trafficYaw · (carYaw · facing)⁻¹</c>, resolved here where both numbers are in view.
+        /// Get it wrong and every stolen car drives away pointing backwards.
+        /// </summary>
+        private static Quaternion DrivableOffset(
+            TheBlockConfig.Snapshot snapshot, string name, StringBuilder log)
+        {
+            var spec = snapshot?.Config?.Traffic?.Models?
+                .FirstOrDefault(m => string.Equals(ModelName(m.Url), name, StringComparison.OrdinalIgnoreCase));
+            var car = snapshot?.Config?.Vehicle?.Cars?
+                .FirstOrDefault(c => string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
+
+            if (spec == null || car == null)
+            {
+                log.AppendLine(
+                    $"{name,-10} NOTE — no config.vehicle.cars entry, so this model cannot be carjacked");
+                return Quaternion.identity;
+            }
+
+            return Convert.RotFromRadians(spec.ModelYaw) *
+                   Quaternion.Inverse(Convert.RotFromRadians(car.ModelYaw) * Convert.ModelFacing);
+        }
+
         private static string BuildOne(
             GameObject model, TheBlockConfig.TrafficModelSpec spec, TheBlockConfig.TrafficSpec traffic,
-            string name, HashSet<string> written, StringBuilder log)
+            Quaternion drivableOffset, string name, HashSet<string> written, StringBuilder log)
         {
             var root = new GameObject($"TrafficCar_{name}");
 
@@ -149,7 +172,7 @@ namespace TheBlock.EditorTools
                 var car = root.AddComponent<TrafficCar>();
                 float halfLength = Mathf.Max(body.size.x, body.size.z) * 0.5f;
                 float halfWidth = Mathf.Min(body.size.x, body.size.z) * 0.5f;
-                car.Configure(halfLength, halfWidth, body.size.y, paintRenderers, paintSlots, paints);
+                car.Configure(name, drivableOffset, halfLength, halfWidth, body.size.y, paintRenderers, paintSlots, paints);
 
                 var path = SavePrefab(root, $"TrafficCar_{name}");
                 log.AppendLine(
@@ -235,8 +258,6 @@ namespace TheBlock.EditorTools
             string name, HashSet<string> written, StringBuilder log,
             out MeshRenderer[] paintRenderers, out int[] paintSlots)
         {
-            EnsureFolder(MaterialFolder);
-
             var palette = spec.Palette != null && spec.Palette.Count > 0 ? spec.Palette : traffic.Palette;
             if (palette == null || palette.Count == 0) palette = new List<int> { 0xFFFFFF };
 
@@ -258,15 +279,15 @@ namespace TheBlock.EditorTools
 
                     if (!clones.TryGetValue(source, out var clone))
                     {
-                        clone = CloneMaterial(source, name, written);
-                        rebound += RebindCompressed(clone, ref misses);
+                        clone = VehicleMaterials.Clone(source, MaterialFolder, name, written);
+                        rebound += VehicleMaterials.RebindCompressed(clone, ref misses);
                         clones[source] = clone;
                     }
 
                     materials[i] = clone;
                     changed = true;
 
-                    if (!PaintMaterialNames.Contains(source.name)) continue;
+                    if (!VehicleMaterials.IsPaint(source)) continue;
 
                     if (paintSource == null) paintSource = clone;
                     else if (paintSource != clone)
@@ -287,14 +308,15 @@ namespace TheBlock.EditorTools
             if (paintSource == null)
             {
                 log.AppendLine(
-                    $"{name,-10} NOTE — no material named {string.Join("/", PaintMaterialNames)}; " +
+                    $"{name,-10} NOTE — no material named {string.Join("/", VehicleMaterials.PaintMaterialNames)}; " +
                     "this model keeps its shipped colour");
                 if (misses > 0) log.AppendLine($"{name,-10} {misses} texture(s) have no compressed twin");
                 return Array.Empty<Material>();
             }
 
             var paints = new Material[palette.Count];
-            for (int i = 0; i < palette.Count; i++) paints[i] = PaintVariant(paintSource, name, palette[i], written);
+            for (int i = 0; i < palette.Count; i++)
+                paints[i] = VehicleMaterials.PaintVariant(paintSource, MaterialFolder, name, palette[i], written);
 
             // The prefab is saved showing the first colour; every instance is repainted on spawn.
             foreach (var renderer in paintRenderers.Distinct())
@@ -309,141 +331,6 @@ namespace TheBlock.EditorTools
                 $"{name,-10} materials {clones.Count} cloned, {rebound} texture slot(s) onto compressed copies" +
                 (misses > 0 ? $", {misses} with no twin (run The Block → Compress Textures)" : string.Empty));
             return paints;
-        }
-
-        private static Material CloneMaterial(Material source, string carName, HashSet<string> written)
-        {
-            var assetPath = $"{MaterialFolder}/{carName}_{SanitizeAsset(source.name)}.mat";
-            for (int i = 2; written.Contains(assetPath); i++)
-                assetPath = $"{MaterialFolder}/{carName}_{SanitizeAsset(source.name)}_{i}.mat";
-            written.Add(assetPath);
-
-            var clone = AssetDatabase.LoadAssetAtPath<Material>(assetPath);
-            if (clone == null)
-            {
-                clone = new Material(source);
-                AssetDatabase.CreateAsset(clone, assetPath);
-            }
-            else
-            {
-                // Rewritten from the source every run, so a re-exported model carries through rather
-                // than leaving a stale clone that looks right until someone changes the asset.
-                clone.shader = source.shader;
-                clone.CopyPropertiesFromMaterial(source);
-            }
-
-            // Named after the FILE, not after the source material. A .mat whose object name differs
-            // from its file name makes URP's material upgrader log "Main Object Name … does not
-            // match filename" on every import — the same cosmetic noise U15's compressed clones
-            // still produce, and there is no reason to add ninety more of it.
-            clone.name = System.IO.Path.GetFileNameWithoutExtension(assetPath);
-            clone.renderQueue = source.renderQueue;
-            clone.doubleSidedGI = source.doubleSidedGI;
-            clone.enableInstancing = true;
-            EditorUtility.SetDirty(clone);
-            return clone;
-        }
-
-        private static Material PaintVariant(Material source, string carName, int hex, HashSet<string> written)
-        {
-            var assetPath = $"{MaterialFolder}/{carName}_Paint_{hex:X6}.mat";
-            written.Add(assetPath);
-
-            var material = AssetDatabase.LoadAssetAtPath<Material>(assetPath);
-            if (material == null)
-            {
-                material = new Material(source);
-                AssetDatabase.CreateAsset(material, assetPath);
-            }
-            else
-            {
-                material.shader = source.shader;
-                material.CopyPropertiesFromMaterial(source);
-            }
-
-            // glTFast's `baseColorFactor` is gamma-tagged: the sRGB value goes in as written, and
-            // calling .linear on it renders the car near-black (memory: gltfast-basecolorfactor-gamma).
-            // URP/Lit's `_BaseColor` is untagged and so is read as linear — hence the two branches.
-            if (material.HasProperty("baseColorFactor"))
-                material.SetColor("baseColorFactor", TheBlockConfig.ColorFromHex(hex));
-            else if (material.HasProperty("_BaseColor"))
-                material.SetColor("_BaseColor", TheBlockConfig.ColorFromHex(hex).linear);
-
-            material.name = System.IO.Path.GetFileNameWithoutExtension(assetPath);
-            material.enableInstancing = true;
-            EditorUtility.SetDirty(material);
-            return material;
-        }
-
-        /// <summary>
-        /// Points every .glb-sourced texture on a material at the copy <c>TextureCompressor</c>
-        /// extracted, if there is one.
-        ///
-        /// The lookup contract is <c>TextureCompressor</c>'s own — folder from the .glb's stem, file
-        /// name from <see cref="TextureCompressor.AssetName"/> — so the two sides cannot disagree
-        /// about where a texture landed. A miss is counted rather than silently accepted: a
-        /// half-compressed car costs the disk of the new copy and keeps the old one resident anyway.
-        /// </summary>
-        private static int RebindCompressed(Material material, ref int misses)
-        {
-            var shader = material.shader;
-            if (shader == null) return 0;
-
-            int rebound = 0;
-
-            for (int i = 0; i < shader.GetPropertyCount(); i++)
-            {
-                if (shader.GetPropertyType(i) != UnityEngine.Rendering.ShaderPropertyType.Texture) continue;
-
-                var property = shader.GetPropertyName(i);
-                if (material.GetTexture(property) is not Texture2D texture) continue;
-
-                var sourcePath = AssetDatabase.GetAssetPath(texture);
-                if (!sourcePath.EndsWith(".glb", StringComparison.OrdinalIgnoreCase)) continue;
-                if ((long)texture.width * texture.height < TextureCompressor.SkipBelowPixels) continue;
-
-                var stem = SanitizeAsset(System.IO.Path.GetFileNameWithoutExtension(sourcePath));
-                var folder = $"{TextureCompressor.GeneratedTextureFolder}/{stem}";
-                var assetName = TextureCompressor.AssetName(texture);
-
-                Texture2D compressed = null;
-                foreach (var extension in new[] { ".png", ".jpg" })
-                {
-                    compressed = AssetDatabase.LoadAssetAtPath<Texture2D>($"{folder}/{assetName}{extension}");
-                    if (compressed != null) break;
-                }
-
-                if (compressed == null) { misses++; continue; }
-
-                material.SetTexture(property, compressed);
-                rebound++;
-            }
-
-            return rebound;
-        }
-
-        /// <summary>
-        /// Deletes anything in <see cref="MaterialFolder"/> this run did not write.
-        ///
-        /// The folder is build output, and only this builder writes it — which is also why it is not
-        /// in <c>WorldBuilder.SweepGenerated</c>'s list. Putting it there would let an ordinary world
-        /// build delete the materials these prefabs point at, which is the same shape of fault that
-        /// once blanked U16's zebras.
-        /// </summary>
-        private static void SweepMaterials(HashSet<string> written, StringBuilder log)
-        {
-            if (!AssetDatabase.IsValidFolder(MaterialFolder)) return;
-
-            int deleted = 0;
-            foreach (var guid in AssetDatabase.FindAssets(string.Empty, new[] { MaterialFolder }))
-            {
-                var path = AssetDatabase.GUIDToAssetPath(guid);
-                if (AssetDatabase.IsValidFolder(path) || written.Contains(path)) continue;
-                AssetDatabase.DeleteAsset(path);
-                deleted++;
-            }
-
-            if (deleted > 0) log.AppendLine($"swept      {deleted} stale material(s) from {MaterialFolder}");
         }
 
         // --- plumbing -----------------------------------------------------------------------------
@@ -474,33 +361,12 @@ namespace TheBlock.EditorTools
 
         private static string SavePrefab(GameObject root, string prefabName)
         {
-            EnsureFolder(PrefabFolder);
+            VehicleMaterials.EnsureFolder(PrefabFolder);
             var path = $"{PrefabFolder}/{prefabName}.prefab";
             // SaveAsPrefabAsset over an existing path keeps the GUID, so the scene's TrafficSystem
             // keeps its reference across a rebuild.
             PrefabUtility.SaveAsPrefabAsset(root, path);
             return path;
-        }
-
-        private static void EnsureFolder(string folder)
-        {
-            if (AssetDatabase.IsValidFolder(folder)) return;
-            var parts = folder.Split('/');
-            var built = parts[0];
-            for (int i = 1; i < parts.Length; i++)
-            {
-                var next = $"{built}/{parts[i]}";
-                if (!AssetDatabase.IsValidFolder(next)) AssetDatabase.CreateFolder(built, parts[i]);
-                built = next;
-            }
-        }
-
-        /// <summary>The same rule <see cref="TextureCompressor"/> uses, so both agree on a file name.</summary>
-        private static string SanitizeAsset(string name)
-        {
-            var sb = new StringBuilder(name.Length);
-            foreach (var c in name) sb.Append(char.IsLetterOrDigit(c) || c is '_' or '-' or '.' ? c : '_');
-            return sb.ToString();
         }
 
         private static string Fail(string message)

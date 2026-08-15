@@ -5,6 +5,7 @@ using System.Text;
 using TheBlock.Core;
 using TheBlock.Vehicles;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using Convert = TheBlock.Core.Convert;
 using Debug = UnityEngine.Debug;
@@ -12,14 +13,25 @@ using Debug = UnityEngine.Debug;
 namespace TheBlock.EditorTools
 {
     /// <summary>
-    /// Builds a drivable car prefab from its imported GLB and its <c>config.vehicle.cars</c> entry.
+    /// Builds the drivable car prefabs from their imported GLBs and their <c>config.vehicle.cars</c>
+    /// entries — <b>The Block → Build Drivable Cars</b>.
     ///
     /// Generated rather than hand-assembled, for the reason <c>WorldBuilder</c> and
     /// <c>JoeAnimatorBuilder</c> are: four WheelColliders dragged into place by hand are invisible in
     /// review, impossible to reproduce, and quietly wrong the moment the model is re-exported. Here
     /// every number is either measured off the mesh or written down below with its reasoning, and
-    /// re-running the menu item rebuilds the prefab in place so its GUID — and every scene reference
+    /// re-running the menu item rebuilds each prefab in place so its GUID — and every scene reference
     /// to it — survives.
+    ///
+    /// <b>U17b generalised this past the Mustang, and the one thing that does not generalise is the
+    /// wheels.</b> The Mustang is the only car in the game that kept its rig. The other three went
+    /// through the web build's <c>blender/merge-car-meshes.py</c>, which welds every wheel into the
+    /// body to cut three.js draw calls — so their GLBs contain no wheel node at all, and
+    /// <see cref="FindWheelBones"/> has nothing to find. Their axles are therefore STATED from the
+    /// measured body box, the way <c>MotorcycleBuilder</c> states the bike's, and nothing visible
+    /// depends on getting them exactly right because there is no wheel mesh to spin either. The
+    /// shipped web build never rotated a wheel on any car; the Mustang here is the only one that
+    /// ever has.
     ///
     /// Nothing here edits the .glb. The import stays exactly as downloaded; the corrections live in
     /// the prefab, the same rule <c>WorldBuilder.AssetAliases</c> follows.
@@ -28,10 +40,17 @@ namespace TheBlock.EditorTools
     {
         private const string ModelFolder = "Assets/Models/Vehicles";
         private const string PrefabFolder = "Assets/Prefabs/Vehicles";
-        private const string MaterialFolder = "Assets/Materials/Vehicles";
 
-        /// <summary>The material slot the web build recolours. Named the same in every rigged car.</summary>
-        private const string PaintMaterialName = "CarPrimaryColor";
+        /// <summary>
+        /// Generated materials, one folder written and swept by this builder alone.
+        ///
+        /// Everything a car renders is cloned in here rather than used straight out of the .glb, for
+        /// the reason <see cref="VehicleMaterials"/> spells out: a prefab instantiated at runtime is
+        /// never seen by <c>WorldBuilder</c>'s compressed-texture pass, so it would quietly pull the
+        /// raw RGB24 copies of U15's textures back into memory. That matters more since U17b than it
+        /// did at U8, because these prefabs are now spawned mid-game by every carjack.
+        /// </summary>
+        private const string MaterialFolder = "Assets/Materials/Vehicles";
 
         // --- physics, all derived by feel for PhysX (port rule 2) ---------------------------------
 
@@ -61,18 +80,80 @@ namespace TheBlock.EditorTools
         /// <summary>Chassis box floor, metres above the contact patch. Below the axle, clear of the road.</summary>
         private const float ChassisGroundGap = 0.25f;
 
-        [MenuItem("The Block/Build Mustang", priority = 20)]
-        public static void BuildMustangMenu() => Build("Mustang");
+        // --- stated wheel geometry, for the three models with no wheel node -----------------------
+
+        /// <summary>
+        /// Wheel radius as a fraction of the body's total height. A saloon stands about four and a
+        /// bit wheel-radii tall, and the Mustang — the one car that CAN be measured — is the check:
+        /// its build log prints the measured radius beside what this rule would have produced.
+        /// </summary>
+        private const float WheelRadiusFraction = 0.24f;
+
+        /// <summary>
+        /// Wheelbase as a fraction of the body's total length. 0.6 is the ordinary road-car figure
+        /// (a 4.7 m saloon on a 2.8 m wheelbase), so the axles sit at ±0.3 of the length.
+        /// </summary>
+        private const float WheelbaseFraction = 0.6f;
+
+        /// <summary>
+        /// Track as a fraction of the body's total width. Under 1 because the widest thing on a car
+        /// is its mirrors, not its tyres, and both of these models carry theirs in the same mesh.
+        /// </summary>
+        private const float TrackFraction = 0.8f;
+
+        [MenuItem("The Block/Build Drivable Cars", priority = 20)]
+        public static void BuildAllMenu() => BuildAll();
+
+        /// <summary>
+        /// Builds one prefab per distinct model in <c>config.vehicle.cars</c>.
+        ///
+        /// Per MODEL, not per entry: the config lists sixteen cars, but twelve of them are colour
+        /// variants that reuse one of four GLBs with a different <c>bodyColor</c> and a different
+        /// parking space. A variant needs no prefab of its own — the paint is a material swap on the
+        /// one already built — so the rule is "the first entry for each modelUrl", which produces
+        /// exactly the four base cars without either the count or their names being typed in here.
+        /// </summary>
+        public static string BuildAll()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+                return Fail("CarBuilder: stop Play mode first.");
+
+            var snapshot = TheBlockConfig.Load(reload: true);
+            var cars = snapshot?.Config?.Vehicle?.Cars;
+            if (cars == null || cars.Count == 0)
+                return Fail("CarBuilder: config.vehicle.cars is empty.");
+
+            var bases = cars
+                .Where(c => !string.IsNullOrEmpty(c.ModelUrl))
+                .GroupBy(c => c.ModelUrl, StringComparer.OrdinalIgnoreCase)
+                .Select(g => g.First())
+                .ToList();
+
+            var written = new HashSet<string>(StringComparer.Ordinal);
+            var log = new StringBuilder();
+            var built = new List<GameObject>();
+
+            foreach (var spec in bases)
+            {
+                var prefab = BuildOne(spec, snapshot.Config.Vehicle.Driver, written, log);
+                if (prefab != null) built.Add(prefab);
+                log.AppendLine();
+            }
+
+            VehicleMaterials.Sweep(MaterialFolder, written, log);
+            WireSpawner(built, log);
+            AssetDatabase.SaveAssets();
+
+            var report = $"CarBuilder — {built.Count} of {bases.Count} drivable car(s)\n{log}";
+            Debug.Log(report);
+            return report;
+        }
 
         /// <summary>Builds one car by its <c>config.vehicle.cars[].name</c>. Returns the report.</summary>
         public static string Build(string carName)
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)
-            {
-                const string message = "CarBuilder: stop Play mode first.";
-                Debug.LogError(message);
-                return message;
-            }
+                return Fail("CarBuilder: stop Play mode first.");
 
             var snapshot = TheBlockConfig.Load(reload: true);
             var spec = snapshot?.Config?.Vehicle?.Cars?
@@ -80,32 +161,49 @@ namespace TheBlock.EditorTools
             if (spec == null)
                 return Fail($"CarBuilder: no car named '{carName}' in config.vehicle.cars.");
 
+            var log = new StringBuilder();
+            // No sweep on a single-car build: the folder holds every car's materials, and deleting
+            // "everything this run did not write" would take the other three cars' with it.
+            var prefab = BuildOne(spec, snapshot.Config.Vehicle.Driver, new HashSet<string>(), log);
+            AssetDatabase.SaveAssets();
+
+            var report = $"CarBuilder — {carName}\n{log}";
+            if (prefab == null) return Fail(report);
+
+            Debug.Log(report);
+            return report;
+        }
+
+        private static GameObject BuildOne(
+            TheBlockConfig.CarSpec spec, TheBlockConfig.DriverSpec driver,
+            HashSet<string> written, StringBuilder log)
+        {
+            log.AppendLine($"── {spec.Name}");
+
             var model = LoadModel(spec.ModelUrl);
             if (model == null)
-                return Fail($"CarBuilder: no asset for {spec.ModelUrl} under {ModelFolder}.");
+            {
+                log.AppendLine($"        MISSING — no asset for {spec.ModelUrl} under {ModelFolder}");
+                return null;
+            }
 
-            var log = new StringBuilder();
-            var root = new GameObject(carName);
+            var root = new GameObject(spec.Name);
 
             try
             {
                 var visual = BuildVisual(model, spec, root.transform, log, out var bounds, out var wheelBones);
-                if (visual == null) return Fail(log.ToString());
+                if (visual == null) return null;
 
                 BuildChassis(root, bounds, log);
                 var wheels = BuildWheels(root.transform, wheelBones, bounds, log);
                 var door = BuildDoor(root, visual.transform, spec, log);
-                var anchor = BuildDriverAnchor(
-                    root.transform, spec, bounds, snapshot.Config.Vehicle.Driver, log);
-                Wire(root, wheels, anchor, door, log);
-                if (spec.BodyColor.HasValue) Paint(visual, carName, spec.BodyColor.Value, log);
+                var anchor = BuildDriverAnchor(root.transform, spec, bounds, driver, log);
+                var paint = BuildMaterials(visual, spec, written, log);
+                Wire(root, wheels, anchor, door, paint, log);
 
-                var path = SavePrefab(root, carName);
-                log.AppendLine($"prefab  {path}");
-
-                var report = $"CarBuilder — {carName}\n{log}";
-                Debug.Log(report);
-                return report;
+                var path = SavePrefab(root, spec.Name);
+                log.AppendLine($"        prefab  {path}");
+                return AssetDatabase.LoadAssetAtPath<GameObject>(path);
             }
             finally
             {
@@ -132,13 +230,17 @@ namespace TheBlock.EditorTools
         }
 
         /// <summary>
-        /// Parents the model under the root, turns it to face Unity's +Z, and drops it so the root's
-        /// origin lands on the tyre contact patch.
+        /// Parents the model under the root, turns it to face Unity's +Z, and moves it so the root's
+        /// origin is the tyre contact patch in Y and the body centre in XZ.
         ///
-        /// That last part is what makes the config spawns usable as written: <c>spawn</c> carries no
-        /// Y and <c>roadSurfaceY</c> is the road, so an origin at the contact patch means "put the
-        /// car here" is literally the road height. The model's own origin sits a few centimetres
-        /// below its tyres, which would otherwise bury or float it by exactly that much.
+        /// <b>Both halves of that origin earn their place.</b> The Y drop is what makes the config
+        /// spawns usable as written: <c>spawn</c> carries no Y and <c>roadSurfaceY</c> is the road, so
+        /// an origin at the contact patch means "put the car here" is literally the road height,
+        /// rather than burying or floating it by however far the artist's pivot sits under the tyres.
+        /// The XZ recentre is what makes a car SWAPPABLE, which is new at U17b: a hijacked street car
+        /// and a promoted lot car are placed at the pose of the thing they replace, and both of those
+        /// are built with a body-centred origin (<c>TrafficCarBuilder</c>) — so a drivable prefab
+        /// pivoted somewhere off-centre would land half a car off the spot it was taken from.
         /// </summary>
         private static GameObject BuildVisual(
             GameObject model, TheBlockConfig.CarSpec spec, Transform parent, StringBuilder log,
@@ -157,26 +259,29 @@ namespace TheBlock.EditorTools
             var renderers = visual.GetComponentsInChildren<Renderer>(true);
             if (renderers.Length == 0)
             {
-                log.AppendLine("model has no renderers");
+                log.AppendLine("        model has no renderers");
                 return null;
             }
 
+            // Measured with the model turned but the root at the origin, so world == root-local, and
+            // the box is the one the car will really occupy. Measuring before the rotation gives the
+            // pre-turn box; measuring a car already yawed into a lane gives the bounding box of a
+            // bounding box, which is the trap U13 hit on the lot.
             var world = renderers[0].bounds;
             foreach (var r in renderers) world.Encapsulate(r.bounds);
 
-            // Everything from here is measured with the root at the origin, so world == root-local.
-            var drop = world.min.y;
-            visual.transform.localPosition = new Vector3(0f, -drop, 0f);
-            world.center -= new Vector3(0f, drop, 0f);
+            var shift = new Vector3(world.center.x, world.min.y, world.center.z);
+            visual.transform.localPosition = -shift;
+            world.center -= shift;
             bounds = world;
 
-            log.AppendLine($"body    {Fmt(bounds.size)} m, centre {Fmt(bounds.center)}");
-            log.AppendLine($"yaw     modelYaw {spec.ModelYaw:0.###} rad + 180° facing = " +
-                           $"{visual.transform.localEulerAngles.y:0.#}°");
-            log.AppendLine($"drop    visual lowered {drop:0.###} m so the root origin is the contact patch");
+            log.AppendLine($"        body    {Fmt(bounds.size)} m");
+            log.AppendLine($"        yaw     modelYaw {spec.ModelYaw:0.###} rad + 180° facing = " +
+                           $"{visual.transform.localEulerAngles.y:0.#}°, scale {visual.transform.localScale.x:0.##}");
+            log.AppendLine($"        origin  visual moved {Fmt(-shift)} — contact patch in Y, body centre in XZ");
 
             wheelBones = FindWheelBones(visual.transform, log);
-            return wheelBones == null ? null : visual;
+            return visual;
         }
 
         // --- wheels ------------------------------------------------------------------------------
@@ -184,7 +289,8 @@ namespace TheBlock.EditorTools
         public enum Corner { FrontLeft, FrontRight, RearLeft, RearRight }
 
         /// <summary>
-        /// Finds the four wheel bones and sorts them into corners BY POSITION, not by name.
+        /// Finds the four wheel bones and sorts them into corners BY POSITION, not by name — or
+        /// returns null, which is the ordinary case and not an error.
         ///
         /// The names cannot be trusted on their own: glTFast negates X on import, so the bone the
         /// rig calls <c>wheel_Front_L_0</c> arrives on Unity's +X side and only becomes left again
@@ -193,6 +299,11 @@ namespace TheBlock.EditorTools
         ///
         /// The steering knuckles (<c>wheel_dir_*</c>) sit at the same spot as the front wheels and
         /// would tie for the corner, so they are filtered out by name first.
+        ///
+        /// <b>Null means "this model has no wheels to find", not "something went wrong".</b> Three of
+        /// the four cars were flattened into a single merged mesh by the web build's Blender pass;
+        /// the caller states their axles instead. Returning null for a model that ought to have wheels
+        /// would be a real fault, which is why the count that was found is always logged.
         /// </summary>
         private static Dictionary<Corner, Transform> FindWheelBones(Transform visual, StringBuilder log)
         {
@@ -203,8 +314,10 @@ namespace TheBlock.EditorTools
 
             if (candidates.Count != 4)
             {
-                log.AppendLine($"expected 4 wheel bones, found {candidates.Count}: " +
-                               string.Join(", ", candidates.Select(c => c.name)));
+                log.AppendLine($"        wheels  no rig — {candidates.Count} wheel node(s) in this model" +
+                               (candidates.Count == 0
+                                   ? " (merged into the body by the web build's Blender pass)"
+                                   : $": {string.Join(", ", candidates.Select(c => c.name))}"));
                 return null;
             }
 
@@ -218,7 +331,8 @@ namespace TheBlock.EditorTools
 
                 if (map.ContainsKey(corner))
                 {
-                    log.AppendLine($"two bones landed on {corner}: {map[corner].name} and {bone.name}");
+                    log.AppendLine($"        wheels  two bones landed on {corner}: " +
+                                   $"{map[corner].name} and {bone.name} — falling back to stated axles");
                     return null;
                 }
 
@@ -226,18 +340,27 @@ namespace TheBlock.EditorTools
             }
 
             foreach (var pair in map.OrderBy(p => p.Key))
-                log.AppendLine($"wheel   {pair.Key,-10} {pair.Value.name,-18} at {Fmt(pair.Value.position)}");
+                log.AppendLine($"        wheel   {pair.Key,-10} {pair.Value.name,-18} at {Fmt(pair.Value.position)}");
 
             return map;
         }
 
         /// <summary>
-        /// Creates a WheelCollider per corner.
+        /// Creates a WheelCollider per corner, from the rig where there is one and from the body box
+        /// where there is not.
         ///
-        /// Radius is measured, not typed: the wheel centre's height above the contact patch IS the
-        /// rolling radius once the root origin sits on that patch. The collider is then raised by the
-        /// resting suspension deflection, so the car settles back to the height the model was
-        /// authored at instead of sagging by that much on the first frame.
+        /// <b>Rigged (the Mustang).</b> Radius is measured, not typed: the wheel centre's height above
+        /// the contact patch IS the rolling radius once the root origin sits on that patch. The
+        /// stated rule is printed beside it, which is the only cross-check either has — one measured
+        /// car keeping the three stated ones honest.
+        ///
+        /// <b>Stated (Tesla, Audi, Avenger).</b> Radius, wheelbase and track come off the measured
+        /// body box through the three fractions at the top of this file. They are ordinary road-car
+        /// proportions, and nothing visible hangs on them: with the wheels welded into the body there
+        /// is no tyre to line up with, so all these numbers decide is where the suspension pushes.
+        ///
+        /// Either way the collider is raised by the resting suspension deflection, so the car settles
+        /// back to the height the model was authored at instead of sagging by that much on frame one.
         /// </summary>
         private static Dictionary<Corner, WheelCollider> BuildWheels(
             Transform root, Dictionary<Corner, Transform> bones, Bounds bounds, StringBuilder log)
@@ -245,17 +368,51 @@ namespace TheBlock.EditorTools
             var group = new GameObject("Wheels");
             group.transform.SetParent(root, false);
 
-            var radius = bones.Values.Average(b => b.position.y);
             var rest = SuspensionDistance * SuspensionTarget;
-            log.AppendLine($"radius  {radius:0.###} m (wheel centre height above the contact patch), " +
-                           $"collider raised {rest:0.###} m for suspension rest");
+            float statedRadius = bounds.size.y * WheelRadiusFraction;
+            float statedAxleZ = bounds.size.z * WheelbaseFraction * 0.5f;
+            float statedAxleX = bounds.size.x * TrackFraction * 0.5f;
+
+            var places = new Dictionary<Corner, Vector3>();
+            float radius;
+
+            if (bones != null)
+            {
+                radius = bones.Values.Average(b => b.position.y);
+                foreach (var pair in bones) places[pair.Key] = pair.Value.position;
+
+                float measuredAxleZ = bones.Values.Average(b => Mathf.Abs(b.position.z));
+                float measuredAxleX = bones.Values.Average(b => Mathf.Abs(b.position.x));
+                log.AppendLine(
+                    $"        radius  {radius:0.###} m measured off the rig " +
+                    $"(the stated rule would say {statedRadius:0.###})");
+                log.AppendLine(
+                    $"        axles   measured ±{measuredAxleX:0.###} x ±{measuredAxleZ:0.###} m " +
+                    $"(stated ±{statedAxleX:0.###} x ±{statedAxleZ:0.###})");
+            }
+            else
+            {
+                radius = statedRadius;
+                places[Corner.FrontLeft] = new Vector3(-statedAxleX, radius, statedAxleZ);
+                places[Corner.FrontRight] = new Vector3(statedAxleX, radius, statedAxleZ);
+                places[Corner.RearLeft] = new Vector3(-statedAxleX, radius, -statedAxleZ);
+                places[Corner.RearRight] = new Vector3(statedAxleX, radius, -statedAxleZ);
+
+                log.AppendLine(
+                    $"        radius  {radius:0.###} m STATED ({WheelRadiusFraction:P0} of body height)");
+                log.AppendLine(
+                    $"        axles   STATED ±{statedAxleX:0.###} x ±{statedAxleZ:0.###} m " +
+                    $"({WheelbaseFraction:P0} wheelbase, {TrackFraction:P0} track)");
+            }
+
+            log.AppendLine($"        rest    colliders raised {rest:0.###} m for suspension rest");
 
             var wheels = new Dictionary<Corner, WheelCollider>();
-            foreach (var pair in bones.OrderBy(p => p.Key))
+            foreach (var pair in places.OrderBy(p => p.Key))
             {
                 var go = new GameObject(pair.Key.ToString());
                 go.transform.SetParent(group.transform, false);
-                go.transform.localPosition = pair.Value.position + Vector3.up * rest;
+                go.transform.localPosition = pair.Value + Vector3.up * rest;
 
                 var wheel = go.AddComponent<WheelCollider>();
                 wheel.radius = radius;
@@ -286,8 +443,11 @@ namespace TheBlock.EditorTools
                     stiffness = 2.2f,
                 };
 
-                var visual = go.AddComponent<CarWheel>();
-                visual.BindBone(pair.Value);
+                // Only where there is a bone to drive. CarWheel with nothing bound disables itself
+                // and says so, once per wheel per car — twelve console warnings that mean nothing.
+                if (bones != null && bones.TryGetValue(pair.Key, out var bone))
+                    go.AddComponent<CarWheel>().BindBone(bone);
+
                 wheels[pair.Key] = wheel;
             }
 
@@ -321,8 +481,8 @@ namespace TheBlock.EditorTools
             box.size = new Vector3(bounds.size.x, Mathf.Max(0.1f, top - ChassisGroundGap), bounds.size.z);
             box.center = new Vector3(bounds.center.x, (top + ChassisGroundGap) * 0.5f, bounds.center.z);
 
-            log.AppendLine($"chassis box {Fmt(box.size)} centred {Fmt(box.center)}, floor at {ChassisGroundGap:0.##} m");
-            log.AppendLine($"mass    {Mass:0} kg");
+            log.AppendLine($"        chassis box {Fmt(box.size)} centred {Fmt(box.center)}, " +
+                           $"floor at {ChassisGroundGap:0.##} m, mass {Mass:0} kg");
         }
 
         // --- cabin -------------------------------------------------------------------------------
@@ -348,7 +508,7 @@ namespace TheBlock.EditorTools
         {
             if (spec.Door == null || string.IsNullOrEmpty(spec.Door.JointName))
             {
-                log.AppendLine("door    none in config — this car has no opening door");
+                log.AppendLine("        door    none in config — this car has no opening door");
                 return null;
             }
 
@@ -356,14 +516,14 @@ namespace TheBlock.EditorTools
                 .FirstOrDefault(t => t.name == spec.Door.JointName);
             if (joint == null)
             {
-                log.AppendLine($"door    SKIPPED — no joint named '{spec.Door.JointName}' in the rig");
+                log.AppendLine($"        door    SKIPPED — no joint named '{spec.Door.JointName}' in the rig");
                 return null;
             }
 
             var key = (spec.Door.Axis ?? "z").ToLowerInvariant();
             if (!DoorAxes.TryGetValue(key, out var axis))
             {
-                log.AppendLine($"door    SKIPPED — axis '{spec.Door.Axis}' is not x, y or z");
+                log.AppendLine($"        door    SKIPPED — axis '{spec.Door.Axis}' is not x, y or z");
                 return null;
             }
 
@@ -373,7 +533,7 @@ namespace TheBlock.EditorTools
             var component = root.AddComponent<CarDoor>();
             component.Configure(joint, unityAxis, degrees, spec.Door.LerpRate);
 
-            log.AppendLine($"door    {spec.Door.JointName} hinged on local {Fmt(unityAxis)} " +
+            log.AppendLine($"        door    {spec.Door.JointName} hinged on local {Fmt(unityAxis)} " +
                            $"at {degrees:0.#}° (config axis '{key}', {spec.Door.OpenAngle:0.###} rad)");
             return component;
         }
@@ -388,16 +548,18 @@ namespace TheBlock.EditorTools
         ///
         /// Two corrections turn that block into a Unity local transform:
         ///
-        ///  - The web build recentres each car inside a holder, so its numbers are measured from the
-        ///    BODY CENTRE. This prefab's origin is the tyre contact patch instead, so the measured
-        ///    centre is added back.
+        ///  - The web build measures those offsets from the BODY CENTRE. This prefab's origin is the
+        ///    body centre in XZ but the contact patch in Y, so the measured centre is added back —
+        ///    which is now purely the half-height, the XZ terms having become zero when
+        ///    <see cref="BuildVisual"/> recentred the model.
         ///  - <see cref="Convert.ModelOffset"/> for the offset and <see cref="Convert.RotFromRadians"/>
         ///    for the yaw. The web build adds a π to that yaw to turn a Mixamo body that faces +Z in
         ///    a -Z-forward engine; Unity's forward IS +Z, so that π is exactly what is not needed
         ///    here and a plain negation is the whole conversion.
         ///
-        /// This is the first non-zero X ever put through <c>ModelOffset</c>, and it is what caught
-        /// the sign that used to be in there — see that method's history.
+        /// All four cars have a seat block, so all four get the walk-up-and-sit-down entry. The
+        /// Tesla's is its own re-fit — a 1.44 m cabin against the Mustang's 1.61 — and the config
+        /// says so at the entry.
         /// </summary>
         private static Transform BuildDriverAnchor(
             Transform root, TheBlockConfig.CarSpec spec, Bounds bounds,
@@ -410,7 +572,7 @@ namespace TheBlock.EditorTools
 
             if (seat == null)
             {
-                log.AppendLine($"seat    none for {spec.ModelUrl} — this car uses the quick enter");
+                log.AppendLine($"        seat    none for {spec.ModelUrl} — this car uses the quick enter");
                 return null;
             }
 
@@ -422,17 +584,102 @@ namespace TheBlock.EditorTools
 
             var side = anchor.transform.localPosition.x < 0f ? "left" : "right";
             log.AppendLine(
-                $"seat    config ({seat.X:0.##}, {seat.Y:0.##}, {seat.Z:0.##}) about the body centre " +
-                $"→ local {Fmt(anchor.transform.localPosition)}, the car's {side}");
-            log.AppendLine(
-                $"        yaw {seat.Yaw:0.###} rad → {anchor.transform.localEulerAngles.y:0.#}°, " +
-                $"scale {anchor.transform.localScale.x:0.##}");
+                $"        seat    config ({seat.X:0.##}, {seat.Y:0.##}, {seat.Z:0.##}) about the body centre " +
+                $"→ local {Fmt(anchor.transform.localPosition)}, the car's {side}, " +
+                $"yaw {anchor.transform.localEulerAngles.y:0.#}°, scale {anchor.transform.localScale.x:0.##}");
             return anchor.transform;
+        }
+
+        // --- materials ---------------------------------------------------------------------------
+
+        /// <summary>
+        /// Clones every material out of the .glb, rebinds its textures onto U15's compressed copies,
+        /// and paints the body.
+        ///
+        /// <b>The paint is the part that was quietly broken.</b> This used to write <c>_BaseColor</c>
+        /// and <c>_Color</c> only — neither of which exists on the shader glTFast actually imports —
+        /// so nothing was ever written and the Mustang has been wearing its model's native dark green
+        /// since U8 instead of the config's <c>0xb5232a</c> red. <see cref="VehicleMaterials"/> now
+        /// owns that choice, gamma and all, and returns which property it used so the log can show it.
+        ///
+        /// The returned component is what lets a hijacked or promoted car keep the colour of the car
+        /// it replaced: the paint slot is a material assignment, so handing it the street palette's
+        /// or the lot's material is exact, costs nothing, and reuses an asset whose textures another
+        /// builder has already compressed.
+        /// </summary>
+        private static CarPaint BuildMaterials(
+            GameObject visual, TheBlockConfig.CarSpec spec, HashSet<string> written, StringBuilder log)
+        {
+            var clones = new Dictionary<Material, Material>();
+            var slotOwners = new List<Renderer>();
+            var slotIndices = new List<int>();
+            Material paintSource = null;
+            int rebound = 0, misses = 0;
+
+            foreach (var renderer in visual.GetComponentsInChildren<Renderer>(true))
+            {
+                var materials = renderer.sharedMaterials;
+                bool changed = false;
+
+                for (int i = 0; i < materials.Length; i++)
+                {
+                    var source = materials[i];
+                    if (source == null) continue;
+
+                    if (!clones.TryGetValue(source, out var clone))
+                    {
+                        clone = VehicleMaterials.Clone(source, MaterialFolder, spec.Name, written);
+                        rebound += VehicleMaterials.RebindCompressed(clone, ref misses);
+                        clones[source] = clone;
+                    }
+
+                    materials[i] = clone;
+                    changed = true;
+
+                    if (!VehicleMaterials.IsPaint(source)) continue;
+
+                    paintSource ??= clone;
+                    slotOwners.Add(renderer);
+                    slotIndices.Add(i);
+                }
+
+                if (changed) renderer.sharedMaterials = materials;
+            }
+
+            log.AppendLine(
+                $"        mats    {clones.Count} cloned, {rebound} texture slot(s) onto compressed copies" +
+                (misses > 0 ? $", {misses} with no twin" : string.Empty));
+
+            if (paintSource == null)
+            {
+                log.AppendLine(
+                    $"        paint   none — no material named " +
+                    $"{string.Join("/", VehicleMaterials.PaintMaterialNames)}; this model keeps its own");
+                return null;
+            }
+
+            var component = visual.transform.parent.gameObject.AddComponent<CarPaint>();
+            component.Configure(slotOwners.ToArray(), slotIndices.ToArray());
+
+            if (!spec.BodyColor.HasValue)
+            {
+                log.AppendLine($"        paint   config sets no bodyColor — keeping the model's own, " +
+                               $"on {slotOwners.Count} slot(s)");
+                return component;
+            }
+
+            int hex = spec.BodyColor.Value;
+            var painted = VehicleMaterials.PaintVariant(paintSource, MaterialFolder, spec.Name, hex, written);
+            component.Apply(painted);
+
+            var property = painted.HasProperty("baseColorFactor") ? "baseColorFactor" : "_BaseColor";
+            log.AppendLine($"        paint   #{hex:x6} via {property} on {slotOwners.Count} slot(s)");
+            return component;
         }
 
         private static void Wire(
             GameObject root, Dictionary<Corner, WheelCollider> wheels, Transform driverAnchor,
-            CarDoor door, StringBuilder log)
+            CarDoor door, CarPaint paint, StringBuilder log)
         {
             var car = root.AddComponent<CarController>();
             var serialized = new SerializedObject(car);
@@ -443,94 +690,65 @@ namespace TheBlock.EditorTools
             serialized.FindProperty("driverAnchor").objectReferenceValue = driverAnchor;
             serialized.FindProperty("door").objectReferenceValue = door;
             serialized.ApplyModifiedPropertiesWithoutUndo();
-            log.AppendLine($"wired   CarController to all four wheels" +
+
+            log.AppendLine($"        wired   CarController to all four wheels" +
                            $"{(driverAnchor == null ? "" : ", the driver anchor")}" +
-                           $"{(door == null ? "" : ", the door")}");
-        }
-
-        // --- paint -------------------------------------------------------------------------------
-
-        /// <summary>
-        /// Rebinds the paint slot to a material ASSET carrying the config colour.
-        ///
-        /// Same call as U1's facade tint: the web build recolours the material in code at load
-        /// because three.js cannot author material assets, Unity can, and an asset costs nothing at
-        /// runtime and is editable without a rebuild. The imported material inside the .glb is left
-        /// untouched — it is shared by every copy of this model.
-        /// </summary>
-        private static void Paint(GameObject visual, string carName, int packed, StringBuilder log)
-        {
-            var source = visual.GetComponentsInChildren<Renderer>(true)
-                .SelectMany(r => r.sharedMaterials)
-                .FirstOrDefault(m => m != null && m.name == PaintMaterialName);
-
-            if (source == null)
-            {
-                log.AppendLine($"paint   SKIPPED — no '{PaintMaterialName}' slot on this model");
-                return;
-            }
-
-            EnsureFolder(MaterialFolder);
-            var path = $"{MaterialFolder}/{carName}_Body.mat";
-            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (material == null)
-            {
-                material = new Material(source);
-                AssetDatabase.CreateAsset(material, path);
-            }
-            else
-            {
-                material.shader = source.shader;
-                material.CopyPropertiesFromMaterial(source);
-            }
-
-            var color = TheBlockConfig.ColorFromHex(packed);
-            if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
-            if (material.HasProperty("_Color")) material.SetColor("_Color", color);
-            EditorUtility.SetDirty(material);
-
-            var slots = 0;
-            foreach (var renderer in visual.GetComponentsInChildren<Renderer>(true))
-            {
-                var materials = renderer.sharedMaterials;
-                var changed = false;
-                for (int i = 0; i < materials.Length; i++)
-                {
-                    if (materials[i] == null || materials[i].name != PaintMaterialName) continue;
-                    materials[i] = material;
-                    changed = true;
-                    slots++;
-                }
-
-                if (changed) renderer.sharedMaterials = materials;
-            }
-
-            log.AppendLine($"paint   #{packed:x6} on {slots} slot(s) via {path}");
+                           $"{(door == null ? "" : ", the door")}" +
+                           $"{(paint == null ? "" : ", the paint")}");
         }
 
         // --- output ------------------------------------------------------------------------------
 
         private static string SavePrefab(GameObject root, string carName)
         {
-            EnsureFolder(PrefabFolder);
+            VehicleMaterials.EnsureFolder(PrefabFolder);
             var path = $"{PrefabFolder}/{carName}.prefab";
             // SaveAsPrefabAsset over an existing path keeps the GUID, so scene references survive
             // a rebuild — the same reason JoeAnimatorBuilder writes its controller in place.
             PrefabUtility.SaveAsPrefabAsset(root, path);
-            AssetDatabase.SaveAssets();
             return path;
         }
 
-        private static void EnsureFolder(string folder)
+        /// <summary>
+        /// Hands the built prefabs to the open scene's <c>CarSpawner</c>.
+        ///
+        /// Done here rather than left to a drag, for the reason <c>WorldBuilder</c> wires the traffic
+        /// pool itself: the builder is the only thing that knows the full set it just produced, and a
+        /// prefab that exists but is in nobody's list is a car that silently never appears. It is also
+        /// what U17b's carjack and lot promotion look the prefabs up in, so a missing entry is not
+        /// just a missing parked car — it is a stolen car that cannot be spawned.
+        ///
+        /// The scene must be MARKED DIRTY by hand: assigning through SerializedObject leaves the scene
+        /// looking clean, and Save then writes nothing and reports success (memory:
+        /// <c>editor-created-objects-need-markscenedirty</c>).
+        /// </summary>
+        private static void WireSpawner(List<GameObject> prefabs, StringBuilder log)
         {
-            if (AssetDatabase.IsValidFolder(folder)) return;
-            var parts = folder.Split('/');
-            var built = parts[0];
-            for (int i = 1; i < parts.Length; i++)
+            if (prefabs.Count == 0) return;
+
+            var spawners = UnityEngine.Object.FindObjectsByType<CarSpawner>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
+
+            if (spawners.Length == 0)
             {
-                var next = $"{built}/{parts[i]}";
-                if (!AssetDatabase.IsValidFolder(next)) AssetDatabase.CreateFolder(built, parts[i]);
-                built = next;
+                log.AppendLine("spawner    no CarSpawner in the open scene — nothing wired");
+                return;
+            }
+
+            foreach (var spawner in spawners)
+            {
+                var serialized = new SerializedObject(spawner);
+                var list = serialized.FindProperty("carPrefabs");
+                list.arraySize = prefabs.Count;
+                for (int i = 0; i < prefabs.Count; i++)
+                    list.GetArrayElementAtIndex(i).objectReferenceValue = prefabs[i];
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+
+                EditorUtility.SetDirty(spawner);
+                EditorSceneManager.MarkSceneDirty(spawner.gameObject.scene);
+                log.AppendLine(
+                    $"spawner    {spawner.name} ← {string.Join(", ", prefabs.Select(p => p.name))} " +
+                    "(scene marked dirty — save it)");
             }
         }
 

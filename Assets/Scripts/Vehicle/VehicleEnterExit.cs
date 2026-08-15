@@ -1,5 +1,7 @@
 using TheBlock.Core;
 using TheBlock.Player;
+using TheBlock.Traffic;
+using TheBlock.World;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -34,6 +36,13 @@ namespace TheBlock.Vehicles
         [SerializeField] private PlayerController player;
         [SerializeField] private PlayerAnimator playerAnimator;
         [SerializeField] private FollowCamera followCamera;
+
+        [Tooltip("Where a promoted lot car or a stolen street car comes from. Optional: without it, " +
+                 "E still enters real vehicles and simply cannot take anything else.")]
+        [SerializeField] private CarSpawner cars;
+
+        [Tooltip("The ambient traffic, for the carjack. Optional in the same way.")]
+        [SerializeField] private TrafficSystem traffic;
 
         [Header("Exit placement — Unity-side, not in config.ts")]
         [Tooltip("How far above the vehicle the ground probe starts. Must clear the roof.")]
@@ -75,13 +84,17 @@ namespace TheBlock.Vehicles
         public GameMode Mode => mode;
 
         /// <summary>
-        /// True when pressing E right now would get the player into something.
+        /// True when pressing E right now would get the player into something — a real vehicle, a
+        /// promotable parked filler, or a stealable street car.
         ///
         /// E is shared with the pizzeria doorway, and a car parked outside the storefront puts both
         /// in range at once. This is how the doorway defers rather than the two racing on Update
-        /// order — the vehicle wins, which is the web build's precedence too.
+        /// order — the vehicle wins, which is the web build's precedence too, and all three car
+        /// sources outrank the door there for the same reason.
         /// </summary>
-        public bool HasVehicleInReach => _spec != null && mode == GameMode.OnFoot && Nearest() != null;
+        public bool HasVehicleInReach =>
+            _spec != null && mode == GameMode.OnFoot &&
+            (Nearest() != null || NearestFiller() != null || NearestStopped() != null);
 
         /// <summary>The vehicle being entered, driven or left, or null while on foot.</summary>
         public IEnterable ActiveVehicle
@@ -103,6 +116,8 @@ namespace TheBlock.Vehicles
             if (followCamera == null) followCamera = FindAnyObjectByType<FollowCamera>();
             if (playerAnimator == null && player != null)
                 playerAnimator = player.GetComponent<PlayerAnimator>();
+            if (cars == null) cars = FindAnyObjectByType<CarSpawner>();
+            if (traffic == null) traffic = FindAnyObjectByType<TrafficSystem>();
 
             if (player == null)
             {
@@ -138,7 +153,13 @@ namespace TheBlock.Vehicles
             switch (mode)
             {
                 case GameMode.OnFoot:
-                    if (pressedE) TryEnter();
+                    // Every frame, not only on the frame E is pressed. A stopped car within reach
+                    // is frozen for `hijack.holdSec` so it waits while you walk over — otherwise its
+                    // light goes green mid-approach and the car you were heading for drives off.
+                    var stopped = NearestStopped();
+                    if (stopped != null) traffic.Hold(stopped);
+
+                    if (pressedE) TryEnter(stopped);
                     break;
 
                 case GameMode.Entering:
@@ -163,9 +184,24 @@ namespace TheBlock.Vehicles
 
         // --- entering ----------------------------------------------------------------------------
 
-        private void TryEnter()
+        /// <summary>
+        /// What E does on foot, in the web build's own order: get into a real vehicle, else promote
+        /// the parked filler you are standing beside, else steal the stopped street car.
+        ///
+        /// <b>The order is the design, not an implementation detail.</b> A real vehicle always wins,
+        /// so parking your own car among the fillers never leaves you promoting a stranger's; and the
+        /// lot beats the street because the two can only ever be in reach together at the lot's edge,
+        /// where the parked car is what you are obviously standing next to. <c>main.ts</c> resolves
+        /// it identically, one line at a time, and the pizzeria door comes after all three.
+        /// </summary>
+        private void TryEnter(TrafficCar stopped)
         {
+            // Written out rather than chained with `??`, deliberately: these are Unity objects, and
+            // `??` does not see the overloaded null (memory: unity-null-coalescing-fake-null).
             var vehicle = Nearest();
+            if (vehicle == null) vehicle = PromoteFiller();
+            if (vehicle == null) vehicle = Hijack(stopped);
+
             if (vehicle == null || !vehicle.TryEnter()) return;
 
             ActiveVehicle = vehicle;
@@ -344,6 +380,64 @@ namespace TheBlock.Vehicles
         }
 
         // --- helpers -----------------------------------------------------------------------------
+
+        // --- promotion: turning something that is not a vehicle into one -------------------------
+
+        /// <summary>
+        /// Swaps the parked filler you are standing beside for a real drivable car — U13's deferred
+        /// lot-car promotion, and the port of <c>transitions.ts promoteLotCar</c>.
+        ///
+        /// Same model, same colour, same stall, same heading, and then you get in. The filler is
+        /// destroyed only once the replacement exists: a failed spawn must leave the lot as it was
+        /// rather than eating the car you pressed E at.
+        /// </summary>
+        private IEnterable PromoteFiller()
+        {
+            var filler = NearestFiller();
+            if (filler == null) return null;
+
+            var taken = cars.Take(
+                filler.ModelName, filler.ContactPatch(), filler.DriveRotation, filler.Paint);
+            if (taken == null) return null;
+
+            Destroy(filler.gameObject);
+            return taken;
+        }
+
+        /// <summary>
+        /// Steals the stopped street car — the port of <c>transitions.ts hijackTrafficCar</c>.
+        ///
+        /// The claim comes first and it retires the sim car, so for one instant the lane is empty;
+        /// the drivable copy is then put at the pose the claim recorded. Doing it the other way round
+        /// would spawn a car inside the one it replaces and hand PhysX two overlapping boxes to
+        /// resolve — which it does by throwing them apart.
+        /// </summary>
+        private IEnterable Hijack(TrafficCar stopped)
+        {
+            if (stopped == null || traffic == null || cars == null) return null;
+            if (cars.PrefabFor(stopped.ModelName) == null)
+            {
+                // Checked BEFORE the claim. Claiming first would retire a car that then cannot be
+                // replaced, and the street would simply lose it.
+                Debug.LogWarning(
+                    $"VehicleEnterExit: no drivable prefab for '{stopped.ModelName}', so this car " +
+                    "cannot be taken. Run The Block → Build Drivable Cars.", this);
+                return null;
+            }
+
+            var claim = traffic.Claim(stopped);
+            return cars.Take(claim.ModelName, claim.Position, claim.Rotation, claim.Paint);
+        }
+
+        /// <summary>The parked filler in reach, or null. Null whenever there is nothing to spawn with.</summary>
+        private LotCar NearestFiller() =>
+            cars == null ? null : LotCar.Nearest(player.transform.position, _spec.EnterRadius);
+
+        /// <summary>The stealable street car in reach, or null.</summary>
+        private TrafficCar NearestStopped() =>
+            traffic == null || cars == null
+                ? null
+                : traffic.NearestStopped(player.transform.position, _spec.EnterRadius);
 
         /// <summary>
         /// The nearest enterable vehicle within <c>enterRadius</c>, measured on the ground plane so

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using TheBlock.Core;
+using TheBlock.World;
 using UnityEditor;
 using UnityEngine;
 using Convert = TheBlock.Core.Convert;
@@ -77,6 +78,18 @@ namespace TheBlock.EditorTools
 
                 var scale = spec.Scale <= 0f ? 1f : spec.Scale;
 
+                // U17b: the drivable twin's own facing correction, so a promoted car can be turned to
+                // match the filler it replaces. Resolved once per model, here, because this is the
+                // only place both `lotCars.models[].modelYaw` and `vehicle.cars[].modelYaw` are in
+                // view at the same time — see LotCar.DriveRotation.
+                var drivable = TheBlockConfig.Load()?.Config?.Vehicle?.Cars?
+                    .FirstOrDefault(c => string.Equals(
+                        c.Name, spec.Name, System.StringComparison.OrdinalIgnoreCase));
+                if (drivable == null)
+                    report.Warnings.Add(
+                        $"lot cars — no config.vehicle.cars entry named '{spec.Name}', so these " +
+                        "fillers cannot be promoted on E");
+
                 // Measured once off the prefab — every instance of a model is the same box, and the
                 // config states no size of its own. The probe carries the model's scale, so `body` is
                 // in metres of world space, which is what both the placement and the cull threshold
@@ -110,6 +123,17 @@ namespace TheBlock.EditorTools
                     if (options.Colliders) AddLotCarCollider(car, body, scale, report);
                     AddCullGroup(car, body);
                     SetDistrictStaticFlags(car);
+
+                    // U17b: what E needs to promote this filler into the drivable car of the same
+                    // model and colour. The paint is looked up rather than rebuilt — PaintCar has
+                    // just put the material for this hex in the cache, and handing the promoted car
+                    // the SAME asset is what makes the swap invisible. The rotation is the stall's
+                    // heading carried into the drivable car's own facing convention.
+                    paints.TryGetValue(stall.Paint, out var painted);
+                    car.AddComponent<LotCar>().Configure(
+                        spec.Name, painted,
+                        Convert.RotFromRadians(stall.Yaw + spec.ModelYaw - (drivable?.ModelYaw ?? spec.ModelYaw)));
+
                     placed++;
                 }
 

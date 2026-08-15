@@ -51,8 +51,42 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-**Next action: build U17b** — carjacking, and generalising `CarBuilder` past the Mustang. It also
-inherits U13's deferred lot-car promotion. See its row.
+**Next action: PLAY-TEST U17b.** It is built, measured and committed, and nothing about it is known
+to be outstanding — but nobody has pressed `E` by hand yet, so its row stays `wip` until the user
+says it feels right. What to try, in the order the code resolves them:
+
+1. **The lot.** Four drivable cars now stand at their config spawns (Mustang, Tesla, Audi, Avenger),
+   not one. Get into each — the walk-up-and-sit entry animation runs for all four now, and the
+   Tesla's seat block is its own re-fit for a 1.44 m cabin, so that is the one to look at hardest.
+2. **Promotion.** Walk up to any of the **101 parked fillers** and press `E`. It becomes a real car
+   of the same model, colour, stall and heading, and you get in. This is U13's deferred item.
+3. **The carjack.** Find a car stopped at a red, walk over, press `E`. It waits **5 s** for you
+   (`hijack.holdSec`) rather than driving off when the light changes.
+
+**Measured in Play before committing, so do not re-derive:**
+
+- **The carjack lands EXACTLY.** Body-centre delta **0.000 m**, visual rotation delta **0.00°**, and
+  the same paint material asset carried across. The stolen car's sim slot went straight back to the
+  pool (live 11 → 10, idle 29 → 30) and the sweep refilled it.
+- **The lot promotion lands within 2.9 cm** and **0.00°**, bottom 0.100 → 0.100 m on a lot surface of
+  0.10. The 2.9 cm is not error in the swap: it is the difference between a rotated car's AABB centre
+  and the unrotated centre the prefab is pivoted on, for a body with a mirror on one side.
+- **Seven cars resting flat**, 4/4 wheels grounded on every one, tilt 0.0°, zero velocity — including
+  the three whose axles are STATED rather than measured.
+- **0 errors, 0 warnings** beyond the shadow-atlas line U16 already flagged.
+- The hold works: a car held at 7.2 m/s braked to a stop and drove on when the 5 s expired.
+
+**The one number worth keeping: the Mustang's rig validates the stated-wheel rule.** It is the only
+car that can be measured, and the rule the other three are built from gets it right —
+radius **0.379 m measured against 0.387 stated**, wheelbase **±1.688 m against ±1.695**, track
+**±0.992 m against ±0.953**. Track is the loosest at 4%, and that is the one to change if a car
+feels tippy.
+
+**⚠ Found on the way and fixed: the Mustang has been the wrong colour since U8.** `CarBuilder.Paint`
+wrote `_BaseColor` and `_Color`, and glTFast's imported shader has neither — it has
+`baseColorFactor`. So nothing was written, silently, and the car has been wearing its model's native
+dark green instead of the config's `0xb5232a` red for four units. **It is red now.** If the green was
+secretly preferred, that is a one-line config change, not a code one.
 
 **U18 is done, user-confirmed 2026-08-15** (*"הדריסה נראית טוב"*). Run people over above 12 km/h and
 they are launched, land, lie, fade, and walk back onto their pavement.
@@ -143,7 +177,11 @@ delta of 0.09 ms.** The crowd is free; whatever the frame costs, it is not this.
 `config.traffic`. Nothing needs a rebuild to try.
 
 **Rebuild order:** The Block → **Import People (slow)** → **Build NPC Animator** → **Build
-Pedestrians** → **Build Traffic Cars** → **Build World + NavMesh (slow)** → **Bake Crowd Seeds**.
+Pedestrians** → **Build Drivable Cars** → **Build Traffic Cars** → **Build World + NavMesh (slow)** →
+**Bake Crowd Seeds**. Drivable Cars comes before Traffic Cars and the world for a U17b reason: it is
+what fills the scene's `CarSpawner`, and both the carjack and the lot promotion look their prefabs up
+in that list — a missing entry is not a missing parked car, it is a stolen car that cannot spawn.
+**It marks the scene dirty and does not save it.**
 The bake is last because it asks the NavMesh what is pavement; Import People is first and only ever
 needs re-running if a character FBX changes (it is ~576 MB and several minutes, and the MCP bridge
 drops while it runs). Plain **Build World** is the fast path and KEEPS the last
@@ -176,6 +214,49 @@ shore wall that has to block cars while letting a swimmer through.
 **Worth a look while planning the rest:** the same "is it in config.ts but not in the 32?" question
 has not been asked systematically. Swimming was found by accident, from a question about animations.
 
+### What U17b built
+
+| file | is |
+| --- | --- |
+| `Assets/Editor/CarBuilder.cs` | **The Block → Build Drivable Cars** — one prefab per distinct `modelUrl`, so 4 from 16 config entries |
+| `Assets/Editor/VehicleMaterials.cs` | the clone / compressed-rebind / paint / sweep pass all three car builders share |
+| `Assets/Scripts/Vehicle/CarPaint.cs` | the body-paint slots of a drivable car, so a theft keeps its colour |
+| `Assets/Scripts/World/LotCar.cs` | a filler's identity, its paint, its drivable rotation, and the registry `E` searches |
+| `TrafficSystem.NearestStopped / Hold / Claim` | the carjack API, and `Claimed` — what the drivable copy needs |
+| `VehicleEnterExit.TryEnter` | the three-way precedence: real vehicle → parked filler → stopped street car |
+
+**Every car prefab in the project now has the same origin: the body centre in XZ, the contact patch
+in Y.** That is what makes a car swappable, and it is the whole trick behind both mechanisms. A
+promoted or stolen car is placed at the pose of the thing it replaces with no ride-height arithmetic
+and no frame conversion — which is why the hijack measured a 0.000 m delta rather than "close
+enough". `TrafficCarBuilder` already did this; U17b gave `CarBuilder` the XZ half of it.
+
+**The recycle is a retire, and that is a whole mechanism the port does not need.** `traffic-cars.ts`
+spends `recycleMargin` + `recycleTries` teleporting a stolen car to a lane far enough away that you
+never see it arrive, because its pool is a fixed set of InstancedMesh slots allocated at boot and a
+car can never stop existing. Here `Claim` calls `Retire()` and the ordinary sweep — already running
+twice a second, already placing cars 55–125 m out and preferentially outside the view cone — does
+the rest. Those two config numbers are deliberately **not** declared in `TheBlockConfig`; declaring
+them would imply a mechanism that is not there.
+
+**Two facing conventions had to be reconciled, and both corrections are BAKED at build time rather
+than computed at runtime.** A filler is turned by `lotCars.models[].modelYaw`, a drivable car by
+`vehicle.cars[].modelYaw`, and a traffic car by `traffic.models[].modelYaw` — which is the opposite
+convention to the other two. `LotCar.DriveRotation` and `TrafficCar.DriveRotation` each hold the
+correction, resolved in the builder where both numbers are visible at once. The traffic one comes out
+as the **identity for all three models**, and that is the point: it is identity *because* the two
+conventions are exactly π apart everywhere, which is a fact that was derived rather than assumed and
+is now enforced by construction if anyone re-tunes one of them.
+
+**Wheels on the other three cars are STATED, not measured, and cannot ever be otherwise.** The web
+build's `blender/merge-car-meshes.py` welds every wheel into the body to cut three.js draw calls, so
+tesla/audi/avenger.glb contain **0 wheel nodes** — verified by reading the glTF node lists, not
+inferred. Their axles come off the measured body box at 24% of height for the radius, 60% wheelbase,
+80% track, the way `MotorcycleBuilder` states the bike's. Nothing visible depends on them: with no
+wheel mesh there is nothing to spin, and the shipped web build never rotated a wheel on any car
+anyway. The Mustang is the only rigged car in the game and it is the check on the rule — see the
+numbers in RESUME HERE.
+
 ### What U17 built
 
 | file | is |
@@ -207,8 +288,9 @@ same physical side written for opposite handednesses, and transcribing the arith
 every car in the oncoming lane. Cross-checked against the web build's own expression on the 3-lane
 avenue: both land the inner lane at Unity x +5.30.
 
-**Not ported, on purpose:** `config.traffic.hijack` (U17b), and `carCount` is read but is not the
-pool size — it is one half of the density the pool is sized from.
+**Not ported, on purpose:** `carCount` is read but is not the pool size — it is one half of the
+density the pool is sized from. (`config.traffic.hijack` was U17b's, and is now ported except for its
+two recycle numbers — see *What U17b built* for why those two are absent by design.)
 
 **U15 is done** — the user confirmed on 2026-08-15. The measurement its row demanded came back loud
 and rejected Addressables: 13.5 GB of scene memory, 96% textures, because glTFast's .glb textures
@@ -949,7 +1031,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 ### Tier 2 — Vehicles
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
-| U8 | Vehicle base + one drivable car | done | `b789c5a` | Rigidbody + 4 WheelColliders, NOT a port of the kinematic `vehicle.ts`. `Assets/Scripts/Vehicle/{CarController,CarWheel,CarSpawner}.cs`; prefab generated by **The Block → Build Mustang** (`Assets/Editor/CarBuilder.cs`). User-confirmed 2026-08-13: it drives and feels right. Tuning table in RESUME HERE |
+| U8 | Vehicle base + one drivable car | done | `b789c5a` | Rigidbody + 4 WheelColliders, NOT a port of the kinematic `vehicle.ts`. `Assets/Scripts/Vehicle/{CarController,CarWheel,CarSpawner}.cs`; prefab generated by `Assets/Editor/CarBuilder.cs`, which **U17b generalised to all four cars** (**The Block → Build Drivable Cars**, replacing Build Mustang). User-confirmed 2026-08-13: it drives and feels right. ⚠ **U17b found that this unit's paint never applied** — it wrote `_BaseColor` on a glTFast material whose property is `baseColorFactor`, so the Mustang was its model's native dark green, not the config's red, from U8 until then. Tuning table in RESUME HERE |
 | U9 | Enter/exit state machine + seated driver | done | `a86df20` | `E` and a real door. `Assets/Scripts/{Core/GameMode,Vehicle/VehicleEnterExit,Vehicle/CarDoor}.cs`; `DebugVehicleSwitch.cs` deleted. Both of the web build's enter paths — the 5.47 s entry clip for a car with a seat block, the timed door swing for everything else. **Caught and fixed a wrong X in `Convert.ModelOffset`.** User-confirmed 2026-08-13 |
 | U10 | Motorcycle | done | `80f7fa4` | Rigidbody + 2 WheelColliders + an always-on upright stabiliser + a visual lean, NOT the original's kinematic model. `Assets/Scripts/Vehicle/{MotorcycleController,MotorcycleSpawner}.cs`, `Assets/Editor/MotorcycleBuilder.cs`. `IEnterable` gained `UsesEntryAnimation` + `ShowRiderOnQuickMount` so one enter/exit machine still serves both; vehicles now self-register with `EnterableRegistry`. Rider is `Joe_Driving.fbx` → `Joe_Ride`, a real looping state, parented to the bike's seat. **Caught and fixed: an interface `[SerializeField]` Unity was never serializing, and a speed cap that held 22.6 m/s against 20.** User-confirmed 2026-08-15: riding feels right |
 
@@ -958,7 +1040,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | --- | --- | --- | --- | --- |
 | U11 | All 9 districts via WorldBuilder | done | `21857c3` | Placement and colliders shipped in U5; U11 is the three rendering faults that survived it. Foliage: the white shards were a spurious V flip in glTFast's `_ST`, NOT the blend mode — `WorldBuilder.UnflipV`, plus a real alpha-clip pass that rebinds to generated URP/Lit materials because `_AlphaClip` on an imported glTFast material is inert. Cities 2/3: baked cars stripped at the SUBMESH level in Unity — 86% of the mesh — instead of a Blender split, out of collision as well as sight. Empty material slots were drawing magenta and now get glTF's default material. **Caught and fixed: a substring pattern list that alpha-clipped every road, because "tree" is inside "CityGen_Streets".** Foliage colliders left open on purpose — see Deferred. User-confirmed 2026-08-15 |
 | U12 | Roads, ground, sea | done | `7dc8208` (+ fixes 2026-08-15) | **Two faults found at U15's play-test, both fixed — see the decision log: `config.fog` was never ported, so the 320 m far plane sliced the skyline; and the ground plate showed through the sea's wave troughs (0.37 m of swell vs a plate at −0.05 m), now cut out of the plate mesh.** Roads are `com.unity.splines` + a generated ribbon, NOT the web's per-segment stretched tile: 1864 m of spline vs 1859.5 m of polyline, corners curved, markings continuous through them. The `SplineContainer`s are kept as U17/U19's centreline. Road surface texture is generated because the web tile's paint is geometry. Sea is a port of `sea-surface.ts` into `Assets/Shaders/{Water,Beach}.shader` (URP has no built-in water) — unlit on purpose, since the original does its own lighting. Beach is a displaced MeshCollider you walk down. `Assets/Scripts/World/SeaGeometry.cs` owns the waterline and its handedness — the sea is Unity **+x**. **Caught and fixed: the ground plate's collider held the player up over the whole beach; it now stops at the shore. "Kerbs" were phantom scope — no such system exists in the original.** Splines needs ≥2.9.0 on Unity 6.5. User-confirmed 2026-08-15 |
-| U13 | Places — pizza + interior, gas, police station, lot cars | done | `211abc2` | User-confirmed 2026-08-15. Gas station was Y/Z swapped by the Sketchfab export's cancelling root matrices; `Rx(-90)` in `AssetAliases`, whose entries can now correct the REAL asset (`File = null`) instead of only swapping in a stand-in. Lot cars are 101 real GameObjects with per-car culling and `LODGroup`s, NOT an InstancedMesh — same seeded layout as the web build (`Mulberry32` in `uint`), paint as 18 generated materials so the instancing survives. Interior is a teleport cell with the fog/ambient swap; its lights stay on and the sun stays up, both of which the web build only fights because of three's forward renderer. **Caught and fixed: `tesla.glb`/`avenger.glb` require `EXT_texture_webp` and glTFast rejects the whole file — `tools/glb-webp-to-png.py`; and a BoxCollider that ignores the model scale is a kilometre wide on the 37.4× Avenger.** NPC + pizza pickups deferred to U21, lot-car promotion to U17, the fade to U25 — all by the user's call. **The interior's MISSION mechanics are explicitly unsettled and belong to U21** — the room is right, what the delivery does inside it is not |
+| U13 | Places — pizza + interior, gas, police station, lot cars | done | `211abc2` | User-confirmed 2026-08-15. Gas station was Y/Z swapped by the Sketchfab export's cancelling root matrices; `Rx(-90)` in `AssetAliases`, whose entries can now correct the REAL asset (`File = null`) instead of only swapping in a stand-in. Lot cars are 101 real GameObjects with per-car culling and `LODGroup`s, NOT an InstancedMesh — same seeded layout as the web build (`Mulberry32` in `uint`), paint as 18 generated materials so the instancing survives. Interior is a teleport cell with the fog/ambient swap; its lights stay on and the sun stays up, both of which the web build only fights because of three's forward renderer. **Caught and fixed: `tesla.glb`/`avenger.glb` require `EXT_texture_webp` and glTFast rejects the whole file — `tools/glb-webp-to-png.py`; and a BoxCollider that ignores the model scale is a kilometre wide on the 37.4× Avenger.** NPC + pizza pickups deferred to U21, the fade to U25 — by the user's call. **Lot-car promotion, deferred to U17 and then to U17b, is DONE there**: every filler carries a `LotCar` and `E` swaps it for the drivable car of the same model, colour, stall and heading. **The interior's MISSION mechanics are explicitly unsettled and belong to U21** — the room is right, what the delivery does inside it is not |
 | U14 | Map + minimap | done | `8ea9fc4` | User-confirmed 2026-08-15. The base layer is a LIVE second camera into a 1024² RenderTexture (`Assets/Scripts/UI/MapCamera.cs`), not the web's boot-time bake — no readback, no shader-compile spike, and moving cars show. UI Toolkit, eleven units before U25: `MapView` paints outlines/dots/arrow with Painter2D and pools `Label`s for text, `GameMap` owns the panel and the `M` toggle, `MapRegistry` is the port of `world/registry.ts` and the hook missions add objective pins to. Both states capped at 12 fps — the web caps only the minimap. Camera at `(90, 180, 0)` puts screen right on world −X, matching the web map's frame; verified against `transform.right`. **Caught and fixed: `PlaceSpec` has no `name` in config.ts — the pin labels live in `map-pois.ts`, and reading the absent field crashed the label pass; and a 16-bit RT depth that made Metal log "memoryless depth surface" as an error.** Emoji pin glyphs deferred to U25 (no emoji font), cop blips to U19, rival/arena to U32 |
 | U15 | World memory — texture compression (was: Addressables) | done | `4b7a93d` | User-confirmed 2026-08-15. The measurement the row demanded REJECTED Addressables: 13.5 GB of scene memory, 96% textures, and streaming 13.5 GB in chunks is still 13.5 GB. Real cause: glTFast textures are .glb SUB-ASSETS with no TextureImporter, so nothing ever compressed them — 12.9 GB raw RGB24. **The Block → Compress Textures** (`TextureCompressor.cs`) slices the embedded PNG/JPEGs verbatim out of the GLB container into `Assets/Textures/Generated/`; `GeneratedTextureImporter.cs` makes the first import BC1/BC7 with settings derived from the file NAME (so a Library wipe cannot lose them); `WorldBuilder.Textures.cs` clones .glb materials and rebinds — 688 slots. **Scene texture memory 13,498 → 3,204 MB (4.2×).** Caught: texture names are NOT unique in a .glb (seven "Untitled" in city 4) — resolver matches name+size+alpha and refuses to guess, 12 refusals reported; and NPOT+mips silently skips block compression while claiming DXT1 — `npotScale ToLarger`, which was 8.9 GB of the win. Memories: `gltfast-textures-never-compressed`, `npot-mips-skip-block-compression` |
 
@@ -969,7 +1051,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | U16b | Crowd rebuilt on the ORIGINAL's six people + authored placement | done | `31f5767` | User-confirmed 2026-08-15, play-tested together with U17. **The user's call after U16's play-test: stop patching the vendor pack, port the crowd the shipped game actually has.** Six Mixamo characters (Sophie/Remy/Elizabeth/Chinese/Peter/Lewis) imported from the original's `source-assets` FBX — 576 MB, Humanoid, one avatar CREATED per character and only that character's walk copying it (a shared avatar across six different bodies is how you get six subtly broken skeletons), `optimizeGameObjects` on, textures extracted so they can be compressed at all. Placement is `npc.config.ts` verbatim, now EXPORTED rather than re-typed: `export-config.mjs` gained a second source (`$npcSource`, `$npcSourceSha256`, `npcConfig` as a sibling of `config`) — 33 painted rectangles × 9, 38 strips × 8 split into two opposing lanes, a 9-per-district fallback, 2 gated crossers per zebra = **687 baked + 460 runtime = 1,147 people**. **NavMeshAgent is GONE from the crowd** and that reverses U16: the agent owned the transform, did its own avoidance and had to be created on the mesh first (the 'Failed to create agent' spam), and the original needs none of it because it walks authored strips and rectangles. The NavMesh STAYS as a query surface — `SamplePosition` is the web's `isWalkable`, `Raycast` is its `segmentWalkable`, which is the whole job of the 4096² mask with no readback and no 67 MB grid. **No LODGroup, one or two renderers per person: the 'exploding pedestrian' mechanism cannot occur.** Measured: peak 139 within 90 m (p95 79) so `liveCap` 155; frame time crowd-on 42.39 ms vs crowd-off 42.31 ms — **delta 0.09 ms**; 0 exploded, 0 on a carriageway, 0 on a rooftop, 230/230 gated. **Caught: `mesh.bounds` reports FILE units and ignores import scale, so an earlier pass 'measured' every character at 170 m, scaled the importer to fix it, and broke every rig (`Avatar Rig Configuration mis-match … position error = 43757 mm`) — height is now measured by instantiating into a preview scene and corrected on the prefab's VISUAL CHILD, never the importer and never the root (that would scale the physics capsule). Remy really is 4.20 m native, exactly as the web build's comment says.** Unity 6 removed External material location; not needed — Mixamo FBX come out of Unity's own importer as URP/Lit with base+normal already bound. Deliberate deviation, and the only one: the 1,147 are structs and only those in range own a GameObject, because U16 measured that the cost was the `Instantiate` burst, not the population |
 | — | Vehicle hardening, folded into U16b | done | `31f5767` | User-confirmed 2026-08-15 (*"i notice that it is fixed"*). **The wedge came back once after the first hardening, and the ledger's own one-variable prediction held: it was the car.** The first pass validated only that the pose was a finite unit quaternion, which a stale-but-valid pose passes. `CarWheel.Pose` now also enforces the geometric bound — a `WheelCollider` pose is its own transform slid along the suspension axis, so it can never leave a sphere of `suspensionDistance` around the anchor; further than that did not come from the spring and the bone is left on the skeleton for a frame. Live: 0.126 m out against a 0.5 m limit. `Assets/Scripts/Core/SkinWatchdog.cs` added so a next occurrence names its own bone — and it reads BONES, because baked `renderer.bounds` do not grow when one is thrown (verified by throwing one 500 m). Original notes: `CarWheel` took its bone rest offset from `WheelCollider.GetWorldPose` in `Awake` — before the first physics step, where the pose is not guaranteed to be a unit quaternion, and `Quaternion.Inverse` of a zero quaternion is NaN. It also had no rebind guard, so a mid-Play recompile left `_boneRestOffset` deserialized as `(0,0,0,0)` and every LateUpdate wrote a degenerate rotation into a wheel bone — on a car whose body, doors and wheels are ONE skin over 16 bones, that is a black wedge across the sky. Now: offset from `transform.rotation`, `Bind()` guard like `CarDoor`, validation on the WRITE, and nothing posed before the first `FixedUpdate`. `CarController.Respawn` also rewritten — it used `cars.FirstOrDefault()` (whichever car pressed R), teleported to the raw config spawn which carries no Y (dropping the car to 0, under the road), and moved the Rigidbody with no `Physics.SyncTransforms`, so for one frame the wheel bones were posed where the car used to be |
 | U17 | Traffic — graph, cars, lights | done | `2ea3c54` + `31f5767` | User-confirmed 2026-08-15. **Play-test fault: the lights looked frozen because the lamp quads were built 14 cm INSIDE the housing** — the epsilon was measured off the animated disc, which sits behind the lens, instead of off the shell's front face (shell at 9.675, discs at 6.883–7.163, so the shell stands 2.51–2.79 model units proud). The state machine was correct throughout: sampled live it held 125 red / 79 green / 20 amber / 9 red+amber across the 233 poles. Fixed in `WorldBuilder.Traffic.cs`; 233/233 now 1.7 cm proud of the shell. ⚠ **Still open, deferred by the user: standing beside a pole, its lights do not appear to change** — separate from the above, unmeasured, see Deferred. Cars, lights and phases on U16's graph, which is now derived ONCE by the traffic pass and handed to the navigation pass — the crossings and the lights key off the same node numbering by construction. `Crossing.IsClearOfTraffic` deleted; `TrafficLightSystem` fills `Crossing.Gate` for all 230. **The population is DERIVED, not configured**: 130 cars over 12,759 m is one car per 98 m, so the live count is the metres of centreline in range divided by that — a fixed 32 was the plan and it gridlocked the city in under a minute, because the disc around the starting lot holds 1,230 m and 32 there is jam density. The graph is BAKED to a ScriptableObject at build time (6,590 Y-samples), so the runtime casts no rays for traffic at all. Kinematic while driving, a real Rigidbody wreck when rammed. **Caught and fixed, both by measuring rather than looking: `GroundY` could return a ROOF (downtown's avenue baked at 6–10 m) and the fast `Build World` was silently losing the whole NavMesh — `PasteComponentValues` does not carry `navMeshData`, so the crowd failed to spawn with nothing in the console.** Cars stop BEHIND the zebra, which the original does not. Carjacking split out to U17b |
-| U17b | Carjack + `CarBuilder` past the Mustang | todo | | `config.traffic.hijack` — `E` on a stopped street car promotes it to a drivable `Vehicle`, the sim slot recycling far away (`traffic-cars.ts` `nearestStopped`/`hold`/`claim`, `transitions.ts hijackTrafficCar`). **Also owns U13's deferred lot-car promotion**, which is the same mechanism. The blocker is that `CarBuilder` only builds the Mustang, and `config.vehicle.cars` has full drivable specs (door joint, seat, paint) for Tesla/Audi/Avenger — but **none of those three GLBs has a wheel node at all**, so `FindWheelBones` has nothing to find and their wheel geometry must be STATED the way `MotorcycleBuilder` states the bike's. Split out of U17 by the user, 2026-08-15, to keep U17 to one checkpoint |
+| U17b | Carjack + `CarBuilder` past the Mustang | wip | | **Built, measured and committed 2026-08-15 — `wip` only because nobody has pressed `E` by hand yet. Nothing is known to be outstanding; the next action is the play-test, and the steps are in RESUME HERE.** `CarBuilder` builds all four drivable cars (one prefab per distinct `modelUrl`, so 4 out of 16 config entries — the other twelve are colour variants) and wires them into the scene's `CarSpawner` itself. `E` now resolves three ways in `main.ts`'s own order: real vehicle → **parked filler** (U13's deferred promotion, 101 of them) → **stopped street car**, which waits 5 s for you. **Both swaps were measured rather than eyeballed: the carjack lands at 0.000 m / 0.00°, the lot promotion at 0.029 m / 0.00°, paint material carried in both.** The enabling change is that every car prefab now shares one origin — body centre in XZ, contact patch in Y — so a pose taken off one prefab drops straight into another. `hijack.recycleMargin`/`recycleTries` are deliberately NOT ported: `Claim` retires the slot and the sweep that already runs twice a second re-places it out of the view cone. **Caught: the Mustang has been the wrong colour since U8** — the paint write named `_BaseColor`, glTFast's shader has `baseColorFactor`, so nothing was ever written and the car wore its model's native green. Tesla/Audi/Avenger have **0 wheel nodes** (verified in the glTF, not assumed), so their axles are stated off the body box; the Mustang's rig is the check and the rule matches it to within 4%. Split out of U17 by the user, 2026-08-15, to keep U17 to one checkpoint |
 | U18 | Run-over + blood VFX | done | `781117d` + `fe081b8` | User-confirmed 2026-08-15. Root Motion ON, and this is the only place in the project where it is: the clip's own 1.74 m of travel IS the knockback, harvested off the visual child onto the pedestrian's transform each LateUpdate (and multiplied by that child's scale, because Humanoid retargeting produces root motion in the TARGET avatar's units and Remy's really is 4.20 m). Code adds only what the clip lacks — a 1.1 m arc and a speed-scaled push. **The debt to U16 in this row's old note is void:** U16b deleted `NavMeshAgent` from the crowd, so there is no agent to disable and no `Warp` to do. **The throw angle is MEASURED, not ported** — `clip.averageSpeed` gives 85.1°, which is the mirror of the web's hand-tuned −85.8° and is the cleanest handedness cross-check in the project so far. **Caught: Mixamo pads a one-shot clip with idle** (the body stands still for 79 of 145 frames), so `HitClipImporter` finds the action's own window by watching the root move rather than trimming to a typed-in number; and **`CrowdSpawner.Bind` destroyed every child of the Crowd object**, which deleted the `Blood` stain pool built on that same object — now Pedestrians only. New: `HitClipImporter`, `RunOverReaction`, `RunOverSystem`, `Vfx/Blood`, a `Hit` state on `Npc.controller`, `IEnterable.ForwardSpeed`. **Audio is U27's**: the original's scream pool and body thud fire from this exact impact frame, so `RunOverReaction.Begin` is where they go |
 | U19 | Police pursuit + wanted level | todo | | real NavMesh; do NOT inherit the straight-line hack untested. **The run-over's heat hooks into `RunOverSystem`** — `Victims` and the `RanOver` event — and there is deliberately no second detector to add: the original's `crime.ts pedHit` radius scan is dead upstream (see the decisions log). Weight is **+1 star per victim-FRAME** (`> 0`, not the count) on a 3 s cooldown, and it applies during missions too |
 
@@ -1082,6 +1164,37 @@ would trigger it. A `wip` unit is work half-done; this is work deliberately not 
 
 Dated one-liners. These are settled — do not re-litigate them without the user reopening.
 
+- **2026-08-15** (U17b) — **One origin for every car prefab: body centre in XZ, contact patch in Y.**
+  A car that can be swapped for another has to be placed at the pose of the thing it replaces, and
+  three builders were pivoting three different ways — `TrafficCarBuilder` on the body centre,
+  `CarBuilder` on the artist's pivot, the lot on the model's own bottom. Agreeing on one origin turns
+  every swap into an assignment, which is why the hijack measures 0.000 m rather than "about right",
+  and it removes the ride-height term the web build re-adds every frame.
+- **2026-08-15** (U17b) — **A stolen car is RETIRED, not teleported.** The web build hunts up to
+  thirty random lane points for somewhere far enough away to hide the recycled car, because its pool
+  is fixed InstancedMesh slots and a car can never stop existing. Unity's pool already retires and
+  re-places on a sweep, from a ring outside the view cone, so `Claim` hands the slot back and the
+  mechanism that was already running does the work. `hijack.recycleMargin`/`recycleTries` are left
+  undeclared on purpose: a config field that nothing reads is a claim about a mechanism that is not
+  there.
+- **2026-08-15** (U17b) — **Facing corrections between two config conventions are baked at build
+  time, never computed at runtime.** `lotCars`, `vehicle.cars` and `traffic.models` each carry their
+  own `modelYaw`, and the traffic one is the opposite convention to the other two. The corrections
+  live on `LotCar.DriveRotation` and `TrafficCar.DriveRotation`, resolved where both numbers are in
+  view. They currently come out as the identity — which is exactly the trap: copying a rotation
+  across works today and silently breaks the day someone re-tunes one yaw.
+- **2026-08-15** (U17b) — **An unwritable material property fails SILENTLY, so the write has to say
+  which property it used.** `CarBuilder` set `_BaseColor`/`_Color`; glTFast imports a shader with
+  `baseColorFactor`; `Material.SetColor` on a property that does not exist is a no-op with no warning,
+  and the Mustang wore the wrong paint for four units without anyone being told. `VehicleMaterials`
+  now owns the branch (and its gamma, which differs between the two names), returns the property it
+  wrote, and the build log prints it.
+- **2026-08-15** (U17b) — **The one rigged car is the check on the three stated ones.** Tesla, Audi
+  and Avenger have no wheel nodes at all — the web build's Blender pass welded them into the body —
+  so their axles are stated from the body box. That would be unfalsifiable on its own, so the
+  Mustang's build log prints what the stated rule WOULD have produced beside what its rig actually
+  measures: radius 0.387 against 0.379, wheelbase ±1.695 against ±1.688, track ±0.953 against ±0.992.
+  A stated number with a measurement standing next to it is a different thing from a guess.
 - **2026-08-15** (U18) — **The clip's root motion IS the knockback, and it is the only root motion
   in the project.** Every other clip a character plays has its travel discarded because a script
   owns the position — U7 settled that for Joe and U16b for the crowd. The hit is the deliberate
