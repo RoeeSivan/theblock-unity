@@ -23,9 +23,17 @@ hand-rolled collide-and-slide (U6); the car is a Rigidbody on WheelColliders ins
 capsule snapped to the road (U8); one Joe is reparented into the seat instead of a second skinned
 body being mounted (U9); the bike leans and has real suspension and real collisions (U10); the
 baked-in parked cars are cut out at the submesh level at build time, which the web build had no
-edit-time step to do (U11). Still
-queued: NavMesh police instead of "drive straight at the player" (U19), Addressables instead of
-one big download (U15), UI Toolkit instead of DOM overlays (U25).
+edit-time step to do (U11); the map is a live second camera rather than a boot-time bake (U14); and
+the districts' textures are extracted out of their .glbs so Unity's per-platform compression can
+run on them at all, which glTFast's sub-assets had silently skipped (U15). Still
+queued: NavMesh police instead of "drive straight at the player" (U19), UI Toolkit instead of DOM
+overlays (U25).
+
+**U15 is also the rule's counter-example, and the more useful one.** Its planned answer was
+Addressables, and the measurement said no: streaming 13.5 GB in chunks is still 13.5 GB, and the
+real fault was a format nothing had ever set. "Can Unity do this better?" has to be allowed to
+answer *not like that* — the question earns its place by being measured, not by producing a Unity
+feature every time.
 
 The counterweight is port rule 5 in `CLAUDE.md`: **design intent carries, scar tissue does not** —
 and telling them apart is the actual work. Tank controls stayed (U6) because they are the design.
@@ -36,31 +44,26 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-**Next action: the user play-tests U15, then U16 — pedestrian crowd.**
+**Next action: U16 — pedestrian crowd (NavMesh agents).** Nothing is half-built; U15 closed clean
+and the two U12-era faults it uncovered are closed with it.
 
-**U15 is built and waiting on the play-test checkpoint.** The measurement it demanded came back
-loud: 13.5 GB of scene memory, 96% of it textures, because glTFast's .glb textures are sub-assets
-no TextureImporter ever compresses. The unit became the texture-compression pass instead of
-Addressables (see its row and the 2026-08-15 decision). What the user checks: the world should look
-**identical** — same walls, same foliage, same signage — because the extraction is byte-verbatim
-and only the GPU format changed. If any surface goes blurry, banded or wrong-coloured, that texture
-is the bug. The pipeline is: **The Block → Compress Textures** once (writes
-`Assets/Textures/Generated/`, ~4 min), then every **Build World** rebinds automatically. Both are
-already run; the scene is current.
+**U15 is done** — the user confirmed on 2026-08-15. The measurement its row demanded came back loud
+and rejected Addressables: 13.5 GB of scene memory, 96% textures, because glTFast's .glb textures
+are sub-assets no `TextureImporter` ever compresses. The unit became the compression pass instead
+(see its row and the decisions log). **13,498 → 3,204 MB.** The pipeline is **The Block → Compress
+Textures** once after any district .glb changes (~4 min, writes `Assets/Textures/Generated/`), then
+every **Build World** rebinds automatically. Both are run; the scene is current.
 
-**Two U12-era faults were found and fixed on 2026-08-15, from the user's play-test of U15**, and
-they need the same confirm. Neither was caused by U15.
+**Two U12-era faults surfaced by that play-test are fixed and confirmed** (2026-08-15), neither
+caused by U15 — both in the decisions log:
 
-1. **The skyline was being sliced by the camera's far plane.** `config.fog` was never ported — see
-   the decision log. The world now draws to 1500 m with the config's haze rescaled onto it
-   (328–1313 m, `#9FB8D4`), and shadow distance went 50 → 150 m to match. `Assets/Scripts/World/
-   Atmosphere.cs` owns the far plane and the fog band together, because setting one without the
-   other is what put the hard cut there. Verified against before/after captures.
-2. **The ground plate was showing through the sea's wave troughs** — 0.37 m of swell against a plate
-   at −0.05 m. `WorldBuilder.BuildGroundMesh` now cuts the sea's rectangle out of the plate
-   (`x [430, 700] z [-546, 54]`). Predates U15; the same bands are in a 320 m capture.
+1. **`config.fog` was never ported**, so the 320 m far plane sliced the skyline. The world draws to
+   1500 m with the config's haze rescaled onto it (328–1313 m, `#9FB8D4`); shadows 50 → 150 m.
+   `Assets/Scripts/World/Atmosphere.cs` owns the far plane and the fog band **together**.
+2. **The ground plate showed through the sea's wave troughs** — 0.37 m of swell against a plate at
+   −0.05 m. `WorldBuilder.BuildGroundMesh` cuts the sea's rectangle out of the plate.
 
-**U16 is next and its groundwork is checked.** `Assets/npc_casual_set_00` (user-added, 2026-08-15)
+**U16's groundwork is already checked.** `Assets/npc_casual_set_00` (user-added, 2026-08-15)
 works for a combinatorial crowd: every part FBX shares one Humanoid avatar (`npc_hmn_01mAvatar`,
 male + female variants), bones are unprefixed Mixamo names, so Joe's existing clips retarget.
 12 finished character prefabs plus modular parts — 7 cloth pieces, 8 haircuts, 4 facial hair,
@@ -72,10 +75,9 @@ irrelevant.
 
 **U14 is done** — the user confirmed on 2026-08-15 that the minimap and the `M` map read right.
 
-**U14 is done** — the user confirmed on 2026-08-15 that the minimap and the `M` map read right.
-
 **U13 is done** — the user confirmed on 2026-08-15 that the station, the lot and the interior all
-read right. Last build: **20 placed, 0 missing, 288 colliders**.
+read right. Current build: **21 placed, 0 missing, 288 colliders** — 21 because U15's atmosphere
+pass reports itself as a placed item; it was 20 through U14.
 
 **One thing carried forward, deliberately, into U21:** the interior *looks* right but its
 **mission mechanics are not settled** — the user's words on accepting it. Nothing is broken; what is
@@ -729,7 +731,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | U12 | Roads, ground, sea | done | `7dc8208` (+ fixes 2026-08-15) | **Two faults found at U15's play-test, both fixed — see the decision log: `config.fog` was never ported, so the 320 m far plane sliced the skyline; and the ground plate showed through the sea's wave troughs (0.37 m of swell vs a plate at −0.05 m), now cut out of the plate mesh.** Roads are `com.unity.splines` + a generated ribbon, NOT the web's per-segment stretched tile: 1864 m of spline vs 1859.5 m of polyline, corners curved, markings continuous through them. The `SplineContainer`s are kept as U17/U19's centreline. Road surface texture is generated because the web tile's paint is geometry. Sea is a port of `sea-surface.ts` into `Assets/Shaders/{Water,Beach}.shader` (URP has no built-in water) — unlit on purpose, since the original does its own lighting. Beach is a displaced MeshCollider you walk down. `Assets/Scripts/World/SeaGeometry.cs` owns the waterline and its handedness — the sea is Unity **+x**. **Caught and fixed: the ground plate's collider held the player up over the whole beach; it now stops at the shore. "Kerbs" were phantom scope — no such system exists in the original.** Splines needs ≥2.9.0 on Unity 6.5. User-confirmed 2026-08-15 |
 | U13 | Places — pizza + interior, gas, police station, lot cars | done | `211abc2` | User-confirmed 2026-08-15. Gas station was Y/Z swapped by the Sketchfab export's cancelling root matrices; `Rx(-90)` in `AssetAliases`, whose entries can now correct the REAL asset (`File = null`) instead of only swapping in a stand-in. Lot cars are 101 real GameObjects with per-car culling and `LODGroup`s, NOT an InstancedMesh — same seeded layout as the web build (`Mulberry32` in `uint`), paint as 18 generated materials so the instancing survives. Interior is a teleport cell with the fog/ambient swap; its lights stay on and the sun stays up, both of which the web build only fights because of three's forward renderer. **Caught and fixed: `tesla.glb`/`avenger.glb` require `EXT_texture_webp` and glTFast rejects the whole file — `tools/glb-webp-to-png.py`; and a BoxCollider that ignores the model scale is a kilometre wide on the 37.4× Avenger.** NPC + pizza pickups deferred to U21, lot-car promotion to U17, the fade to U25 — all by the user's call. **The interior's MISSION mechanics are explicitly unsettled and belong to U21** — the room is right, what the delivery does inside it is not |
 | U14 | Map + minimap | done | `8ea9fc4` | User-confirmed 2026-08-15. The base layer is a LIVE second camera into a 1024² RenderTexture (`Assets/Scripts/UI/MapCamera.cs`), not the web's boot-time bake — no readback, no shader-compile spike, and moving cars show. UI Toolkit, eleven units before U25: `MapView` paints outlines/dots/arrow with Painter2D and pools `Label`s for text, `GameMap` owns the panel and the `M` toggle, `MapRegistry` is the port of `world/registry.ts` and the hook missions add objective pins to. Both states capped at 12 fps — the web caps only the minimap. Camera at `(90, 180, 0)` puts screen right on world −X, matching the web map's frame; verified against `transform.right`. **Caught and fixed: `PlaceSpec` has no `name` in config.ts — the pin labels live in `map-pois.ts`, and reading the absent field crashed the label pass; and a 16-bit RT depth that made Metal log "memoryless depth surface" as an error.** Emoji pin glyphs deferred to U25 (no emoji font), cop blips to U19, rival/arena to U32 |
-| U15 | World memory — texture compression (was: Addressables) | wip | `4b7a93d` | Built, awaiting the user's play-test. The measurement the row demanded REJECTED Addressables: 13.5 GB of scene memory, 96% textures, and streaming 13.5 GB in chunks is still 13.5 GB. Real cause: glTFast textures are .glb SUB-ASSETS with no TextureImporter, so nothing ever compressed them — 12.9 GB raw RGB24. **The Block → Compress Textures** (`TextureCompressor.cs`) slices the embedded PNG/JPEGs verbatim out of the GLB container into `Assets/Textures/Generated/`; `GeneratedTextureImporter.cs` makes the first import BC1/BC7 with settings derived from the file NAME (so a Library wipe cannot lose them); `WorldBuilder.Textures.cs` clones .glb materials and rebinds — 688 slots. **Scene texture memory 13,498 → 3,204 MB (4.2×).** Caught: texture names are NOT unique in a .glb (seven "Untitled" in city 4) — resolver matches name+size+alpha and refuses to guess, 12 refusals reported; and NPOT+mips silently skips block compression while claiming DXT1 — `npotScale ToLarger`, which was 8.9 GB of the win. Memories: `gltfast-textures-never-compressed`, `npot-mips-skip-block-compression` |
+| U15 | World memory — texture compression (was: Addressables) | done | `4b7a93d` | User-confirmed 2026-08-15. The measurement the row demanded REJECTED Addressables: 13.5 GB of scene memory, 96% textures, and streaming 13.5 GB in chunks is still 13.5 GB. Real cause: glTFast textures are .glb SUB-ASSETS with no TextureImporter, so nothing ever compressed them — 12.9 GB raw RGB24. **The Block → Compress Textures** (`TextureCompressor.cs`) slices the embedded PNG/JPEGs verbatim out of the GLB container into `Assets/Textures/Generated/`; `GeneratedTextureImporter.cs` makes the first import BC1/BC7 with settings derived from the file NAME (so a Library wipe cannot lose them); `WorldBuilder.Textures.cs` clones .glb materials and rebinds — 688 slots. **Scene texture memory 13,498 → 3,204 MB (4.2×).** Caught: texture names are NOT unique in a .glb (seven "Untitled" in city 4) — resolver matches name+size+alpha and refuses to guess, 12 refusals reported; and NPOT+mips silently skips block compression while claiming DXT1 — `npotScale ToLarger`, which was 8.9 GB of the win. Memories: `gltfast-textures-never-compressed`, `npot-mips-skip-block-compression` |
 
 ### Tier 4 — Living world
 | id | unit | state | commit | notes |
