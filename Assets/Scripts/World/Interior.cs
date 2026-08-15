@@ -46,6 +46,12 @@ namespace TheBlock.World
         [Tooltip("Height the player is put back at on the street — config.player.spawn.y.")]
         [SerializeField] private float streetY = 1f;
 
+        [Header("The counter — config.interior.npc, U21's mechanics")]
+        [Tooltip("Where the cashier stands, world space. WorldBuilder writes it from the config.")]
+        [SerializeField] private Vector3 counterNpc;
+
+        [SerializeField] private float counterTalkRadius = 3.5f;
+
         [Header("Interior palette — config.interior.palette")]
         [SerializeField] private Color fogColor = Color.black;
         [SerializeField] private float fogNear = 5f;
@@ -72,6 +78,18 @@ namespace TheBlock.World
 
         /// <summary>Where the player stands inside, in world space. U21's counter NPC needs it.</summary>
         public Vector3 SpawnPoint => spawnPoint;
+
+        /// <summary>
+        /// Standing at the counter, close enough to talk. The SAME predicate behind both the prompt
+        /// and the action, so the two cannot drift — the arrangement the web build settled on after
+        /// its cashier offered "Press T to start your shift" for a key that did nothing.
+        /// </summary>
+        public bool NearCounter => inside && player != null &&
+                                   WithinXZ(player.transform.position, counterNpc, counterTalkRadius);
+
+        /// <summary>On the mat by the door, where E leaves. Read by the prompt.</summary>
+        public bool AtExitPad => inside && player != null &&
+                                 WithinXZ(player.transform.position, exitPad, exitPadRadius);
 
         private void Awake() => Bind();
 
@@ -113,6 +131,16 @@ namespace TheBlock.World
             {
                 Leave();
             }
+        }
+
+        /// <summary>
+        /// Steps out onto the street. Public because the delivery mission's entry sequence ends with
+        /// it: the briefing is read at the counter and the shift begins outside, so the mission has
+        /// to be able to say "leave" without learning how the teleport or the palette swap work.
+        /// </summary>
+        public void LeaveNow()
+        {
+            if (inside) Leave();
         }
 
         private void Enter()

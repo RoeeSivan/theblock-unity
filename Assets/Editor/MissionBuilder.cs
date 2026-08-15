@@ -1,0 +1,244 @@
+using System.Collections.Generic;
+using TheBlock.Audio;
+using TheBlock.Core;
+using TheBlock.Game;
+using TheBlock.Missions;
+using TheBlock.Police;
+using TheBlock.UI;
+using TheBlock.Vehicles;
+using TheBlock.World;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+
+namespace TheBlock.EditorTools
+{
+    /// <summary>
+    /// Wires the campaign into the scene — <b>The Block → Build Campaign</b> — and gives the port
+    /// the New Game it has no menu for yet — <b>The Block → Reset Campaign</b>.
+    ///
+    /// Idempotent, like <see cref="WorldBuilder"/> and <see cref="HudBuilder"/>: it finds or creates
+    /// the <c>Campaign</c> object, collects every <see cref="MissionBehaviour"/> in the scene,
+    /// orders them by <c>campaign.config.ts</c>, and rebinds the references. Running it after
+    /// building a new mission is how that mission joins the campaign — there is no list to hand-edit
+    /// and forget.
+    ///
+    /// <b>It marks the scene dirty and does not save it</b>, the same contract every other builder
+    /// here has.
+    /// </summary>
+    public static class MissionBuilder
+    {
+        private const string CampaignName = "Campaign";
+        private const string VoiceFolder = "Assets/Audio/Voice";
+        private const string PedFolder = "Assets/Prefabs/Npc";
+
+        [MenuItem("The Block/Build Campaign", priority = 3)]
+        public static void Build()
+        {
+            var snapshot = TheBlockConfig.Load(true);
+            if (snapshot?.Campaign?.CampaignText == null)
+            {
+                Debug.LogError("MissionBuilder: the config snapshot has no campaignConfig. " +
+                               "Re-run tools/export-config.sh.");
+                return;
+            }
+
+            var root = GameObject.Find(CampaignName) ?? new GameObject(CampaignName);
+            var campaign = Component(root, out Campaign _);
+            var director = Component(root, out CampaignDirector _);
+            var runner = Component(root, out CampaignRunner _);
+            var voice = Component(root, out Voice _);
+            var voiceCount = FillVoiceBank(voice);
+
+            // Each mission is a component on the campaign root, created here so there is no scene
+            // object anyone has to remember to add. Building a mission is writing its class; joining
+            // the campaign is re-running this.
+            BuildDelivery(root, snapshot);
+
+            // Campaign order comes from the config, not from whatever order Unity happened to find
+            // the components in. A mission with no row in campaignText is a mission with no copy,
+            // which is a build error rather than something to silently append.
+            var found = new Dictionary<string, MissionBehaviour>();
+            foreach (var mission in Object.FindObjectsByType<MissionBehaviour>(
+                         FindObjectsInactive.Include))
+            {
+                if (mission == null || string.IsNullOrEmpty(mission.Id)) continue;
+                found[mission.Id] = mission;
+            }
+
+            var ordered = new List<MissionBehaviour>();
+            var missing = new List<string>();
+            foreach (var text in snapshot.Campaign.CampaignText)
+            {
+                if (text?.Id == null) continue;
+                if (found.TryGetValue(text.Id, out var mission))
+                {
+                    ordered.Add(mission);
+                    found.Remove(text.Id);
+                }
+                else
+                {
+                    missing.Add(text.Id);
+                }
+            }
+
+            campaign.SetMissions(ordered);
+
+            Bind(director, ("campaign", campaign));
+            Bind(runner,
+                ("campaign", campaign),
+                ("director", director),
+                ("hud", Object.FindAnyObjectByType<MissionHud>()),
+                ("card", Object.FindAnyObjectByType<BriefingCard>()),
+                ("wallet", Object.FindAnyObjectByType<Wallet>()),
+                ("heat", Object.FindAnyObjectByType<Heat>()),
+                ("bust", Object.FindAnyObjectByType<BustSequence>()),
+                ("vehicles", Object.FindAnyObjectByType<VehicleEnterExit>()),
+                ("interior", Object.FindAnyObjectByType<Interior>()));
+
+            // Every mission that speaks resolves its lines through the one Voice. Rebinding here
+            // rather than in each mission's own builder means a mission cannot be built with a
+            // dangling reference to a bank that has not been filled yet.
+            foreach (var mission in ordered) Bind(mission, ("voice", voice));
+
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+
+            var report = $"MissionBuilder: campaign wired with {ordered.Count}/" +
+                         $"{snapshot.Campaign.CampaignText.Count} missions " +
+                         $"[{string.Join(", ", ordered.ConvertAll(m => m.Id))}], " +
+                         $"{voiceCount} voice clips.";
+            if (missing.Count > 0)
+                report += $" NOT BUILT YET: {string.Join(", ", missing)}.";
+            if (found.Count > 0)
+                report += $" ⚠ In the scene with no campaignText row: {string.Join(", ", found.Keys)}.";
+
+            if (Object.FindAnyObjectByType<MissionHud>() == null)
+                report += " ⚠ No MissionHud — run The Block → Build Map HUD.";
+
+            Debug.Log(report);
+        }
+
+        [MenuItem("The Block/Reset Campaign", priority = 4)]
+        public static void ResetCampaign()
+        {
+            if (!EditorUtility.DisplayDialog(
+                    "Reset Campaign",
+                    "Wipes the saved campaign: unlocked missions back to the first, every mission " +
+                    "pays again, the wallet back to its starting balance, and the one-time hints " +
+                    "forgotten.\n\nThe picked character is kept — New Game restarts the campaign, " +
+                    "not who you are.\n\nThis cannot be undone.",
+                    "Reset", "Cancel"))
+                return;
+
+            // Fully qualified: `UnityEditor.Progress` is a real type and `using TheBlock.Game`
+            // makes the bare name ambiguous inside an editor script.
+            TheBlock.Game.Progress.Reset();
+            Payouts.Reset();
+            Onboarding.Reset();
+
+            // The wallet's zero lives on the component, because its starting balance is serialized.
+            // With no scene wallet — a fresh scene, or Play not yet run — clear the key directly so
+            // a reset is a reset either way.
+            var wallet = Object.FindAnyObjectByType<Wallet>();
+            if (wallet != null) wallet.Reset();
+            else PlayerPrefs.DeleteKey("theblock.cash");
+            PlayerPrefs.Save();
+
+            Debug.Log("MissionBuilder: campaign reset — mission 1, no payouts, wallet cleared, hints forgotten.");
+        }
+
+        /// <summary>
+        /// M1. Its five customers are the crowd's own prefabs, resolved from the NAMES in
+        /// <c>missionConfig.npcSpecs</c> — Sophie, Remy, Elizabeth, Chinese, Lewis — so the port
+        /// cycles the same five faces in the same order the shipped game does, without a second
+        /// character import. Peter is the sixth in the crowd and is not one of them, in both builds.
+        /// </summary>
+        private static void BuildDelivery(GameObject root, TheBlockConfig.Snapshot snapshot)
+        {
+            var mission = Component(root, out DeliveryMission _);
+
+            var faces = new List<GameObject>();
+            var missing = new List<string>();
+            foreach (var face in snapshot.Mission?.NpcSpecs ?? new List<TheBlockConfig.MissionNpcSpec>())
+            {
+                if (string.IsNullOrEmpty(face?.Name)) continue;
+                var path = $"{PedFolder}/Ped_{face.Name}.prefab";
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (prefab == null) missing.Add(face.Name);
+                else faces.Add(prefab);
+            }
+
+            mission.SetFaces(faces);
+            EditorUtility.SetDirty(mission);
+
+            if (missing.Count > 0)
+                Debug.LogWarning($"MissionBuilder: no Ped prefab for {string.Join(", ", missing)} — " +
+                                 "run The Block → Build Pedestrians. Those faces will not appear.");
+
+            Bind(mission,
+                ("runner", root.GetComponent<CampaignRunner>()),
+                ("interior", Object.FindAnyObjectByType<Interior>()),
+                ("player", Object.FindAnyObjectByType<TheBlock.Player.PlayerController>()?.transform),
+                ("vehicles", Object.FindAnyObjectByType<VehicleEnterExit>()),
+                ("hud", Object.FindAnyObjectByType<MissionHud>()));
+        }
+
+        /// <summary>
+        /// Fills the voice bank from <c>Assets/Audio/Voice</c>, keyed on file name — which is what
+        /// the config's own web URLs resolve to, so nothing has to re-type a path the exporter is
+        /// already carrying. Returns how many clips landed.
+        /// </summary>
+        private static int FillVoiceBank(Voice voice)
+        {
+            var entries = new List<Voice.Entry>();
+            foreach (var guid in AssetDatabase.FindAssets("t:AudioClip", new[] { VoiceFolder }))
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                var clip = AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+                if (clip == null) continue;
+                entries.Add(new Voice.Entry
+                {
+                    Key = System.IO.Path.GetFileNameWithoutExtension(path),
+                    Clip = clip,
+                });
+            }
+
+            entries.Sort((a, b) => string.CompareOrdinal(a.Key, b.Key));
+            voice.SetClips(entries);
+            EditorUtility.SetDirty(voice);
+            return entries.Count;
+        }
+
+        private static T Component<T>(GameObject go, out T _) where T : Component
+        {
+            // TryGetComponent, never `GetComponent() ?? AddComponent()` — a missing component comes
+            // back as Unity's fake-null, which `??` treats as a real object.
+            if (!go.TryGetComponent<T>(out var component)) component = go.AddComponent<T>();
+            _ = component;
+            return component;
+        }
+
+        /// <summary>
+        /// Writes serialized references through <see cref="SerializedObject"/> so the values land in
+        /// the scene file rather than only in the live object.
+        /// </summary>
+        private static void Bind(Component target, params (string field, Object value)[] refs)
+        {
+            if (target == null) return;
+            var so = new SerializedObject(target);
+            foreach (var (field, value) in refs)
+            {
+                var property = so.FindProperty(field);
+                if (property == null)
+                {
+                    Debug.LogWarning($"MissionBuilder: {target.GetType().Name} has no field '{field}'.");
+                    continue;
+                }
+
+                property.objectReferenceValue = value;
+            }
+
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+    }
+}

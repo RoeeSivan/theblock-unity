@@ -8,8 +8,16 @@ namespace TheBlock.EditorTools
     /// Builds the pizzeria's interior cell (U13) — the room, its lamps, and the
     /// <see cref="World.Interior"/> component that owns the doorway.
     ///
-    /// The room's contents are NOT here: the counter NPC and the pizza-box stack belong to U21's
-    /// delivery mission, which is what consumes them. This unit builds the place.
+    /// U13 built the place and left its MISSION mechanics open, by the user's call. U21 settles them
+    /// and they are here, because they are geometry: the cashier behind the counter, and the
+    /// <see cref="World.Interior.NearCounter"/> circle that is the shift's start button.
+    ///
+    /// <b>The pizza-box stack is deliberately NOT built.</b> It is set dressing with no mechanic —
+    /// the pizzas you carry are a HUD count, and no version of this game ever picks a box up. Its
+    /// raw asset is 23 MB for a 30 cm prop (a 14.7 MB normal map alone), and the shipped 417 KB copy
+    /// needs Draco, which this project has no importer for. Wiring it properly means extending U15's
+    /// texture pass to props, and it buys three boxes on a counter you walk past. Named here so it
+    /// is a decision rather than an oversight.
     /// </summary>
     public static partial class WorldBuilder
     {
@@ -45,9 +53,58 @@ namespace TheBlock.EditorTools
             if (options.Colliders) AddColliders(instance, null, null, null, report);
 
             BuildInteriorLights(instance.transform, cfg, offset, report);
+            BuildCounterNpc(instance.transform, cfg, offset, report);
             BindInteriorComponent(instance, cfg, player, offset, report);
 
             report.Placed.Add($"{instance.name} @ {Fmt(instance.transform.position)}");
+        }
+
+        /// <summary>
+        /// The cashier behind the counter — the person you press T on to start a shift.
+        ///
+        /// <b>She is one of the crowd's six, not a seventh import.</b> The web build loads a
+        /// dedicated <c>idle-woman.glb</c> for her; that FBX is 52 MB, this project's LFS store is
+        /// already at GitHub's 1 GiB free ceiling, and Elizabeth is a woman in the roster who is
+        /// already imported, already URP-bound and already height-normalised. Swapping the prefab
+        /// below is a one-line change if the exact model is ever wanted.
+        ///
+        /// She stands, and that is free: a <c>Pedestrian</c> that is never bound to a seed never
+        /// ticks, so its blend tree sits at Speed 0. Disabled outright here so nothing can wake her.
+        /// </summary>
+        private static void BuildCounterNpc(
+            Transform parent, TheBlockConfig.InteriorSpec cfg, Vector3 offset, Report report)
+        {
+            var npc = cfg?.Npc;
+            if (npc == null)
+            {
+                report.Warnings.Add("interior cashier skipped — config has no `interior.npc`");
+                return;
+            }
+
+            const string prefabPath = "Assets/Prefabs/Npc/Ped_Elizabeth.prefab";
+            var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (prefab == null)
+            {
+                report.Warnings.Add(
+                    $"interior cashier skipped — {prefabPath} is missing. Run Build Pedestrians.");
+                return;
+            }
+
+            var at = offset + Convert.Pos(new Vector3(npc.X, 0f, npc.Z));
+            var instance = (GameObject)UnityEditor.PrefabUtility.InstantiatePrefab(prefab, parent);
+            instance.name = "Interior_Cashier";
+            instance.transform.SetPositionAndRotation(at, Convert.RotFromRadians(npc.Yaw));
+
+            if (instance.TryGetComponent<TheBlock.Npc.Pedestrian>(out var pedestrian))
+                pedestrian.enabled = false;
+
+            // No capsule either. She is behind a counter the player cannot reach around, and a
+            // collider there only ever means getting stuck on her.
+            if (instance.TryGetComponent<CapsuleCollider>(out var capsule)) capsule.enabled = false;
+
+            report.Notes.Add(
+                $"Place_PizzaInterior: cashier (Elizabeth) at {Fmt(at)} " +
+                $"yaw {Convert.Yaw(npc.Yaw) * Mathf.Rad2Deg:0.#}°, talk r{npc.TalkRadius:0.#}");
         }
 
         /// <summary>
@@ -103,6 +160,14 @@ namespace TheBlock.EditorTools
             so.FindProperty("spawnYaw").floatValue = Convert.Yaw(cfg.Spawn.Yaw) * Mathf.Rad2Deg;
             so.FindProperty("exitPad").vector3Value = offset + Convert.Pos(cfg.ExitPad.Raw);
             so.FindProperty("exitPadRadius").floatValue = cfg.ExitPad.Radius;
+
+            // The counter circle: U21's shift trigger, and the same numbers the cashier is placed on.
+            if (cfg.Npc != null)
+            {
+                so.FindProperty("counterNpc").vector3Value =
+                    offset + Convert.Pos(new Vector3(cfg.Npc.X, 0f, cfg.Npc.Z));
+                so.FindProperty("counterTalkRadius").floatValue = cfg.Npc.TalkRadius;
+            }
             // Stepping back out lands at the player's own spawn height, which is what the web build
             // uses too — the doorway's config carries no y of its own.
             if (player != null) so.FindProperty("streetY").floatValue = player.Spawn.Y;

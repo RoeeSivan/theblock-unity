@@ -55,6 +55,13 @@ namespace TheBlock.EditorTools
             // a second UIDocument means a second PanelSettings and an argument about z-order.
             hud.AddComponent<WantedHud>();
 
+            // U20's mission surfaces, on the same document for the same reason. ORDER MATTERS: UI
+            // Toolkit draws later children on top, and each of these appends to the shared root in
+            // its own Start. The card is added last so it covers everything — and it calls
+            // BringToFront on open as well, because a Start order is not a contract.
+            hud.AddComponent<MissionHud>();
+            hud.AddComponent<BriefingCard>();
+
             var so = new SerializedObject(map);
             so.FindProperty("mapCamera").objectReferenceValue = mapCamera;
             so.ApplyModifiedPropertiesWithoutUndo();
@@ -64,7 +71,8 @@ namespace TheBlock.EditorTools
             // domain reload threw it away. Same call WorldBuilder ends on.
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
 
-            Debug.Log("HudBuilder: built HUD + Map Camera. Enter Play and press M to expand the map.");
+            Debug.Log("HudBuilder: built HUD (map, wanted, mission, briefing) + Map Camera. " +
+                      "Enter Play and press M to expand the map.");
         }
 
         private static PanelSettings LoadOrCreatePanelSettings()

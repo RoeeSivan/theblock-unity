@@ -15,8 +15,11 @@ namespace TheBlock.Core
     /// so it stays diffable against the TypeScript.
     ///
     /// Unknown JSON fields are ignored, so this model can stay a subset and grow unit by unit.
+    ///
+    /// <b>Partial.</b> Tier 5's five mission modules add ~200 lines of spec classes that have
+    /// nothing to say about the world, so they live in <c>TheBlockConfig.Missions.cs</c>.
     /// </summary>
-    public static class TheBlockConfig
+    public static partial class TheBlockConfig
     {
         public const string FileName = "theblock-config.json";
 
@@ -48,7 +51,13 @@ namespace TheBlock.Core
             return _cached;
         }
 
-        /// <summary>The exporter's envelope: provenance fields plus the two configs it dumps.</summary>
+        /// <summary>
+        /// The exporter's envelope: provenance fields plus every config object it dumps.
+        ///
+        /// All seven are SIBLINGS, never nested inside <see cref="Config"/> — they are separate
+        /// files with separate hashes, and <see cref="SourceSha256"/> has to keep meaning
+        /// "which config.ts". Tier 5 added the last five.
+        /// </summary>
         public class Snapshot
         {
             [JsonProperty("$generator")] public string Generator;
@@ -56,14 +65,39 @@ namespace TheBlock.Core
             [JsonProperty("$sourceSha256")] public string SourceSha256;
             [JsonProperty("$npcSource")] public string NpcSource;
             [JsonProperty("$npcSourceSha256")] public string NpcSourceSha256;
+            [JsonProperty("$missionSource")] public string MissionSource;
+            [JsonProperty("$missionSourceSha256")] public string MissionSourceSha256;
+            [JsonProperty("$rescueSource")] public string RescueSource;
+            [JsonProperty("$rescueSourceSha256")] public string RescueSourceSha256;
+            [JsonProperty("$chaseSource")] public string ChaseSource;
+            [JsonProperty("$chaseSourceSha256")] public string ChaseSourceSha256;
+            [JsonProperty("$campaignSource")] public string CampaignSource;
+            [JsonProperty("$campaignSourceSha256")] public string CampaignSourceSha256;
+            [JsonProperty("$rhythmSource")] public string RhythmSource;
+            [JsonProperty("$rhythmSourceSha256")] public string RhythmSourceSha256;
             [JsonProperty("$handedness")] public string Handedness;
             [JsonProperty("config")] public Root Config;
 
-            /// <summary>
-            /// <c>src/npc/npc.config.ts</c> — a SIBLING of <see cref="Config"/>, not a member of it,
-            /// because they are two separate files with two separate hashes. The crowd's own module.
-            /// </summary>
+            /// <summary><c>src/npc/npc.config.ts</c> — the crowd's own module.</summary>
             [JsonProperty("npcConfig")] public NpcSpec Npc;
+
+            /// <summary><c>src/mission/mission.config.ts</c> — M1, the pizza delivery run.</summary>
+            [JsonProperty("missionConfig")] public MissionSpec Mission;
+
+            /// <summary><c>src/mission/rescue.config.ts</c> — M3, the rooftop rescue.</summary>
+            [JsonProperty("rescueConfig")] public RescueSpec Rescue;
+
+            /// <summary><c>src/mission/chase.config.ts</c> — M4, the jetski sea chase.</summary>
+            [JsonProperty("chaseConfig")] public ChaseSpec Chase;
+
+            /// <summary>
+            /// <c>src/mission/campaign.config.ts</c> — the player-facing COPY: every objective
+            /// line, story beat, fail line and reward, plus the win and intro lines.
+            /// </summary>
+            [JsonProperty("campaignConfig")] public CampaignSpec Campaign;
+
+            /// <summary><c>src/minigame/rhythm/rhythm.config.ts</c> — M2, the beach dance.</summary>
+            [JsonProperty("rhythmConfig")] public RhythmSpec Rhythm;
         }
 
         /// <summary>Mirrors the top level of <c>config.ts</c>. Only the ported sections are declared.</summary>
@@ -479,6 +513,49 @@ namespace TheBlock.Core
 
             public InteriorPaletteSpec Palette;
             public List<InteriorLightSpec> Lights;
+
+            /// <summary>
+            /// The cashier behind the counter — U21's shift trigger. Room-local, like the spawn.
+            /// Her <c>url</c> names a dedicated model in the web build; this port stands one of the
+            /// crowd's own six there instead. See <c>WorldBuilder.Interior.BuildCounterNpc</c>.
+            /// </summary>
+            public InteriorNpcSpec Npc;
+
+            /// <summary>
+            /// The pizza-box stack on the counter. Read so the shape is known and DELIBERATELY not
+            /// built — set dressing with no mechanic against a 23 MB asset. The reason is written out
+            /// in <c>WorldBuilder.Interior</c>.
+            /// </summary>
+            public InteriorPizzasSpec Pizzas;
+        }
+
+        /// <summary>The counter NPC, in the room's local frame.</summary>
+        public class InteriorNpcSpec
+        {
+            public string Url;
+            public float X;
+            public float Z;
+
+            /// <summary>Radians, right-handed. Negate it.</summary>
+            public float Yaw;
+
+            public float Scale = 1f;
+
+            /// <summary>How close you must stand for T to start the shift.</summary>
+            public float TalkRadius = 3.5f;
+        }
+
+        /// <summary>The counter's pizza-box stack. Declared, not built — see <see cref="InteriorSpec.Pizzas"/>.</summary>
+        public class InteriorPizzasSpec
+        {
+            public string Url;
+            public int Count = 5;
+            public float X;
+            public float Y;
+            public float Z;
+            public float Scale = 0.16f;
+            public float StackGap = 0.06f;
+            public float PickupRadius = 2.2f;
         }
 
         public class InteriorSpawnSpec
@@ -624,6 +701,12 @@ namespace TheBlock.Core
             public List<CarSpec> Cars;
 
             public MotorcycleSpec Motorcycle;
+
+            /// <summary>M4's ride, and the thief's. Water-only, door-less. See <see cref="JetskiSpec"/>.</summary>
+            public JetskiSpec Jetski;
+
+            /// <summary>M3's ride. Door-less, flies. See <see cref="HelicopterSpec"/>.</summary>
+            public HelicopterSpec Helicopter;
         }
 
         /// <summary>Pizza-delivery motorcycle (Mission 1). Door-less; rider uses the shared Driving animation.</summary>
@@ -638,6 +721,140 @@ namespace TheBlock.Core
 
             /// <summary>Rider placement in holder-local space.</summary>
             public RiderSpec Rider;
+        }
+
+        /// <summary>
+        /// The jetski (M4). Door-less like the bike, but it lives on water: it floats at the sea
+        /// surface, coasts a long way (<see cref="JetskiHandlingSpec.WaterFriction"/> is a fifth of
+        /// the road's), and its steering only bites with speed.
+        ///
+        /// <b>Its spawn is west of <c>sea.shoreX</c> — Unity EAST, past the shore wall.</b> That is
+        /// deliberate in both builds: the wall stops a car driving out to sea, the player swims out
+        /// (U7b) and presses E. Anything that moves this spawn landward breaks the mission's opening.
+        /// </summary>
+        public class JetskiSpec
+        {
+            public string ModelUrl;
+            public float ModelScale = 1.16f;
+
+            /// <summary>Radians. The nose was modelled at +Z, so it is flipped to face −Z.</summary>
+            public float ModelYaw;
+
+            public SpawnSpec Spawn;
+            public JetskiHandlingSpec Handling = new();
+            public RiderSpec Rider;
+        }
+
+        /// <summary>
+        /// Water handling. Deliberately drifty — the web build's own comment calls it "like the
+        /// bike's model but drifty". Physics numbers are void across engines (port rule 2), so
+        /// these are the SHAPE of the feel to re-derive against, not values to paste into a
+        /// Rigidbody.
+        /// </summary>
+        public class JetskiHandlingSpec
+        {
+            /// <summary>m/s (~65 km/h) — fast on open water, slower than a car on tarmac.</summary>
+            public float MaxSpeed = 18f;
+
+            public float ReverseMaxSpeed = 3f;
+            public float Accel = 7f;
+
+            /// <summary>Coast decay. Far below the road's, which is what makes the long glide.</summary>
+            public float WaterFriction = 1.5f;
+
+            public float BrakeDecel = 6f;
+
+            /// <summary>Nose steer authority in RADIANS.</summary>
+            public float MaxWheelAngle = 0.4f;
+
+            /// <summary>Yaw gained per metre travelled per steer-radian — so steering needs speed.</summary>
+            public float SteerRatio = 0.45f;
+
+            /// <summary>Slower centring than a car, which is most of the drifty feel.</summary>
+            public float WheelReturn = 4f;
+
+            /// <summary>Visual roll into a turn, in radians at full steer.</summary>
+            public float LeanMax = 0.25f;
+
+            /// <summary>Idle bob so the hull never sits dead-still on the water.</summary>
+            public float BobAmp = 0.06f;
+
+            public float BobFreq = 1.6f;
+
+            /// <summary>Hull rest height above the water line.</summary>
+            public float FloatY;
+        }
+
+        /// <summary>
+        /// The rescue helicopter (M3) — a UH-1 Huey, already in real metres.
+        ///
+        /// <b>Its collider is the FUSELAGE ONLY</b>, measured in Blender with the ~10 m rotor disc
+        /// excluded, so the craft fits between buildings and sets down cleanly on a roof. The
+        /// holder is recentred on <see cref="FuselageCenterY"/> so the box hugs the body with its
+        /// bottom at the skids.
+        /// </summary>
+        public class HelicopterSpec
+        {
+            public string Name;
+            public string ModelUrl;
+            public float ModelScale = 1f;
+
+            /// <summary>Radians. Cockpit nose was measured at +Z; flipped so forward is −Z.</summary>
+            public float ModelYaw;
+
+            public SpawnSpec Spawn;
+
+            /// <summary>Fallback ground height before the spawn down-ray settles it.</summary>
+            public float PadY = 0.1f;
+
+            /// <summary>Fuselage box in metres, rotor excluded.</summary>
+            public Vec3 Collider;
+
+            /// <summary>Model-space height of the fuselage box centre. Skids sit near 0.1.</summary>
+            public float FuselageCenterY = 2f;
+
+            public HelicopterFlightSpec Flight = new();
+            public HelicopterCameraSpec Camera = new();
+        }
+
+        /// <summary>
+        /// Arcade flight. The car block does not fit a helicopter, so this is its own.
+        ///
+        /// <see cref="VertFriction"/> is the hover: release the collective and vertical speed decays
+        /// to zero rather than the craft falling. <see cref="FallGravity"/> and
+        /// <see cref="FallMaxSpeed"/> are the web build's hand-written free-fall for a craft
+        /// abandoned in mid-air — in this port that is simply <c>Rigidbody.useGravity</c>, and both
+        /// numbers are read only as the shape to check the result against.
+        /// </summary>
+        public class HelicopterFlightSpec
+        {
+            /// <summary>m/s horizontal (~90 km/h).</summary>
+            public float MaxSpeed = 25f;
+
+            public float Accel = 12f;
+
+            /// <summary>Coast decay with no throttle.</summary>
+            public float Friction = 6f;
+
+            /// <summary>rad/s, and it works while hovering — a heli can turn on the spot.</summary>
+            public float YawRate = 1.2f;
+
+            public float MaxVertSpeed = 10f;
+            public float VertAccel = 14f;
+
+            /// <summary>Vertical decay. This is what makes releasing the keys HOLD altitude.</summary>
+            public float VertFriction = 12f;
+
+            public float FallGravity = 9.8f;
+            public float FallMaxSpeed = 20f;
+        }
+
+        /// <summary>Higher and further back than the car cam, to frame the craft and its altitude.</summary>
+        public class HelicopterCameraSpec
+        {
+            public Vec3 LocalOffset;
+            public float FollowLerp = 0.08f;
+            public float LookYOffset = 2f;
         }
 
         /// <summary>Rider placement on a two-wheeler (motorcycle, jetski).</summary>
