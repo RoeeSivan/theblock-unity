@@ -137045,7 +137045,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Game.Wallet
   startingBalance: 500
-  resetOnPlay: 1
+  resetOnPlay: 0
 --- !u!1 &1217969831
 GameObject:
   m_ObjectHideFlags: 0
