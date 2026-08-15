@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using TheBlock.Core;
+using TheBlock.World;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -24,7 +25,7 @@ namespace TheBlock.EditorTools
     ///
     /// Not undoable. Re-running is the undo.
     /// </summary>
-    public static class WorldBuilder
+    public static partial class WorldBuilder
     {
         private const string RootName = "World";
         private const string FacadeMaterialPath = "Assets/Materials/City/Facade.mat";
@@ -110,6 +111,8 @@ namespace TheBlock.EditorTools
         public class Options
         {
             public bool Ground = true;
+            public bool Roads = true;
+            public bool Sea = true;
             public bool Districts = true;
             public bool Places = true;
             public bool Colliders = true;
@@ -137,7 +140,9 @@ namespace TheBlock.EditorTools
             var root = ResetRoot(scene, report);
             root.SourceSha256 = snapshot.SourceSha256;
 
-            if (options.Ground) BuildGround(root.transform, snapshot.Config.Ground, report);
+            if (options.Ground) BuildGround(root.transform, snapshot.Config.Ground, snapshot.Config.Sea, report);
+            if (options.Roads) BuildRoads(root.transform, snapshot.Config.Roads, report);
+            if (options.Sea) BuildSea(root.transform, snapshot.Config.Sea, options, report);
 
             if (options.Districts)
             {
@@ -223,12 +228,21 @@ namespace TheBlock.EditorTools
         /// Belongs to U12 with the roads and the sea, and is built here early because U8's car needs
         /// somewhere to land: the districts are islands, and a car that leaves one had nothing under
         /// it at all — it drove off the edge and fell forever, which is not a thing a play-test can
-        /// survive. This is only the plate. Roads, kerbs and the sea are still U12's.
+        /// survive.
         ///
         /// It sits at <c>y = -0.05</c>, marginally below every district, so wherever the two overlap
         /// the district's own ground is what a wheel or a ground probe finds.
+        ///
+        /// U12 TRIMMED ITS COLLIDER AT THE SHORE, which the web build does too and for a reason that
+        /// only shows up once there is a sea: the plate is solid at y -0.05 and the beach ramps down
+        /// to -3, so an untrimmed plate holds the player up on an invisible sheet a few centimetres
+        /// under the water and the whole beach becomes scenery. The visual plane keeps its full size
+        /// — the water is opaque and drawn above it — but the solid part stops at the waterline, and
+        /// past that the beach mesh is the only floor. Everything seaward of the shore is Unity
+        /// <c>+x</c>; see <see cref="SeaGeometry"/> for why.
         /// </summary>
-        private static void BuildGround(Transform parent, TheBlockConfig.GroundSpec ground, Report report)
+        private static void BuildGround(
+            Transform parent, TheBlockConfig.GroundSpec ground, TheBlockConfig.SeaSpec sea, Report report)
         {
             if (ground == null)
             {
@@ -246,8 +260,26 @@ namespace TheBlock.EditorTools
             var material = LoadOrCreateGroundMaterial(ground, report);
             if (material != null) plane.GetComponent<MeshRenderer>().sharedMaterial = material;
 
+            // The primitive's own MeshCollider covers the whole plane, so it is replaced rather than
+            // adjusted: a box that ends at the shore, top face flush with the visual plate.
+            if (plane.TryGetComponent<MeshCollider>(out var meshCollider)) UnityEngine.Object.DestroyImmediate(meshCollider);
+
+            var floor = new GameObject("Ground Floor");
+            floor.transform.SetParent(plane.transform, worldPositionStays: false);
+            float far = -ground.Size * 0.5f;                                  // landward edge, Unity -x
+            float near = sea != null ? SeaGeometry.ShoreX(sea) : ground.Size * 0.5f; // waterline
+            var box = floor.AddComponent<BoxCollider>();
+            box.size = new Vector3(Mathf.Abs(near - far), 0.2f, ground.Size);
+            // Local: the parent plane is scaled, so undo that scale to keep the box in metres.
+            floor.transform.localScale = Vector3.one / plane.transform.localScale.x;
+            floor.transform.localPosition = Vector3.zero;
+            box.center = new Vector3((near + far) * 0.5f, -0.1f, 0f); // top face at the plate's y
+            report.Colliders++;
+
             SetDistrictStaticFlags(plane);
-            report.Placed.Add($"Ground {ground.Size:0} x {ground.Size:0} m @ y {ground.Y:0.##}");
+            report.Placed.Add(
+                $"Ground {ground.Size:0} x {ground.Size:0} m @ y {ground.Y:0.##}, " +
+                $"solid over Unity x [{far:0}, {near:0}] (trimmed at the shore)");
         }
 
         private static Material LoadOrCreateGroundMaterial(TheBlockConfig.GroundSpec ground, Report report)
@@ -767,7 +799,7 @@ namespace TheBlock.EditorTools
         /// </summary>
         private static void SweepGenerated(Report report)
         {
-            foreach (var folder in new[] { CutoutMaterialFolder, GeneratedMeshFolder })
+            foreach (var folder in new[] { CutoutMaterialFolder, GeneratedMeshFolder, GeneratedWorldFolder })
             {
                 if (!AssetDatabase.IsValidFolder(folder)) continue;
 

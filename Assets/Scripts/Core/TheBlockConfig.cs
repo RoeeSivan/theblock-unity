@@ -63,6 +63,8 @@ namespace TheBlock.Core
         {
             public Vec3 Gravity;
             public GroundSpec Ground;
+            public RoadsSpec Roads;
+            public SeaSpec Sea;
             public CitySpec City;
             public List<DistrictSpec> Districts;
             public PlaceSpec PizzaPlace;
@@ -99,6 +101,130 @@ namespace TheBlock.Core
 
             /// <summary>Height. Slightly below zero so district ground wins wherever they overlap.</summary>
             public float Y = -0.05f;
+        }
+
+        /// <summary>
+        /// The road network: a list of centreline polylines, still right-handed.
+        ///
+        /// The web build cloned one 8 m-wide tile per A→B segment because that is all three.js gave
+        /// it. Unity generates a continuous ribbon along a spline through the same points, so a bend
+        /// is a curve rather than two quads overlapping at the corner. The polylines themselves are
+        /// untouched — U17's traffic graph reads the same numbers.
+        /// </summary>
+        public class RoadsSpec
+        {
+            /// <summary>The web build's tile GLB. Unity generates its mesh instead; kept for provenance.</summary>
+            public string Url;
+
+            /// <summary>Surface height. Just above the ground plate, flush with district pavement.</summary>
+            public float Y = 0.02f;
+
+            /// <summary>Centrelines. Each point carries x and z only — y is the section's.</summary>
+            public List<List<Vec3>> Paths;
+        }
+
+        /// <summary>
+        /// The Mediterranean on the world's west edge — which is Unity's EAST, at <c>+x</c>, because
+        /// <see cref="Convert"/> negates X. <c>ShoreX -430</c> is Unity <c>x +430</c>, and the water
+        /// runs outward from there to <c>+x</c>.
+        /// </summary>
+        public class SeaSpec
+        {
+            /// <summary>Waterline X, right-handed. Convert it.</summary>
+            public float ShoreX = -430f;
+
+            /// <summary>Sea level in world Y. The city ground is 0 too.</summary>
+            public float Level;
+
+            /// <summary>Water plane extent perpendicular to the shore.</summary>
+            public float Width = 2400f;
+
+            /// <summary>Water and beach extent ALONG the shore (Z).</summary>
+            public float Length = 600f;
+
+            /// <summary>Centre of that Z span. Z does not flip.</summary>
+            public float CenterZ;
+
+            public SeaSurfaceSpec Surface;
+            public BeachSpec Beach;
+            public SeaWallSpec Wall;
+        }
+
+        /// <summary>Water shader tuning — every number is a material property on <c>TheBlock/Water</c>.</summary>
+        public class SeaSurfaceSpec
+        {
+            public string NormalMap;
+            public int DeepColor;
+            public int ShallowColor;
+            public int SkyColor;
+            public float FresnelCeil = 0.6f;
+            public int FoamColor;
+            public float FoamStrength = 0.32f;
+            public float RippleStrength = 0.35f;
+            public float SpecPower = 180f;
+
+            /// <summary>Water this deep gets full swell height; shallower fades to flat at the waterline.</summary>
+            public float SwellFadeDepth = 1.5f;
+
+            /// <summary>Plane subdivisions. The swells are a vertex displacement, so this is the shape.</summary>
+            public int SegX = 128;
+            public int SegZ = 32;
+
+            public List<WaveSpec> Waves;
+        }
+
+        /// <summary>One directional sine swell.</summary>
+        public class WaveSpec
+        {
+            public float DirX;
+            public float DirZ;
+            public float Amplitude;
+            public float Wavelength;
+            public float Speed;
+        }
+
+        /// <summary>
+        /// The sand: flat and dry landward of the shore, ramping to <see cref="DeepY"/> over
+        /// <see cref="WadeRun"/> metres seaward of it. This is a real walkable floor, not decoration.
+        /// </summary>
+        public class BeachSpec
+        {
+            public int Color;
+            public float Roughness = 0.9f;
+
+            /// <summary>Dry sand landward of the shore, bridging to the city ground.</summary>
+            public float DryWidth = 25f;
+
+            /// <summary>Distance over which the seabed drops from the waterline to <see cref="DeepY"/>.</summary>
+            public float WadeRun = 35f;
+
+            public float DeepY = -3f;
+            public int SegX = 96;
+            public int SegZ = 8;
+            public BeachLookSpec Look;
+        }
+
+        /// <summary>Sand shading — procedural, no textures. Ported to <c>TheBlock/Beach</c>.</summary>
+        public class BeachLookSpec
+        {
+            public int DryColor;
+            public int DryShadowColor;
+            public int WetColor;
+            public float GrainScale = 6f;
+            public float GrainStrength = 0.08f;
+            public float BlotchScale = 26f;
+            public float BlotchStrength = 0.55f;
+            public float WetBandDry = 0.6f;
+            public float WetBandSea = 0.5f;
+            public float DryRoughness = 0.95f;
+            public float WetRoughness = 0.45f;
+        }
+
+        /// <summary>The invisible boundary at the waterline. Collider only, never drawn.</summary>
+        public class SeaWallSpec
+        {
+            public float Height = 8f;
+            public float Thickness = 3f;
         }
 
         /// <summary>Downtown. Unlike the other districts it carries the facade tint list.</summary>

@@ -36,18 +36,88 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-**Next action: U12 — roads, kerbs and the sea.** The 1400 × 1400 m ground plate is already built
-(pulled forward into U8, because a car leaving a district had nothing to land on); what is left is
-`config.roads`, the kerbs and `config.sea`. The world builds clean as of U11 —
-`12 placed, 2 missing, 109 colliders`, the two missing being U13's gas station and police station.
+**Next action: U13 — places.** The gas station and the police station are both ingested and placed
+now (the user added them on 2026-08-15), so U13 is no longer blocked on assets. It is also no longer
+purely additive: **the gas station is placed wrong and needs fixing** — the user flagged it on
+sight after the U12 play-test, so treat it as U13's first job rather than a leftover. Nothing about
+its geometry has been diagnosed yet; look at it in the Scene view before theorising, and expect the
+usual suspects from `Place_*` work — a collision proxy node, a model lying on its own axis, or a
+config y that assumed the original asset. The fix belongs in `WorldBuilder.AssetAliases`, not baked
+into the file, same as the pizza place's.
 
-Read `config.roads` before designing anything: the web build carries road polylines that U17's
-traffic graph also consumes, so the shape U12 chooses to store them in is U17's input, not just
-geometry. Ask the standing question — three.js drew roads as flat meshes on the ground plane
-because it had nothing else; Unity has splines, decal projectors and a real terrain-agnostic mesh
-pipeline, and whatever U12 builds is also what NavMesh bakes onto for U16 and U19.
+The rest of U13 is the pizza interior and the lot cars.
 
-**U11 is done** — the user confirmed on 2026-08-15 that all nine districts read right.
+**U12 is done** — the user confirmed on 2026-08-15 that the roads, the water and the beach all read
+right. Last build: **18 placed, 0 missing, 177 colliders**.
+
+### What U12 built
+
+**Roads are splines now, and that is the unit's real answer to the standing question.** The web
+build cloned one 8 m tile per A→B segment and rotated it, which is all three.js offered, and it
+shows at every bend as two quads overlapping in a hard V. `com.unity.splines` gets a
+`SplineContainer` per polyline and `WorldBuilder.Roads.cs` extrudes a ribbon along it, so a corner
+is a curve — **1864 m of spline against 1859.5 m of raw polyline**, the 0.24% being exactly the
+smoothing.
+
+**The `SplineContainer` is kept on each road object on purpose, not discarded after the mesh.** It
+is the reason to use splines at all: U17's traffic and U19's police both want a centreline they can
+sample at an arbitrary distance with a tangent, and re-deriving one from the raw polyline would
+disagree with the visible geometry at precisely the corners this unit smoothed. The splines are
+authored in world space with the object at the origin, so a sampled point needs no transform.
+
+**No collider on the roads**, matching the web build. They sit 2 cm above the plate and flush with
+district pavement, and a wheel meeting a 2 cm lip at 20 m/s would feel it.
+
+**The road surface is generated, not the web's `road-straight.glb`.** That tile's paint is
+*geometry*, which does not survive being stretched along a curve. `CreateRoadTexture` writes asphalt
+plus a double-yellow centre and white edge lines with U across the road and V along it, so the
+markings hold a constant pitch through a bend whatever the segment length — the thing the stretched
+tile could not do.
+
+**The sea is a port of the original's shader, not a stand-in.** URP has no built-in water (Unity 6's
+Water System is HDRP-only) and every free Asset Store option would have meant re-tuning by eye and
+throwing away numbers `config.sea.surface` already carries. `Assets/Shaders/Water.shader` runs the
+same maths: three vertex swells, two counter-scrolling normal layers, fresnel with the sub-1 ceiling
+that keeps far water blue instead of grey, a depth tint, one Blinn glint, a shore foam band.
+
+**⚠ The water shader is UNLIT deliberately.** The original computes its own single-light response,
+and putting URP's PBR underneath would light it twice and double the specular. It reads
+`_MainLightPosition` / `_MainLightColor`, so the sun still drives the glint. Its shadow casting is
+off too: the swells are a vertex displacement the shadow pass does not run, so a cast shadow would
+be the flat plane's outline and would not move.
+
+**The beach is a real floor.** `Assets/Shaders/Beach.shader` ports the sand's grain, blotch and
+wet-band shading onto a normal PBR surface, and the mesh is displaced to `SeaGeometry.SeabedHeight`
+with a MeshCollider — the player walks DOWN it into the water rather than looking at a picture of a
+beach.
+
+**⚠ The ground plate's collider had to be trimmed at the shore, and this was not obvious.** The
+plate is solid at y −0.05 while the beach ramps to −3, so an untrimmed plate holds the player up on
+an invisible sheet a few centimetres under the water and the entire beach becomes scenery. The
+visual plane keeps its full 1400 m — the water is opaque and drawn above it — but the solid part now
+stops at the waterline, and seaward of that the beach mesh is the only floor. The web build does the
+same thing in `physics.addGround` and the comment there is the only reason it was caught.
+
+**The shore wall is on the `Ignore Raycast` layer**, which is Unity's answer to the web's
+`markNonGround`. A wall is not a floor: a downward probe started inside it — the side probe on the
+exit-a-vehicle path does exactly that — reads its top as ground and lifts the caller 8 m. That layer
+is excluded from the default raycast mask, so probes miss it while collision is untouched.
+
+**One source of truth for the waterline: `Assets/Scripts/World/SeaGeometry.cs`.** The sand mesh, the
+water shader and the sand shader all key off the same ramp, and a mismatch is a tide line that does
+not sit on the water. It also owns the handedness: `config.sea.shoreX` is −430 and the web's sea
+runs to more negative x, so **in Unity the sea is EAST, at larger x**, and every derived edge here is
+produced by converting the config's own expression rather than re-deriving it with a flipped sign.
+
+**⚠ "Kerbs" were phantom scope.** The ledger said "roads, kerbs and the sea" for months; grepping
+the original shows no kerb system exists at all — kerbs are baked into the district meshes and
+appear only in comments. U12 is roads + sea. Nothing was skipped.
+
+**⚠ `com.unity.splines` 2.8.x does not compile on Unity 6000.5** — `SplineInstantiate.cs` calls
+`Object.GetInstanceID()`, which is obsolete-as-*error* there (`CS0619`, not a warning). **2.9.0 is
+the minimum**; it guards the call behind `UNITY_6000_4_OR_NEWER`. And editing `manifest.json` by
+hand did nothing: `packages-lock.json` keeps pinning the old version and a refresh never
+re-resolves. Install through Package Manager. See memory `package-version-needs-package-manager`.
 
 ### What U11 built
 
@@ -389,21 +459,16 @@ game repo  src/config.ts
    → The Block → Build World              (Assets/Editor/WorldBuilder.cs, applies Convert)
 ```
 
-**The ground plate is built too, and it belongs to U12.** `config.ground` is a 1400 × 1400 m plane
-at y −0.05, and it was pulled forward because the districts are islands: a car that left one had
-nothing under it and fell forever, which no play-test survives. Only the plate — roads, kerbs and
-the sea are still U12's. It sits marginally below every district so district ground always wins a
-ground probe.
+**The ground plate** is a 1400 × 1400 m plane at y −0.05 from `config.ground`, pulled forward into U8
+because the districts are islands: a car that left one had nothing under it and fell forever. It
+sits marginally below every district so district ground always wins a ground probe. **Its collider
+stops at the shore** (U12) — see the U12 notes for why an untrimmed one deletes the beach.
 
-Last build: **12 placed, 2 missing, 109 colliders** — the ground plate, 8 districts, the 7-Eleven,
-the pizza place.
+Last build: **18 placed, 0 missing, 177 colliders** — the plate, the roads, the water, the beach,
+the shore wall, 9 districts and 4 places.
 
-**Missing assets — the world builds fine without them, they are logged not fatal:**
-
-| config url | needed for | status |
-| --- | --- | --- |
-| `gas-station.glb` | U13, fuel | not yet ingested |
-| `police-station.glb` | U13, U19 | not yet ingested |
+**Every config asset is now ingested.** The gas station and police station landed 2026-08-15; the
+gas station's *placement* is wrong and is U13's first job.
 
 **The parking lot and Reichman are in** (2026-08-13). The user re-modelled both in Blender rather
 than falling back on the shipped GLBs, and both reproduce `config.ts`'s stated geometry exactly:
@@ -485,8 +550,8 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
 | U11 | All 9 districts via WorldBuilder | done | `21857c3` | Placement and colliders shipped in U5; U11 is the three rendering faults that survived it. Foliage: the white shards were a spurious V flip in glTFast's `_ST`, NOT the blend mode — `WorldBuilder.UnflipV`, plus a real alpha-clip pass that rebinds to generated URP/Lit materials because `_AlphaClip` on an imported glTFast material is inert. Cities 2/3: baked cars stripped at the SUBMESH level in Unity — 86% of the mesh — instead of a Blender split, out of collision as well as sight. Empty material slots were drawing magenta and now get glTF's default material. **Caught and fixed: a substring pattern list that alpha-clipped every road, because "tree" is inside "CityGen_Streets".** Foliage colliders left open on purpose — see Deferred. User-confirmed 2026-08-15 |
-| U12 | Roads, ground, sea | todo | | The 1400 m ground plate was pulled forward into U8 — a car needs somewhere to land. Roads, kerbs and the sea are still open |
-| U13 | Places — pizza + interior, gas, police station, lot cars | todo | | |
+| U12 | Roads, ground, sea | done | `PENDING` | Roads are `com.unity.splines` + a generated ribbon, NOT the web's per-segment stretched tile: 1864 m of spline vs 1859.5 m of polyline, corners curved, markings continuous through them. The `SplineContainer`s are kept as U17/U19's centreline. Road surface texture is generated because the web tile's paint is geometry. Sea is a port of `sea-surface.ts` into `Assets/Shaders/{Water,Beach}.shader` (URP has no built-in water) — unlit on purpose, since the original does its own lighting. Beach is a displaced MeshCollider you walk down. `Assets/Scripts/World/SeaGeometry.cs` owns the waterline and its handedness — the sea is Unity **+x**. **Caught and fixed: the ground plate's collider held the player up over the whole beach; it now stops at the shore. "Kerbs" were phantom scope — no such system exists in the original.** Splines needs ≥2.9.0 on Unity 6.5. User-confirmed 2026-08-15 |
+| U13 | Places — pizza + interior, gas, police station, lot cars | todo | | **Starts with a fix, not an addition: the gas station is placed wrong** (user-flagged 2026-08-15, undiagnosed). Both station GLBs are ingested and building. Correction goes in `WorldBuilder.AssetAliases` |
 | U14 | Map + minimap | todo | | |
 | U15 | Addressables streaming | todo | | ONLY if the profiler says so — measure first |
 

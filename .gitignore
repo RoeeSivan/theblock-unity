@@ -69,6 +69,11 @@ crashlytics-build.properties
 # committing them would cost LFS quota to store something that is never read.
 /Assets/Meshes/Generated/
 /Assets/Meshes/Generated.meta
+
+# Road/water/sand materials and the road surface texture, all written by WorldBuilder
+# and swept by it. Same reason as the generated meshes: reproducible, not authored.
+/Assets/Materials/World/Generated/
+/Assets/Materials/World/Generated.meta
 /Assets/Materials/City/Cutout/
 /Assets/Materials/City/Cutout.meta
 
