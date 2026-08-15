@@ -179,7 +179,33 @@ namespace TheBlock.Vehicles
                     timer += dt;
                     if (timer >= _spec.ExitDoorCloseTime) FinishExit();
                     break;
+
+                case GameMode.Rhythm:
+                    // A modal minigame owns the screen and the keyboard. Nothing here runs — no E,
+                    // no R, and no stopped-car hold, which would otherwise keep freezing traffic
+                    // beside a player who is not standing there any more.
+                    break;
             }
+        }
+
+        /// <summary>
+        /// Parks this machine while a modal minigame owns the player (U22's dance).
+        ///
+        /// <b>Only from <see cref="GameMode.OnFoot"/></b>, and that guard is the point: a dance
+        /// cannot start out of a car door swing, and suspending mid-<see cref="GameMode.Entering"/>
+        /// would strand a driver half-seated with the clip still running.
+        /// </summary>
+        public bool EnterModal()
+        {
+            if (mode != GameMode.OnFoot) return false;
+            mode = GameMode.Rhythm;
+            return true;
+        }
+
+        /// <summary>Hands control back. Idempotent, so an exit path may call it more than once.</summary>
+        public void ExitModal()
+        {
+            if (mode == GameMode.Rhythm) mode = GameMode.OnFoot;
         }
 
         // --- entering ----------------------------------------------------------------------------

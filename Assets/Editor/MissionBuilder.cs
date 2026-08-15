@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using TheBlock.Audio;
 using TheBlock.Core;
 using TheBlock.Game;
+using TheBlock.Minigame.Rhythm;
 using TheBlock.Missions;
 using TheBlock.Police;
 using TheBlock.UI;
@@ -30,6 +31,7 @@ namespace TheBlock.EditorTools
     {
         private const string CampaignName = "Campaign";
         private const string VoiceFolder = "Assets/Audio/Voice";
+        private const string MusicFolder = "Assets/Audio/Music";
         private const string PedFolder = "Assets/Prefabs/Npc";
 
         [MenuItem("The Block/Build Campaign", priority = 3)]
@@ -54,6 +56,7 @@ namespace TheBlock.EditorTools
             // object anyone has to remember to add. Building a mission is writing its class; joining
             // the campaign is re-running this.
             BuildDelivery(root, snapshot);
+            BuildDance(root, snapshot);
 
             // Campaign order comes from the config, not from whatever order Unity happened to find
             // the components in. A mission with no row in campaignText is a mission with no copy,
@@ -181,6 +184,62 @@ namespace TheBlock.EditorTools
                 ("player", Object.FindAnyObjectByType<TheBlock.Player.PlayerController>()?.transform),
                 ("vehicles", Object.FindAnyObjectByType<VehicleEnterExit>()),
                 ("hud", Object.FindAnyObjectByType<MissionHud>()));
+        }
+
+        /// <summary>
+        /// M2. Its two bodies and their shared controller come from <see cref="DanceBuilder"/>; what
+        /// is here is the mission component, the conductor, and the song the conductor keeps time to.
+        /// </summary>
+        private static void BuildDance(GameObject root, TheBlockConfig.Snapshot snapshot)
+        {
+            var spec = snapshot.Rhythm;
+            if (spec == null)
+            {
+                Debug.LogWarning("MissionBuilder: no rhythmConfig — the dance is not built.");
+                return;
+            }
+
+            var log = new System.Text.StringBuilder();
+            var (dancer, giver) = DanceBuilder.Build(root, spec, log);
+
+            var mission = Component(root, out DanceMission _);
+            mission.SetActors(dancer, giver);
+            EditorUtility.SetDirty(mission);
+
+            var conductor = Component(root, out Conductor _);
+            var song = SongClip(spec.Song?.Url);
+            conductor.SetSong(song);
+            EditorUtility.SetDirty(conductor);
+
+            log.AppendLine(song == null
+                ? $"  ⚠ no song clip for '{spec.Song?.Url}' in {MusicFolder} — the routine has no clock"
+                : $"  song: {song.name} {song.length:0.0}s @ {spec.Song.Bpm} BPM, offset {spec.Song.Offset}s");
+
+            Bind(mission,
+                ("runner", root.GetComponent<CampaignRunner>()),
+                ("player", Object.FindAnyObjectByType<TheBlock.Player.PlayerController>()),
+                ("followCamera", Object.FindAnyObjectByType<TheBlock.Player.FollowCamera>()),
+                ("vehicles", Object.FindAnyObjectByType<VehicleEnterExit>()),
+                ("hud", Object.FindAnyObjectByType<MissionHud>()),
+                ("conductor", conductor),
+                ("hudDocument", Object.FindAnyObjectByType<UnityEngine.UIElements.UIDocument>()));
+
+            Debug.Log("MissionBuilder — dance\n" + log);
+        }
+
+        /// <summary>Resolves the config's web URL to a clip in the music folder, by file name.</summary>
+        private static AudioClip SongClip(string url)
+        {
+            if (string.IsNullOrEmpty(url)) return null;
+            var key = System.IO.Path.GetFileNameWithoutExtension(url);
+            foreach (var guid in AssetDatabase.FindAssets("t:AudioClip", new[] { MusicFolder }))
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                if (System.IO.Path.GetFileNameWithoutExtension(path) == key)
+                    return AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+            }
+
+            return null;
         }
 
         /// <summary>

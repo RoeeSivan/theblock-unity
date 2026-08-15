@@ -127,6 +127,28 @@ namespace TheBlock.Player
             transform.SetPositionAndRotation(position, rotation);
         }
 
+        /// <summary>
+        /// Shows or hides the body without touching the collider or the controller.
+        ///
+        /// U22's dance needs it: a dancer stands on the stage in the player's place, so the player
+        /// himself must not also be visible three metres away. <see cref="VehicleEnterExit"/> does
+        /// the identical thing to the driver on a quick mount, and it did it by holding its own
+        /// cached renderer list — which is the wrong owner. The body belongs to this component, so
+        /// the switch does too.
+        ///
+        /// The list is cached on first use rather than in Awake, because nothing but the dance and
+        /// the vehicle machine ever ask, and both do it well after startup.
+        /// </summary>
+        public void SetVisible(bool visible)
+        {
+            _renderers ??= GetComponentsInChildren<Renderer>(true);
+            foreach (var renderer in _renderers)
+                if (renderer != null)
+                    renderer.enabled = visible;
+        }
+
+        private Renderer[] _renderers;
+
         /// <summary>True while the water is deep enough to swim in. The animator reads this.</summary>
         public bool IsSwimming => _swimming;
 
