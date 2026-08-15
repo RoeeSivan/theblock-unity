@@ -135,7 +135,7 @@ namespace TheBlock.EditorTools
 
             foreach (var spec in bases)
             {
-                var prefab = BuildOne(spec, snapshot.Config.Vehicle.Driver, written, log);
+                var prefab = BuildOne(spec, snapshot.Config.Vehicle.Driver, MaterialFolder, Quaternion.identity,written, log);
                 if (prefab != null) built.Add(prefab);
                 log.AppendLine();
             }
@@ -164,7 +164,7 @@ namespace TheBlock.EditorTools
             var log = new StringBuilder();
             // No sweep on a single-car build: the folder holds every car's materials, and deleting
             // "everything this run did not write" would take the other three cars' with it.
-            var prefab = BuildOne(spec, snapshot.Config.Vehicle.Driver, new HashSet<string>(), log);
+            var prefab = BuildOne(spec, snapshot.Config.Vehicle.Driver, MaterialFolder, Quaternion.identity,new HashSet<string>(), log);
             AssetDatabase.SaveAssets();
 
             var report = $"CarBuilder — {carName}\n{log}";
@@ -174,9 +174,24 @@ namespace TheBlock.EditorTools
             return report;
         }
 
+        /// <summary>
+        /// Builds one car from a spec that need not come from <c>config.vehicle.cars</c>.
+        ///
+        /// U19's police cruiser has no config entry — the web build hard-codes its model URL in
+        /// <c>police.ts</c> and never lists it as a car — so its spec is stated port-side and handed
+        /// in here. It takes its own <paramref name="materialFolder"/> for a reason that would
+        /// otherwise bite silently: <see cref="VehicleMaterials.Sweep"/> deletes everything in a
+        /// folder the run did not write, so police materials living beside the four drivable cars'
+        /// would be deleted by the next <b>Build Drivable Cars</b>.
+        /// </summary>
+        internal static GameObject BuildFromSpec(
+            TheBlockConfig.CarSpec spec, TheBlockConfig.DriverSpec driver, string materialFolder,
+            Quaternion preRotation, HashSet<string> written, StringBuilder log) =>
+            BuildOne(spec, driver, materialFolder, preRotation, written, log);
+
         private static GameObject BuildOne(
-            TheBlockConfig.CarSpec spec, TheBlockConfig.DriverSpec driver,
-            HashSet<string> written, StringBuilder log)
+            TheBlockConfig.CarSpec spec, TheBlockConfig.DriverSpec driver, string materialFolder,
+            Quaternion preRotation, HashSet<string> written, StringBuilder log)
         {
             log.AppendLine($"── {spec.Name}");
 
@@ -191,14 +206,14 @@ namespace TheBlock.EditorTools
 
             try
             {
-                var visual = BuildVisual(model, spec, root.transform, log, out var bounds, out var wheelBones);
+                var visual = BuildVisual(model, spec, root.transform, preRotation, log, out var bounds, out var wheelBones);
                 if (visual == null) return null;
 
                 BuildChassis(root, bounds, log);
                 var wheels = BuildWheels(root.transform, wheelBones, bounds, log);
                 var door = BuildDoor(root, visual.transform, spec, log);
                 var anchor = BuildDriverAnchor(root.transform, spec, bounds, driver, log);
-                var paint = BuildMaterials(visual, spec, written, log);
+                var paint = BuildMaterials(visual, spec, materialFolder, written, log);
                 Wire(root, wheels, anchor, door, paint, log);
 
                 var path = SavePrefab(root, spec.Name);
@@ -243,8 +258,8 @@ namespace TheBlock.EditorTools
         /// pivoted somewhere off-centre would land half a car off the spot it was taken from.
         /// </summary>
         private static GameObject BuildVisual(
-            GameObject model, TheBlockConfig.CarSpec spec, Transform parent, StringBuilder log,
-            out Bounds bounds, out Dictionary<Corner, Transform> wheelBones)
+            GameObject model, TheBlockConfig.CarSpec spec, Transform parent, Quaternion preRotation,
+            StringBuilder log, out Bounds bounds, out Dictionary<Corner, Transform> wheelBones)
         {
             bounds = default;
             wheelBones = null;
@@ -252,8 +267,12 @@ namespace TheBlock.EditorTools
             var visual = (GameObject)PrefabUtility.InstantiatePrefab(model, parent);
             visual.name = "Visual";
             visual.transform.localPosition = Vector3.zero;
-            // Both rotations are about Y so they commute; see Convert.ModelFacing.
-            visual.transform.localRotation = Convert.RotFromRadians(spec.ModelYaw) * Convert.ModelFacing;
+            // The yaw pair is about Y so those two commute (see Convert.ModelFacing); the
+            // pre-rotation is NOT about Y and is applied first, in the model's own frame, because it
+            // exists to correct axes the importer left standing on end before any facing convention
+            // is meaningful. Identity for every car whose GLB imports Y-up.
+            visual.transform.localRotation =
+                Convert.RotFromRadians(spec.ModelYaw) * Convert.ModelFacing * preRotation;
             visual.transform.localScale = Vector3.one * (spec.ModelScale <= 0f ? 1f : spec.ModelScale);
 
             var renderers = visual.GetComponentsInChildren<Renderer>(true);
@@ -277,7 +296,10 @@ namespace TheBlock.EditorTools
 
             log.AppendLine($"        body    {Fmt(bounds.size)} m");
             log.AppendLine($"        yaw     modelYaw {spec.ModelYaw:0.###} rad + 180° facing = " +
-                           $"{visual.transform.localEulerAngles.y:0.#}°, scale {visual.transform.localScale.x:0.##}");
+                           $"{visual.transform.localEulerAngles.y:0.#}°, scale {visual.transform.localScale.x:0.##}" +
+                           (preRotation == Quaternion.identity
+                               ? string.Empty
+                               : $", pre-rotated {Fmt(preRotation.eulerAngles)}"));
             log.AppendLine($"        origin  visual moved {Fmt(-shift)} — contact patch in Y, body centre in XZ");
 
             wheelBones = FindWheelBones(visual.transform, log);
@@ -310,7 +332,14 @@ namespace TheBlock.EditorTools
             var candidates = visual.GetComponentsInChildren<Transform>(true)
                 .Where(t => t.name.IndexOf("wheel", StringComparison.OrdinalIgnoreCase) >= 0)
                 .Where(t => t.name.IndexOf("dir", StringComparison.OrdinalIgnoreCase) < 0)
+                .Where(t => !IsRigControl(t.name))
                 .ToList();
+
+            // A wheel's own mesh child is not a second wheel. The CrownVic names its geometry
+            // `CrownVic.Wheel.Ft.L_0` under a transform of the same name, and two transforms at one
+            // position tie for the corner and throw the whole map away — which is how a model WITH
+            // four perfectly good wheel nodes ended up on stated axles.
+            candidates.RemoveAll(t => candidates.Any(other => other != t && t.IsChildOf(other)));
 
             if (candidates.Count != 4)
             {
@@ -344,6 +373,27 @@ namespace TheBlock.EditorTools
 
             return map;
         }
+
+        /// <summary>
+        /// Rig plumbing that carries "wheel" in its name without being one.
+        ///
+        /// Blender car rigs ship a deform bone, a mechanism bone and a control shape per wheel, plus
+        /// a brake, a damper and a rotation driver — the CrownVic has fifty such nodes against four
+        /// real wheels. The prefixes are Rigify's own convention (<c>DEF-</c> deform, <c>MCH-</c>
+        /// mechanism, <c>SHP-</c> shape) and the <c>_Car_Rig</c> suffix is the rig's namespace, so
+        /// this reads as "not geometry" rather than as a list of names from one model.
+        ///
+        /// <c>_0</c> is deliberately NOT filtered: glTF numbers primitives that way and the
+        /// Mustang's real wheels are called <c>wheel_Front_L_0</c>.
+        /// </summary>
+        private static bool IsRigControl(string name) =>
+            name.StartsWith("DEF-", StringComparison.OrdinalIgnoreCase) ||
+            name.StartsWith("MCH-", StringComparison.OrdinalIgnoreCase) ||
+            name.StartsWith("SHP-", StringComparison.OrdinalIgnoreCase) ||
+            name.EndsWith("_Car_Rig", StringComparison.OrdinalIgnoreCase) ||
+            name.IndexOf("brake", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            name.IndexOf("damper", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            name.IndexOf("rotation", StringComparison.OrdinalIgnoreCase) >= 0;
 
         /// <summary>
         /// Creates a WheelCollider per corner, from the rig where there is one and from the body box
@@ -608,7 +658,8 @@ namespace TheBlock.EditorTools
         /// builder has already compressed.
         /// </summary>
         private static CarPaint BuildMaterials(
-            GameObject visual, TheBlockConfig.CarSpec spec, HashSet<string> written, StringBuilder log)
+            GameObject visual, TheBlockConfig.CarSpec spec, string materialFolder,
+            HashSet<string> written, StringBuilder log)
         {
             var clones = new Dictionary<Material, Material>();
             var slotOwners = new List<Renderer>();
@@ -628,7 +679,7 @@ namespace TheBlock.EditorTools
 
                     if (!clones.TryGetValue(source, out var clone))
                     {
-                        clone = VehicleMaterials.Clone(source, MaterialFolder, spec.Name, written);
+                        clone = VehicleMaterials.Clone(source, materialFolder, spec.Name, written);
                         rebound += VehicleMaterials.RebindCompressed(clone, ref misses);
                         clones[source] = clone;
                     }
@@ -669,7 +720,7 @@ namespace TheBlock.EditorTools
             }
 
             int hex = spec.BodyColor.Value;
-            var painted = VehicleMaterials.PaintVariant(paintSource, MaterialFolder, spec.Name, hex, written);
+            var painted = VehicleMaterials.PaintVariant(paintSource, materialFolder, spec.Name, hex, written);
             component.Apply(painted);
 
             var property = painted.HasProperty("baseColorFactor") ? "baseColorFactor" : "_BaseColor";

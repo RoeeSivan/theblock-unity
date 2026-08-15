@@ -50,6 +50,11 @@ namespace TheBlock.EditorTools
             hud.AddComponent<MapPois>();
             var map = hud.AddComponent<GameMap>();
 
+            // U19's stars and BUSTED overlay go on THIS document, beside the map. The ledger's U25
+            // row is explicit that the panel built here is the one every later HUD element extends —
+            // a second UIDocument means a second PanelSettings and an argument about z-order.
+            hud.AddComponent<WantedHud>();
+
             var so = new SerializedObject(map);
             so.FindProperty("mapCamera").objectReferenceValue = mapCamera;
             so.ApplyModifiedPropertiesWithoutUndo();

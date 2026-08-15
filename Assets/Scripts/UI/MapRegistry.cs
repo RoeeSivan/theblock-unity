@@ -12,6 +12,9 @@ namespace TheBlock.UI
 
         /// <summary>Everything else, and the hook missions hang their objectives on.</summary>
         Marker,
+
+        /// <summary>A live police car. Drawn last, pulsing, and only while a pursuit is running.</summary>
+        Cop,
     }
 
     /// <summary>A pin on the map. <see cref="Position"/> is a UNITY world position, already converted.</summary>
@@ -20,6 +23,19 @@ namespace TheBlock.UI
         public string Name;
         public Vector3 Position;
         public MapPoiKind Kind = MapPoiKind.Marker;
+
+        /// <summary>
+        /// Something to track, for a pin that moves.
+        ///
+        /// <see cref="Position"/> is a snapshot, which is right for a building and useless for a
+        /// police car. Rather than have the pursuit rewrite its pins every frame, a POI can hold the
+        /// transform and the map reads it at draw time — six lines that also give U20's objective on
+        /// a walking NPC and U32's rival arrow the thing they will both want.
+        /// </summary>
+        public Transform Follow;
+
+        /// <summary>Where to draw this pin: the followed thing if there is one, else the snapshot.</summary>
+        public Vector3 At => Follow != null ? Follow.position : Position;
 
         /// <summary>
         /// Draw the dot but never the name. For the numbered sets a mission spawns in bulk —

@@ -161,18 +161,9 @@ namespace TheBlock.World
         /// </summary>
         private void Teleport(Vector3 position, float yawDegrees)
         {
-            var moved = false;
-            if (player.TryGetComponent<CharacterController>(out var capsule) && capsule.enabled)
-            {
-                capsule.enabled = false;
-                player.transform.SetPositionAndRotation(position, Quaternion.Euler(0f, yawDegrees, 0f));
-                capsule.enabled = true;
-                moved = true;
-            }
-
-            if (!moved)
-                player.transform.SetPositionAndRotation(position, Quaternion.Euler(0f, yawDegrees, 0f));
-
+            // The capsule dance itself now lives on PlayerController, because U19's bust does the
+            // same move and a second copy is how one of them loses the guard.
+            player.Teleport(position, yawDegrees);
             if (followCamera != null) followCamera.SnapToTarget();
         }
 

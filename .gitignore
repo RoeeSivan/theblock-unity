@@ -137,3 +137,10 @@ crashlytics-build.properties
 /Assets/Prefabs/Traffic.meta
 /Assets/Materials/Traffic/
 /Assets/Materials/Traffic.meta
+
+# U19b's officer asset — 459 MB of uncompressed .tga, and *.tga is LFS-tracked.
+# GitHub free LFS is 1 GiB per ACCOUNT, already shared with the original repo, so pushing
+# this would spend most of the quota on an asset nothing references yet. Un-ignore it when
+# U19b actually needs it, ideally after TextureCompressor has been run over it.
+Assets/Police_officer/
+Assets/Police_officer.meta

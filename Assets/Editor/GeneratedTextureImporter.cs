@@ -49,6 +49,49 @@ namespace TheBlock.EditorTools
         /// </summary>
         private static readonly string[] NormalMapPatterns = { "normal", "_nrm", "_norm" };
 
+        /// <summary>
+        /// Force-reimports everything in the generated folder so a change to the rules above is
+        /// actually applied — <b>The Block → Reimport Generated Textures</b>.
+        ///
+        /// Needed because these settings live in this file rather than in the .meta (see the class
+        /// note): editing a rule changes what a FUTURE import would produce and does nothing to the
+        /// 241 textures already sitting in the Library. The alternative is
+        /// <b>Compress Textures (force re-extract)</b>, which re-extracts every source image out of
+        /// the district .glb files and is minutes of work to change one importer flag.
+        ///
+        /// Slow — it is BC7 over 16384-wide atlases — and it deliberately reports what it did.
+        /// </summary>
+        [MenuItem("The Block/Reimport Generated Textures", priority = 5)]
+        public static void ReimportGeneratedMenu()
+        {
+            var paths = new System.Collections.Generic.List<string>();
+            foreach (var guid in AssetDatabase.FindAssets("t:Texture2D", new[] { TextureCompressor.GeneratedTextureFolder }))
+                paths.Add(AssetDatabase.GUIDToAssetPath(guid));
+
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+                for (int i = 0; i < paths.Count; i++)
+                {
+                    if (EditorUtility.DisplayCancelableProgressBar(
+                            "Reimport Generated Textures",
+                            $"{i + 1} / {paths.Count}  {System.IO.Path.GetFileName(paths[i])}",
+                            (i + 1) / (float)paths.Count))
+                        break;
+
+                    AssetDatabase.ImportAsset(
+                        paths[i], ImportAssetOptions.ForceUpdate | ImportAssetOptions.ForceSynchronousImport);
+                }
+            }
+            finally
+            {
+                EditorUtility.ClearProgressBar();
+            }
+
+            watch.Stop();
+            Debug.Log($"GeneratedTextureImporter: reimported {paths.Count} texture(s) in {watch.Elapsed.TotalSeconds:0}s");
+        }
+
         private void OnPreprocessTexture()
         {
             if (!assetPath.StartsWith(TextureCompressor.GeneratedTextureFolder + "/", StringComparison.Ordinal))
@@ -74,6 +117,26 @@ namespace TheBlock.EditorTools
 
             importer.mipmapEnabled = true;
             importer.maxTextureSize = MaxTextureSize;
+
+            // MIP STREAMING. U15 proved the format was the fault and left 2.19 GB of texture memory
+            // resident, every byte of it non-streaming — on a 16 GB unified-memory Mac that is most
+            // of the reason the editor intermittently ran out of memory to give Metal and painted
+            // green blocks over its own toolbar.
+            //
+            // This costs NO visual quality by construction, which is why it is the fix rather than
+            // halving MaxTextureSize above: streaming never resizes a texture, it declines to keep
+            // resident a mip finer than the screen can resolve. A district 400 m away does not need
+            // its 16384-wide mip 0, and that is the byte being saved. `maxLevelReduction` in the
+            // quality settings bounds how far it may go if memory gets tight anyway.
+            //
+            // The system must ALSO be switched on in QualitySettings; this flag is the per-texture
+            // opt-in, and without it the budget applies to nothing.
+            importer.streamingMipmaps = true;
+
+            // Priority 0 is the default band. The atlases are all the same kind of thing — city
+            // facades — so there is no honest reason to rank one above another, and inventing one
+            // here would just be a number nobody could defend later.
+            importer.streamingMipmapsPriority = 0;
 
             // ⚠ THIS LINE IS THE WHOLE UNIT. A non-power-of-two texture with mipmaps is NOT block
             // compressed by Unity — the importer picks DXT1, reports DXT1 from GetAutomaticFormat,

@@ -100,6 +100,33 @@ namespace TheBlock.Player
 
         public bool IsGrounded => _controller != null && _controller.isGrounded;
 
+        /// <summary>
+        /// Puts the player somewhere else, safely.
+        ///
+        /// The CharacterController has to be switched off across the write: it caches its own
+        /// position and will sweep the capsule from wherever it thinks it is to wherever it is put,
+        /// which reads as being dragged through every building on the way. <c>Interior</c> learned
+        /// that first and owned the only copy; U19's bust needs the identical move, and two copies of
+        /// this is how one of them quietly loses the guard.
+        ///
+        /// The caller snaps the camera — this component does not own one.
+        /// </summary>
+        public void Teleport(Vector3 position, float yawDegrees)
+        {
+            var rotation = Quaternion.Euler(0f, yawDegrees, 0f);
+            if (_controller == null) _controller = GetComponent<CharacterController>();
+
+            if (_controller != null && _controller.enabled)
+            {
+                _controller.enabled = false;
+                transform.SetPositionAndRotation(position, rotation);
+                _controller.enabled = true;
+                return;
+            }
+
+            transform.SetPositionAndRotation(position, rotation);
+        }
+
         /// <summary>True while the water is deep enough to swim in. The animator reads this.</summary>
         public bool IsSwimming => _swimming;
 

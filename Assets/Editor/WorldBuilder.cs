@@ -167,6 +167,13 @@ namespace TheBlock.EditorTools
             public bool Traffic = true;
 
             /// <summary>
+            /// U19's routing graph — the stitched view of the street graph the police plan over.
+            /// ON by default and cheap: it copies no geometry, bakes no mesh and casts no ray, and
+            /// it is the only pass that reports whether the network is connected at all.
+            /// </summary>
+            public bool Police = true;
+
+            /// <summary>
             /// Rebind materials onto <see cref="TextureCompressor"/>'s compressed textures (U15).
             /// Off is the "what did this actually buy" comparison, not a mode anything should ship in.
             /// </summary>
@@ -240,6 +247,11 @@ namespace TheBlock.EditorTools
             // to navigation — two derivations of the same node numbering is how the crossings and
             // the lights would end up disagreeing about which junction is which.
             var trafficGraph = BuildTraffic(root.transform, snapshot.Config, options, report);
+
+            // After traffic, because it reads the network traffic just baked — and it is the pass
+            // that answers whether that network is one city or five islands.
+            BuildPolice(root.transform, snapshot.Config, options, report);
+
             if (options.Navigation)
                 BuildNavigation(root.transform, districts, snapshot.Config, trafficGraph, options, report);
             else ReattachNavigation(root, districts, keptNavigation, report);

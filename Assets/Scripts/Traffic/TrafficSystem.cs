@@ -149,6 +149,12 @@ namespace TheBlock.Traffic
         private readonly List<TrafficCar> _cars = new();
         private readonly List<int> _nearbyEdges = new();
         private readonly List<Vector3> _crossers = new();
+
+        /// <summary>Live police cars this step. Filled by <see cref="SetPursuitObstacles"/>.</summary>
+        private readonly List<Vector3> _pursuit = new();
+
+        /// <summary>Half-width a cop car occupies for the gap scan. The cruiser is 2.09 m wide.</summary>
+        private const float copRadius = 1.1f;
         private System.Random _rng;
         private float _sweepIn;
         private int _cursor;
@@ -845,7 +851,32 @@ namespace TheBlock.Traffic
                 if (gap < nearest) nearest = gap;
             }
 
+            // Police cars. They are real Rigidbodies rather than members of this pool, so nothing in
+            // the loops above can see one — and a cop stopped across a junction that ambient traffic
+            // drives straight into looks like the traffic is broken, not like the cop is.
+            foreach (var cop in _pursuit)
+            {
+                if (!TrafficGeometry.InFrontCone(
+                        car.Box, cop.x, cop.z, copRadius, gapLateral, gapFollow)) continue;
+
+                float gap = TrafficGeometry.BumperGap(car.Box, cop.x, cop.z, copRadius);
+                if (gap < nearest) nearest = gap;
+            }
+
             return nearest;
+        }
+
+        /// <summary>
+        /// Where the live police cars are, handed over by <c>PoliceSystem</c> each frame.
+        ///
+        /// A list rather than a lookup because there are at most three of them: the cost is three
+        /// extra cone tests per car per step against the ~1,000 this scan already does.
+        /// </summary>
+        public void SetPursuitObstacles(IReadOnlyList<Vector3> positions)
+        {
+            _pursuit.Clear();
+            if (positions == null) return;
+            for (int i = 0; i < positions.Count; i++) _pursuit.Add(positions[i]);
         }
 
         /// <summary>

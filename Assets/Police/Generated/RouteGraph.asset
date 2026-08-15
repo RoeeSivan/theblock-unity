@@ -1,0 +1,2757 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d783bed51721418e91127a005c5a926, type: 3}
+  m_Name: RouteGraph
+  m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Traffic.RouteGraph
+  network: {fileID: 11400000, guid: bcbc767a91c994d1e90ae4d9cc201ecd, type: 2}
+  nodes:
+  - Position: {x: 0.8, y: 0, z: -139.2}
+    LinkStart: 0
+    LinkCount: 1
+    Component: 1
+  - Position: {x: -1.8, y: 0, z: 126}
+    LinkStart: 1
+    LinkCount: 1
+    Component: 1
+  - Position: {x: 128.8, y: 0, z: -408.3}
+    LinkStart: 2
+    LinkCount: 5
+    Component: 0
+  - Position: {x: 128.8, y: 0, z: -345.8}
+    LinkStart: 7
+    LinkCount: 3
+    Component: 0
+  - Position: {x: 128.8, y: 0, z: -284.8}
+    LinkStart: 10
+    LinkCount: 3
+    Component: 0
+  - Position: {x: 128.8, y: 0, z: -225.8}
+    LinkStart: 13
+    LinkCount: 4
+    Component: 0
+  - Position: {x: 128.8, y: 0, z: -163.9}
+    LinkStart: 17
+    LinkCount: 4
+    Component: 0
+  - Position: {x: 58.5, y: 0, z: -408.3}
+    LinkStart: 21
+    LinkCount: 3
+    Component: 0
+  - Position: {x: 58.5, y: 0, z: -345.8}
+    LinkStart: 24
+    LinkCount: 4
+    Component: 0
+  - Position: {x: 58.5, y: 0, z: -284.8}
+    LinkStart: 28
+    LinkCount: 4
+    Component: 0
+  - Position: {x: 58.5, y: 0, z: -225.8}
+    LinkStart: 32
+    LinkCount: 4
+    Component: 0
+  - Position: {x: 58.5, y: 0, z: -163.9}
+    LinkStart: 36
+    LinkCount: 3
+    Component: 0
+  - Position: {x: 1.3, y: 0, z: -408.3}
+    LinkStart: 39
+    LinkCount: 3
+    Component: 0
+  - Position: {x: 1.3, y: 0, z: -345.8}
+    LinkStart: 42
+    LinkCount: 4
+    Component: 0
+  - Position: {x: 1.3, y: 0, z: -284.8}
+    LinkStart: 46
+    LinkCount: 3
+    Component: 0
+  - Position: {x: 1.3, y: 0, z: -225.8}
+    LinkStart: 49
+    LinkCount: 3
+    Component: 0
+  - Position: {x: 1.3, y: 0, z: -163.9}
+    LinkStart: 52
+    LinkCount: 3
+    Component: 0
+  - Position: {x: -60.4, y: 0, z: -408.3}
+    LinkStart: 55
+    LinkCount: 3
+    Component: 0
+  - Position: {x: -60.4, y: 0, z: -345.8}
+    LinkStart: 58
+    LinkCount: 4
+    Component: 0
+  - Position: {x: -60.4, y: 0, z: -284.8}
+    LinkStart: 62
+    LinkCount: 4
+    Component: 0
+  - Position: {x: -60.4, y: 0, z: -225.8}
+    LinkStart: 66
+    LinkCount: 4
+    Component: 0
+  - Position: {x: -60.4, y: 0, z: -163.9}
+    LinkStart: 70
+    LinkCount: 3
+    Component: 0
+  - Position: {x: -121.5, y: 0, z: -408.3}
+    LinkStart: 73
+    LinkCount: 4
+    Component: 0
+  - Position: {x: -121.5, y: 0, z: -345.8}
+    LinkStart: 77
+    LinkCount: 3
+    Component: 0
+  - Position: {x: -121.5, y: 0, z: -284.8}
+    LinkStart: 80
+    LinkCount: 3
+    Component: 0
+  - Position: {x: -121.5, y: 0, z: -225.8}
+    LinkStart: 83
+    LinkCount: 3
+    Component: 0
+  - Position: {x: -121.5, y: 0, z: -163.9}
+    LinkStart: 86
+    LinkCount: 6
+    Component: 0
+  - Position: {x: 289.3, y: 0, z: -300.6}
+    LinkStart: 92
+    LinkCount: 1
+    Component: 0
+  - Position: {x: -109.8, y: 0, z: -108.3}
+    LinkStart: 93
+    LinkCount: 3
+    Component: 0
+  - Position: {x: -154, y: 0, z: -108.3}
+    LinkStart: 96
+    LinkCount: 3
+    Component: 0
+  - Position: {x: -200, y: 0, z: -108.3}
+    LinkStart: 99
+    LinkCount: 3
+    Component: 0
+  - Position: {x: -252.8, y: 0, z: -108.3}
+    LinkStart: 102
+    LinkCount: 3
+    Component: 0
+  - Position: {x: -109.8, y: 0, z: -43}
+    LinkStart: 105
+    LinkCount: 3
+    Component: 0
+  - Position: {x: -154, y: 0, z: -43}
+    LinkStart: 108
+    LinkCount: 4
+    Component: 0
+  - Position: {x: -200, y: 0, z: -43}
+    LinkStart: 112
+    LinkCount: 4
+    Component: 0
+  - Position: {x: -252.8, y: 0, z: -43}
+    LinkStart: 116
+    LinkCount: 3
+    Component: 0
+  - Position: {x: -109.8, y: 0, z: 44}
+    LinkStart: 119
+    LinkCount: 2
+    Component: 0
+  - Position: {x: -154, y: 0, z: 44}
+    LinkStart: 121
+    LinkCount: 2
+    Component: 0
+  - Position: {x: -171, y: 0, z: 44}
+    LinkStart: 123
+    LinkCount: 3
+    Component: 0
+  - Position: {x: -200, y: 0, z: 44}
+    LinkStart: 126
+    LinkCount: 3
+    Component: 0
+  - Position: {x: -252.8, y: 0, z: 44}
+    LinkStart: 129
+    LinkCount: 2
+    Component: 0
+  - Position: {x: 189.2, y: 0, z: -103.1}
+    LinkStart: 131
+    LinkCount: 2
+    Component: 0
+  - Position: {x: 189.2, y: 0, z: -35.8}
+    LinkStart: 133
+    LinkCount: 3
+    Component: 0
+  - Position: {x: 189.2, y: 0, z: 38.6}
+    LinkStart: 136
+    LinkCount: 2
+    Component: 0
+  - Position: {x: 111, y: 0, z: -103.1}
+    LinkStart: 138
+    LinkCount: 2
+    Component: 0
+  - Position: {x: 111, y: 0, z: -35.8}
+    LinkStart: 140
+    LinkCount: 3
+    Component: 0
+  - Position: {x: 111, y: 0, z: 38.6}
+    LinkStart: 143
+    LinkCount: 2
+    Component: 0
+  - Position: {x: 128.1, y: 0, z: -103.1}
+    LinkStart: 145
+    LinkCount: 3
+    Component: 0
+  - Position: {x: 128.1, y: 0, z: -35.8}
+    LinkStart: 148
+    LinkCount: 2
+    Component: 0
+  - Position: {x: 128.1, y: 0, z: 38.6}
+    LinkStart: 150
+    LinkCount: 2
+    Component: 0
+  - Position: {x: 80.9, y: 0, z: 163.6}
+    LinkStart: 152
+    LinkCount: 4
+    Component: 0
+  - Position: {x: 80.9, y: 0, z: 243.9}
+    LinkStart: 156
+    LinkCount: 3
+    Component: 0
+  - Position: {x: 80.9, y: 0, z: 325.3}
+    LinkStart: 159
+    LinkCount: 3
+    Component: 0
+  - Position: {x: 80.9, y: 0, z: 387.3}
+    LinkStart: 162
+    LinkCount: 2
+    Component: 0
+  - Position: {x: -1.1, y: 0, z: 163.6}
+    LinkStart: 164
+    LinkCount: 5
+    Component: 0
+  - Position: {x: -1.1, y: 0, z: 243.9}
+    LinkStart: 169
+    LinkCount: 4
+    Component: 0
+  - Position: {x: -1.1, y: 0, z: 325.3}
+    LinkStart: 173
+    LinkCount: 4
+    Component: 0
+  - Position: {x: -1.1, y: 0, z: 387.3}
+    LinkStart: 177
+    LinkCount: 3
+    Component: 0
+  - Position: {x: -81, y: 0, z: 163.6}
+    LinkStart: 180
+    LinkCount: 4
+    Component: 0
+  - Position: {x: -81, y: 0, z: 243.9}
+    LinkStart: 184
+    LinkCount: 3
+    Component: 0
+  - Position: {x: -81, y: 0, z: 325.3}
+    LinkStart: 187
+    LinkCount: 3
+    Component: 0
+  - Position: {x: -81, y: 0, z: 387.3}
+    LinkStart: 190
+    LinkCount: 2
+    Component: 0
+  - Position: {x: -126.2, y: 0, z: 126.6}
+    LinkStart: 192
+    LinkCount: 2
+    Component: 0
+  - Position: {x: -126.2, y: 0, z: 186.6}
+    LinkStart: 194
+    LinkCount: 3
+    Component: 0
+  - Position: {x: -126.2, y: 0, z: 249.2}
+    LinkStart: 197
+    LinkCount: 3
+    Component: 0
+  - Position: {x: -126.2, y: 0, z: 309.3}
+    LinkStart: 200
+    LinkCount: 2
+    Component: 0
+  - Position: {x: -212.6, y: 0, z: 126.6}
+    LinkStart: 202
+    LinkCount: 3
+    Component: 0
+  - Position: {x: -212.6, y: 0, z: 186.6}
+    LinkStart: 205
+    LinkCount: 4
+    Component: 0
+  - Position: {x: -212.6, y: 0, z: 249.2}
+    LinkStart: 209
+    LinkCount: 4
+    Component: 0
+  - Position: {x: -212.6, y: 0, z: 309.3}
+    LinkStart: 213
+    LinkCount: 3
+    Component: 0
+  - Position: {x: -270.7, y: 0, z: 126.6}
+    LinkStart: 216
+    LinkCount: 3
+    Component: 0
+  - Position: {x: -270.7, y: 0, z: 186.6}
+    LinkStart: 219
+    LinkCount: 4
+    Component: 0
+  - Position: {x: -270.7, y: 0, z: 249.2}
+    LinkStart: 223
+    LinkCount: 4
+    Component: 0
+  - Position: {x: -270.7, y: 0, z: 309.3}
+    LinkStart: 227
+    LinkCount: 3
+    Component: 0
+  - Position: {x: -359.7, y: 0, z: 126.6}
+    LinkStart: 230
+    LinkCount: 2
+    Component: 0
+  - Position: {x: -359.7, y: 0, z: 186.6}
+    LinkStart: 232
+    LinkCount: 3
+    Component: 0
+  - Position: {x: -359.7, y: 0, z: 249.2}
+    LinkStart: 235
+    LinkCount: 3
+    Component: 0
+  - Position: {x: -359.7, y: 0, z: 309.3}
+    LinkStart: 238
+    LinkCount: 2
+    Component: 0
+  - Position: {x: 589.8, y: 0, z: 75.5}
+    LinkStart: 240
+    LinkCount: 2
+    Component: 0
+  - Position: {x: 589.8, y: 0, z: 199.6}
+    LinkStart: 242
+    LinkCount: 3
+    Component: 0
+  - Position: {x: 589.8, y: 0, z: 325.6}
+    LinkStart: 245
+    LinkCount: 2
+    Component: 0
+  - Position: {x: 494.4, y: 0, z: 75.5}
+    LinkStart: 247
+    LinkCount: 3
+    Component: 0
+  - Position: {x: 494.4, y: 0, z: 199.6}
+    LinkStart: 250
+    LinkCount: 4
+    Component: 0
+  - Position: {x: 494.4, y: 0, z: 325.6}
+    LinkStart: 254
+    LinkCount: 3
+    Component: 0
+  - Position: {x: 409.2, y: 0, z: 75.5}
+    LinkStart: 257
+    LinkCount: 3
+    Component: 0
+  - Position: {x: 409.2, y: 0, z: 199.6}
+    LinkStart: 260
+    LinkCount: 4
+    Component: 0
+  - Position: {x: 409.2, y: 0, z: 325.6}
+    LinkStart: 264
+    LinkCount: 3
+    Component: 0
+  - Position: {x: 310.4, y: 0, z: 199.6}
+    LinkStart: 267
+    LinkCount: 4
+    Component: 0
+  - Position: {x: 310.4, y: 0, z: 325.6}
+    LinkStart: 271
+    LinkCount: 3
+    Component: 0
+  - Position: {x: 236.4, y: 0, z: 75.5}
+    LinkStart: 274
+    LinkCount: 3
+    Component: 0
+  - Position: {x: 236.4, y: 0, z: 199.6}
+    LinkStart: 277
+    LinkCount: 4
+    Component: 0
+  - Position: {x: 236.4, y: 0, z: 325.6}
+    LinkStart: 281
+    LinkCount: 3
+    Component: 0
+  - Position: {x: 127.3, y: 0, z: 75.5}
+    LinkStart: 284
+    LinkCount: 4
+    Component: 0
+  - Position: {x: 127.3, y: 0, z: 199.6}
+    LinkStart: 288
+    LinkCount: 3
+    Component: 0
+  - Position: {x: 127.3, y: 0, z: 325.6}
+    LinkStart: 291
+    LinkCount: 2
+    Component: 0
+  - Position: {x: 310.4, y: 0, z: 75.5}
+    LinkStart: 293
+    LinkCount: 3
+    Component: 0
+  - Position: {x: 297.1, y: 0, z: 65.9}
+    LinkStart: 296
+    LinkCount: 2
+    Component: 0
+  - Position: {x: -121.49999, y: -0.0001, z: -404.32962}
+    LinkStart: 298
+    LinkCount: 4
+    Component: 0
+  - Position: {x: -117.28345, y: -0.00009999999, z: -408.29996}
+    LinkStart: 302
+    LinkCount: 4
+    Component: 0
+  - Position: {x: -120.71449, y: 0.00006677247, z: -108.3}
+    LinkStart: 306
+    LinkCount: 4
+    Component: 0
+  - Position: {x: -117.10779, y: -0.0001, z: -43}
+    LinkStart: 310
+    LinkCount: 4
+    Component: 0
+  - Position: {x: -116.543045, y: 0.0003911776, z: 43.999996}
+    LinkStart: 314
+    LinkCount: 4
+    Component: 0
+  - Position: {x: -68.86337, y: -0.0001, z: 163.6}
+    LinkStart: 318
+    LinkCount: 4
+    Component: 0
+  - Position: {x: -126.2, y: 0.000089237976, z: 169.68686}
+    LinkStart: 322
+    LinkCount: 4
+    Component: 0
+  - Position: {x: -131.06654, y: -0.00009999999, z: 126.59999}
+    LinkStart: 326
+    LinkCount: 4
+    Component: 0
+  links:
+  - Edge: 0
+    S0: 0
+    S1: 265.21277
+    From: 0
+    To: 1
+    Twin: 1
+    Cost: 265.21277
+  - Edge: 0
+    S0: 265.21277
+    S1: 0
+    From: 1
+    To: 0
+    Twin: 0
+    Cost: 265.21277
+  - Edge: 140
+    S0: 680.3855
+    S1: 0
+    From: 2
+    To: 96
+    Twin: 296
+    Cost: 680.3855
+  - Edge: 141
+    S0: 0
+    S1: 250.40324
+    From: 2
+    To: 98
+    Twin: 302
+    Cost: 250.40324
+  - Edge: 20
+    S0: 0
+    S1: 70.3
+    From: 2
+    To: 7
+    Twin: 21
+    Cost: 70.3
+  - Edge: 40
+    S0: 233.72658
+    S1: 0
+    From: 2
+    To: 27
+    Twin: 92
+    Cost: 233.72658
+  - Edge: 1
+    S0: 0
+    S1: 62.5
+    From: 2
+    To: 3
+    Twin: 7
+    Cost: 62.5
+  - Edge: 1
+    S0: 62.5
+    S1: 0
+    From: 3
+    To: 2
+    Twin: 6
+    Cost: 62.5
+  - Edge: 24
+    S0: 0
+    S1: 70.3
+    From: 3
+    To: 8
+    Twin: 25
+    Cost: 70.3
+  - Edge: 2
+    S0: 0
+    S1: 61
+    From: 3
+    To: 4
+    Twin: 12
+    Cost: 61
+  - Edge: 3
+    S0: 0
+    S1: 58.999985
+    From: 4
+    To: 5
+    Twin: 14
+    Cost: 58.999985
+  - Edge: 28
+    S0: 0
+    S1: 70.3
+    From: 4
+    To: 9
+    Twin: 30
+    Cost: 70.3
+  - Edge: 2
+    S0: 61
+    S1: 0
+    From: 4
+    To: 3
+    Twin: 9
+    Cost: 61
+  - Edge: 71
+    S0: 122.701996
+    S1: 60.803
+    From: 5
+    To: 6
+    Twin: 18
+    Cost: 61.898994
+  - Edge: 3
+    S0: 58.999985
+    S1: 0
+    From: 5
+    To: 4
+    Twin: 10
+    Cost: 58.999985
+  - Edge: 4
+    S0: 0
+    S1: 61.90001
+    From: 5
+    To: 6
+    Twin: 20
+    Cost: 61.90001
+  - Edge: 32
+    S0: 0
+    S1: 70.3
+    From: 5
+    To: 10
+    Twin: 32
+    Cost: 70.3
+  - Edge: 71
+    S0: 60.803
+    S1: 0
+    From: 6
+    To: 47
+    Twin: 145
+    Cost: 60.803
+  - Edge: 71
+    S0: 60.803
+    S1: 122.701996
+    From: 6
+    To: 5
+    Twin: 13
+    Cost: 61.898994
+  - Edge: 36
+    S0: 0
+    S1: 70.3
+    From: 6
+    To: 11
+    Twin: 36
+    Cost: 70.3
+  - Edge: 4
+    S0: 61.90001
+    S1: 0
+    From: 6
+    To: 5
+    Twin: 15
+    Cost: 61.90001
+  - Edge: 20
+    S0: 70.3
+    S1: 0
+    From: 7
+    To: 2
+    Twin: 4
+    Cost: 70.3
+  - Edge: 21
+    S0: 0
+    S1: 57.200005
+    From: 7
+    To: 12
+    Twin: 39
+    Cost: 57.200005
+  - Edge: 5
+    S0: 0
+    S1: 62.5
+    From: 7
+    To: 8
+    Twin: 27
+    Cost: 62.5
+  - Edge: 6
+    S0: 0
+    S1: 61
+    From: 8
+    To: 9
+    Twin: 31
+    Cost: 61
+  - Edge: 24
+    S0: 70.3
+    S1: 0
+    From: 8
+    To: 3
+    Twin: 8
+    Cost: 70.3
+  - Edge: 25
+    S0: 0
+    S1: 57.200005
+    From: 8
+    To: 13
+    Twin: 44
+    Cost: 57.200005
+  - Edge: 5
+    S0: 62.5
+    S1: 0
+    From: 8
+    To: 7
+    Twin: 23
+    Cost: 62.5
+  - Edge: 29
+    S0: 0
+    S1: 57.200005
+    From: 9
+    To: 14
+    Twin: 47
+    Cost: 57.200005
+  - Edge: 7
+    S0: 0
+    S1: 58.999985
+    From: 9
+    To: 10
+    Twin: 35
+    Cost: 58.999985
+  - Edge: 28
+    S0: 70.3
+    S1: 0
+    From: 9
+    To: 4
+    Twin: 11
+    Cost: 70.3
+  - Edge: 6
+    S0: 61
+    S1: 0
+    From: 9
+    To: 8
+    Twin: 24
+    Cost: 61
+  - Edge: 32
+    S0: 70.3
+    S1: 0
+    From: 10
+    To: 5
+    Twin: 16
+    Cost: 70.3
+  - Edge: 33
+    S0: 0
+    S1: 57.200005
+    From: 10
+    To: 15
+    Twin: 51
+    Cost: 57.200005
+  - Edge: 8
+    S0: 0
+    S1: 61.90001
+    From: 10
+    To: 11
+    Twin: 38
+    Cost: 61.90001
+  - Edge: 7
+    S0: 58.999985
+    S1: 0
+    From: 10
+    To: 9
+    Twin: 29
+    Cost: 58.999985
+  - Edge: 36
+    S0: 70.3
+    S1: 0
+    From: 11
+    To: 6
+    Twin: 19
+    Cost: 70.3
+  - Edge: 37
+    S0: 0
+    S1: 57.200005
+    From: 11
+    To: 16
+    Twin: 52
+    Cost: 57.200005
+  - Edge: 8
+    S0: 61.90001
+    S1: 0
+    From: 11
+    To: 10
+    Twin: 34
+    Cost: 61.90001
+  - Edge: 21
+    S0: 57.200005
+    S1: 0
+    From: 12
+    To: 7
+    Twin: 22
+    Cost: 57.200005
+  - Edge: 22
+    S0: 0
+    S1: 61.7
+    From: 12
+    To: 17
+    Twin: 57
+    Cost: 61.7
+  - Edge: 9
+    S0: 0
+    S1: 62.5
+    From: 12
+    To: 13
+    Twin: 45
+    Cost: 62.5
+  - Edge: 26
+    S0: 0
+    S1: 61.7
+    From: 13
+    To: 18
+    Twin: 60
+    Cost: 61.7
+  - Edge: 10
+    S0: 0
+    S1: 61
+    From: 13
+    To: 14
+    Twin: 48
+    Cost: 61
+  - Edge: 25
+    S0: 57.200005
+    S1: 0
+    From: 13
+    To: 8
+    Twin: 26
+    Cost: 57.200005
+  - Edge: 9
+    S0: 62.5
+    S1: 0
+    From: 13
+    To: 12
+    Twin: 41
+    Cost: 62.5
+  - Edge: 30
+    S0: 0
+    S1: 61.7
+    From: 14
+    To: 19
+    Twin: 63
+    Cost: 61.7
+  - Edge: 29
+    S0: 57.200005
+    S1: 0
+    From: 14
+    To: 9
+    Twin: 28
+    Cost: 57.200005
+  - Edge: 10
+    S0: 61
+    S1: 0
+    From: 14
+    To: 13
+    Twin: 43
+    Cost: 61
+  - Edge: 11
+    S0: 0
+    S1: 61.90001
+    From: 15
+    To: 16
+    Twin: 54
+    Cost: 61.90001
+  - Edge: 34
+    S0: 0
+    S1: 61.7
+    From: 15
+    To: 20
+    Twin: 68
+    Cost: 61.7
+  - Edge: 33
+    S0: 57.200005
+    S1: 0
+    From: 15
+    To: 10
+    Twin: 33
+    Cost: 57.200005
+  - Edge: 37
+    S0: 57.200005
+    S1: 0
+    From: 16
+    To: 11
+    Twin: 37
+    Cost: 57.200005
+  - Edge: 38
+    S0: 0
+    S1: 61.7
+    From: 16
+    To: 21
+    Twin: 71
+    Cost: 61.7
+  - Edge: 11
+    S0: 61.90001
+    S1: 0
+    From: 16
+    To: 15
+    Twin: 49
+    Cost: 61.90001
+  - Edge: 23
+    S0: 0
+    S1: 56.883446
+    From: 17
+    To: 98
+    Twin: 303
+    Cost: 56.883446
+  - Edge: 12
+    S0: 0
+    S1: 62.5
+    From: 17
+    To: 18
+    Twin: 59
+    Cost: 62.5
+  - Edge: 22
+    S0: 61.7
+    S1: 0
+    From: 17
+    To: 12
+    Twin: 40
+    Cost: 61.7
+  - Edge: 13
+    S0: 0
+    S1: 61
+    From: 18
+    To: 19
+    Twin: 64
+    Cost: 61
+  - Edge: 12
+    S0: 62.5
+    S1: 0
+    From: 18
+    To: 17
+    Twin: 56
+    Cost: 62.5
+  - Edge: 26
+    S0: 61.7
+    S1: 0
+    From: 18
+    To: 13
+    Twin: 42
+    Cost: 61.7
+  - Edge: 27
+    S0: 0
+    S1: 61.1
+    From: 18
+    To: 23
+    Twin: 77
+    Cost: 61.1
+  - Edge: 31
+    S0: 0
+    S1: 61.1
+    From: 19
+    To: 24
+    Twin: 80
+    Cost: 61.1
+  - Edge: 30
+    S0: 61.7
+    S1: 0
+    From: 19
+    To: 14
+    Twin: 46
+    Cost: 61.7
+  - Edge: 13
+    S0: 61
+    S1: 0
+    From: 19
+    To: 18
+    Twin: 58
+    Cost: 61
+  - Edge: 14
+    S0: 0
+    S1: 58.999985
+    From: 19
+    To: 20
+    Twin: 69
+    Cost: 58.999985
+  - Edge: 35
+    S0: 0
+    S1: 61.1
+    From: 20
+    To: 25
+    Twin: 85
+    Cost: 61.1
+  - Edge: 15
+    S0: 0
+    S1: 61.90001
+    From: 20
+    To: 21
+    Twin: 70
+    Cost: 61.90001
+  - Edge: 34
+    S0: 61.7
+    S1: 0
+    From: 20
+    To: 15
+    Twin: 50
+    Cost: 61.7
+  - Edge: 14
+    S0: 58.999985
+    S1: 0
+    From: 20
+    To: 19
+    Twin: 65
+    Cost: 58.999985
+  - Edge: 15
+    S0: 61.90001
+    S1: 0
+    From: 21
+    To: 20
+    Twin: 67
+    Cost: 61.90001
+  - Edge: 38
+    S0: 61.7
+    S1: 0
+    From: 21
+    To: 16
+    Twin: 53
+    Cost: 61.7
+  - Edge: 39
+    S0: 0
+    S1: 61.1
+    From: 21
+    To: 26
+    Twin: 91
+    Cost: 61.1
+  - Edge: 23
+    S0: 61.1
+    S1: 56.883446
+    From: 22
+    To: 98
+    Twin: 305
+    Cost: 4.2165527
+  - Edge: 16
+    S0: 0
+    S1: 3.970378
+    From: 22
+    To: 97
+    Twin: 298
+    Cost: 3.970378
+  - Edge: 141
+    S0: 253.65915
+    S1: 250.40324
+    From: 22
+    To: 98
+    Twin: 304
+    Cost: 3.2559052
+  - Edge: 141
+    S0: 253.65915
+    S1: 256.21896
+    From: 22
+    To: 97
+    Twin: 300
+    Cost: 2.5598145
+  - Edge: 27
+    S0: 61.1
+    S1: 0
+    From: 23
+    To: 18
+    Twin: 61
+    Cost: 61.1
+  - Edge: 16
+    S0: 62.5
+    S1: 3.970378
+    From: 23
+    To: 97
+    Twin: 299
+    Cost: 58.52962
+  - Edge: 17
+    S0: 0
+    S1: 61
+    From: 23
+    To: 24
+    Twin: 81
+    Cost: 61
+  - Edge: 31
+    S0: 61.1
+    S1: 0
+    From: 24
+    To: 19
+    Twin: 62
+    Cost: 61.1
+  - Edge: 17
+    S0: 61
+    S1: 0
+    From: 24
+    To: 23
+    Twin: 79
+    Cost: 61
+  - Edge: 18
+    S0: 0
+    S1: 58.999985
+    From: 24
+    To: 25
+    Twin: 83
+    Cost: 58.999985
+  - Edge: 18
+    S0: 58.999985
+    S1: 0
+    From: 25
+    To: 24
+    Twin: 82
+    Cost: 58.999985
+  - Edge: 19
+    S0: 0
+    S1: 61.90001
+    From: 25
+    To: 26
+    Twin: 89
+    Cost: 61.90001
+  - Edge: 35
+    S0: 61.1
+    S1: 0
+    From: 25
+    To: 20
+    Twin: 66
+    Cost: 61.1
+  - Edge: 60
+    S0: 0
+    S1: 191.47467
+    From: 26
+    To: 31
+    Twin: 102
+    Cost: 191.47467
+  - Edge: 59
+    S0: 0
+    S1: 56.817684
+    From: 26
+    To: 28
+    Twin: 93
+    Cost: 56.817684
+  - Edge: 141
+    S0: 501.40665
+    S1: 256.21896
+    From: 26
+    To: 97
+    Twin: 301
+    Cost: 245.18768
+  - Edge: 19
+    S0: 61.90001
+    S1: 0
+    From: 26
+    To: 25
+    Twin: 84
+    Cost: 61.90001
+  - Edge: 141
+    S0: 501.40665
+    S1: 557.02716
+    From: 26
+    To: 99
+    Twin: 308
+    Cost: 55.620514
+  - Edge: 39
+    S0: 61.1
+    S1: 0
+    From: 26
+    To: 21
+    Twin: 72
+    Cost: 61.1
+  - Edge: 40
+    S0: 0
+    S1: 233.72658
+    From: 27
+    To: 2
+    Twin: 5
+    Cost: 233.72658
+  - Edge: 59
+    S0: 56.817684
+    S1: 0
+    From: 28
+    To: 26
+    Twin: 87
+    Cost: 56.817684
+  - Edge: 51
+    S0: 0
+    S1: 65.3
+    From: 28
+    To: 32
+    Twin: 107
+    Cost: 65.3
+  - Edge: 41
+    S0: 0
+    S1: 10.914486
+    From: 28
+    To: 99
+    Twin: 307
+    Cost: 10.914486
+  - Edge: 53
+    S0: 0
+    S1: 65.3
+    From: 29
+    To: 33
+    Twin: 110
+    Cost: 65.3
+  - Edge: 41
+    S0: 44.199997
+    S1: 10.914486
+    From: 29
+    To: 99
+    Twin: 306
+    Cost: 33.28551
+  - Edge: 42
+    S0: 0
+    S1: 46
+    From: 29
+    To: 30
+    Twin: 99
+    Cost: 46
+  - Edge: 42
+    S0: 46
+    S1: 0
+    From: 30
+    To: 29
+    Twin: 98
+    Cost: 46
+  - Edge: 55
+    S0: 0
+    S1: 65.3
+    From: 30
+    To: 34
+    Twin: 115
+    Cost: 65.3
+  - Edge: 43
+    S0: 0
+    S1: 52.800003
+    From: 30
+    To: 31
+    Twin: 104
+    Cost: 52.800003
+  - Edge: 60
+    S0: 191.47467
+    S1: 0
+    From: 31
+    To: 26
+    Twin: 86
+    Cost: 191.47467
+  - Edge: 57
+    S0: 0
+    S1: 65.3
+    From: 31
+    To: 35
+    Twin: 117
+    Cost: 65.3
+  - Edge: 43
+    S0: 52.800003
+    S1: 0
+    From: 31
+    To: 30
+    Twin: 101
+    Cost: 52.800003
+  - Edge: 44
+    S0: 0
+    S1: 7.3077865
+    From: 32
+    To: 100
+    Twin: 311
+    Cost: 7.3077865
+  - Edge: 52
+    S0: 0
+    S1: 87
+    From: 32
+    To: 36
+    Twin: 120
+    Cost: 87
+  - Edge: 51
+    S0: 65.3
+    S1: 0
+    From: 32
+    To: 28
+    Twin: 94
+    Cost: 65.3
+  - Edge: 45
+    S0: 0
+    S1: 46
+    From: 33
+    To: 34
+    Twin: 113
+    Cost: 46
+  - Edge: 54
+    S0: 0
+    S1: 88.645355
+    From: 33
+    To: 38
+    Twin: 125
+    Cost: 88.645355
+  - Edge: 53
+    S0: 65.3
+    S1: 0
+    From: 33
+    To: 29
+    Twin: 96
+    Cost: 65.3
+  - Edge: 44
+    S0: 44.199997
+    S1: 7.3077865
+    From: 33
+    To: 100
+    Twin: 310
+    Cost: 36.892212
+  - Edge: 56
+    S0: 0
+    S1: 87
+    From: 34
+    To: 39
+    Twin: 126
+    Cost: 87
+  - Edge: 45
+    S0: 46
+    S1: 0
+    From: 34
+    To: 33
+    Twin: 108
+    Cost: 46
+  - Edge: 46
+    S0: 0
+    S1: 52.800003
+    From: 34
+    To: 35
+    Twin: 118
+    Cost: 52.800003
+  - Edge: 55
+    S0: 65.3
+    S1: 0
+    From: 34
+    To: 30
+    Twin: 100
+    Cost: 65.3
+  - Edge: 58
+    S0: 0
+    S1: 87
+    From: 35
+    To: 40
+    Twin: 130
+    Cost: 87
+  - Edge: 57
+    S0: 65.3
+    S1: 0
+    From: 35
+    To: 31
+    Twin: 103
+    Cost: 65.3
+  - Edge: 46
+    S0: 52.800003
+    S1: 0
+    From: 35
+    To: 34
+    Twin: 114
+    Cost: 52.800003
+  - Edge: 47
+    S0: 0
+    S1: 6.743041
+    From: 36
+    To: 101
+    Twin: 315
+    Cost: 6.743041
+  - Edge: 52
+    S0: 87
+    S1: 0
+    From: 36
+    To: 32
+    Twin: 106
+    Cost: 87
+  - Edge: 47
+    S0: 44.199997
+    S1: 6.743041
+    From: 37
+    To: 101
+    Twin: 316
+    Cost: 37.456955
+  - Edge: 48
+    S0: 0
+    S1: 17
+    From: 37
+    To: 38
+    Twin: 123
+    Cost: 17
+  - Edge: 48
+    S0: 17
+    S1: 0
+    From: 38
+    To: 37
+    Twin: 122
+    Cost: 17
+  - Edge: 49
+    S0: 0
+    S1: 29
+    From: 38
+    To: 39
+    Twin: 127
+    Cost: 29
+  - Edge: 54
+    S0: 88.645355
+    S1: 0
+    From: 38
+    To: 33
+    Twin: 109
+    Cost: 88.645355
+  - Edge: 56
+    S0: 87
+    S1: 0
+    From: 39
+    To: 34
+    Twin: 112
+    Cost: 87
+  - Edge: 49
+    S0: 29
+    S1: 0
+    From: 39
+    To: 38
+    Twin: 124
+    Cost: 29
+  - Edge: 50
+    S0: 0
+    S1: 52.800003
+    From: 39
+    To: 40
+    Twin: 129
+    Cost: 52.800003
+  - Edge: 50
+    S0: 52.800003
+    S1: 0
+    From: 40
+    To: 39
+    Twin: 128
+    Cost: 52.800003
+  - Edge: 58
+    S0: 87
+    S1: 0
+    From: 40
+    To: 35
+    Twin: 116
+    Cost: 87
+  - Edge: 61
+    S0: 0
+    S1: 67.3
+    From: 41
+    To: 42
+    Twin: 135
+    Cost: 67.3
+  - Edge: 65
+    S0: 0
+    S1: 61.09999
+    From: 41
+    To: 47
+    Twin: 147
+    Cost: 61.09999
+  - Edge: 67
+    S0: 0
+    S1: 61.09999
+    From: 42
+    To: 48
+    Twin: 149
+    Cost: 61.09999
+  - Edge: 62
+    S0: 0
+    S1: 74.4
+    From: 42
+    To: 43
+    Twin: 136
+    Cost: 74.4
+  - Edge: 61
+    S0: 67.3
+    S1: 0
+    From: 42
+    To: 41
+    Twin: 131
+    Cost: 67.3
+  - Edge: 62
+    S0: 74.4
+    S1: 0
+    From: 43
+    To: 42
+    Twin: 134
+    Cost: 74.4
+  - Edge: 69
+    S0: 0
+    S1: 61.09999
+    From: 43
+    To: 49
+    Twin: 150
+    Cost: 61.09999
+  - Edge: 63
+    S0: 0
+    S1: 67.3
+    From: 44
+    To: 45
+    Twin: 140
+    Cost: 67.3
+  - Edge: 66
+    S0: 17.100006
+    S1: 0
+    From: 44
+    To: 47
+    Twin: 146
+    Cost: 17.100006
+  - Edge: 63
+    S0: 67.3
+    S1: 0
+    From: 45
+    To: 44
+    Twin: 138
+    Cost: 67.3
+  - Edge: 64
+    S0: 0
+    S1: 74.4
+    From: 45
+    To: 46
+    Twin: 143
+    Cost: 74.4
+  - Edge: 68
+    S0: 17.100006
+    S1: 0
+    From: 45
+    To: 48
+    Twin: 148
+    Cost: 17.100006
+  - Edge: 64
+    S0: 74.4
+    S1: 0
+    From: 46
+    To: 45
+    Twin: 141
+    Cost: 74.4
+  - Edge: 70
+    S0: 17.100006
+    S1: 0
+    From: 46
+    To: 49
+    Twin: 151
+    Cost: 17.100006
+  - Edge: 71
+    S0: 0
+    S1: 60.803
+    From: 47
+    To: 6
+    Twin: 17
+    Cost: 60.803
+  - Edge: 66
+    S0: 0
+    S1: 17.100006
+    From: 47
+    To: 44
+    Twin: 139
+    Cost: 17.100006
+  - Edge: 65
+    S0: 61.09999
+    S1: 0
+    From: 47
+    To: 41
+    Twin: 132
+    Cost: 61.09999
+  - Edge: 68
+    S0: 0
+    S1: 17.100006
+    From: 48
+    To: 45
+    Twin: 142
+    Cost: 17.100006
+  - Edge: 67
+    S0: 61.09999
+    S1: 0
+    From: 48
+    To: 42
+    Twin: 133
+    Cost: 61.09999
+  - Edge: 69
+    S0: 61.09999
+    S1: 0
+    From: 49
+    To: 43
+    Twin: 137
+    Cost: 61.09999
+  - Edge: 70
+    S0: 0
+    S1: 17.100006
+    From: 49
+    To: 46
+    Twin: 144
+    Cost: 17.100006
+  - Edge: 72
+    S0: 0
+    S1: 80.29999
+    From: 50
+    To: 51
+    Twin: 156
+    Cost: 80.29999
+  - Edge: 141
+    S0: 1047.0542
+    S1: 1190.384
+    From: 50
+    To: 92
+    Twin: 286
+    Cost: 143.32983
+  - Edge: 81
+    S0: 0
+    S1: 81.99999
+    From: 50
+    To: 54
+    Twin: 164
+    Cost: 81.99999
+  - Edge: 141
+    S0: 1047.0542
+    S1: 964.70325
+    From: 50
+    To: 54
+    Twin: 165
+    Cost: 82.35095
+  - Edge: 72
+    S0: 80.29999
+    S1: 0
+    From: 51
+    To: 50
+    Twin: 152
+    Cost: 80.29999
+  - Edge: 83
+    S0: 0
+    S1: 81.99999
+    From: 51
+    To: 55
+    Twin: 170
+    Cost: 81.99999
+  - Edge: 73
+    S0: 0
+    S1: 81.399994
+    From: 51
+    To: 52
+    Twin: 159
+    Cost: 81.399994
+  - Edge: 73
+    S0: 81.399994
+    S1: 0
+    From: 52
+    To: 51
+    Twin: 158
+    Cost: 81.399994
+  - Edge: 74
+    S0: 0
+    S1: 62
+    From: 52
+    To: 53
+    Twin: 162
+    Cost: 62
+  - Edge: 85
+    S0: 0
+    S1: 81.99999
+    From: 52
+    To: 56
+    Twin: 175
+    Cost: 81.99999
+  - Edge: 74
+    S0: 62
+    S1: 0
+    From: 53
+    To: 52
+    Twin: 160
+    Cost: 62
+  - Edge: 87
+    S0: 0
+    S1: 81.99999
+    From: 53
+    To: 57
+    Twin: 179
+    Cost: 81.99999
+  - Edge: 81
+    S0: 81.99999
+    S1: 0
+    From: 54
+    To: 50
+    Twin: 154
+    Cost: 81.99999
+  - Edge: 141
+    S0: 964.70325
+    S1: 1047.0542
+    From: 54
+    To: 50
+    Twin: 155
+    Cost: 82.35095
+  - Edge: 141
+    S0: 964.70325
+    S1: 896.95374
+    From: 54
+    To: 102
+    Twin: 321
+    Cost: 67.74951
+  - Edge: 75
+    S0: 0
+    S1: 80.29999
+    From: 54
+    To: 55
+    Twin: 172
+    Cost: 80.29999
+  - Edge: 82
+    S0: 0
+    S1: 67.763374
+    From: 54
+    To: 102
+    Twin: 319
+    Cost: 67.763374
+  - Edge: 84
+    S0: 0
+    S1: 79.9
+    From: 55
+    To: 59
+    Twin: 186
+    Cost: 79.9
+  - Edge: 83
+    S0: 81.99999
+    S1: 0
+    From: 55
+    To: 51
+    Twin: 157
+    Cost: 81.99999
+  - Edge: 76
+    S0: 0
+    S1: 81.399994
+    From: 55
+    To: 56
+    Twin: 174
+    Cost: 81.399994
+  - Edge: 75
+    S0: 80.29999
+    S1: 0
+    From: 55
+    To: 54
+    Twin: 167
+    Cost: 80.29999
+  - Edge: 77
+    S0: 0
+    S1: 62
+    From: 56
+    To: 57
+    Twin: 178
+    Cost: 62
+  - Edge: 76
+    S0: 81.399994
+    S1: 0
+    From: 56
+    To: 55
+    Twin: 171
+    Cost: 81.399994
+  - Edge: 85
+    S0: 81.99999
+    S1: 0
+    From: 56
+    To: 52
+    Twin: 161
+    Cost: 81.99999
+  - Edge: 86
+    S0: 0
+    S1: 79.9
+    From: 56
+    To: 60
+    Twin: 188
+    Cost: 79.9
+  - Edge: 88
+    S0: 0
+    S1: 79.9
+    From: 57
+    To: 61
+    Twin: 191
+    Cost: 79.9
+  - Edge: 77
+    S0: 62
+    S1: 0
+    From: 57
+    To: 56
+    Twin: 173
+    Cost: 62
+  - Edge: 87
+    S0: 81.99999
+    S1: 0
+    From: 57
+    To: 53
+    Twin: 163
+    Cost: 81.99999
+  - Edge: 78
+    S0: 0
+    S1: 80.29999
+    From: 58
+    To: 59
+    Twin: 185
+    Cost: 80.29999
+  - Edge: 141
+    S0: 884.8353
+    S1: 896.95374
+    From: 58
+    To: 102
+    Twin: 320
+    Cost: 12.118408
+  - Edge: 141
+    S0: 884.8353
+    S1: 838.79114
+    From: 58
+    To: 103
+    Twin: 323
+    Cost: 46.04419
+  - Edge: 82
+    S0: 79.9
+    S1: 67.763374
+    From: 58
+    To: 102
+    Twin: 318
+    Cost: 12.136627
+  - Edge: 79
+    S0: 0
+    S1: 81.399994
+    From: 59
+    To: 60
+    Twin: 189
+    Cost: 81.399994
+  - Edge: 78
+    S0: 80.29999
+    S1: 0
+    From: 59
+    To: 58
+    Twin: 180
+    Cost: 80.29999
+  - Edge: 84
+    S0: 79.9
+    S1: 0
+    From: 59
+    To: 55
+    Twin: 169
+    Cost: 79.9
+  - Edge: 80
+    S0: 0
+    S1: 62
+    From: 60
+    To: 61
+    Twin: 190
+    Cost: 62
+  - Edge: 86
+    S0: 79.9
+    S1: 0
+    From: 60
+    To: 56
+    Twin: 176
+    Cost: 79.9
+  - Edge: 79
+    S0: 81.399994
+    S1: 0
+    From: 60
+    To: 59
+    Twin: 184
+    Cost: 81.399994
+  - Edge: 80
+    S0: 62
+    S1: 0
+    From: 61
+    To: 60
+    Twin: 187
+    Cost: 62
+  - Edge: 88
+    S0: 79.9
+    S1: 0
+    From: 61
+    To: 57
+    Twin: 177
+    Cost: 79.9
+  - Edge: 89
+    S0: 0
+    S1: 43.086864
+    From: 62
+    To: 103
+    Twin: 325
+    Cost: 43.086864
+  - Edge: 101
+    S0: 0
+    S1: 4.866538
+    From: 62
+    To: 104
+    Twin: 329
+    Cost: 4.866538
+  - Edge: 104
+    S0: 0
+    S1: 86.40001
+    From: 63
+    To: 67
+    Twin: 206
+    Cost: 86.40001
+  - Edge: 89
+    S0: 60.000008
+    S1: 43.086864
+    From: 63
+    To: 103
+    Twin: 324
+    Cost: 16.913143
+  - Edge: 90
+    S0: 0
+    S1: 62.59999
+    From: 63
+    To: 64
+    Twin: 197
+    Cost: 62.59999
+  - Edge: 90
+    S0: 62.59999
+    S1: 0
+    From: 64
+    To: 63
+    Twin: 196
+    Cost: 62.59999
+  - Edge: 91
+    S0: 0
+    S1: 60.09999
+    From: 64
+    To: 65
+    Twin: 200
+    Cost: 60.09999
+  - Edge: 107
+    S0: 0
+    S1: 86.40001
+    From: 64
+    To: 68
+    Twin: 209
+    Cost: 86.40001
+  - Edge: 91
+    S0: 60.09999
+    S1: 0
+    From: 65
+    To: 64
+    Twin: 198
+    Cost: 60.09999
+  - Edge: 110
+    S0: 0
+    S1: 86.40001
+    From: 65
+    To: 69
+    Twin: 214
+    Cost: 86.40001
+  - Edge: 102
+    S0: 0
+    S1: 58.100006
+    From: 66
+    To: 70
+    Twin: 217
+    Cost: 58.100006
+  - Edge: 101
+    S0: 86.40001
+    S1: 4.866538
+    From: 66
+    To: 104
+    Twin: 328
+    Cost: 81.53347
+  - Edge: 92
+    S0: 0
+    S1: 60.000008
+    From: 66
+    To: 67
+    Twin: 207
+    Cost: 60.000008
+  - Edge: 105
+    S0: 0
+    S1: 58.100006
+    From: 67
+    To: 71
+    Twin: 221
+    Cost: 58.100006
+  - Edge: 104
+    S0: 86.40001
+    S1: 0
+    From: 67
+    To: 63
+    Twin: 194
+    Cost: 86.40001
+  - Edge: 92
+    S0: 60.000008
+    S1: 0
+    From: 67
+    To: 66
+    Twin: 204
+    Cost: 60.000008
+  - Edge: 93
+    S0: 0
+    S1: 62.59999
+    From: 67
+    To: 68
+    Twin: 212
+    Cost: 62.59999
+  - Edge: 107
+    S0: 86.40001
+    S1: 0
+    From: 68
+    To: 64
+    Twin: 199
+    Cost: 86.40001
+  - Edge: 94
+    S0: 0
+    S1: 60.09999
+    From: 68
+    To: 69
+    Twin: 215
+    Cost: 60.09999
+  - Edge: 108
+    S0: 0
+    S1: 58.100006
+    From: 68
+    To: 72
+    Twin: 226
+    Cost: 58.100006
+  - Edge: 93
+    S0: 62.59999
+    S1: 0
+    From: 68
+    To: 67
+    Twin: 208
+    Cost: 62.59999
+  - Edge: 111
+    S0: 0
+    S1: 58.100006
+    From: 69
+    To: 73
+    Twin: 227
+    Cost: 58.100006
+  - Edge: 110
+    S0: 86.40001
+    S1: 0
+    From: 69
+    To: 65
+    Twin: 201
+    Cost: 86.40001
+  - Edge: 94
+    S0: 60.09999
+    S1: 0
+    From: 69
+    To: 68
+    Twin: 210
+    Cost: 60.09999
+  - Edge: 95
+    S0: 0
+    S1: 60.000008
+    From: 70
+    To: 71
+    Twin: 220
+    Cost: 60.000008
+  - Edge: 102
+    S0: 58.100006
+    S1: 0
+    From: 70
+    To: 66
+    Twin: 202
+    Cost: 58.100006
+  - Edge: 103
+    S0: 0
+    S1: 89
+    From: 70
+    To: 74
+    Twin: 231
+    Cost: 89
+  - Edge: 96
+    S0: 0
+    S1: 62.59999
+    From: 71
+    To: 72
+    Twin: 223
+    Cost: 62.59999
+  - Edge: 95
+    S0: 60.000008
+    S1: 0
+    From: 71
+    To: 70
+    Twin: 216
+    Cost: 60.000008
+  - Edge: 105
+    S0: 58.100006
+    S1: 0
+    From: 71
+    To: 67
+    Twin: 205
+    Cost: 58.100006
+  - Edge: 106
+    S0: 0
+    S1: 89
+    From: 71
+    To: 75
+    Twin: 233
+    Cost: 89
+  - Edge: 96
+    S0: 62.59999
+    S1: 0
+    From: 72
+    To: 71
+    Twin: 219
+    Cost: 62.59999
+  - Edge: 109
+    S0: 0
+    S1: 89
+    From: 72
+    To: 76
+    Twin: 237
+    Cost: 89
+  - Edge: 97
+    S0: 0
+    S1: 60.09999
+    From: 72
+    To: 73
+    Twin: 229
+    Cost: 60.09999
+  - Edge: 108
+    S0: 58.100006
+    S1: 0
+    From: 72
+    To: 68
+    Twin: 211
+    Cost: 58.100006
+  - Edge: 111
+    S0: 58.100006
+    S1: 0
+    From: 73
+    To: 69
+    Twin: 213
+    Cost: 58.100006
+  - Edge: 112
+    S0: 0
+    S1: 89
+    From: 73
+    To: 77
+    Twin: 239
+    Cost: 89
+  - Edge: 97
+    S0: 60.09999
+    S1: 0
+    From: 73
+    To: 72
+    Twin: 225
+    Cost: 60.09999
+  - Edge: 98
+    S0: 0
+    S1: 60.000008
+    From: 74
+    To: 75
+    Twin: 232
+    Cost: 60.000008
+  - Edge: 103
+    S0: 89
+    S1: 0
+    From: 74
+    To: 70
+    Twin: 218
+    Cost: 89
+  - Edge: 98
+    S0: 60.000008
+    S1: 0
+    From: 75
+    To: 74
+    Twin: 230
+    Cost: 60.000008
+  - Edge: 106
+    S0: 89
+    S1: 0
+    From: 75
+    To: 71
+    Twin: 222
+    Cost: 89
+  - Edge: 99
+    S0: 0
+    S1: 62.59999
+    From: 75
+    To: 76
+    Twin: 236
+    Cost: 62.59999
+  - Edge: 100
+    S0: 0
+    S1: 60.09999
+    From: 76
+    To: 77
+    Twin: 238
+    Cost: 60.09999
+  - Edge: 99
+    S0: 62.59999
+    S1: 0
+    From: 76
+    To: 75
+    Twin: 234
+    Cost: 62.59999
+  - Edge: 109
+    S0: 89
+    S1: 0
+    From: 76
+    To: 72
+    Twin: 224
+    Cost: 89
+  - Edge: 100
+    S0: 60.09999
+    S1: 0
+    From: 77
+    To: 76
+    Twin: 235
+    Cost: 60.09999
+  - Edge: 112
+    S0: 89
+    S1: 0
+    From: 77
+    To: 73
+    Twin: 228
+    Cost: 89
+  - Edge: 113
+    S0: 0
+    S1: 124.100006
+    From: 78
+    To: 79
+    Twin: 244
+    Cost: 124.100006
+  - Edge: 124
+    S0: 0
+    S1: 95.399994
+    From: 78
+    To: 81
+    Twin: 247
+    Cost: 95.399994
+  - Edge: 114
+    S0: 0
+    S1: 126
+    From: 79
+    To: 80
+    Twin: 246
+    Cost: 126
+  - Edge: 129
+    S0: 0
+    S1: 95.399994
+    From: 79
+    To: 82
+    Twin: 251
+    Cost: 95.399994
+  - Edge: 113
+    S0: 124.100006
+    S1: 0
+    From: 79
+    To: 78
+    Twin: 240
+    Cost: 124.100006
+  - Edge: 134
+    S0: 0
+    S1: 95.399994
+    From: 80
+    To: 83
+    Twin: 256
+    Cost: 95.399994
+  - Edge: 114
+    S0: 126
+    S1: 0
+    From: 80
+    To: 79
+    Twin: 242
+    Cost: 126
+  - Edge: 124
+    S0: 95.399994
+    S1: 0
+    From: 81
+    To: 78
+    Twin: 241
+    Cost: 95.399994
+  - Edge: 125
+    S0: 0
+    S1: 85.19998
+    From: 81
+    To: 84
+    Twin: 257
+    Cost: 85.19998
+  - Edge: 115
+    S0: 0
+    S1: 124.100006
+    From: 81
+    To: 82
+    Twin: 253
+    Cost: 124.100006
+  - Edge: 130
+    S0: 0
+    S1: 85.19998
+    From: 82
+    To: 85
+    Twin: 263
+    Cost: 85.19998
+  - Edge: 129
+    S0: 95.399994
+    S1: 0
+    From: 82
+    To: 79
+    Twin: 243
+    Cost: 95.399994
+  - Edge: 116
+    S0: 0
+    S1: 126
+    From: 82
+    To: 83
+    Twin: 255
+    Cost: 126
+  - Edge: 115
+    S0: 124.100006
+    S1: 0
+    From: 82
+    To: 81
+    Twin: 249
+    Cost: 124.100006
+  - Edge: 135
+    S0: 0
+    S1: 85.19998
+    From: 83
+    To: 86
+    Twin: 266
+    Cost: 85.19998
+  - Edge: 116
+    S0: 126
+    S1: 0
+    From: 83
+    To: 82
+    Twin: 252
+    Cost: 126
+  - Edge: 134
+    S0: 95.399994
+    S1: 0
+    From: 83
+    To: 80
+    Twin: 245
+    Cost: 95.399994
+  - Edge: 125
+    S0: 85.19998
+    S1: 0
+    From: 84
+    To: 81
+    Twin: 248
+    Cost: 85.19998
+  - Edge: 117
+    S0: 0
+    S1: 124.100006
+    From: 84
+    To: 85
+    Twin: 261
+    Cost: 124.100006
+  - Edge: 126
+    S0: 0
+    S1: 98.80002
+    From: 84
+    To: 95
+    Twin: 294
+    Cost: 98.80002
+  - Edge: 131
+    S0: 0
+    S1: 98.80002
+    From: 85
+    To: 87
+    Twin: 268
+    Cost: 98.80002
+  - Edge: 117
+    S0: 124.100006
+    S1: 0
+    From: 85
+    To: 84
+    Twin: 258
+    Cost: 124.100006
+  - Edge: 118
+    S0: 0
+    S1: 126
+    From: 85
+    To: 86
+    Twin: 265
+    Cost: 126
+  - Edge: 130
+    S0: 85.19998
+    S1: 0
+    From: 85
+    To: 82
+    Twin: 250
+    Cost: 85.19998
+  - Edge: 136
+    S0: 0
+    S1: 98.80002
+    From: 86
+    To: 88
+    Twin: 272
+    Cost: 98.80002
+  - Edge: 118
+    S0: 126
+    S1: 0
+    From: 86
+    To: 85
+    Twin: 262
+    Cost: 126
+  - Edge: 135
+    S0: 85.19998
+    S1: 0
+    From: 86
+    To: 83
+    Twin: 254
+    Cost: 85.19998
+  - Edge: 132
+    S0: 0
+    S1: 74
+    From: 87
+    To: 90
+    Twin: 279
+    Cost: 74
+  - Edge: 131
+    S0: 98.80002
+    S1: 0
+    From: 87
+    To: 85
+    Twin: 260
+    Cost: 98.80002
+  - Edge: 139
+    S0: 125.535645
+    S1: 0
+    From: 87
+    To: 95
+    Twin: 295
+    Cost: 125.535645
+  - Edge: 119
+    S0: 0
+    S1: 126
+    From: 87
+    To: 88
+    Twin: 273
+    Cost: 126
+  - Edge: 137
+    S0: 0
+    S1: 74
+    From: 88
+    To: 91
+    Twin: 282
+    Cost: 74
+  - Edge: 136
+    S0: 98.80002
+    S1: 0
+    From: 88
+    To: 86
+    Twin: 264
+    Cost: 98.80002
+  - Edge: 119
+    S0: 126
+    S1: 0
+    From: 88
+    To: 87
+    Twin: 270
+    Cost: 126
+  - Edge: 127
+    S0: 74
+    S1: 0
+    From: 89
+    To: 95
+    Twin: 293
+    Cost: 74
+  - Edge: 128
+    S0: 0
+    S1: 109.09999
+    From: 89
+    To: 92
+    Twin: 287
+    Cost: 109.09999
+  - Edge: 120
+    S0: 0
+    S1: 124.100006
+    From: 89
+    To: 90
+    Twin: 277
+    Cost: 124.100006
+  - Edge: 120
+    S0: 124.100006
+    S1: 0
+    From: 90
+    To: 89
+    Twin: 276
+    Cost: 124.100006
+  - Edge: 121
+    S0: 0
+    S1: 126
+    From: 90
+    To: 91
+    Twin: 281
+    Cost: 126
+  - Edge: 132
+    S0: 74
+    S1: 0
+    From: 90
+    To: 87
+    Twin: 267
+    Cost: 74
+  - Edge: 133
+    S0: 0
+    S1: 109.09999
+    From: 90
+    To: 93
+    Twin: 289
+    Cost: 109.09999
+  - Edge: 121
+    S0: 126
+    S1: 0
+    From: 91
+    To: 90
+    Twin: 278
+    Cost: 126
+  - Edge: 137
+    S0: 74
+    S1: 0
+    From: 91
+    To: 88
+    Twin: 271
+    Cost: 74
+  - Edge: 138
+    S0: 0
+    S1: 109.09999
+    From: 91
+    To: 94
+    Twin: 292
+    Cost: 109.09999
+  - Edge: 141
+    S0: 1190.384
+    S1: 1363.7927
+    From: 92
+    To: 96
+    Twin: 297
+    Cost: 173.40869
+  - Edge: 122
+    S0: 0
+    S1: 124.100006
+    From: 92
+    To: 93
+    Twin: 290
+    Cost: 124.100006
+  - Edge: 141
+    S0: 1190.384
+    S1: 1047.0542
+    From: 92
+    To: 50
+    Twin: 153
+    Cost: 143.32983
+  - Edge: 128
+    S0: 109.09999
+    S1: 0
+    From: 92
+    To: 89
+    Twin: 275
+    Cost: 109.09999
+  - Edge: 123
+    S0: 0
+    S1: 126
+    From: 93
+    To: 94
+    Twin: 291
+    Cost: 126
+  - Edge: 133
+    S0: 109.09999
+    S1: 0
+    From: 93
+    To: 90
+    Twin: 280
+    Cost: 109.09999
+  - Edge: 122
+    S0: 124.100006
+    S1: 0
+    From: 93
+    To: 92
+    Twin: 285
+    Cost: 124.100006
+  - Edge: 123
+    S0: 126
+    S1: 0
+    From: 94
+    To: 93
+    Twin: 288
+    Cost: 126
+  - Edge: 138
+    S0: 109.09999
+    S1: 0
+    From: 94
+    To: 91
+    Twin: 283
+    Cost: 109.09999
+  - Edge: 127
+    S0: 0
+    S1: 74
+    From: 95
+    To: 89
+    Twin: 274
+    Cost: 74
+  - Edge: 126
+    S0: 98.80002
+    S1: 0
+    From: 95
+    To: 84
+    Twin: 259
+    Cost: 98.80002
+  - Edge: 139
+    S0: 0
+    S1: 125.535645
+    From: 95
+    To: 87
+    Twin: 269
+    Cost: 125.535645
+  - Edge: 140
+    S0: 0
+    S1: 680.3855
+    From: 96
+    To: 2
+    Twin: 2
+    Cost: 680.3855
+  - Edge: 141
+    S0: 1363.7927
+    S1: 1190.384
+    From: 96
+    To: 92
+    Twin: 284
+    Cost: 173.40869
+  - Edge: 16
+    S0: 3.970378
+    S1: 0
+    From: 97
+    To: 22
+    Twin: 74
+    Cost: 3.970378
+  - Edge: 16
+    S0: 3.970378
+    S1: 62.5
+    From: 97
+    To: 23
+    Twin: 78
+    Cost: 58.52962
+  - Edge: 141
+    S0: 256.21896
+    S1: 253.65915
+    From: 97
+    To: 22
+    Twin: 76
+    Cost: 2.5598145
+  - Edge: 141
+    S0: 256.21896
+    S1: 501.40665
+    From: 97
+    To: 26
+    Twin: 88
+    Cost: 245.18768
+  - Edge: 141
+    S0: 250.40324
+    S1: 0
+    From: 98
+    To: 2
+    Twin: 3
+    Cost: 250.40324
+  - Edge: 23
+    S0: 56.883446
+    S1: 0
+    From: 98
+    To: 17
+    Twin: 55
+    Cost: 56.883446
+  - Edge: 141
+    S0: 250.40324
+    S1: 253.65915
+    From: 98
+    To: 22
+    Twin: 75
+    Cost: 3.2559052
+  - Edge: 23
+    S0: 56.883446
+    S1: 61.1
+    From: 98
+    To: 22
+    Twin: 73
+    Cost: 4.2165527
+  - Edge: 41
+    S0: 10.914486
+    S1: 44.199997
+    From: 99
+    To: 29
+    Twin: 97
+    Cost: 33.28551
+  - Edge: 41
+    S0: 10.914486
+    S1: 0
+    From: 99
+    To: 28
+    Twin: 95
+    Cost: 10.914486
+  - Edge: 141
+    S0: 557.02716
+    S1: 501.40665
+    From: 99
+    To: 26
+    Twin: 90
+    Cost: 55.620514
+  - Edge: 141
+    S0: 557.02716
+    S1: 622.4269
+    From: 99
+    To: 100
+    Twin: 312
+    Cost: 65.39972
+  - Edge: 44
+    S0: 7.3077865
+    S1: 44.199997
+    From: 100
+    To: 33
+    Twin: 111
+    Cost: 36.892212
+  - Edge: 44
+    S0: 7.3077865
+    S1: 0
+    From: 100
+    To: 32
+    Twin: 105
+    Cost: 7.3077865
+  - Edge: 141
+    S0: 622.4269
+    S1: 557.02716
+    From: 100
+    To: 99
+    Twin: 309
+    Cost: 65.39972
+  - Edge: 141
+    S0: 622.4269
+    S1: 709.491
+    From: 100
+    To: 101
+    Twin: 314
+    Cost: 87.06415
+  - Edge: 141
+    S0: 709.491
+    S1: 622.4269
+    From: 101
+    To: 100
+    Twin: 313
+    Cost: 87.06415
+  - Edge: 47
+    S0: 6.743041
+    S1: 0
+    From: 101
+    To: 36
+    Twin: 119
+    Cost: 6.743041
+  - Edge: 47
+    S0: 6.743041
+    S1: 44.199997
+    From: 101
+    To: 37
+    Twin: 121
+    Cost: 37.456955
+  - Edge: 141
+    S0: 709.491
+    S1: 793.4819
+    From: 101
+    To: 104
+    Twin: 326
+    Cost: 83.990845
+  - Edge: 82
+    S0: 67.763374
+    S1: 79.9
+    From: 102
+    To: 58
+    Twin: 183
+    Cost: 12.136627
+  - Edge: 82
+    S0: 67.763374
+    S1: 0
+    From: 102
+    To: 54
+    Twin: 168
+    Cost: 67.763374
+  - Edge: 141
+    S0: 896.95374
+    S1: 884.8353
+    From: 102
+    To: 58
+    Twin: 181
+    Cost: 12.118408
+  - Edge: 141
+    S0: 896.95374
+    S1: 964.70325
+    From: 102
+    To: 54
+    Twin: 166
+    Cost: 67.74951
+  - Edge: 141
+    S0: 838.79114
+    S1: 793.4819
+    From: 103
+    To: 104
+    Twin: 327
+    Cost: 45.309265
+  - Edge: 141
+    S0: 838.79114
+    S1: 884.8353
+    From: 103
+    To: 58
+    Twin: 182
+    Cost: 46.04419
+  - Edge: 89
+    S0: 43.086864
+    S1: 60.000008
+    From: 103
+    To: 63
+    Twin: 195
+    Cost: 16.913143
+  - Edge: 89
+    S0: 43.086864
+    S1: 0
+    From: 103
+    To: 62
+    Twin: 192
+    Cost: 43.086864
+  - Edge: 141
+    S0: 793.4819
+    S1: 709.491
+    From: 104
+    To: 101
+    Twin: 317
+    Cost: 83.990845
+  - Edge: 141
+    S0: 793.4819
+    S1: 838.79114
+    From: 104
+    To: 103
+    Twin: 322
+    Cost: 45.309265
+  - Edge: 101
+    S0: 4.866538
+    S1: 86.40001
+    From: 104
+    To: 66
+    Twin: 203
+    Cost: 81.53347
+  - Edge: 101
+    S0: 4.866538
+    S1: 0
+    From: 104
+    To: 62
+    Twin: 193
+    Cost: 4.866538
+  componentCount: 2
+  componentLength:
+  - 12494.273
+  - 265.21277
+  gridOrigin: {x: -391.70004, y: 0, z: -456.74576}
+  cellSize: 32
+  cellsX: 32
+  cellsZ: 28
+  cellStart: 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000012000000160000001e000000220000002a0000002e000000360000003a00000044000000480000004c0000005000000054000000580000005a0000005c0000005c0000005c0000005c0000005c0000005c0000005c0000005c0000005c0000005c0000005c0000005c0000005c0000005c0000005c0000005c0000005e00000062000000620000006400000064000000660000006600000068000000680000006e00000072000000760000007a0000007e0000008200000084000000860000008600000086000000860000008600000086000000860000008600000086000000860000008600000086000000860000008600000086000000860000008800000090000000920000009a0000009c000000a4000000a6000000ae000000b0000000ba000000be000000c2000000c6000000ca000000ce000000d0000000d2000000d2000000d2000000d2000000d2000000d2000000d2000000d2000000d2000000d2000000d2000000d2000000d2000000d2000000d2000000d2000000d4000000d8000000d8000000da000000da000000dc000000dc000000de000000de000000e4000000e8000000ec000000f0000000f4000000f8000000fa000000fc000000fc000000fc000000fc000000fc000000fc000000fc000000fc000000fc000000fc000000fc000000fc000000fc000000fc000000fc000000fc000000fe00000006010000080100001001000012010000180100001a01000022010000240100002c0100002e01000030010000320100003401000036010000380100003a0100003a0100003a0100003a0100003a0100003a0100003a0100003a0100003a0100003a0100003a0100003a0100003a0100003a0100003a0100003a0100003c0100004001000040010000420100004201000042010000420100004401000044010000480100004a0100004c0100004e010000500100005201000054010000560100005601000056010000560100005601000056010000560100005601000056010000560100005601000056010000560100005601000056010000560100005801000060010000620100006a0100006c01000072010000740100007c0100007e010000880100008a0100008c0100008e01000090010000920100009401000096010000960100009601000096010000960100009601000096010000960100009601000096010000960100009601000096010000980100009a0100009c010000a0010000a6010000a6010000a8010000a8010000aa010000aa010000ac010000ac010000b2010000b4010000b6010000b8010000ba010000bc010000be010000c0010000c0010000c0010000c0010000c0010000c0010000c0010000c0010000c0010000c0010000c0010000c0010000c0010000c2010000c4010000c6010000ca010000d6010000d8010000de010000e0010000e8010000ea010000f0010000f2010000fc010000fe01000000020000020200000402000006020000080200000a0200000a0200000a0200000a0200000a0200000a0200000a0200000a0200000a0200000a0200000a0200000a0200000a02000010020000180200001c020000240200003202000032020000320200003202000034020000340200003402000034020000380200003a0200003c0200003e02000040020000420200004402000046020000460200004602000046020000460200004602000046020000460200004602000046020000460200004602000046020000480200004a0200004a0200004c02000050020000500200005002000050020000520200005202000052020000560200005e02000062020000680200006a0200006c0200006e02000070020000720200007202000072020000720200007202000072020000720200007202000072020000720200007202000072020000720200007802000080020000840200008c020000980200009802000098020000980200009a0200009a0200009a0200009c0200009e020000a0020000a4020000a6020000a8020000aa020000ac020000ae020000ae020000ae020000ae020000ae020000ae020000ae020000ae020000ae020000ae020000ae020000ae020000ae020000b0020000b2020000b4020000b6020000ba020000ba020000ba020000ba020000bc020000bc020000bc020000c2020000c8020000cc020000d4020000d6020000d8020000da020000dc020000de020000de020000de020000de020000de020000de020000de020000de020000de020000de020000de020000de020000de020000e0020000e2020000e4020000e6020000ea020000ea020000ea020000ea020000ec020000ec020000ec020000ee020000f0020000f2020000f6020000f8020000fa020000fc020000fe02000000030000000300000003000000030000000300000003000000030000000300000003000000030000000300000003000000030000040300000a030000100300001603000020030000200300002003000020030000220300002203000022030000260300002c0300003003000036030000380300003a0300003c0300003e0300004003000040030000400300004003000040030000400300004003000040030000400300004003000040030000400300004003000040030000400300004003000040030000420300004203000042030000420300004403000044030000460300004803000052030000580300005e030000680300006e030000780300007e03000082030000840300008a0300008c0300009203000094030000960300009a0300009a0300009a0300009a0300009a0300009a0300009a0300009a0300009a0300009a0300009c0300009c0300009c0300009c0300009e0300009e030000a0030000a2030000a6030000a6030000a6030000a8030000a8030000aa030000ac030000ac030000ac030000ae030000ae030000b0030000b0030000b0030000b2030000b2030000b2030000b6030000b8030000be030000c0030000c6030000c8030000ca030000d4030000d4030000d4030000d4030000d6030000d6030000d8030000da030000de030000de030000de030000e0030000e0030000e2030000e4030000e4030000e4030000e6030000e6030000e8030000e8030000e8030000ea030000ea030000ea030000ec030000ec030000ee030000ee030000f0030000f0030000f0030000f803000000040000080400000c040000160400001a04000022040000240400002804000028040000280400002a0400002a0400002c0400002e0400002e0400002e04000030040000300400003204000032040000320400003404000034040000340400003a0400003c04000044040000460400004e0400005004000052040000580400005a0400005a0400005a0400005c0400005c0400005e0400005e04000064040000660400006804000070040000720400007a0400007e04000080040000820400008a0400008c0400009404000096040000980400009e0400009e0400009e040000a0040000a0040000a2040000a2040000a4040000a4040000a4040000a6040000ac040000ae040000b0040000b8040000ba040000c0040000c0040000c2040000c2040000c2040000c4040000c4040000c6040000c6040000c6040000c6040000c8040000c8040000ca040000ca040000ca040000cc040000cc040000cc040000d2040000d4040000dc040000de040000e6040000e8040000ea040000f0040000f2040000f2040000f2040000f4040000f4040000f6040000f6040000f8040000f8040000f8040000fa040000fa040000fc040000fc040000fc040000fc040000fe040000fe04000000050000000500000005000002050000020500000205000006050000080500000e0500001005000016050000180500001a0500001e0500002005000020050000200500002205000022050000240500002405000026050000260500002605000028050000280500002a0500002a0500002a0500002a0500002c0500002c0500002e0500002e0500002e050000300500003005000030050000300500003005000030050000300500003005000030050000300500003005000036050000380500003a05000042050000440500004a0500004a0500004e0500005005000052050000580500005a050000600500006205000064050000660500006c0500006e0500007405000076050000780500007c0500007c0500007c0500007c0500007c0500007c0500007c0500007c0500007c0500007c0500007c0500007e0500007e0500007e050000800500008005000082050000820500008205000082050000820500008205000082050000820500008205000082050000820500008205000082050000820500008205000082050000820500008205000082050000820500008205000082050000820500008205000082050000820500008205000086050000880500008a05000090050000920500009605000096050000960500009605000096050000960500009605000096050000960500009605000096050000960500009605000096050000960500009605000096050000960500009605000096050000960500009605000096050000960500009605000096050000960500009605000096050000960500009605000096050000960500009605000096050000960500009605000096050000960500009605000096050000960500009605000096050000960500009605000096050000960500009605000096050000
+  cellItems: 580000002d0100000300000037000000490000004a0000004b0000004c0000004e000000580000002a0100002b0100002c0100002d0100002e0100002f010000300100003101000003000000370000002e0100002f01000003000000280000003700000038000000390000003b0000002e0100002f0100000300000028000000390000002e01000003000000160000002700000028000000290000002d000000390000002e0100000300000016000000270000002e01000003000000040000001500000016000000170000001b000000270000002e0100000300000004000000150000002e010000020000000300000004000000050000000600000007000000150000005c000000280100002e01000002000000050000005c0000002801000002000000050000005c0000002801000002000000050000005c0000002801000002000000050000005c0000002801000002000000050000005c0000002801000002000000280100000200000028010000580000002d0100004e000000580000002b0100002d010000380000003b000000290000002d000000170000001b000000020000000500000006000000070000005c0000002801000002000000050000005c0000002801000002000000050000005c0000002801000002000000050000005c0000002801000002000000050000005c0000002801000002000000050000005c0000002801000002000000280100000200000028010000580000002d0100003d0000004d0000004e0000004f00000051000000580000002b0100002d0100003d0000004d0000002a000000380000003a0000003b0000003c0000003d000000400000004d0000002a0000003c0000001a000000290000002a0000002b0000002c0000002d000000300000003c0000001a0000002c000000080000001700000018000000190000001a0000001b0000001f0000002c00000008000000190000000200000005000000060000000700000008000000090000000c000000190000005c0000002801000002000000050000005c0000002801000002000000050000005c0000002801000002000000050000005c0000002801000002000000050000005c0000002801000002000000050000005c0000002801000002000000280100000200000028010000580000002d0100004f00000051000000580000002d0100003a000000400000002b00000030000000180000001f0000000200000005000000090000000c0000005c0000002801000002000000050000005c0000002801000002000000050000005c0000002801000002000000050000005c0000002801000002000000050000005c0000002801000002000000050000005c0000002801000002000000280100000200000028010000580000002d0100003e0000004f00000050000000510000005200000053000000580000002d0100003e000000500000002e0000003a0000003e0000003f000000400000004100000045000000500000002e0000003f0000001c0000002b0000002e0000002f000000300000003f0000001c0000002f0000000b000000180000001c0000001d0000001e0000001f000000230000002f0000000b0000001e00000002000000090000000a0000000b0000000c0000000e0000001e000000280100000200000028010000020000002801000002000000280100000200000028010000020000002801000002000000280100000200000028010000580000002d0100005200000053000000580000002d01000041000000450000001d00000023000000020000000a0000000e000000280100000200000028010000020000002801000002000000280100000200000028010000020000002801000002000000280100000200000028010000580000002d010000420000005200000053000000540000005500000058000000590000002d0100004200000055000000320000004100000042000000430000004400000045000000460000005500000032000000440000002100000031000000320000003300000036000000440000002100000033000000100000001d0000002000000021000000220000002300000026000000330000001000000020000000020000000a0000000d0000000e0000000f000000100000001200000014000000200000002801000002000000280100000200000028010000020000002801000002000000280100000200000028010000020000002801000002000000280100005600000066000000560000006600000056000000660000005600000058000000660000002d01000054000000560000005800000059000000660000002d010000430000004600000031000000360000002200000026000000020000000d0000000f00000012000000140000002801000002000000280100000200000028010000020000002801000002000000280100000200000028010000020000002801000002000000280100005600000066000000560000006600000056000000660000005600000058000000660000002d0100004800000054000000560000005700000058000000590000005a0000005b0000005d000000660000002d01000034010000480000005b00000035000000430000004600000047000000480000005b0000003500000047000000000000000100000025000000310000003400000035000000360000004700000025000000340000001300000022000000240000002500000026000000340000001300000024000000020000000d0000000f0000001100000012000000130000001400000024000000910000002801000002000000280100000200000028010000020000002801000002000000280100000200000028010000020000002801000002000000280100005600000065000000660000006700000068000000750000005600000062000000630000006400000065000000660000006800000073000000560000006200000063000000660000005600000060000000610000006200000063000000660000006e0000003201000056000000570000005a0000005d0000005e0000005f00000061000000660000006b0000003201000033010000340100003501000038010000000000000100000002000000110000009100000028010000020000002801000002000000280100000200000028010000020000002801000002000000280100000200000028010000020000002801000067000000750000006400000073000000600000006e0000005e0000006b000000350100003801000000000000010000008a0000008b0000008c000000920000000200000011000000840000008b000000910000009200000093000000280100000200000084000000930000002801000002000000830000008400000087000000930000002801000002000000280100000200000028010000020000002801000002000000280100000200000028010000670000007200000074000000750000007600000082000000640000006c00000070000000710000007200000073000000760000007e0000006c0000006d000000710000007d000000600000006c0000006d0000006e0000006f000000710000007d000000360100005e000000690000006a0000006b0000006f0000007800000035010000360100003701000038010000390100003a01000000000000010000008a0000008c0000000200000028010000020000002801000002000000830000008700000028010000020000002801000002000000280100000200000028010000020000002801000002000000280100007400000082000000700000007e0000006d0000007d0000006d0000007d0000006a00000078000000390100003a01000000000000010000008a0000008c0000008d0000008e0000008f0000009400000002000000850000008e000000940000009500000028010000020000008500000095000000280100000200000083000000850000008600000087000000880000009500000028010000020000002801000002000000280100000200000028010000020000002801000002000000280100007400000082000000700000007e0000006d0000007d0000006d0000007d0000006a00000078000000390100003a01000000000000010000008d0000008f00000002000000280100000200000028010000020000008600000088000000280100000200000028010000020000002801000002000000280100000200000028010000020000002801000074000000800000008100000082000000700000007c0000007e0000007f00000080000000810000006d0000007a0000007b0000007c0000007d0000007f0000006d000000790000007a0000007b0000007d0000003c0100006a000000770000007800000079000000390100003a0100003b0100003c0100003d0100004601000000000000010000008d0000008f000000900000009700000002000000890000009000000096000000970000002801000002000000890000009600000028010000020000008600000088000000890000009600000028010000020000002801000002000000280100000200000028010000020000002801000002000000280100003d010000460100000000000001000000990000001e010000990000001e0100000200000099000000130100001c0100001d0100001e0100001f01000022010000280100002901000002000000130100001c0100001f010000280100002901000002000000130100001c0100001f010000280100002901000002000000120100001301000014010000150100001c0100001f01000025010000280100002901000002000000120100001c01000025010000280100002901000002000000030100000d010000120100001c010000250100002601000027010000280100002901000002000000030100000d010000260100002701000028010000020000000301000026010000280100000301000026010000f80000000101000002010000030100000501000026010000f800000001010000f1000000f7000000f8000000f9000000fd00000001010000f1000000f7000000f1000000f7000000f0000000f1000000f4000000f70000003d010000460100000000000001000000990000001e010000990000001e010000990000001d0100001e0100002201000014010000150100000d010000270100000d010000270100000201000005010000f9000000fd000000f0000000f4000000da000000e6000000e7000000e8000000da000000e7000000ca000000d8000000d9000000da000000dc000000e7000000ca000000d9000000ca000000cb000000cc000000cf000000d900000048010000cb00000048010000cb00000048010000c0000000c1000000cb0000003d0100004201000045010000460100004701000048010000490100000000000001000000990000001e010000990000001e010000990000001d0100001e0100002201000014010000150100000d010000270100000d010000270100000201000005010000f9000000fd000000f0000000f4000000e6000000e8000000d8000000dc000000cc000000cf000000b6000000c0000000c30000004201000043010000440100004501000047010000b4000000b5000000b6000000b7000000b90000003e0100004001000043010000a6000000a8000000b5000000b70000003e0100003f0100004001000041010000a6000000a80000003f010000410100009a0000009b000000a4000000a5000000a6000000a7000000a8000000ac0000003f010000410100009a0000009b000000a4000000a500000098000000990000009a0000009b0000009c000000a4000000a50000001e010000990000001e010000990000001d0100001e0100002201000014010000150100000d010000270100000d010000270100000201000005010000f9000000fd000000f0000000f4000000de000000e6000000e8000000e9000000ea000000ec000000de000000e9000000cd000000d8000000db000000dc000000dd000000de000000df000000e9000000cd000000dd000000c2000000cc000000cd000000ce000000cf000000d0000000d4000000dd000000c2000000ce000000c2000000ce000000c2000000c3000000c4000000c5000000ce00000044010000b4000000b9000000a7000000ac000000980000009c000000180100001d01000020010000210100002201000023010000180100002101000018010000210100000b010000140100001501000016010000170100001801000019010000210100000b01000017010000040100000b0100000c0100000d0100000e010000110100001701000027010000040100000c0100000d01000027010000040100000c010000040100000c010000fa0000000201000004010000050100000601000007010000090100000c010000fa00000007010000f3000000f9000000fa000000fb000000fc000000fd000000ff00000007010000f3000000fb000000f3000000fb000000f0000000f2000000f3000000f4000000f6000000fb000000ea000000ec000000db000000df000000d0000000d4000000c4000000c5000000a9000000b4000000b8000000b9000000ba000000bd000000a9000000ba000000a9000000ba0000009d000000a7000000a9000000aa000000ab000000ac000000ae000000ba0000009d000000aa000000980000009c0000009d0000009e0000009f000000aa000000200100002301000016010000190100000e010000110100000601000009010000fc000000ff000000f2000000f6000000e0000000ea000000eb000000ec000000ed000000ee000000e0000000ed000000d3000000db000000df000000e0000000e1000000e2000000e5000000ed000000d3000000e2000000c7000000d0000000d1000000d2000000d3000000d4000000d7000000e2000000c7000000d1000000c7000000d1000000c4000000c5000000c6000000c7000000c8000000d1000000b8000000bd000000ab000000ae0000009e0000009f000000200100002301000016010000190100000e010000110100000601000009010000fc000000ff000000f2000000f6000000e4000000eb000000ee000000ef000000e4000000ef000000d5000000e1000000e3000000e4000000e5000000ef000000d5000000e3000000c9000000d2000000d5000000d6000000d7000000e3000000c9000000d6000000c9000000d6000000c6000000c8000000c9000000d6000000b8000000bd000000ab000000ae0000009e0000009f000000200100002301000016010000190100000e010000110100000601000009010000fc000000ff000000f2000000f6000000b0000000b8000000bb000000bc000000bd000000be000000b0000000bc000000b0000000bc000000a1000000ab000000ad000000ae000000af000000b0000000b2000000bc000000a1000000af0000009e0000009f000000a0000000a1000000a2000000af0000001b0100002001000023010000240100001b010000240100001b010000240100000f01000016010000190100001a0100001b010000240100000f0100001a010000080100000e0100000f01000010010000110100001a010000080100001001000008010000100100000801000010010000fe0000000601000008010000090100000a01000010010000fe0000000a010000f5000000fc000000fe000000ff000000000100000a010000f500000000010000f500000000010000f2000000f5000000f600000000010000bb000000be000000ad000000b2000000a0000000a2000000b1000000bb000000be000000bf000000b1000000bf000000b1000000bf000000a3000000ad000000b1000000b2000000b3000000bf000000a3000000b3000000a0000000a2000000a3000000b3000000

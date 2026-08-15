@@ -1,8 +1,6 @@
 using System.Linq;
 using TheBlock.Core;
 using UnityEngine;
-using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Controls;
 
 namespace TheBlock.Vehicles
 {
@@ -78,6 +76,10 @@ namespace TheBlock.Vehicles
 
         [SerializeField] private CarDoor door;
 
+        [Header("Who may take the wheel")]
+        [Tooltip("Whether E can enter this car. Off for police cruisers — see OnEnable.")]
+        [SerializeField] private bool enterable = true;
+
         [Header("Camera")]
         [Tooltip("Look point height above the body origin, if config.camera.lookYOffset is missing.")]
         [SerializeField] private float fallbackLookYOffset = 0.5f;
@@ -93,6 +95,30 @@ namespace TheBlock.Vehicles
 
         /// <summary>False while nobody is at the wheel: the car sits there and ignores the keyboard.</summary>
         public bool Driven { get; set; }
+
+        /// <summary>
+        /// How long a <see cref="SetInput"/> call stays in force, seconds. Long enough to survive a
+        /// dropped frame, far shorter than the time it takes a coasting car to become a problem.
+        /// </summary>
+        private const float ExternalInputTimeout = 0.5f;
+
+        private CarInput _input;
+        private float _sinceInput = float.MaxValue;
+
+        /// <summary>
+        /// Drive this car from something other than the keyboard — U19's <c>CopDriver</c>, and
+        /// anything else that ever needs to. Call it every FixedUpdate: it expires (see
+        /// <see cref="ExternalInputTimeout"/>) so a driver that goes away leaves a coasting car and
+        /// not a runaway one.
+        /// </summary>
+        public void SetInput(in CarInput input)
+        {
+            _input = input;
+            _sinceInput = 0f;
+        }
+
+        /// <summary>The chassis body, for the teleports and velocity resets a pursuit does.</summary>
+        public Rigidbody Body => _body;
 
         /// <summary>IEnterable interface: get the Transform.</summary>
         public Transform GetTransform() => transform;
@@ -124,8 +150,16 @@ namespace TheBlock.Vehicles
         /// The car puts itself on the enterable list rather than being put there by its spawner: a
         /// spawner has no idea when its car is destroyed, and a stale entry means `E` aims at a
         /// corpse. See <see cref="EnterableRegistry"/>.
+        ///
+        /// Off on a police cruiser: <c>VehicleEnterExit.TryEnter</c> walks that registry and takes
+        /// the nearest thing on it, so a cop car that registers is a cop car you can steal by
+        /// standing next to it. Stealing one is a fine idea and belongs to a later unit; getting it
+        /// by accident, mid-arrest, is not.
         /// </summary>
-        private void OnEnable() => EnterableRegistry.Register(this);
+        private void OnEnable()
+        {
+            if (enterable) EnterableRegistry.Register(this);
+        }
 
         private void OnDisable() => EnterableRegistry.Unregister(this);
 
@@ -141,6 +175,10 @@ namespace TheBlock.Vehicles
         {
             _body = GetComponent<Rigidbody>();
             _body.centerOfMass = centerOfMass;
+
+            // Non-serialized, so a mid-Play recompile brings it back as 0 — which would read as
+            // "an AI wrote input this instant" and lock out the keyboard for half a second.
+            _sinceInput = float.MaxValue;
 
             var snapshot = TheBlockConfig.Load();
             if (snapshot?.Config?.Vehicle == null)
@@ -175,20 +213,18 @@ namespace TheBlock.Vehicles
                 return;
             }
 
-            var keyboard = Keyboard.current;
-            var throttle = 0f;
-            var steer = 0f;
-            var handbrake = false;
+            // Whoever wrote last, wins — but only while their input is FRESH. An AI driver that
+            // stops writing (its component destroyed, the cop despawned mid-corner) falls back to
+            // CarInput.None, which is the coast brake, rather than leaving the last throttle latched
+            // in the WheelColliders. That failure is not hypothetical: it is the 161 km/h Mustang
+            // above, arrived at from the other direction.
+            _sinceInput += Time.fixedDeltaTime;
+            var input = _sinceInput <= ExternalInputTimeout ? _input
+                : Driven ? PlayerCarInput.Read()
+                : CarInput.None;
 
-            if (Driven && keyboard != null)
-            {
-                throttle = Held(keyboard.wKey, keyboard.upArrowKey) - Held(keyboard.sKey, keyboard.downArrowKey);
-                steer = Held(keyboard.dKey, keyboard.rightArrowKey) - Held(keyboard.aKey, keyboard.leftArrowKey);
-                handbrake = keyboard.spaceKey.isPressed;
-            }
-
-            ApplySteering(steer, Time.fixedDeltaTime);
-            ApplyDrive(throttle, handbrake);
+            ApplySteering(input.Steer, Time.fixedDeltaTime);
+            ApplyDrive(input.Throttle, input.Handbrake);
             ApplyDownforce();
         }
 
@@ -275,9 +311,6 @@ namespace TheBlock.Vehicles
             friction.stiffness = stiffness;
             wheel.sidewaysFriction = friction;
         }
-
-        private static float Held(KeyControl primary, KeyControl alternate) =>
-            primary.isPressed || alternate.isPressed ? 1f : 0f;
 
         // --- IChaseTarget ----------------------------------------------------------------------
 
@@ -370,6 +403,15 @@ namespace TheBlock.Vehicles
                 }
             }
 
+            Teleport(position, rotation);
+        }
+
+        /// <summary>
+        /// Puts this car somewhere else, stopped and upright — the four steps <see cref="Respawn"/>
+        /// documents above, which U19's bust needs as well and must not re-derive.
+        /// </summary>
+        public void Teleport(Vector3 position, Quaternion rotation)
+        {
             _body.linearVelocity = Vector3.zero;
             _body.angularVelocity = Vector3.zero;
 

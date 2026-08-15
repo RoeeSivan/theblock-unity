@@ -24,9 +24,9 @@ namespace TheBlock.Core
     {
         /// <summary>
         /// How far a bone may sit from the middle of its own skeleton before it is not a pose but a
-        /// fault. The Mustang, the largest skeleton here, spans 5.65 m end to end; a pedestrian is
-        /// about 2 m. Fifteen is above every honest answer and far below every wedge, which reaches
-        /// the horizon.
+        /// fault — the floor under the adaptive limit, for skeletons small enough that a proportional
+        /// budget would be jumpy. A pedestrian spans about 2 m and its bones never spread past that,
+        /// so three is above every honest answer for a person.
         ///
         /// <b>Measured on the BONES, not on <c>renderer.bounds</c>, and that is the whole trick.</b>
         /// A SkinnedMeshRenderer's bounds are baked at import and re-derived from the root bone's
@@ -34,7 +34,24 @@ namespace TheBlock.Core
         /// <c>Hood_front_5</c> 500 m and watching the bounds report 5.65 m as if nothing had
         /// happened. A bounds-based watchdog is not a weak test, it is a test that can never fire.
         /// </summary>
-        [SerializeField] private float maxBoneStray = 15f;
+        [SerializeField] private float minBoneStray = 3f;
+
+        /// <summary>
+        /// The adaptive half of the limit: a bone may stray this many times the renderer's own baked
+        /// diagonal before it counts as a fault.
+        ///
+        /// <b>Why a fixed 15 m was the wrong number, measured.</b> That was chosen against the
+        /// wedge, which reaches the horizon, and it is 2.6x the Mustang's whole length — so a spike
+        /// of six to fourteen metres, long enough to draw a white ray across half the screen, sat
+        /// comfortably underneath it and this watchdog stayed silent through a play-test that
+        /// produced a screenshot of exactly that. The budget has to be a proportion of the thing
+        /// being watched, not a constant shared by a car and a pedestrian.
+        ///
+        /// One is deliberately tight: the Mustang's baked bounds are 6.6 m corner to corner and its
+        /// worst honest bone — <c>steer_3</c>, the steering column tip — measures 2.9 m out, so this
+        /// leaves better than 3 m of headroom over the worst pose the car legitimately reaches.
+        /// </summary>
+        [SerializeField] private float strayPerDiagonal = 1f;
 
         [Tooltip("Seconds between rescans of the scene. Renderers spawn and despawn constantly.")]
         [SerializeField] private float rescanInterval = 0.5f;
@@ -92,20 +109,33 @@ namespace TheBlock.Core
                     if (d > stray) stray = d;
                 }
 
-                if (stray <= maxBoneStray) continue;
+                float limit = LimitFor(smr);
+                if (stray <= limit) continue;
 
-                Report(smr, stray);
+                Report(smr, stray, limit);
                 return;
             }
         }
 
-        private void Report(SkinnedMeshRenderer smr, float stray)
+        /// <summary>
+        /// How far this particular skeleton's bones may spread.
+        ///
+        /// <c>bounds</c> is the right reference precisely BECAUSE it is baked and never grows (see
+        /// <see cref="minBoneStray"/>): it is a fixed statement of how big this renderer is supposed
+        /// to be, unaffected by the very fault being looked for. A live measurement would move with
+        /// the spike and the test would chase its own tail.
+        /// </summary>
+        private float LimitFor(SkinnedMeshRenderer smr) =>
+            Mathf.Max(minBoneStray, smr.bounds.size.magnitude * strayPerDiagonal);
+
+        private void Report(SkinnedMeshRenderer smr, float stray, float limit)
         {
             _caught = true;
 
             var report = new StringBuilder();
             report.AppendLine($"SkinWatchdog: {Path(smr.transform)} has a bone {stray:0.#} m out of " +
-                              $"its own skeleton — this is the wedge.");
+                              $"its own skeleton — this is the wedge. Limit was {limit:0.#} m " +
+                              $"(baked diagonal {smr.bounds.size.magnitude:0.#} m).");
 
             // The renderer names the victim; the bones name the culprit. Measure every bone against
             // the MEDIAN of the skeleton rather than against the root — a thrown root would make

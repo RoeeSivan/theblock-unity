@@ -51,10 +51,99 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-**Next action: build U19** — police pursuit and the wanted level. See its row: the run-over's heat
-hooks into `RunOverSystem.Victims`, and the web build's "cops drive straight at you, all routing
-deleted" is scar tissue from a broken lane collider, not design — U16's NavMesh is baked and U17's
-graph is a ScriptableObject, so re-test real pursuit before inheriting the hack.
+**Next action: finish U19 — it is `wip`, and everything structural is built and measured.** The
+pursuit runs end to end in Play: three cruisers deploy, plan real A\* routes over the street graph,
+drive them at 70–100% on-road, and close on the player. What is left is listed under "not done yet"
+in the U19 row — the arrest and the bust have never actually fired, the crash-heat numbers have
+never been measured against a real PhysX impact, and nobody has played it.
+
+### ⚠ MANUALLY CHECK COPS CHASE
+
+**Nobody has yet watched a pursuit happen.** Everything below was measured through the MCP bridge —
+routes, components, spawn poses, parked-vs-deployed counts — and none of it is the same as seeing a
+cruiser come round a corner after you. Commit a crime at the lot and watch: does one roll out of a
+bay, follow streets rather than cut diagonals, close on a straight, and lose you round a corner?
+That is checkpoint items 4 and 5 in the plan, and until it is done U19 stays `wip`.
+
+### The white rays out of the Mustang — FIXED 2026-08-15, `gpuSkinning = false`
+
+Reported as "קרניים לבנות מהמכונית". **It was never our code, and it is worth knowing why every
+check missed it.** The renderer is `Object_11` on the Mustang (mesh `Object_4`, material
+`Mustang_Light` — emissive `1.0, 0.887, 0.783`, which is the rays' colour). Every CPU-side reading
+said the mesh was perfect: 772 vertices, UInt32 indices with **zero** out of range, one bone per
+vertex at weight 1.0, 16 bones against 16 bindposes, and `bone.localToWorldMatrix * bindpose * v` —
+the exact arithmetic the GPU runs — putting the farthest vertex **2.87 m** from the car. `BakeMesh`
+agreed. `bounds` under `updateWhenOffscreen` reported **0.40 m** of height. Only the drawn pixels
+disagreed, with blades about ten metres long.
+
+So **`SkinWatchdog` could not have caught this**: there is no thrown bone and no thrown vertex to
+find. Its threshold was separately wrong too and is fixed — `maxBoneStray = 15f` was a constant
+**2.6× the Mustang's entire length**, so it is now `max(3 m, baked diagonal × 1)`, which is 6.6 m
+for the car against a worst honest bone of 2.9 m, and 3 m for a pedestrian instead of 15.
+
+Proven two ways before changing anything: baking the same mesh into `body_9`'s space and drawing it
+as a plain MeshRenderer removed the rays, and then `PlayerSettings.gpuSkinning = false` removed them
+outright — **337 white sky pixels → 4**, verified in a rendered frame, car intact.
+
+⚠ **The trap that follows:** a `PlayerSettings` write made **while in Play mode reverts on Stop**,
+and `SaveAssets` + `File → Save Project` both report success while writing nothing. The fix looked
+applied, then silently was not. It is set with Play stopped now and `ProjectSettings.asset` reads
+`gpuSkinning: 0` on disk. Both gotchas are memory files.
+
+**If CPU skinning ever costs too much** (386 SkinnedMeshRenderers live, mostly crowd), the targeted
+alternative is already scoped: `Object_11`, `Object_17`, `Object_18`, `Object_19` and `Object_22`
+are **rigidly** bound — every vertex on one bone at weight 1.0 — so `CarBuilder` can emit them as
+plain MeshRenderers parented to that bone. Visually identical, and it removes skinning work rather
+than adding it.
+
+**Do not re-derive these — they were measured today:**
+
+- **The street graph is not connected, and it is repairable.** 97 nodes / 142 edges in **5
+  components** `[6621, 2890, 1665, 1319, 265 m]`. Stitching nodes within 3 m of an edge INTERIOR
+  (7 T-junctions) plus true crossings (8) gives **2 components: 12,494 m (97.9%) + one orphan**.
+  The orphan is the 3-lane downtown avenue, 265 m, nearest neighbour 24.7 m — not joinable, and it
+  is avoided rather than stitched. Verified twice, independently: a Python model of the same
+  algorithm run against the baked asset, and the Unity bake's own report line.
+- **The starting lot is 80.2 m from the nearest street** (the Mustang 77.2 m). That killed the
+  first version of both the field spawn and the planner, which gave up at 60 m. `SnapRadius` is
+  120 m for that reason and the number is not arbitrary.
+- **The police station is in the big component, 21.4 m from it; the custody point is 2.9 m from a
+  lane**, so a car put there can drive straight off.
+- **`police_car.glb` imports LYING ON ITS NOSE.** Its `Sketchfab_model` node has an Rx(−90) with no
+  cancelling twin — the Mustang and the gas station both have the pair. The first build produced a
+  car 5.65 m TALL with a 1.36 m wheel radius. `Euler(-90, 0, 0)` fixes it, and the direction was
+  measured (wheels at z 0.42 with the roof lights at 1.895 → +Z was up; front wheels at y −1.868 →
+  −Y was forward), not guessed. Scale **0.8428** puts it at 2.09 × 1.67 × 5.65 m, all three axes
+  agreeing with the web build's independent measurement.
+
+**Three bugs found by measuring rather than by watching**, each of which would have read as "the
+pursuit is just bad" in a play-test:
+
+1. **Two route lists.** The planner filled `CopCar.Route`, the driver steered by `CopDriver._route`.
+   Every cop had a perfect 49-point route and an empty cursor, which reads as "drive straight at the
+   player" — all three drove into the car-park wall. One owner now.
+2. **Cops field-spawned 5 m apart**, took the same route to the same person, shoved each other, and
+   both retired themselves as wrecked within seconds. There is a `CopSeparation` of 30 m now.
+3. **A plan always finished the span the car was on**, choosing the end the nose happened to face.
+   One of this city's edges is 1,364 m long, so cops held a clean 100% on-road line while their
+   distance to the player climbed from 81 m to 149. Both ends are costed now, with a 25 m U-turn
+   penalty.
+
+**The user's call, 2026-08-15: the cruisers PARK AT THE STATION and only a crime moves them.** No
+field spawn while a cop has a bay of its own, whatever the distance — the web deploys from the
+station only within 120 m and teleports a cop next to you otherwise, because its cops could not
+reliably drive anywhere. Ours can: 97.9% of the city is one component and the station is inside it.
+Verified in Play: three parked at `(164/156/160, 0.10, −111)` at 0.00 m/s with no stars, then **one**
+star put **one** of them on the road and left the other two parked. The response now has a travel
+time, which is a mechanic rather than a cost.
+
+Two things that fell out of that and are fixed: a parked cop still runs its driver every step, and a
+driver with no route aims at its target — which at startup is `Vector3.zero`, so all three quietly
+drove out of the station before any crime existed (`Park` now holds the handbrake). And the distance
+retire is gone: a cop starting at the station is legitimately hundreds of metres away while doing
+exactly its job. **Being wedged no longer means wrecked either** — a cop that met the fence around
+the car park retired itself as wrecked, was replaced, and the replacement met the same fence; now it
+backs off, throws the route away and plans a fresh one.
 
 **U17b is done, user-confirmed 2026-08-15** (*"עובד טוב"*). `E` resolves three ways in `main.ts`'s
 own order — real vehicle, else the parked filler beside you, else the stopped street car, which
@@ -1058,7 +1147,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | U17 | Traffic — graph, cars, lights | done | `2ea3c54` + `31f5767` | User-confirmed 2026-08-15. **Play-test fault: the lights looked frozen because the lamp quads were built 14 cm INSIDE the housing** — the epsilon was measured off the animated disc, which sits behind the lens, instead of off the shell's front face (shell at 9.675, discs at 6.883–7.163, so the shell stands 2.51–2.79 model units proud). The state machine was correct throughout: sampled live it held 125 red / 79 green / 20 amber / 9 red+amber across the 233 poles. Fixed in `WorldBuilder.Traffic.cs`; 233/233 now 1.7 cm proud of the shell. ⚠ **Still open, deferred by the user: standing beside a pole, its lights do not appear to change** — separate from the above, unmeasured, see Deferred. Cars, lights and phases on U16's graph, which is now derived ONCE by the traffic pass and handed to the navigation pass — the crossings and the lights key off the same node numbering by construction. `Crossing.IsClearOfTraffic` deleted; `TrafficLightSystem` fills `Crossing.Gate` for all 230. **The population is DERIVED, not configured**: 130 cars over 12,759 m is one car per 98 m, so the live count is the metres of centreline in range divided by that — a fixed 32 was the plan and it gridlocked the city in under a minute, because the disc around the starting lot holds 1,230 m and 32 there is jam density. The graph is BAKED to a ScriptableObject at build time (6,590 Y-samples), so the runtime casts no rays for traffic at all. Kinematic while driving, a real Rigidbody wreck when rammed. **Caught and fixed, both by measuring rather than looking: `GroundY` could return a ROOF (downtown's avenue baked at 6–10 m) and the fast `Build World` was silently losing the whole NavMesh — `PasteComponentValues` does not carry `navMeshData`, so the crowd failed to spawn with nothing in the console.** Cars stop BEHIND the zebra, which the original does not. Carjacking split out to U17b |
 | U17b | Carjack + `CarBuilder` past the Mustang | done | `26be56d` | User-confirmed 2026-08-15 (*"עובד טוב"*) — clean, with no play-test faults, which is the first unit since U12 that can be said of. `CarBuilder` builds all four drivable cars (one prefab per distinct `modelUrl`, so 4 out of 16 config entries — the other twelve are colour variants) and wires them into the scene's `CarSpawner` itself. `E` now resolves three ways in `main.ts`'s own order: real vehicle → **parked filler** (U13's deferred promotion, 101 of them) → **stopped street car**, which waits 5 s for you. **Both swaps were measured rather than eyeballed: the carjack lands at 0.000 m / 0.00°, the lot promotion at 0.029 m / 0.00°, paint material carried in both.** The enabling change is that every car prefab now shares one origin — body centre in XZ, contact patch in Y — so a pose taken off one prefab drops straight into another. `hijack.recycleMargin`/`recycleTries` are deliberately NOT ported: `Claim` retires the slot and the sweep that already runs twice a second re-places it out of the view cone. **Caught: the Mustang has been the wrong colour since U8** — the paint write named `_BaseColor`, glTFast's shader has `baseColorFactor`, so nothing was ever written and the car wore its model's native green. Tesla/Audi/Avenger have **0 wheel nodes** (verified in the glTF, not assumed), so their axles are stated off the body box; the Mustang's rig is the check and the rule matches it to within 4%. Split out of U17 by the user, 2026-08-15, to keep U17 to one checkpoint |
 | U18 | Run-over + blood VFX | done | `781117d` + `fe081b8` | User-confirmed 2026-08-15. Root Motion ON, and this is the only place in the project where it is: the clip's own 1.74 m of travel IS the knockback, harvested off the visual child onto the pedestrian's transform each LateUpdate (and multiplied by that child's scale, because Humanoid retargeting produces root motion in the TARGET avatar's units and Remy's really is 4.20 m). Code adds only what the clip lacks — a 1.1 m arc and a speed-scaled push. **The debt to U16 in this row's old note is void:** U16b deleted `NavMeshAgent` from the crowd, so there is no agent to disable and no `Warp` to do. **The throw angle is MEASURED, not ported** — `clip.averageSpeed` gives 85.1°, which is the mirror of the web's hand-tuned −85.8° and is the cleanest handedness cross-check in the project so far. **Caught: Mixamo pads a one-shot clip with idle** (the body stands still for 79 of 145 frames), so `HitClipImporter` finds the action's own window by watching the root move rather than trimming to a typed-in number; and **`CrowdSpawner.Bind` destroyed every child of the Crowd object**, which deleted the `Blood` stain pool built on that same object — now Pedestrians only. New: `HitClipImporter`, `RunOverReaction`, `RunOverSystem`, `Vfx/Blood`, a `Hit` state on `Npc.controller`, `IEnterable.ForwardSpeed`. **Audio is U27's**: the original's scream pool and body thud fire from this exact impact frame, so `RunOverReaction.Begin` is where they go |
-| U19 | Police pursuit + wanted level | todo | | real NavMesh; do NOT inherit the straight-line hack untested. **The run-over's heat hooks into `RunOverSystem`** — `Victims` and the `RanOver` event — and there is deliberately no second detector to add: the original's `crime.ts pedHit` radius scan is dead upstream (see the decisions log). Weight is **+1 star per victim-FRAME** (`> 0`, not the count) on a 3 s cooldown, and it applies during missions too |
+| U19 | Police pursuit + wanted level | **wip** | | **Built and running in Play; not play-tested, not finished.** See RESUME HERE for the measurements. **Routing is real A\* over a stitched view of U17's graph** (`RouteGraph` + `RoutePlanner`, baked by `WorldBuilder.Police.cs` into `Assets/Police/Generated/`) — the web's "cops drive straight at you" was scar tissue from a graph split into 5 islands, and stitching T-junctions within 3 m makes 97.9% of the city one component. Straight-line survives in exactly two places: the last 40 m with line of sight, and the rejoin when a cop is off the graph. **The cop is a real WheelCollider car** built by the existing `CarBuilder` through a new `preRotation` seam (`PoliceCarBuilder`, own material folder, `enterable=false` so `E` cannot steal one), and it is driven by writing `CarInput` into the same `ApplySteering`/`ApplyDrive` the player uses — so it cannot corner in a way your car could not. **Heat is a continuous meter, not +1 per crime**: crash severity is closing speed along the contact normal (`CrashSensor`), which makes a wall scrape geometrically worth ~0 rather than a full star; decay always runs, which deletes the web's `engaged` latch and its 30 s `inboundGrace` outright. **Not done yet:** ⚠ **nobody has manually watched a pursuit** — cops chasing is measured, not seen, and that is the next thing to do; the arrest and `BustSequence` have never fired in a test, the crash-heat constants are guesses never measured against a real impact, `PoliceProbe` is not written, the run-over → star path is wired but unproven, and the approach is slow and sometimes indirect from the starting lot (which is 80 m off-graph — the hardest case in the map, and where the game begins). Original notes: real NavMesh; do NOT inherit the straight-line hack untested. **The run-over's heat hooks into `RunOverSystem`** — `Victims` and the `RanOver` event — and there is deliberately no second detector to add: the original's `crime.ts pedHit` radius scan is dead upstream (see the decisions log). Weight is **+1 star per victim-FRAME** (`> 0`, not the count) on a 3 s cooldown, and it applies during missions too |
 
 ### Tier 5 — Missions
 | id | unit | state | commit | notes |
@@ -1131,6 +1220,45 @@ would trigger it. A `wip` unit is work half-done; this is work deliberately not 
   U30's perf pass, which owns this properly. **First step:** get the user to say WHEN it hits
   (driving into a new district? crowd loading? first run-over of a session?), then run the Profiler
   over that window — the answer wanted is a function name, not another guess.
+
+- **RESOLVED 2026-08-15 (pending a play-test): resident texture memory cut from 2,190 MB to
+  534 MB.** The two entries below are the same event, and the guess written into the second of them
+  — *"Mipmap Streaming with a budget is the Unity mechanism U15 did not need to reach for"* — was
+  right. **Measured in Play, before and after:**
+
+  | | before | after |
+  | --- | --- | --- |
+  | `Texture.currentTextureMemory` | 2,190 MB | **534 MB** |
+  | `nonStreamingTextureMemory` | 2,190 MB | **453 MB** |
+  | `Profiler.GetTotalAllocatedMemoryLong` | 3,146 MB | **2,685 MB** |
+
+  **It costs no visual quality, and that is measured rather than argued: `desired` == `current` ==
+  534 MB.** Unity is being handed every mip the renderer asked for and is not touching the 1,024 MB
+  budget, so nothing anywhere is being reduced — the 1,656 MB saved is mip levels finer than the
+  screen can resolve, which were resident only because nothing had ever told Unity it could drop
+  them. `maxLevelReduction 2` bounds the worst case if memory ever does get tight.
+
+  What was done: `streamingMipmaps` in `GeneratedTextureImporter` (in the importer, not the .meta,
+  for the reason that file already documents — a Library wipe would otherwise restore the defaults
+  and put the memory back), `QualitySettings` streaming on at 1,024 MB with `addAllCameras` so U14's
+  map RenderTexture camera votes on mip density too, and a new **The Block → Reimport Generated
+  Textures** because changing a rule in that importer does nothing to the 241 textures already in
+  the Library. **Halving `MaxTextureSize` to 8192 was considered and NOT done** — that one really
+  does cost facade sharpness, and after this it is not needed.
+
+  **The remaining suspect is now startup, not memory.** `FrameWatchdog` (new, below) caught **1,513
+  ms at t=6.1 s and four hitches inside the first 15 s**, then a steady state of **20.7 ms mean /
+  65 ms worst** with texture memory flat at 535 MB throughout. So the hitches cluster where the
+  world and the crowd load, and they are bigger than the 800 ms this entry recorded. Next step is
+  the Profiler over the first 15 seconds specifically — not a memory hunt.
+
+- **`Assets/Scripts/Core/FrameWatchdog.cs` exists now, and it is permanent.** Auto-installs on Play
+  like `SkinWatchdog`, editor-only. One quiet line every 10 s, a full census on any frame over
+  300 ms: frame mean/worst, the texture triple (`current` / `desired` / `nonStreaming`), Unity's
+  allocated and reserved, and the streaming budget. **The triple is the instrument**: with streaming
+  off all three are identical and say nothing; with it on, `current` pinned at the budget while
+  `desired` climbs is the machine reporting it is out of room *before* anything breaks on screen.
+  The green blocks were never going to be caught by a screenshot.
 
 - **Green blocks tiled over the whole world, and the Editor's own toolbar corrupted with it.**
   User-flagged 2026-08-15 during U18's play-test; cleared on an editor restart. **Measured, and it is

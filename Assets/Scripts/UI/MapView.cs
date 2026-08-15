@@ -59,6 +59,10 @@ namespace TheBlock.UI
                 { MapPoiKind.Vehicle, Poi("vehicle", new Color(0.29f, 0.61f, 0.91f)) },
                 { MapPoiKind.Spawn, Poi("spawn", new Color(0.60f, 0.63f, 0.65f)) },
                 { MapPoiKind.Marker, Poi("marker", new Color(0.26f, 0.77f, 0.39f)) },
+
+                // Stated port-side: config.map.poiColors has pizza/vehicle/spawn/marker and no cop,
+                // because the web build draws its cops outside the POI system entirely.
+                { MapPoiKind.Cop, Poi("cop", new Color(0.29f, 0.64f, 1f)) },
             };
 
             generateVisualContent += Draw;
@@ -80,6 +84,19 @@ namespace TheBlock.UI
             _expanded = expanded;
             RefreshLabels();
             MarkDirtyRepaint();
+        }
+
+        /// <summary>One pin. Reads <see cref="MapPoi.At"/>, so a followed pin tracks what it follows.</summary>
+        private void DrawPoi(Painter2D p, MapPoi poi, float radius)
+        {
+            var at = ToPanel(poi.At.x, poi.At.z);
+            p.BeginPath();
+            p.Arc(at, radius, 0f, Angle.Degrees(360f));
+            p.fillColor = _poiColors[poi.Kind];
+            p.Fill();
+            p.strokeColor = new Color(0f, 0f, 0f, 0.6f);
+            p.lineWidth = 1.5f;
+            p.Stroke();
         }
 
         private Vector2 ToPanel(float wx, float wz)
@@ -111,17 +128,28 @@ namespace TheBlock.UI
                 p.Stroke();
             }
 
-            // POI dots.
+            // POI dots. Cops last and larger, with a pulsing halo, so a pursuit is not mistaken for
+            // a row of parked-car pins — the same reason the web build pulses and flashes them.
             foreach (var poi in MapRegistry.Pois)
             {
-                var at = ToPanel(poi.Position.x, poi.Position.z);
+                if (poi.Kind == MapPoiKind.Cop) continue;
+                DrawPoi(p, poi, 4f);
+            }
+
+            float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 7.5f);
+            foreach (var poi in MapRegistry.Pois)
+            {
+                if (poi.Kind != MapPoiKind.Cop) continue;
+
+                var at = ToPanel(poi.At.x, poi.At.z);
+                var colour = _poiColors[MapPoiKind.Cop];
+
                 p.BeginPath();
-                p.Arc(at, 4f, 0f, Angle.Degrees(360f));
-                p.fillColor = _poiColors[poi.Kind];
+                p.Arc(at, 7f + pulse * 4f, 0f, Angle.Degrees(360f));
+                p.fillColor = new Color(colour.r, colour.g, colour.b, 0.22f);
                 p.Fill();
-                p.strokeColor = new Color(0f, 0f, 0f, 0.6f);
-                p.lineWidth = 1.5f;
-                p.Stroke();
+
+                DrawPoi(p, poi, 4.5f);
             }
 
             // Player triangle, last so it wins. Centred on the minimap by construction (the camera
@@ -182,7 +210,7 @@ namespace TheBlock.UI
                 foreach (var poi in MapRegistry.Pois)
                 {
                     if (poi.Minor) continue;
-                    var at = ToPanel(poi.Position.x, poi.Position.z);
+                    var at = ToPanel(poi.At.x, poi.At.z);
                     PlaceName(ref used, poi.Name, at, scale);
                 }
             }
