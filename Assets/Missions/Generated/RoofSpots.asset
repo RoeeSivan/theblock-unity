@@ -1,0 +1,107 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f1772ce30dd14ddbbe34c0771822a40, type: 3}
+  m_Name: RoofSpots
+  m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Missions.RoofSpots
+  spots:
+  - Position: {x: 36.877773, y: 92.14794, z: -79.02358}
+    District: District_FirstOne
+  - Position: {x: 46.560234, y: 52.496826, z: 44.802532}
+    District: District_FirstOne
+  - Position: {x: 49.21934, y: 107.796036, z: 20.2452}
+    District: District_FirstOne
+  - Position: {x: 45.93412, y: 64.50704, z: -14.182233}
+    District: District_FirstOne
+  - Position: {x: 43.260014, y: 93.67967, z: -56.3694}
+    District: District_FirstOne
+  - Position: {x: 28.53885, y: 52.496826, z: 32.735443}
+    District: District_FirstOne
+  - Position: {x: -189.84196, y: 11.152514, z: 17.993225}
+    District: District_ProceduralCity3
+  - Position: {x: -215.86206, y: 18.049997, z: -68.42649}
+    District: District_ProceduralCity3
+  - Position: {x: -212.8106, y: 21.627644, z: 16.471611}
+    District: District_ProceduralCity3
+  - Position: {x: -171.83221, y: 30.035652, z: -86.05219}
+    District: District_ProceduralCity3
+  - Position: {x: -129.58539, y: 33.035652, z: -14.110196}
+    District: District_ProceduralCity3
+  - Position: {x: -136.02486, y: 24.05, z: -61.685516}
+    District: District_ProceduralCity3
+  - Position: {x: 167.14479, y: 27.1, z: 3.445417}
+    District: District_ProceduralCity2
+  - Position: {x: 147.77197, y: 36.08565, z: -7.261259}
+    District: District_ProceduralCity2
+  - Position: {x: 128.8982, y: 13.761332, z: -25.054008}
+    District: District_ProceduralCity2
+  - Position: {x: 153.83578, y: 45.1, z: -86.27021}
+    District: District_ProceduralCity2
+  - Position: {x: 119.272675, y: 10.455208, z: -5.361819}
+    District: District_ProceduralCity2
+  - Position: {x: 145.77744, y: 59.996246, z: -58.270473}
+    District: District_ProceduralCity2
+  - Position: {x: 45.561584, y: 48.035652, z: 277.5026}
+    District: District_ProceduralCity4
+  - Position: {x: -27.198885, y: 30.05, z: 182.18398}
+    District: District_ProceduralCity4
+  - Position: {x: 32.61798, y: 48.05, z: 210.5846}
+    District: District_ProceduralCity4
+  - Position: {x: -43.293953, y: 41.65776, z: 209.28656}
+    District: District_ProceduralCity4
+  - Position: {x: 51.420517, y: 72.05, z: 338.164}
+    District: District_ProceduralCity4
+  - Position: {x: 28.42919, y: 55.06048, z: 294.2813}
+    District: District_ProceduralCity4
+  - Position: {x: -29.076363, y: 66.111206, z: -191.43929}
+    District: District_ProceduralCity5
+  - Position: {x: -89.35159, y: 75.11655, z: -376.88562}
+    District: District_ProceduralCity5
+  - Position: {x: -51.494217, y: 11.206548, z: -363.20297}
+    District: District_ProceduralCity5
+  - Position: {x: -107.27352, y: 9.87159, z: -354.76224}
+    District: District_ProceduralCity5
+  - Position: {x: 39.70849, y: 78.11663, z: -260.22635}
+    District: District_ProceduralCity5
+  - Position: {x: -23.076685, y: 78.11663, z: -263.48572}
+    District: District_ProceduralCity5
+  - Position: {x: -155.95114, y: 81.11682, z: 149.51532}
+    District: District_ProceduralCity6
+  - Position: {x: -236.41965, y: 94.12762, z: 224.2588}
+    District: District_ProceduralCity6
+  - Position: {x: -237.30005, y: 69.04912, z: 266.62238}
+    District: District_ProceduralCity6
+  - Position: {x: -144.30038, y: 11.447115, z: 175.34427}
+    District: District_ProceduralCity6
+  - Position: {x: -301.9923, y: 45.115875, z: 226.77113}
+    District: District_ProceduralCity6
+  - Position: {x: -233.39333, y: 72.11662, z: 168.49129}
+    District: District_ProceduralCity6
+  - Position: {x: 557.96356, y: 48.11514, z: 133.4647}
+    District: District_ProceduralCity7
+  - Position: {x: 222.7297, y: 48.11596, z: 276.93387}
+    District: District_ProceduralCity7
+  - Position: {x: 197.75539, y: 48.152084, z: 227.13951}
+    District: District_ProceduralCity7
+  - Position: {x: 155.67113, y: 57.31784, z: 244.83437}
+    District: District_ProceduralCity7
+  - Position: {x: 390.8476, y: 66.116356, z: 280.60413}
+    District: District_ProceduralCity7
+  - Position: {x: 366.86417, y: 99.115135, z: 247.74815}
+    District: District_ProceduralCity7
+  - Position: {x: 199.83516, y: 26.99945, z: -158.23721}
+    District: District_ReichmanUniversity
+  - Position: {x: 230.1326, y: 26.99945, z: -161.22597}
+    District: District_ReichmanUniversity
+  - Position: {x: 231.02582, y: 26.99945, z: -181.50409}
+    District: District_ReichmanUniversity
+  - Position: {x: 199.34279, y: 26.99945, z: -180.4621}
+    District: District_ReichmanUniversity

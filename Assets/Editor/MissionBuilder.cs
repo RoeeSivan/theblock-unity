@@ -57,6 +57,8 @@ namespace TheBlock.EditorTools
             // the campaign is re-running this.
             BuildDelivery(root, snapshot);
             BuildDance(root, snapshot);
+            BuildRescue(root, snapshot);
+            BuildChase(root, snapshot);
 
             // Campaign order comes from the config, not from whatever order Unity happened to find
             // the components in. A mission with no row in campaignText is a mission with no copy,
@@ -99,10 +101,12 @@ namespace TheBlock.EditorTools
                 ("vehicles", Object.FindAnyObjectByType<VehicleEnterExit>()),
                 ("interior", Object.FindAnyObjectByType<Interior>()));
 
-            // Every mission that speaks resolves its lines through the one Voice. Rebinding here
-            // rather than in each mission's own builder means a mission cannot be built with a
-            // dangling reference to a bank that has not been filled yet.
-            foreach (var mission in ordered) Bind(mission, ("voice", voice));
+            // Every mission that SPEAKS resolves its lines through the one Voice. Rebinding here
+            // rather than in each mission's own builder means a mission cannot be built holding a
+            // dangling reference to a bank that has not been filled yet. Two of the four have no
+            // voice field at all — the rescue and the chase brief on a card and say nothing aloud —
+            // so a missing field is expected here, not a warning.
+            foreach (var mission in ordered) BindOptional(mission, "voice", voice);
 
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
 
@@ -227,6 +231,120 @@ namespace TheBlock.EditorTools
             Debug.Log("MissionBuilder — dance\n" + log);
         }
 
+        /// <summary>
+        /// M3. Places the Huey at its config spawn, points the mission at the baked roof pool, and
+        /// reuses the delivery run's faces as survivors — the ORIGINAL's own choice, and its
+        /// <c>rescue.config.ts</c> says why: one source for those five assets.
+        /// </summary>
+        private static void BuildRescue(GameObject root, TheBlockConfig.Snapshot snapshot)
+        {
+            var spec = snapshot.Config?.Vehicle?.Helicopter;
+            if (spec == null || snapshot.Rescue == null)
+            {
+                Debug.LogWarning("MissionBuilder: no helicopter or rescueConfig — M3 is not built.");
+                return;
+            }
+
+            var heli = PlaceVehicle("Helicopter", spec.Spawn.X, spec.Spawn.Z, spec.ModelYaw, spec.PadY);
+            var controller = heli != null ? heli.GetComponent<HelicopterController>() : null;
+
+            var roofs = AssetDatabase.LoadAssetAtPath<RoofSpots>("Assets/Missions/Generated/RoofSpots.asset");
+
+            var mission = Component(root, out RescueMission _);
+            mission.SetContent(roofs, Faces(snapshot), controller);
+            EditorUtility.SetDirty(mission);
+
+            Bind(mission,
+                ("runner", root.GetComponent<CampaignRunner>()),
+                ("vehicles", Object.FindAnyObjectByType<VehicleEnterExit>()),
+                ("hud", Object.FindAnyObjectByType<MissionHud>()));
+
+            Debug.Log($"MissionBuilder — rescue: Huey at {(heli == null ? "MISSING" : heli.transform.position.ToString("F1"))}, " +
+                      $"{(roofs == null ? "⚠ NO ROOF SPOTS — run The Block → Bake Roof Spots" : roofs.Count + " baked roof spots")}");
+        }
+
+        /// <summary>
+        /// M4. Places the jetski past the shore wall where the player swims out to it, and builds
+        /// the thief's two bodies.
+        /// </summary>
+        private static void BuildChase(GameObject root, TheBlockConfig.Snapshot snapshot)
+        {
+            var spec = snapshot.Config?.Vehicle?.Jetski;
+            if (spec == null || snapshot.Chase == null)
+            {
+                Debug.LogWarning("MissionBuilder: no jetski or chaseConfig — M4 is not built.");
+                return;
+            }
+
+            var seaLevel = snapshot.Config.Sea?.Level ?? 0f;
+            var ski = PlaceVehicle("Jetski", spec.Spawn.X, spec.Spawn.Z, spec.ModelYaw, seaLevel);
+            var controller = ski != null ? ski.GetComponent<JetskiController>() : null;
+
+            var log = new System.Text.StringBuilder();
+            var thief = ThiefBuilder.Build(root, snapshot.Chase, log);
+            var buoy = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Vehicles/Buoy.prefab");
+
+            var mission = Component(root, out JetskiChase _);
+            mission.SetContent(controller, thief, buoy);
+            EditorUtility.SetDirty(mission);
+
+            Bind(mission,
+                ("runner", root.GetComponent<CampaignRunner>()),
+                ("vehicles", Object.FindAnyObjectByType<VehicleEnterExit>()),
+                ("hud", Object.FindAnyObjectByType<MissionHud>()),
+                ("player", Object.FindAnyObjectByType<TheBlock.Player.PlayerController>()));
+
+            Debug.Log($"MissionBuilder — chase: jetski at {(ski == null ? "MISSING" : ski.transform.position.ToString("F1"))} " +
+                      $"(shore is Unity x {TheBlock.World.SeaGeometry.ShoreX(snapshot.Config.Sea):F1}; the ski must be SEAWARD of it), " +
+                      $"buoy prefab {(buoy == null ? "MISSING" : "ok")}\n{log}");
+        }
+
+        /// <summary>The five delivery faces, which the rescue's survivors reuse.</summary>
+        private static List<GameObject> Faces(TheBlockConfig.Snapshot snapshot)
+        {
+            var faces = new List<GameObject>();
+            foreach (var face in snapshot.Mission?.NpcSpecs ?? new List<TheBlockConfig.MissionNpcSpec>())
+            {
+                if (string.IsNullOrEmpty(face?.Name)) continue;
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PedFolder}/Ped_{face.Name}.prefab");
+                if (prefab != null) faces.Add(prefab);
+            }
+
+            return faces;
+        }
+
+        /// <summary>
+        /// Drops a mission vehicle at its config spawn, replacing whatever was there.
+        ///
+        /// Idempotent by destroy-and-rebuild, like every other builder here: re-running after a
+        /// prefab change must not leave last run's copy standing beside this one's.
+        /// </summary>
+        private static GameObject PlaceVehicle(string name, float rawX, float rawZ, float modelYaw, float y)
+        {
+            var existing = GameObject.Find(name);
+            if (existing != null && PrefabUtility.GetCorrespondingObjectFromSource(existing) != null)
+                Object.DestroyImmediate(existing);
+
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefabs/Vehicles/{name}.prefab");
+            if (prefab == null)
+            {
+                Debug.LogWarning($"MissionBuilder: no {name}.prefab — run The Block → Build Mission Vehicles.");
+                return null;
+            }
+
+            var at = Convert.Pos(new Vector3(rawX, 0f, rawZ));
+            at.y = y;
+
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+            instance.name = name;
+
+            // modelYaw is already baked into the prefab's VISUAL child, so the body itself faces
+            // Unity +Z and needs no rotation here. Applying it twice is how a vehicle ends up
+            // driving backwards, which U17b spent a play-test finding.
+            instance.transform.SetPositionAndRotation(at, Quaternion.identity);
+            return instance;
+        }
+
         /// <summary>Resolves the config's web URL to a clip in the music folder, by file name.</summary>
         private static AudioClip SongClip(string url)
         {
@@ -281,6 +399,17 @@ namespace TheBlock.EditorTools
         /// Writes serialized references through <see cref="SerializedObject"/> so the values land in
         /// the scene file rather than only in the live object.
         /// </summary>
+        /// <summary>Binds a field only if the component has one. Silent when it does not.</summary>
+        private static void BindOptional(Component target, string field, Object value)
+        {
+            if (target == null) return;
+            var so = new SerializedObject(target);
+            var property = so.FindProperty(field);
+            if (property == null) return;
+            property.objectReferenceValue = value;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         private static void Bind(Component target, params (string field, Object value)[] refs)
         {
             if (target == null) return;

@@ -146,20 +146,29 @@ namespace TheBlock.Missions
         {
             _entering = true;
 
-            // Take the stage BEFORE the card goes up, so both figures are already grooving behind
-            // it. The web does the same, and it is what makes the instructions read as Remy talking
-            // to you rather than as a modal dialog.
-            TakeStage();
+            // Released in a finally — an entry latch that survives a throw is unrecoverable, and it
+            // matters most here: a dance that dies mid-entry leaves the player hidden with the
+            // camera on an inactive dancer.
+            try
+            {
+                // Take the stage BEFORE the card goes up, so both figures are already grooving
+                // behind it. The web does the same, and it is what makes the instructions read as
+                // Remy talking to you rather than as a modal dialog.
+                TakeStage();
 
-            voice?.Play(_spec.IntroVoiceUrl);
-            if (runner?.Card != null) yield return runner.Card.ShowAndWait(_spec.Instructions);
-            voice?.Stop();
+                voice?.Play(_spec.IntroVoiceUrl);
+                if (runner?.Card != null) yield return runner.Card.ShowAndWait(_spec.Instructions);
+                voice?.Stop();
 
-            _track?.Show();
-            yield return Countdown();
+                _track?.Show();
+                yield return Countdown();
 
-            BeginRoutine();
-            _entering = false;
+                BeginRoutine();
+            }
+            finally
+            {
+                _entering = false;
+            }
         }
 
         /// <summary>

@@ -156,10 +156,24 @@ namespace TheBlock.UI
         /// <c>await briefing.show(...)</c>, and every mission's entry sequence is written against
         /// it — briefing, then fade, then spawn.
         /// </summary>
-        public IEnumerator ShowAndWait(IReadOnlyList<string> lines)
+        ///
+        /// <remarks>
+        /// <b>It returns a wait instruction rather than being a coroutine, and that is the fix for a
+        /// real hang.</b> Written as an <c>IEnumerator</c>, <c>yield return ShowAndWait(lines)</c>
+        /// does NOT call <see cref="Show"/> until the scheduler advances the inner routine on the
+        /// NEXT frame — so between a mission calling Enter and its card appearing there is a
+        /// one-frame window. Anything that touched the card in that window left the mission parked
+        /// forever: its entry latch stayed set, its status stayed Inactive, and no key could retry
+        /// it because the mission believed it was already starting. Measured on the rescue, which
+        /// sat at `_entering = true` with nothing on screen.
+        ///
+        /// As a method returning a yield instruction, the argument is evaluated where the caller
+        /// writes it, so <see cref="Show"/> runs synchronously and the window does not exist.
+        /// </remarks>
+        public CustomYieldInstruction ShowAndWait(IReadOnlyList<string> lines)
         {
             Show(lines);
-            while (IsOpen) yield return null;
+            return new WaitWhile(() => IsOpen);
         }
 
         /// <summary>Closes the card. Safe to call when nothing is open.</summary>

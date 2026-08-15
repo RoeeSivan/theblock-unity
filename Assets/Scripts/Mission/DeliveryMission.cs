@@ -128,22 +128,30 @@ namespace TheBlock.Missions
         {
             _entering = true;
 
-            // Hazel reads the briefing aloud while the card is up, and is cut off if the player
-            // dismisses early — the web's exact arrangement.
-            voice?.Play(_spec.BriefingVoiceUrl);
-            if (runner?.Card != null) yield return runner.Card.ShowAndWait(_spec.BriefingLines);
-            voice?.Stop();
-
-            // Out of the storefront. The interior owns the teleport and the palette swap; the
-            // mission must not learn how either works.
-            if (interior != null && interior.Inside)
+            // Released in a finally — an entry latch that survives a throw is unrecoverable,
+            // because Enter() refuses to run again while it is set.
+            try
             {
-                interior.LeaveNow();
-                yield return null; // let the teleport land before anything reads the player's position
-            }
+                // Hazel reads the briefing aloud while the card is up, and is cut off if the player
+                // dismisses early — the web's exact arrangement.
+                voice?.Play(_spec.BriefingVoiceUrl);
+                if (runner?.Card != null) yield return runner.Card.ShowAndWait(_spec.BriefingLines);
+                voice?.Stop();
 
-            Begin();
-            _entering = false;
+                // Out of the storefront. The interior owns the teleport and the palette swap; the
+                // mission must not learn how either works.
+                if (interior != null && interior.Inside)
+                {
+                    interior.LeaveNow();
+                    yield return null; // let the teleport land before anything reads the position
+                }
+
+                Begin();
+            }
+            finally
+            {
+                _entering = false;
+            }
         }
 
         /// <summary>Picks the spots and spawns the round. Split out so the retry can reuse it.</summary>

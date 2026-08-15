@@ -51,6 +51,12 @@ namespace TheBlock.UI
         [SerializeField] private PlayerController player;
         [SerializeField] private VehicleEnterExit vehicles;
 
+        [Tooltip("Show the always-on minimap in the bottom-left corner. OFF by the user's call, " +
+                 "2026-08-16: M opens the full map, and nothing sits over the world the rest of the " +
+                 "time. This is the Settings → Display 'Radar' toggle U26 already owes, arriving " +
+                 "early as a serialized field — U26 gives it a menu, it does not build it again.")]
+        [SerializeField] private bool showMinimap;
+
         private TheBlockConfig.Root _config;
         private VisualElement _backdrop;
         private VisualElement _panel;
@@ -113,11 +119,26 @@ namespace TheBlock.UI
             _panel.Add(_view);
         }
 
+        /// <summary>The radar is off: nothing is drawn while the map is closed.</summary>
+        public bool Hidden => !_expanded && !showMinimap;
+
+        /// <summary>Turns the corner radar on and off. U26's Settings → Display will call this.</summary>
+        public void SetMinimapVisible(bool visible)
+        {
+            showMinimap = visible;
+            SetExpanded(_expanded);
+        }
+
         public void SetExpanded(bool next)
         {
             _expanded = next;
             _backdrop.style.display = next ? DisplayStyle.Flex : DisplayStyle.None;
             _lastMiniDraw = 0f; // repaint immediately on either toggle direction
+
+            // With the radar off the closed state draws nothing at all. Hiding the PANEL rather
+            // than shrinking it is what makes the saving real: an invisible element still has the
+            // map's RenderTexture bound to it, and the camera pass behind that is the actual cost.
+            _panel.style.display = next || showMinimap ? DisplayStyle.Flex : DisplayStyle.None;
 
             if (next)
             {
@@ -145,6 +166,11 @@ namespace TheBlock.UI
 
             var active = ActiveAnchor();
             if (active == null) return;
+
+            // Radar off and map closed: there is nothing on screen to keep up to date, so the whole
+            // second-camera pass is skipped rather than rendered into a texture nobody is looking
+            // at. U14's own note called the live camera the map's main cost; this is not drawing it.
+            if (Hidden) return;
 
             if (Time.unscaledTime - _lastMiniDraw < RedrawSec) return;
             _lastMiniDraw = Time.unscaledTime;
