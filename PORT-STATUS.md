@@ -23,11 +23,18 @@ hand-rolled collide-and-slide (U6); the car is a Rigidbody on WheelColliders ins
 capsule snapped to the road (U8); one Joe is reparented into the seat instead of a second skinned
 body being mounted (U9); the bike leans and has real suspension and real collisions (U10); the
 baked-in parked cars are cut out at the submesh level at build time, which the web build had no
-edit-time step to do (U11); the map is a live second camera rather than a boot-time bake (U14); and
-the districts' textures are extracted out of their .glbs so Unity's per-platform compression can
-run on them at all, which glTFast's sub-assets had silently skipped (U15). Still
-queued: NavMesh police instead of "drive straight at the player" (U19), UI Toolkit instead of DOM
-overlays (U25).
+edit-time step to do (U11); the map is a live second camera rather than a boot-time bake (U14); the
+districts' textures are extracted out of their .glbs so Unity's per-platform compression can run on
+them at all, which glTFast's sub-assets had silently skipped (U15); and a rammed traffic car becomes
+a real Rigidbody wreck, which thirty Rapier vehicles could never have afforded (U17). Still queued:
+NavMesh police instead of "drive straight at the player" (U19), UI Toolkit instead of DOM overlays
+(U25).
+
+**U17 adds a second kind of answer, and it is not a Unity feature at all: measure the original.**
+Its population is not a number anyone picked — it is 130 cars over 12,759 m of network, read off the
+web build's own config and applied per metre of street in range. The version with a chosen constant
+gridlocked; the version that asks the original what its density was does not. Where the shipped game
+already encodes a decision, porting the DECISION beats porting the number.
 
 **U15 is also the rule's counter-example, and the more useful one.** Its planned answer was
 Addressables, and the measurement said no: streaming 13.5 GB in chunks is still 13.5 GB, and the
@@ -44,24 +51,47 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-**Next action: U17 — traffic (graph, cars, lights).** Nothing is half-built. U16 closed on
-2026-08-15 with the user's confirmation: pedestrians on the pavements, none in the road, zebras
-white, crossings used, no explosions, no stutter. **Flagged low-performance by the user, on purpose,
-to revisit** — see *U16's performance note* below; it is not blocking and it is not U17's job.
+**Next action: the user play-tests U17.** It is built, committed (`2ea3c54`) and measured, and the
+scene is saved with it. U17 is `wip` until the user says it reads right — everything below is what
+to look at and what is already known-good.
 
-**U17 starts from what U16 already ported.** `config.traffic` is in `TheBlockConfig` in full;
-`WorldBuilder.Navigation.cs` builds the 97-node / 142-street graph, finds the 70 lit intersections
-and places the 230 crossings. U17 adds cars, lights and phases ON that graph and replaces
-`Crossing.IsClearOfTraffic` (U16's stand-in gate) by assigning the light controller to
-`Crossing.Gate`. Do not build a second graph. `Crossing.NodeId` / `EdgeId` are already the keys the
-controller wants.
+**What to drive around and judge** (I cannot see the Game view; these are the questions I could not
+answer by measurement):
 
-**Rebuild order:** The Block → **Build NPC Animator** → **Build Pedestrians** → **Build World +
-NavMesh (slow)**. Plain **Build World** is the fast path and KEEPS the last bake — it lifts the
-`Crossings` group, the carve volumes and the `NavMeshSurface` out of the old root and re-attaches
-them, and it never sweeps `Assets/Navigation/Generated/`. Run the slow one after anything that
-moves a district or a street. In practice "slow" is ~3 s at 0.4 m voxels; the name is a warning
-that the bake is main-thread with no progress bar.
+1. **Which side is the traffic on?** It should be the right, Israeli-style. Verified by arithmetic
+   against the web build's own lane expression, never by eye.
+2. **Do the poles read as traffic lights?** One per approach, on the kerb to the driver's right,
+   head facing the oncoming cars. Red / red+amber / green / amber, 26 s cycle, junctions desynced.
+3. **Does the queueing feel like traffic** rather than like cars taking turns to be stuck?
+4. **Ram one.** It should become a real wreck and stay one until you drive away. `wreckOnImpact` on
+   `TrafficCar` turns that off in one click if it is bad.
+5. **Density.** 13 cars around the starting lot is the shipped game's own density (below), which
+   may read as quiet. `densityScale` on `TrafficSystem` is the knob — it is live in Play.
+
+**`T` toggles all traffic off and on in Play**, the same debug affordance `C` gives the crowd. Both
+are debug-only and both can go once U17 is confirmed.
+
+**Already measured, so do not re-derive:** 97 nodes / 142 streets / 70 lit / 230 crossings — the same
+numbers U16 had, because it is now literally the same graph object. 12,759 m baked at 2 m samples,
+233 poles. Sim cost **0.029 ms per physics step**, lights **0.012 ms per frame**. Over 3½ minutes:
+13 live against a target of 13, no gridlock, nobody reaching the stuck escape, no car more than
+0.25 m off its lane centreline, every car's Y inside the road band, 230/230 crossings gated.
+
+**If it needs another pass, the knobs are all serialized on `TrafficSystem`** (select
+`World/Traffic` during Play): `densityScale`, `cullDistance`, the spawn ring, and every number from
+`config.traffic`. Nothing needs a rebuild to try.
+
+**U17b is the next unit after this one** — carjacking, and generalising `CarBuilder` past the
+Mustang. It also inherits U13's deferred lot-car promotion. See its row.
+
+**Rebuild order:** The Block → **Build NPC Animator** → **Build Pedestrians** → **Build Traffic
+Cars** → **Build World + NavMesh (slow)**. Plain **Build World** is the fast path and KEEPS the last
+bake — it lifts the `Crossings` group, the carve volumes and the `NavMeshSurface` out of the old root
+and re-attaches them, re-binding `NavMesh.asset` from disk (see the U17 decision: the component copy
+alone silently dropped it), and it never sweeps `Assets/Navigation/Generated/`. Run the slow one
+after anything that moves a district or a street. In practice "slow" is ~3 s at 0.4 m voxels; the
+name is a warning that the bake is main-thread with no progress bar. **The traffic pass runs on both
+paths** — nothing in it bakes, and the lights must come from the same graph the crossings did.
 
 **U16's performance note** (user's call, 2026-08-15: *"flag this step as low performance, we will
 try to make it better later"*). Measured, not guessed — the numbers are in the decisions log:
@@ -84,6 +114,35 @@ shore wall that has to block cars while letting a swimmer through.
 
 **Worth a look while planning the rest:** the same "is it in config.ts but not in the 32?" question
 has not been asked systematically. Swimming was found by accident, from a question about animations.
+
+### What U17 built
+
+| file | is |
+| --- | --- |
+| `Assets/Scripts/Traffic/TrafficNetwork.cs` | the baked graph asset + `SampleLane` / `PointAt` |
+| `Assets/Scripts/Traffic/TrafficGeometry.cs` | `traffic-ai.ts`: the front cone, the 2D SAT, the junction bezier |
+| `Assets/Scripts/Traffic/TrafficSystem.cs` | the pool and the drive loop, in `FixedUpdate` |
+| `Assets/Scripts/Traffic/TrafficCar.cs` | one car's state, its paint swap, and the wreck flip |
+| `Assets/Scripts/Traffic/TrafficLightSystem.cs` | the 70 controllers; fills `Crossing.Gate` in `Start` |
+| `Assets/Scripts/Traffic/TrafficLightPole.cs` | three lamps as ONE renderer with three submeshes |
+| `Assets/Editor/WorldBuilder.Traffic.cs` | bakes the network, places 233 poles, wires the scene |
+| `Assets/Editor/TrafficCarBuilder.cs` | **The Block → Build Traffic Cars** — 3 prefabs + paints |
+| `Assets/Models/Props/traffic-light.glb` | the shipped 65 KB pole, transcoded (see the decision log) |
+
+**The lamps are one renderer, not three.** The model animates coloured discs sliding behind a
+translucent lens — unusable in three.js and no better here, plus the whole model is ONE `BLEND`
+material, so 233 poles would have sat in the transparent queue. Those nodes are destroyed at build,
+the housing is rebuilt as an opaque URP/Lit asset, and three quads become one mesh with three
+submeshes positioned from the original lamps' own bounds. Switching a light is an assignment into a
+shared-material array, so every pole showing the same state still batches.
+
+**Handedness: the lane offset is `Cross(up, tangent)`, not the web's `(-tz, tx)`.** Those are the
+same physical side written for opposite handednesses, and transcribing the arithmetic literally puts
+every car in the oncoming lane. Cross-checked against the web build's own expression on the 3-lane
+avenue: both land the inner lane at Unity x +5.30.
+
+**Not ported, on purpose:** `config.traffic.hijack` (U17b), and `carCount` is read but is not the
+pool size — it is one half of the density the pool is sized from.
 
 **U15 is done** — the user confirmed on 2026-08-15. The measurement its row demanded came back loud
 and rejected Addressables: 13.5 GB of scene memory, 96% textures, because glTFast's .glb textures
@@ -841,7 +900,8 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
 | U16 | Pedestrian crowd (NavMesh agents) + zebra crossings | done | `0dc4398` + `27058ae` | User-confirmed 2026-08-15 — flagged **low performance, revisit later** by the user (see RESUME HERE). The pavement is not enforced, it is the only thing that exists: `WorldBuilder.Navigation.cs` carves all 12.7 km of `config.traffic.network` **Not Walkable** (172 volumes over 142 streets), which disconnects the two sides of every road, so the only route across is a gated `NavMeshLink` at one of **230 zebras** on 70 lit intersections — derived from the same graph and the same `stopLineDist + crossingSetback` as `traffic.ts`. NavMesh baked 963 × 805 m @ 0.4 m voxels over the DISTRICTS only (car park excluded) (`CollectObjects.Children`, PhysicsColliders) → `Assets/Navigation/Generated/NavMesh.asset`. `config.traffic` ported (`TrafficSpec`, `StreetSpec` + its union converter). Crowd is a **pool of 60 that follows the player**, trickled in 6 per sweep, not the web build's ~400 seeded-at-boot-and-frozen — `CrowdSpawner`/`Pedestrian`/`NpcAppearance`. Zero of the 80 hand-recorded rectangles and strips in `npc.config.ts` are ported and none are needed. **Caught: the pack's prefabs reference the BUILT-IN Standard materials while the URP twins sit unused beside them — 455 slots rebound, or every pedestrian is magenta. Then, at play-test: zebras 2 cm UNDER the street (GroundY took the lowest hit — the ground plate — z-fighting up as orange); the vendor's five LODs are 33 skinned meshes per person, all posed every frame whether drawn or not, and an unposed one swapping in by LOD change draws at bind pose against a walked-off skeleton — the 'exploding pedestrian'; and 90 agents spawned in one frame was the stutter, not the crowd's steady cost, which measured as zero.** LODs 0+2 only now (395 → 158 SMRs), spawn trickled, car park excluded. ⚠ Rooftops bake walkable and are filtered at spawn/re-target by a height band, not by the bake |
-| U17 | Traffic — graph, cars, lights | todo | | **U16 already ported the graph and the crossings** — `config.traffic.network`, `snapDist`, `stopLineDist`, `crossingSetback`, `lights.sideOffset`, and the 97-node/142-edge graph builder in `WorldBuilder.Navigation.cs`. Do not build a second one. The one thing to change on the pedestrian side is `Crossing.Gate`: set it to the light controller and `Crossing.IsClearOfTraffic` (U16's stand-in) goes away |
+| U17 | Traffic — graph, cars, lights | wip — built, awaiting the user's play-test | `2ea3c54` | Cars, lights and phases on U16's graph, which is now derived ONCE by the traffic pass and handed to the navigation pass — the crossings and the lights key off the same node numbering by construction. `Crossing.IsClearOfTraffic` deleted; `TrafficLightSystem` fills `Crossing.Gate` for all 230. **The population is DERIVED, not configured**: 130 cars over 12,759 m is one car per 98 m, so the live count is the metres of centreline in range divided by that — a fixed 32 was the plan and it gridlocked the city in under a minute, because the disc around the starting lot holds 1,230 m and 32 there is jam density. The graph is BAKED to a ScriptableObject at build time (6,590 Y-samples), so the runtime casts no rays for traffic at all. Kinematic while driving, a real Rigidbody wreck when rammed. **Caught and fixed, both by measuring rather than looking: `GroundY` could return a ROOF (downtown's avenue baked at 6–10 m) and the fast `Build World` was silently losing the whole NavMesh — `PasteComponentValues` does not carry `navMeshData`, so the crowd failed to spawn with nothing in the console.** Cars stop BEHIND the zebra, which the original does not. Carjacking split out to U17b |
+| U17b | Carjack + `CarBuilder` past the Mustang | todo | | `config.traffic.hijack` — `E` on a stopped street car promotes it to a drivable `Vehicle`, the sim slot recycling far away (`traffic-cars.ts` `nearestStopped`/`hold`/`claim`, `transitions.ts hijackTrafficCar`). **Also owns U13's deferred lot-car promotion**, which is the same mechanism. The blocker is that `CarBuilder` only builds the Mustang, and `config.vehicle.cars` has full drivable specs (door joint, seat, paint) for Tesla/Audi/Avenger — but **none of those three GLBs has a wheel node at all**, so `FindWheelBones` has nothing to find and their wheel geometry must be STATED the way `MotorcycleBuilder` states the bike's. Split out of U17 by the user, 2026-08-15, to keep U17 to one checkpoint |
 | U18 | Run-over + blood VFX | todo | | Root Motion ON — the clip's motion IS the knockback. **Owes U16 one thing:** a struck pedestrian must leave the NavMesh, so the agent has to be disabled for the knockback and re-`Warp`ed after. Panic-fleeing into the road (if it is wanted) is the same switch — the carve makes the road unreachable by pathfinding on purpose |
 | U19 | Police pursuit + wanted level | todo | | real NavMesh; do NOT inherit the straight-line hack untested |
 
@@ -957,6 +1017,57 @@ Dated one-liners. These are settled — do not re-litigate them without the user
   `LightsSpec`) and `WorldBuilder.Navigation.cs` already builds the 97-node graph, finds the 70 lit
   intersections and places the 230 crossings. U17 adds cars, lights and phases on top and replaces
   `Crossing.IsClearOfTraffic` with the controller.
+  **Settled harder at U17:** the graph is not merely shared, it is derived by the traffic pass —
+  which runs on EVERY build — and passed into `BuildNavigation`. The navigation pass no longer
+  builds one at all.
+
+- **2026-08-15** (U17) — **How many cars is measured, not chosen.** The web build's own two numbers
+  are 130 cars and 12,759 m of network: one car per 98 m. `TrafficSystem` counts the metres of
+  centreline inside the cull radius every sweep and asks for that many, so downtown is busy and the
+  edge of the map is empty without either being typed in. **This replaced a fixed count of 32, and
+  the failure is the point:** 32 came from an estimate that a 160 m disc holds thirty streets'
+  worth of road; measured, the disc around the starting lot holds 1,230 m, so 32 is one car per
+  38 m — jam density at signalised junctions — and the city gridlocked in under a minute with 31 of
+  32 cars stopped. At the derived count it runs indefinitely with nobody reaching the stuck escape.
+  A guessed constant that happens to be wrong is indistinguishable from a broken algorithm until
+  someone measures the thing it was a guess about.
+- **2026-08-15** (U17) — **The street graph is build output, not load-time work.** `buildPath`
+  raycasts the ground once per two metres of every path — 6,590 rays over this network — and the web
+  build pays that before its first frame. `Assets/Traffic/Generated/TrafficNetwork.asset` holds the
+  same numbers, so the runtime casts no ray for traffic ever. U19's police wants the same asset.
+- **2026-08-15** (U17) — **⚠ `GroundY` could return a ROOF, and 230 samples were not enough to show
+  it.** U16's rule was "the lowest hit that is not the ground plate", which is right wherever a
+  district has street geometry — and downtown is one merged mesh with none under parts of its
+  avenue, so the only non-plate hit there is the building overhead. At 230 crossings nothing landed
+  on one; at 6,590 traffic samples, nine did, at 6.4–10.1 m. A street is never more than 2 m above
+  the plate, so anything higher falls back to the plate, and single-sample spikes are flattened
+  against their neighbours afterwards.
+- **2026-08-15** (U17) — **⚠ The fast `Build World` was silently deleting the NavMesh bake.**
+  `ComponentUtility.PasteComponentValues` does not reliably carry `NavMeshSurface.navMeshData`, and
+  when it does not, everything looks fine: the surface is enabled and correctly configured, the
+  asset is still on disk, and `NavMesh.CalculateTriangulation()` returns zero vertices. The only
+  symptom is a city with no pedestrians in it and an empty console. Found by counting the crowd
+  during U17's play-test, not by seeing it. The baked asset is loaded from disk on re-attach now.
+  **The general lesson: a component copy is not a way to preserve a reference.**
+- **2026-08-15** (U17) — **Cars stop behind the zebra; the original does not.** It stops a car
+  `stopLineDist` (8 m) from the junction centre and paints the crossing at 10 m, and a car's
+  position is its body centre — so the lead car of every queue parks its back half across the
+  crossing. That is not a design decision there: `crossingSetback` exists so the crossing's kerb
+  ends clear the light POLES, and the car was never measured against it. Scar tissue, not intent.
+- **2026-08-15** (U17) — **Kinematic while driving, dynamic when rammed.** Thirty vehicles solving
+  contacts was never on the table in Rapier, so the web build's traffic is kinematic full stop and
+  the player bounces off it. Kinematic stays the default here for the same reason — a car following
+  a baked lane costs one `MovePosition` — but the exception Unity can afford is per-car: a hit above
+  an impulse threshold flips that one car to a real Rigidbody, and it stays a wreck the rest of the
+  traffic queues behind until the slot recycles. Bounded by construction to cars the player actually
+  hits, and switched off by one serialized bool if it ever misbehaves.
+- **2026-08-15** (U17) — **The light pole uses the SHIPPED model, not the source asset.** A
+  deliberate exception to port rule 3, and the reason is memory: `traffic_light__animation.glb` is
+  16.5 MB carrying four 4096² textures for a 4.5 m pole placed 233 times, while the web build's
+  dieted copy has the same four meshes at 512². Rule 3 exists to avoid a pointless second lossy
+  pass; on a pole seen from 20 m that pass is invisible and the win is ~50×. It needed
+  `tools/glb-webp-to-png.py` because the shipped file requires `EXT_texture_webp` — U13's trap,
+  U13's tool.
 
 - **2026-08-15** (U7b) — **The 32 units are not a complete inventory of the game.** Swimming is in
   `config.ts`, in `player.ts` and in the shipped build, and no unit owned it; it surfaced only
