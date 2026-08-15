@@ -74,6 +74,15 @@ namespace TheBlock.Vehicles
         /// <summary>What the run is doing. U25's HUD and U20's mission framework both read this.</summary>
         public GameMode Mode => mode;
 
+        /// <summary>
+        /// True when pressing E right now would get the player into something.
+        ///
+        /// E is shared with the pizzeria doorway, and a car parked outside the storefront puts both
+        /// in range at once. This is how the doorway defers rather than the two racing on Update
+        /// order — the vehicle wins, which is the web build's precedence too.
+        /// </summary>
+        public bool HasVehicleInReach => _spec != null && mode == GameMode.OnFoot && Nearest() != null;
+
         /// <summary>The vehicle being entered, driven or left, or null while on foot.</summary>
         public IEnterable ActiveVehicle
         {

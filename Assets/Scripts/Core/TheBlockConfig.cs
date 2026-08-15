@@ -71,6 +71,8 @@ namespace TheBlock.Core
             public PlaceSpec GasStation;
             public PlaceSpec PoliceStation;
             public PlaceSpec SevenEleven;
+            public LotCarsSpec LotCars;
+            public InteriorSpec Interior;
             public CameraSpec Camera;
             public PlayerSpec Player;
             public VehicleSpec Vehicle;
@@ -272,6 +274,151 @@ namespace TheBlock.Core
 
             /// <summary>When set, only meshes topping out at or below this height get a collider.</summary>
             public float? CollideMaxY;
+        }
+
+        /// <summary>
+        /// The parked-car filler for the big lot. Everything here is authored in the web build's
+        /// right-handed frame, including <see cref="LotBounds"/> and <see cref="KeepClear"/>, so the
+        /// rectangles' min/max in X swap when converted.
+        /// </summary>
+        public class LotCarsSpec
+        {
+            public List<LotCarModelSpec> Models;
+            [JsonProperty("bounds")] public RectSpec LotBounds;
+
+            /// <summary>Stall spacing along the row (X), metres.</summary>
+            public float StallPitchX = 3.4f;
+
+            /// <summary>Depth of one row; two rows sit back to back, then an aisle.</summary>
+            public float RowDepth = 6f;
+
+            public float AisleGap = 7f;
+
+            /// <summary>Fraction of stalls that get a car, rolled per stall.</summary>
+            public float Occupancy = 0.22f;
+
+            /// <summary>Lot surface height the wheels rest on.</summary>
+            public float Y = 0.1f;
+
+            /// <summary>Seed for the layout PRNG — the same lot every build.</summary>
+            public int Seed = 1337;
+
+            /// <summary>Rectangles left empty: the drivable cars' and the player's spawn area.</summary>
+            public List<RectSpec> KeepClear;
+
+            /// <summary>Weighted paint mix, mostly white/black/grey.</summary>
+            public List<PaintSpec> Palette;
+        }
+
+        public class LotCarModelSpec
+        {
+            public string Url;
+            public string Name;
+            public float Scale = 1f;
+
+            /// <summary>The model's own facing correction, radians. Right-handed.</summary>
+            public float ModelYaw;
+
+            /// <summary>When present, this model ignores the global palette and picks from here.</summary>
+            public List<int> Palette;
+        }
+
+        /// <summary>An axis-aligned XZ rectangle in the web build's frame.</summary>
+        public class RectSpec
+        {
+            public float MinX;
+            public float MaxX;
+            public float MinZ;
+            public float MaxZ;
+        }
+
+        public class PaintSpec
+        {
+            public int Hex;
+            public float Weight = 1f;
+        }
+
+        /// <summary>
+        /// The pizzeria's interior "cell" — a room parked far from the city so its geometry and its
+        /// lights never touch the street. Entering teleports the player into it.
+        /// </summary>
+        public class InteriorSpec
+        {
+            public string AssetUrl;
+
+            /// <summary>Where the room sits. Everything below is stated relative to it.</summary>
+            public Vec3 Offset;
+
+            public InteriorSpawnSpec Spawn;
+            public PadSpec ExitPad;
+
+            /// <summary>The circle on the street that takes you in. World coords, not offset-relative.</summary>
+            public PadSpec StreetDoorTrigger;
+
+            public InteriorPaletteSpec Palette;
+            public List<InteriorLightSpec> Lights;
+        }
+
+        public class InteriorSpawnSpec
+        {
+            public float X;
+            public float Y;
+            public float Z;
+
+            /// <summary>Yaw in radians, right-handed.</summary>
+            public float Yaw;
+
+            /// <summary>The raw three.js vector, unconverted.</summary>
+            public Vector3 Raw => new Vector3(X, Y, Z);
+        }
+
+        /// <summary>A circle on the floor. <c>y</c> is absent in the config; only XZ is tested.</summary>
+        public class PadSpec
+        {
+            public float X;
+            public float Z;
+            public float Radius = 1f;
+
+            /// <summary>The raw three.js position, unconverted, at <c>y = 0</c>.</summary>
+            public Vector3 Raw => new Vector3(X, 0f, Z);
+        }
+
+        public class InteriorPaletteSpec
+        {
+            public int Background;
+            public FogSpec Fog;
+            public float SunIntensity = 0.12f;
+            public AmbientSpec Ambient;
+        }
+
+        public class FogSpec
+        {
+            public int Color;
+            public float Near = 5f;
+            public float Far = 26f;
+        }
+
+        public class AmbientSpec
+        {
+            public int Color;
+            public float Intensity = 0.45f;
+        }
+
+        public class InteriorLightSpec
+        {
+            public float X;
+            public float Y;
+            public float Z;
+            public int Color;
+
+            /// <summary>three.js point-light intensity — NOT a Unity value; see the interior builder.</summary>
+            public float Intensity;
+
+            /// <summary>Range in metres.</summary>
+            public float Distance = 12f;
+
+            /// <summary>The raw three.js vector, unconverted.</summary>
+            public Vector3 Raw => new Vector3(X, Y, Z);
         }
 
         /// <summary>

@@ -36,19 +36,109 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-**Next action: U13 — places.** The gas station and the police station are both ingested and placed
-now (the user added them on 2026-08-15), so U13 is no longer blocked on assets. It is also no longer
-purely additive: **the gas station is placed wrong and needs fixing** — the user flagged it on
-sight after the U12 play-test, so treat it as U13's first job rather than a leftover. Nothing about
-its geometry has been diagnosed yet; look at it in the Scene view before theorising, and expect the
-usual suspects from `Place_*` work — a collision proxy node, a model lying on its own axis, or a
-config y that assumed the original asset. The fix belongs in `WorldBuilder.AssetAliases`, not baked
-into the file, same as the pizza place's.
+**Next action: play-test U13, then U14 — map + minimap.** U13 is built and waiting on the user's
+eyes. Last build: **20 placed, 0 missing, 288 colliders**.
 
-The rest of U13 is the pizza interior and the lot cars.
+What to check, in the Editor:
+
+1. **The gas station** (Unity ~(320.9, 0, −123.3)) stands upright on the road, canopy overhead,
+   forecourt drivable. It was lying on its side and 5.4 m underground.
+2. **The parking lot** is full of parked cars in mixed colours — white, black, grey, the odd red,
+   yellow and blue — and the Mustang and the bike still have their own clear patch to spawn in.
+   Drive into one: it should stop you.
+3. **The pizzeria doorway.** Walk to the storefront at Unity (−28, ~0.3, −100) and press `E`: the
+   screen should cut to a warm lit room. Press `E` again standing on the spot you arrived on and
+   you step back out onto the street. There is no fade yet — that is U25's.
 
 **U12 is done** — the user confirmed on 2026-08-15 that the roads, the water and the beach all read
-right. Last build: **18 placed, 0 missing, 177 colliders**.
+right.
+
+### What U13 built
+
+**The gas station was lying on its side, and the cause is the same one the pizza place had.** Its
+Sketchfab export wraps the model in `Sketchfab_model` (Rx −90) → `GLTF_SceneRootNode` (Rx +90) — a
+pair that cancels in three.js and does not survive glTFast, so the model arrived with its local Y and
+Z swapped: 24.5 m "tall" (that was its depth), 13.1 m "deep", and its base 5.36 m below the road. It
+now measures 27.6 × 13.1 × 24.5 m with its base on y 0. The fix is `Rx(-90)` in
+`WorldBuilder.AssetAliases`, and the entry has **no `File`** — that is the new part: the table now
+distinguishes a stand-in for a model we do not have from a correction to the real asset, because a
+stand-in must skip the config's `hideNodes` and the real asset must not. The build report says
+"corrected on import" rather than "stand-in".
+
+**Lot cars are real GameObjects, and that is this unit's answer to the standing question.** The web
+build draws them as one `THREE.InstancedMesh` per source mesh per model, because a few hundred cloned
+cars would be thousands of draw calls in three's forward renderer. That is the right answer there and
+the wrong one here: an InstancedMesh is a single renderable with one bounding sphere over the whole
+lot, so every instance draws whenever any part of the lot is on screen and nothing can be culled
+individually. Unity GPU-instances identical mesh/material pairs anyway, so the draw-call win survives
+while each car is culled on its own bounds and carries an `LODGroup` that stops drawing it past
+180 m.
+
+**The layout is ported bit for bit, PRNG included.** `Mulberry32` is the web build's generator in
+`uint` arithmetic (`Math.imul` is a wrapping 32-bit multiply, `>>>` is what `uint` shifts already
+are), so seed 1337 produces the same lot: **101 cars, 40 Tesla / 18 Audi / 43 Avenger**, none of them
+inside the `keepClear` rectangle the Mustang and the bike spawn in. The grid is generated in the web
+build's own coordinates and each car is converted at placement — converting `bounds` and `keepClear`
+first would swap their X ends and invert every comparison in the loop.
+
+**Paint is a generated material per model per colour, not a per-instance colour.** The web build
+clones the body material white and drives the colour per instance because InstancedMesh has nowhere
+else to put it; here it is a material asset (same call as U1's facade tint and U11's cutouts) and
+that is also what KEEPS the instancing — a `MaterialPropertyBlock` would give every car its own draw
+call. 18 materials for the whole lot. The paint slot is found by material name (`CarPrimaryColor`, or
+`primary` on the Tesla), the same convention the web build matches on, and the colour goes into
+glTFast's `baseColorFactor` as sRGB (memory: `gltfast-basecolorfactor-gamma`).
+
+**⚠ `tesla.glb` and `avenger.glb` would not import at all: required WebP.** Both name
+`EXT_texture_webp` in `extensionsRequired`, which glTFast cannot read, so Unity imported them as
+`DefaultAsset`s and WorldBuilder could only say "missing" — the same trap U8 hit from the Blender
+side and solved with `export_image_webp_fallback`. These have no source asset anywhere and cannot be
+re-exported, so `tools/glb-webp-to-png.py` transcodes the embedded images (JPEG where there is no
+alpha, PNG where there is), flattens the extension's texture indirection and drops it from
+`extensionsRequired`. Geometry is untouched — Draco stays compressed. Run it once per file; the
+result is what is committed.
+
+**The car's box is measured off an UNROTATED probe.** Renderer bounds are world-space and
+axis-aligned, so measuring a car already turned into its stall gives the bounding box of a bounding
+box, which grows with the yaw. The probe is also where the ride height comes from: the car is placed
+by its own underside against `lotCars.y`, not by the web build's "recentre the body and add half the
+height", which assumes a centred pivot. And the `BoxCollider` divides the measurement back out by
+the model scale — **the Avenger is scale 37.4**, so skipping that makes its collider a kilometre wide
+and nothing can get into the lot at all.
+
+**The interior is a real room a kilometre away, entered by teleport** — the web build's design, and
+it carries: a second Unity scene would stop the street simulating the moment you walk in, which
+U21's delivery timer and U19's wanted level both care about. `Assets/Scripts/World/Interior.cs` owns
+the doorway; WorldBuilder writes its fields through `SerializedObject` at build time.
+
+**Two of the web build's three interior chores turned out to be three.js tax.** Its room lights are
+switched off while you are on the street because three's forward renderer charges every light against
+every shaded fragment city-wide; URP culls per object, so three lamps a kilometre away cost nothing
+and simply stay on. Its sun is dimmed on entry to keep daylight out of the room; the room has a
+ceiling and URP shadows it. What is left is fog and ambient, which are global render settings in both
+engines — so those are still saved on the way in and put back on the way out, and that swap is what
+makes the inside feel like an inside.
+
+**`E` is shared with getting into a vehicle, and the doorway defers.** A car parked outside the
+storefront puts both in range at once, so `VehicleEnterExit.HasVehicleInReach` decides it rather than
+Update order — the vehicle wins, which is the web build's precedence too.
+
+**⚠ A teleport must switch the `CharacterController` off across the write.** It caches its own
+position and will sweep the capsule from the pizzeria back to the city if left enabled, which reads
+as the player being dragged through every building on the way. The camera is snapped afterwards for
+the same reason the web build snaps it: otherwise the boom lerps across a kilometre of city while the
+player stands in a lit room.
+
+**Out of scope on purpose, both chosen by the user:** the counter NPC and the pizza-box pickups are
+U21's, since the mission is what consumes them; and promoting a parked filler car into a drivable one
+(`E` on any lot car, in the web build) is left until `CarBuilder` is generalised past the Mustang,
+which is really U17's work. The fade behind the teleport is U25's.
+
+**Verified by measurement, not by eye** (the rest is the user's to judge): gas station base on y 0 at
+27.6 × 13.1 × 24.5 m; 101 cars between Unity x [137.8, 294.4] and z [−297.2, −195.8], all inside the
+lot's own 165 × 116 m, wheels resting at y 0.10, zero cars in `keepClear`; entering the interior
+lands the player at (−1000, 0.3, 1002.8) with the warm fog and ambient applied, and leaving puts them
+at (−28, 0.3, −100) with the street's restored.
 
 ### What U12 built
 
@@ -551,7 +641,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | --- | --- | --- | --- | --- |
 | U11 | All 9 districts via WorldBuilder | done | `21857c3` | Placement and colliders shipped in U5; U11 is the three rendering faults that survived it. Foliage: the white shards were a spurious V flip in glTFast's `_ST`, NOT the blend mode — `WorldBuilder.UnflipV`, plus a real alpha-clip pass that rebinds to generated URP/Lit materials because `_AlphaClip` on an imported glTFast material is inert. Cities 2/3: baked cars stripped at the SUBMESH level in Unity — 86% of the mesh — instead of a Blender split, out of collision as well as sight. Empty material slots were drawing magenta and now get glTF's default material. **Caught and fixed: a substring pattern list that alpha-clipped every road, because "tree" is inside "CityGen_Streets".** Foliage colliders left open on purpose — see Deferred. User-confirmed 2026-08-15 |
 | U12 | Roads, ground, sea | done | `7dc8208` | Roads are `com.unity.splines` + a generated ribbon, NOT the web's per-segment stretched tile: 1864 m of spline vs 1859.5 m of polyline, corners curved, markings continuous through them. The `SplineContainer`s are kept as U17/U19's centreline. Road surface texture is generated because the web tile's paint is geometry. Sea is a port of `sea-surface.ts` into `Assets/Shaders/{Water,Beach}.shader` (URP has no built-in water) — unlit on purpose, since the original does its own lighting. Beach is a displaced MeshCollider you walk down. `Assets/Scripts/World/SeaGeometry.cs` owns the waterline and its handedness — the sea is Unity **+x**. **Caught and fixed: the ground plate's collider held the player up over the whole beach; it now stops at the shore. "Kerbs" were phantom scope — no such system exists in the original.** Splines needs ≥2.9.0 on Unity 6.5. User-confirmed 2026-08-15 |
-| U13 | Places — pizza + interior, gas, police station, lot cars | todo | | **Starts with a fix, not an addition: the gas station is placed wrong** (user-flagged 2026-08-15, undiagnosed). Both station GLBs are ingested and building. Correction goes in `WorldBuilder.AssetAliases` |
+| U13 | Places — pizza + interior, gas, police station, lot cars | wip | | Built, awaiting the user's play-test — nothing known outstanding. Gas station was Y/Z swapped by the Sketchfab export's cancelling root matrices; `Rx(-90)` in `AssetAliases`, whose entries can now correct the REAL asset (`File = null`) instead of only swapping in a stand-in. Lot cars are 101 real GameObjects with per-car culling and `LODGroup`s, NOT an InstancedMesh — same seeded layout as the web build (`Mulberry32` in `uint`), paint as 18 generated materials so the instancing survives. Interior is a teleport cell with the fog/ambient swap; its lights stay on and the sun stays up, both of which the web build only fights because of three's forward renderer. **Caught and fixed: `tesla.glb`/`avenger.glb` require `EXT_texture_webp` and glTFast rejects the whole file — `tools/glb-webp-to-png.py`; and a BoxCollider that ignores the model scale is a kilometre wide on the 37.4× Avenger.** NPC + pizza pickups deferred to U21, lot-car promotion to U17, the fade to U25 — all by the user's call |
 | U14 | Map + minimap | todo | | |
 | U15 | Addressables streaming | todo | | ONLY if the profiler says so — measure first |
 
@@ -625,6 +715,30 @@ would trigger it. A `wip` unit is work half-done; this is work deliberately not 
 ## Decisions log
 
 Dated one-liners. These are settled — do not re-litigate them without the user reopening.
+
+- **2026-08-15** (U13) — **`AssetAliases` corrects real assets too, not just stand-ins.** An entry
+  with no `File` keeps the config's own model and applies only the rotation/lift. The distinction is
+  load-bearing rather than cosmetic: a stand-in must skip the config's `hideNodes` because those name
+  another model's parts, and the real asset must obey them.
+- **2026-08-15** (U13) — **Lot cars are GameObjects with per-car culling, not one InstancedMesh.**
+  three's instancing is a single renderable with one bounding volume, so nothing culls; Unity
+  GPU-instances identical mesh/material pairs by itself and culls each car on its own bounds, plus an
+  `LODGroup` that drops them past 180 m. The web build's approach ports as a performance regression.
+- **2026-08-15** (U13) — **Lot-car paint is a generated material per colour, never a
+  `MaterialPropertyBlock`.** A property block would break the batch and give every car its own draw
+  call, which is the opposite of what the web build's per-instance colour buys there. Eighteen
+  material assets cover the whole lot, and they are swept like every other generated folder.
+- **2026-08-15** (U13) — **A required glTF extension is transcoded, not worked around.**
+  `tools/glb-webp-to-png.py` rewrites the embedded WebP and drops `EXT_texture_webp`, because
+  glTFast rejects the entire file and the failure surfaces only as "missing". The lot car models have
+  no source asset to re-export, which is what makes this the pipeline step rather than a Blender fix.
+- **2026-08-15** (U13) — **The interior's lights stay on and the sun stays up.** The web build
+  switches both because three's forward renderer charges every light against every fragment in the
+  scene; URP culls per object and the room has a ceiling. Only fog and ambient are still swapped —
+  those are global in both engines. Scar tissue, not design (port rule 5).
+- **2026-08-15** (U13) — **The vehicle wins `E`.** A car parked outside the pizzeria puts the door
+  and the driver's seat in range at once; the doorway asks
+  `VehicleEnterExit.HasVehicleInReach` and stands down, rather than the two racing on Update order.
 
 - **2026-08-15** — **Every unit opens with "can Unity do this better?"** and closes with the answer
   written into its notes. Not a new decision so much as the 2026-08-12 "Unity-idiomatic, same game"

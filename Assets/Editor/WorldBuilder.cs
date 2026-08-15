@@ -63,8 +63,9 @@ namespace TheBlock.EditorTools
         private static readonly string[] LegacyRootPrefixes = { "District_", "Place_" };
 
         /// <summary>
-        /// A stand-in for a model the web build has and this project does not, plus whatever it takes
-        /// to make that stand-in sit where the original would have.
+        /// A per-asset correction: either a stand-in for a model the web build has and this project
+        /// does not, or an orientation/height fix for the real asset, plus whatever it takes to make
+        /// it sit where the web build's copy would have.
         ///
         /// The correction lives here rather than being baked into the asset on disk: the file stays
         /// exactly as it was downloaded, and the fix stays visible and re-runnable. Every use is
@@ -72,7 +73,12 @@ namespace TheBlock.EditorTools
         /// </summary>
         private sealed class Substitute
         {
-            /// <summary>File name as it exists under <c>Assets/Models</c>.</summary>
+            /// <summary>
+            /// File name as it exists under <c>Assets/Models</c>, when this entry swaps the asset out.
+            /// <c>null</c> means the config's own file is used and only the corrections below apply —
+            /// which is also what tells the build report and <c>hideNodes</c> apart: a stand-in has
+            /// somebody else's node names, the real asset has the ones the config was written against.
+            /// </summary>
             public string File;
 
             /// <summary>Rotation applied in the model's OWN frame, before the config's yaw.</summary>
@@ -99,6 +105,17 @@ namespace TheBlock.EditorTools
                 // config says y=0, which was correct for the original. The pavement here is at 0.15.
                 ExtraY = 0.15f,
                 Note = "lies on its back out of the box; righted and lifted onto the pavement",
+            },
+
+            // The real Paz station, not a stand-in — File is null. The Sketchfab export wraps the
+            // model in Sketchfab_model (Rx-90) → GLTF_SceneRootNode (Rx+90), a pair that cancels in
+            // three.js but not through glTFast: the imported model arrives with its local Y and Z
+            // swapped, so it stands 24.5 m "tall" (that is its 61 m depth) and sinks 5.4 m below the
+            // road. Rx(-90) puts the axes back: 13.1 m tall, 24.5 m deep, base on y 0.
+            ["gas-station.glb"] = new Substitute
+            {
+                ExtraEuler = new Vector3(-90f, 0f, 0f),
+                Note = "Sketchfab export imports with Y and Z swapped; righted",
             },
         };
 
@@ -172,6 +189,8 @@ namespace TheBlock.EditorTools
                 BuildPlace(places, snapshot.Config.PizzaPlace, "Pizza Place", options, report);
                 BuildPlace(places, snapshot.Config.GasStation, "Gas Station", options, report);
                 BuildPlace(places, snapshot.Config.PoliceStation, "Police Station", options, report);
+                BuildInterior(places, snapshot.Config.Interior, snapshot.Config.Player, options, report);
+                BuildLotCars(places, snapshot.Config.LotCars, options, report);
             }
 
             SweepGenerated(report);
@@ -354,7 +373,7 @@ namespace TheBlock.EditorTools
             // hideNodes names parts of the ORIGINAL model. A stand-in that happens to share a node
             // name would lose a piece it needs — the pizza substitute's lamp post is called
             // PizzaLight, the same name the original build hides.
-            if (substitute != null)
+            if (substitute?.File != null)
                 report.Notes.Add($"{instance.name}: hideNodes skipped — they name the original model's parts");
             else if (place.HideNodes != null)
                 HideByNode(instance, place.HideNodes, report);
@@ -387,9 +406,16 @@ namespace TheBlock.EditorTools
             var fileName = url.Substring(url.LastIndexOf('/') + 1);
             if (AssetAliases.TryGetValue(fileName, out substitute))
             {
-                report.Warnings.Add(
-                    $"{label} — stand-in {substitute.File} for {fileName}: {substitute.Note}");
-                fileName = substitute.File;
+                if (substitute.File != null)
+                {
+                    report.Warnings.Add(
+                        $"{label} — stand-in {substitute.File} for {fileName}: {substitute.Note}");
+                    fileName = substitute.File;
+                }
+                else
+                {
+                    report.Warnings.Add($"{label} — {fileName} corrected on import: {substitute.Note}");
+                }
             }
 
             var bareName = System.IO.Path.GetFileNameWithoutExtension(fileName);
@@ -799,7 +825,8 @@ namespace TheBlock.EditorTools
         /// </summary>
         private static void SweepGenerated(Report report)
         {
-            foreach (var folder in new[] { CutoutMaterialFolder, GeneratedMeshFolder, GeneratedWorldFolder })
+            foreach (var folder in new[]
+                     { CutoutMaterialFolder, GeneratedMeshFolder, GeneratedWorldFolder, LotCarMaterialFolder })
             {
                 if (!AssetDatabase.IsValidFolder(folder)) continue;
 

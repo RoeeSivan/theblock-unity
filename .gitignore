@@ -88,3 +88,9 @@ crashlytics-build.properties
 /Assets/Models/Characters/Joe_Jumping.fbx.meta
 /Assets/Models/Characters/Joe_Sprint.fbx
 /Assets/Models/Characters/Joe_Sprint.fbx.meta
+
+# Lot-car paint materials — one per model per palette colour, written by WorldBuilder and
+# swept by it. Same reasoning as the cutout materials: derived from the config's palette,
+# rewritten by every Build World.
+/Assets/Materials/LotCars/
+/Assets/Materials/LotCars.meta
