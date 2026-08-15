@@ -51,41 +51,43 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-**Next action: the user play-tests U17 + U16b together.** Both are built and measured, the scene is
-saved, and NOTHING IS COMMITTED YET — the working tree holds all of it. Both stay `wip` until the
-user says they read right.
+**Next action: build U17b** — carjacking, and generalising `CarBuilder` past the Mustang. It also
+inherits U13's deferred lot-car promotion. See its row.
 
-**U16b happened because U17's play-test found three things**, and only the first was U17's:
+**U17, U16b and the vehicle hardening are all done, user-confirmed 2026-08-15**, and everything is
+committed and pushed (`origin/main` is a real remote now: `RoeeSivan/theblock-unity`). The
+play-test found two faults; both are fixed and both were found by MEASURING, not by looking.
 
-1. **Traffic drove in reverse — fixed.** `config.traffic.models[].modelYaw` uses the OPPOSITE
-   convention to `vehicle.cars`/`lotCars`: it aims the nose at the travel direction (`+Z` under the
-   web's heading math), they aim it at `-Z`. `TrafficCarBuilder` composed `Convert.ModelFacing` on
-   top of numbers that already contain that flip. Total rotation now matches the known-good lot cars
-   per model (Tesla 180°, Audi 0°, Avenger 0°); prefabs rebuilt.
-2. **A giant black wedge**, intermittently, apex near the player's car. Never conclusively pinned:
-   toggling the `Crowd` root off and on killed it live, and `NpcBuilder` documented that exact
-   symptom as the vendor pack's LOD-swap explosion — but the apex also sat on the Mustang. U16b
-   removes the crowd mechanism by construction AND hardens the car. **If it ever comes back, it is
-   the car**, and that is now a one-variable answer instead of a two-variable one.
-3. **The crowd was the perf worry the user flagged at U16.** Their call: stop patching the vendor
-   pack, go back to the six Mixamo people and the placement the three.js build ships.
+1. **The traffic lights never appeared to switch — the quads were inside the housing.** The
+   mechanism was never broken: sampled live, the 70 controllers were cycling and the 233 poles held
+   genuinely different materials (125 red / 79 green / 20 amber / 9 red+amber in one frame). What was
+   wrong was 14 cm of geometry. `BuildLampMesh` placed each quad at `lampDisc.max.z + 0.3` **model**
+   units, measured off the animated disc on the assumption it was the outermost thing at that height.
+   It is not — the discs slide BEHIND a lens. Measured on the model: the shell's front face is at
+   **9.675**, the disc fronts at **6.883–7.163**, so the shell stands **2.51–2.79 units proud of
+   them**, and a 0.3 epsilon off that datum buried every quad in solid model. The Z now comes from
+   the housing's own front face, shared by all three quads. Verified: 233/233 poles now sit 1.7 cm
+   proud of the shell. **The generic lesson: an epsilon is only as good as its datum, and "the thing
+   I am offsetting from" is worth measuring rather than assuming.**
+2. **The black wedge was the car, exactly as this block predicted** — and the hardening that shipped
+   with U16b was not enough on its own. `CarWheel` validated the pose's *quaternion* but not its
+   *position*, so a perfectly valid unit rotation at a position nowhere near the car passed straight
+   through and tore the skin. There is now a plausibility bound with a real derivation behind it: a
+   `WheelCollider`'s pose is its own transform slid along the suspension axis, so it can never leave
+   a sphere of `suspensionDistance` around the anchor. Anything further did not come from the spring.
+   Measured live: wheels sit 0.126 m out against a 0.5 m limit — 4× headroom, no false trips.
 
-**What to drive around and judge** (I cannot see the Game view; these are the questions measurement
-cannot answer):
+**`SkinWatchdog` exists now so this class of bug is never a screenshot again**
+(`Assets/Scripts/Core/SkinWatchdog.cs`, auto-installs on Play, editor-only). It names the renderer,
+the offending bone and its distance, then pauses the editor on that frame. **It reads BONES, not
+`renderer.bounds`** — and that is the whole point: a `SkinnedMeshRenderer`'s bounds are baked and do
+NOT grow when a bone is thrown. Proved it by throwing a bone 500 m and watching the bounds report
+5.65 m, unchanged. A bounds-based watchdog is not a weak test, it is a test that can never fire.
 
-1. **Which side is the traffic on?** Right, Israeli-style. Verified two ways — the config's own lane
-   expression, and live car headings: a car going `+X` sits 4 m to `-Z` of its opposite number,
-   which is `2 × laneOffset` on the correct side.
-2. **Do the cars drive nose-first?** This is fix 1 above and it is the one thing that most needs eyes.
-3. **Do the poles read as traffic lights?** One per approach, on the kerb to the driver's right,
-   head facing the oncoming cars. Red / red+amber / green / amber, 26 s cycle, junctions desynced.
-4. **Does the queueing feel like traffic** rather than like cars taking turns to be stuck?
-5. **Ram one.** It should become a real wreck and stay one until you drive away. `wreckOnImpact` on
-   `TrafficCar` turns that off in one click if it is bad.
-6. **The crowd.** Six recognisable people — Sophie, Remy, Elizabeth, Chinese, Peter, Lewis — on the
-   painted pavements, two-way foot traffic along the long downtown strips and the beach, nobody on a
-   carriageway except on a zebra, crossers waiting on red and going together.
-7. **`R` in a car.** Upright, on the ground, at its OWN spawn, wheels attached.
+**OPEN, user-flagged 2026-08-15, deliberately deferred: standing next to a pole, its lights do not
+appear to change.** Reported after the fix above, so this is a second, separate thing — the quads are
+provably visible and provably repainted now. Untouched and unmeasured; see the Deferred section for
+where to start.
 
 **The starting lot is quiet on purpose.** The original's 33 painted rectangles are downtown and
 west; the Reichman lot gets only its 9-person district share. Drive into the city before judging
@@ -110,9 +112,6 @@ delta of 0.09 ms.** The crowd is free; whatever the frame costs, it is not this.
 **If it needs another pass, the knobs are all serialized on `TrafficSystem`** (select
 `World/Traffic` during Play): `densityScale`, `cullDistance`, the spawn ring, and every number from
 `config.traffic`. Nothing needs a rebuild to try.
-
-**U17b is the next unit after this one** — carjacking, and generalising `CarBuilder` past the
-Mustang. It also inherits U13's deferred lot-car promotion. See its row.
 
 **Rebuild order:** The Block → **Import People (slow)** → **Build NPC Animator** → **Build
 Pedestrians** → **Build Traffic Cars** → **Build World + NavMesh (slow)** → **Bake Crowd Seeds**.
@@ -166,8 +165,13 @@ has not been asked systematically. Swimming was found by accident, from a questi
 translucent lens — unusable in three.js and no better here, plus the whole model is ONE `BLEND`
 material, so 233 poles would have sat in the transparent queue. Those nodes are destroyed at build,
 the housing is rebuilt as an opaque URP/Lit asset, and three quads become one mesh with three
-submeshes positioned from the original lamps' own bounds. Switching a light is an assignment into a
-shared-material array, so every pole showing the same state still batches.
+submeshes. Switching a light is an assignment into a shared-material array, so every pole showing the
+same state still batches.
+
+**Each quad takes its X and Y from its own lamp's box — that is what puts red above amber above
+green — but its Z from the HOUSING's front face, and all three share that one plane.** Taking Z from
+the lamp box is what shipped first and it made the whole system invisible: the discs sit behind the
+lens, so an epsilon measured off a disc lands inside the shell. See RESUME HERE for the numbers.
 
 **Handedness: the lane offset is `Cross(up, tangent)`, not the web's `(-tz, tx)`.** Those are the
 same physical side written for opposite handednesses, and transcribing the arithmetic literally puts
@@ -933,9 +937,9 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
 | U16 | Pedestrian crowd (NavMesh agents) + zebra crossings | done | `0dc4398` + `27058ae` | User-confirmed 2026-08-15 — flagged **low performance, revisit later** by the user (see RESUME HERE). The pavement is not enforced, it is the only thing that exists: `WorldBuilder.Navigation.cs` carves all 12.7 km of `config.traffic.network` **Not Walkable** (172 volumes over 142 streets), which disconnects the two sides of every road, so the only route across is a gated `NavMeshLink` at one of **230 zebras** on 70 lit intersections — derived from the same graph and the same `stopLineDist + crossingSetback` as `traffic.ts`. NavMesh baked 963 × 805 m @ 0.4 m voxels over the DISTRICTS only (car park excluded) (`CollectObjects.Children`, PhysicsColliders) → `Assets/Navigation/Generated/NavMesh.asset`. `config.traffic` ported (`TrafficSpec`, `StreetSpec` + its union converter). Crowd is a **pool of 60 that follows the player**, trickled in 6 per sweep, not the web build's ~400 seeded-at-boot-and-frozen — `CrowdSpawner`/`Pedestrian`/`NpcAppearance`. Zero of the 80 hand-recorded rectangles and strips in `npc.config.ts` are ported and none are needed. **Caught: the pack's prefabs reference the BUILT-IN Standard materials while the URP twins sit unused beside them — 455 slots rebound, or every pedestrian is magenta. Then, at play-test: zebras 2 cm UNDER the street (GroundY took the lowest hit — the ground plate — z-fighting up as orange); the vendor's five LODs are 33 skinned meshes per person, all posed every frame whether drawn or not, and an unposed one swapping in by LOD change draws at bind pose against a walked-off skeleton — the 'exploding pedestrian'; and 90 agents spawned in one frame was the stutter, not the crowd's steady cost, which measured as zero.** LODs 0+2 only now (395 → 158 SMRs), spawn trickled, car park excluded. ⚠ Rooftops bake walkable and are filtered at spawn/re-target by a height band, not by the bake |
-| U16b | Crowd rebuilt on the ORIGINAL's six people + authored placement | wip — built and measured, awaiting the user's play-test | | **The user's call after U16's play-test: stop patching the vendor pack, port the crowd the shipped game actually has.** Six Mixamo characters (Sophie/Remy/Elizabeth/Chinese/Peter/Lewis) imported from the original's `source-assets` FBX — 576 MB, Humanoid, one avatar CREATED per character and only that character's walk copying it (a shared avatar across six different bodies is how you get six subtly broken skeletons), `optimizeGameObjects` on, textures extracted so they can be compressed at all. Placement is `npc.config.ts` verbatim, now EXPORTED rather than re-typed: `export-config.mjs` gained a second source (`$npcSource`, `$npcSourceSha256`, `npcConfig` as a sibling of `config`) — 33 painted rectangles × 9, 38 strips × 8 split into two opposing lanes, a 9-per-district fallback, 2 gated crossers per zebra = **687 baked + 460 runtime = 1,147 people**. **NavMeshAgent is GONE from the crowd** and that reverses U16: the agent owned the transform, did its own avoidance and had to be created on the mesh first (the 'Failed to create agent' spam), and the original needs none of it because it walks authored strips and rectangles. The NavMesh STAYS as a query surface — `SamplePosition` is the web's `isWalkable`, `Raycast` is its `segmentWalkable`, which is the whole job of the 4096² mask with no readback and no 67 MB grid. **No LODGroup, one or two renderers per person: the 'exploding pedestrian' mechanism cannot occur.** Measured: peak 139 within 90 m (p95 79) so `liveCap` 155; frame time crowd-on 42.39 ms vs crowd-off 42.31 ms — **delta 0.09 ms**; 0 exploded, 0 on a carriageway, 0 on a rooftop, 230/230 gated. **Caught: `mesh.bounds` reports FILE units and ignores import scale, so an earlier pass 'measured' every character at 170 m, scaled the importer to fix it, and broke every rig (`Avatar Rig Configuration mis-match … position error = 43757 mm`) — height is now measured by instantiating into a preview scene and corrected on the prefab's VISUAL CHILD, never the importer and never the root (that would scale the physics capsule). Remy really is 4.20 m native, exactly as the web build's comment says.** Unity 6 removed External material location; not needed — Mixamo FBX come out of Unity's own importer as URP/Lit with base+normal already bound. Deliberate deviation, and the only one: the 1,147 are structs and only those in range own a GameObject, because U16 measured that the cost was the `Instantiate` burst, not the population |
-| — | Vehicle hardening, folded into U16b | wip | | `CarWheel` took its bone rest offset from `WheelCollider.GetWorldPose` in `Awake` — before the first physics step, where the pose is not guaranteed to be a unit quaternion, and `Quaternion.Inverse` of a zero quaternion is NaN. It also had no rebind guard, so a mid-Play recompile left `_boneRestOffset` deserialized as `(0,0,0,0)` and every LateUpdate wrote a degenerate rotation into a wheel bone — on a car whose body, doors and wheels are ONE skin over 16 bones, that is a black wedge across the sky. Now: offset from `transform.rotation`, `Bind()` guard like `CarDoor`, validation on the WRITE, and nothing posed before the first `FixedUpdate`. `CarController.Respawn` also rewritten — it used `cars.FirstOrDefault()` (whichever car pressed R), teleported to the raw config spawn which carries no Y (dropping the car to 0, under the road), and moved the Rigidbody with no `Physics.SyncTransforms`, so for one frame the wheel bones were posed where the car used to be |
-| U17 | Traffic — graph, cars, lights | wip — built, awaiting the user's play-test | `2ea3c54` | Cars, lights and phases on U16's graph, which is now derived ONCE by the traffic pass and handed to the navigation pass — the crossings and the lights key off the same node numbering by construction. `Crossing.IsClearOfTraffic` deleted; `TrafficLightSystem` fills `Crossing.Gate` for all 230. **The population is DERIVED, not configured**: 130 cars over 12,759 m is one car per 98 m, so the live count is the metres of centreline in range divided by that — a fixed 32 was the plan and it gridlocked the city in under a minute, because the disc around the starting lot holds 1,230 m and 32 there is jam density. The graph is BAKED to a ScriptableObject at build time (6,590 Y-samples), so the runtime casts no rays for traffic at all. Kinematic while driving, a real Rigidbody wreck when rammed. **Caught and fixed, both by measuring rather than looking: `GroundY` could return a ROOF (downtown's avenue baked at 6–10 m) and the fast `Build World` was silently losing the whole NavMesh — `PasteComponentValues` does not carry `navMeshData`, so the crowd failed to spawn with nothing in the console.** Cars stop BEHIND the zebra, which the original does not. Carjacking split out to U17b |
+| U16b | Crowd rebuilt on the ORIGINAL's six people + authored placement | done | `31f5767` | User-confirmed 2026-08-15, play-tested together with U17. **The user's call after U16's play-test: stop patching the vendor pack, port the crowd the shipped game actually has.** Six Mixamo characters (Sophie/Remy/Elizabeth/Chinese/Peter/Lewis) imported from the original's `source-assets` FBX — 576 MB, Humanoid, one avatar CREATED per character and only that character's walk copying it (a shared avatar across six different bodies is how you get six subtly broken skeletons), `optimizeGameObjects` on, textures extracted so they can be compressed at all. Placement is `npc.config.ts` verbatim, now EXPORTED rather than re-typed: `export-config.mjs` gained a second source (`$npcSource`, `$npcSourceSha256`, `npcConfig` as a sibling of `config`) — 33 painted rectangles × 9, 38 strips × 8 split into two opposing lanes, a 9-per-district fallback, 2 gated crossers per zebra = **687 baked + 460 runtime = 1,147 people**. **NavMeshAgent is GONE from the crowd** and that reverses U16: the agent owned the transform, did its own avoidance and had to be created on the mesh first (the 'Failed to create agent' spam), and the original needs none of it because it walks authored strips and rectangles. The NavMesh STAYS as a query surface — `SamplePosition` is the web's `isWalkable`, `Raycast` is its `segmentWalkable`, which is the whole job of the 4096² mask with no readback and no 67 MB grid. **No LODGroup, one or two renderers per person: the 'exploding pedestrian' mechanism cannot occur.** Measured: peak 139 within 90 m (p95 79) so `liveCap` 155; frame time crowd-on 42.39 ms vs crowd-off 42.31 ms — **delta 0.09 ms**; 0 exploded, 0 on a carriageway, 0 on a rooftop, 230/230 gated. **Caught: `mesh.bounds` reports FILE units and ignores import scale, so an earlier pass 'measured' every character at 170 m, scaled the importer to fix it, and broke every rig (`Avatar Rig Configuration mis-match … position error = 43757 mm`) — height is now measured by instantiating into a preview scene and corrected on the prefab's VISUAL CHILD, never the importer and never the root (that would scale the physics capsule). Remy really is 4.20 m native, exactly as the web build's comment says.** Unity 6 removed External material location; not needed — Mixamo FBX come out of Unity's own importer as URP/Lit with base+normal already bound. Deliberate deviation, and the only one: the 1,147 are structs and only those in range own a GameObject, because U16 measured that the cost was the `Instantiate` burst, not the population |
+| — | Vehicle hardening, folded into U16b | done | `31f5767` | User-confirmed 2026-08-15 (*"i notice that it is fixed"*). **The wedge came back once after the first hardening, and the ledger's own one-variable prediction held: it was the car.** The first pass validated only that the pose was a finite unit quaternion, which a stale-but-valid pose passes. `CarWheel.Pose` now also enforces the geometric bound — a `WheelCollider` pose is its own transform slid along the suspension axis, so it can never leave a sphere of `suspensionDistance` around the anchor; further than that did not come from the spring and the bone is left on the skeleton for a frame. Live: 0.126 m out against a 0.5 m limit. `Assets/Scripts/Core/SkinWatchdog.cs` added so a next occurrence names its own bone — and it reads BONES, because baked `renderer.bounds` do not grow when one is thrown (verified by throwing one 500 m). Original notes: `CarWheel` took its bone rest offset from `WheelCollider.GetWorldPose` in `Awake` — before the first physics step, where the pose is not guaranteed to be a unit quaternion, and `Quaternion.Inverse` of a zero quaternion is NaN. It also had no rebind guard, so a mid-Play recompile left `_boneRestOffset` deserialized as `(0,0,0,0)` and every LateUpdate wrote a degenerate rotation into a wheel bone — on a car whose body, doors and wheels are ONE skin over 16 bones, that is a black wedge across the sky. Now: offset from `transform.rotation`, `Bind()` guard like `CarDoor`, validation on the WRITE, and nothing posed before the first `FixedUpdate`. `CarController.Respawn` also rewritten — it used `cars.FirstOrDefault()` (whichever car pressed R), teleported to the raw config spawn which carries no Y (dropping the car to 0, under the road), and moved the Rigidbody with no `Physics.SyncTransforms`, so for one frame the wheel bones were posed where the car used to be |
+| U17 | Traffic — graph, cars, lights | done | `2ea3c54` + `31f5767` | User-confirmed 2026-08-15. **Play-test fault: the lights looked frozen because the lamp quads were built 14 cm INSIDE the housing** — the epsilon was measured off the animated disc, which sits behind the lens, instead of off the shell's front face (shell at 9.675, discs at 6.883–7.163, so the shell stands 2.51–2.79 model units proud). The state machine was correct throughout: sampled live it held 125 red / 79 green / 20 amber / 9 red+amber across the 233 poles. Fixed in `WorldBuilder.Traffic.cs`; 233/233 now 1.7 cm proud of the shell. ⚠ **Still open, deferred by the user: standing beside a pole, its lights do not appear to change** — separate from the above, unmeasured, see Deferred. Cars, lights and phases on U16's graph, which is now derived ONCE by the traffic pass and handed to the navigation pass — the crossings and the lights key off the same node numbering by construction. `Crossing.IsClearOfTraffic` deleted; `TrafficLightSystem` fills `Crossing.Gate` for all 230. **The population is DERIVED, not configured**: 130 cars over 12,759 m is one car per 98 m, so the live count is the metres of centreline in range divided by that — a fixed 32 was the plan and it gridlocked the city in under a minute, because the disc around the starting lot holds 1,230 m and 32 there is jam density. The graph is BAKED to a ScriptableObject at build time (6,590 Y-samples), so the runtime casts no rays for traffic at all. Kinematic while driving, a real Rigidbody wreck when rammed. **Caught and fixed, both by measuring rather than looking: `GroundY` could return a ROOF (downtown's avenue baked at 6–10 m) and the fast `Build World` was silently losing the whole NavMesh — `PasteComponentValues` does not carry `navMeshData`, so the crowd failed to spawn with nothing in the console.** Cars stop BEHIND the zebra, which the original does not. Carjacking split out to U17b |
 | U17b | Carjack + `CarBuilder` past the Mustang | todo | | `config.traffic.hijack` — `E` on a stopped street car promotes it to a drivable `Vehicle`, the sim slot recycling far away (`traffic-cars.ts` `nearestStopped`/`hold`/`claim`, `transitions.ts hijackTrafficCar`). **Also owns U13's deferred lot-car promotion**, which is the same mechanism. The blocker is that `CarBuilder` only builds the Mustang, and `config.vehicle.cars` has full drivable specs (door joint, seat, paint) for Tesla/Audi/Avenger — but **none of those three GLBs has a wheel node at all**, so `FindWheelBones` has nothing to find and their wheel geometry must be STATED the way `MotorcycleBuilder` states the bike's. Split out of U17 by the user, 2026-08-15, to keep U17 to one checkpoint |
 | U18 | Run-over + blood VFX | todo | | Root Motion ON — the clip's motion IS the knockback. **Owes U16 one thing:** a struck pedestrian must leave the NavMesh, so the agent has to be disabled for the knockback and re-`Warp`ed after. Panic-fleeing into the road (if it is wanted) is the same switch — the carve makes the road unreachable by pathfinding on purpose |
 | U19 | Police pursuit + wanted level | todo | | real NavMesh; do NOT inherit the straight-line hack untested |
@@ -996,6 +1000,22 @@ would trigger it. A `wip` unit is work half-done; this is work deliberately not 
   above head height and that neither Joe nor a vehicle can reach today. **Trigger:** anything that
   gets a player INTO a canopy (U23's helicopter is the obvious one), or a U30 profiler pass that
   makes it a memory question rather than a gameplay one.
+
+- **On foot beside a pole, its lights do not appear to change.** User-flagged 2026-08-15, their call
+  to defer. Separate from U17's buried-quad fault, which is fixed and verified: the quads now sit
+  1.7 cm proud of the shell and the poles provably repaint (125 red / 79 green / 20 amber /
+  9 red+amber sampled in one frame across 233 poles). **This one is unmeasured — do not inherit the
+  hypothesis below without testing it.** The likely cause is that the lamps are a SINGLE one-sided
+  quad per lamp, normals `+Z`, wound for `+Z`, and the head deliberately faces the oncoming cars. A
+  pedestrian standing at the kerb beside the pole is therefore beside or behind that plane, where a
+  single-sided quad is backface-culled — so the lights would read as frozen from the pavement while
+  being perfectly correct from the road. If that is it, the fix is a choice, not a bug fix: a second
+  back-facing quad set, a two-sided shader, or accepting it as the real-world behaviour of a light
+  aimed at traffic (a real pedestrian does not read the drivers' lamps either — they read the
+  pedestrian signal, which this game does not model). **Trigger:** any unit that puts the player on
+  foot at junctions for real — U18's run-over, U19's pursuit on foot, or a mission that waits at a
+  crossing. **First step:** stand beside a pole in Play and read `TrafficLightPole._shown` on it via
+  the Inspector; if it is cycling, the state is fine and it is purely a facing/culling question.
 
 ---
 
