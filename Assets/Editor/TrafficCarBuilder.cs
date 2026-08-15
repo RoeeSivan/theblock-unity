@@ -1,0 +1,508 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using TheBlock.Core;
+using TheBlock.Traffic;
+using UnityEditor;
+using UnityEngine;
+using Convert = TheBlock.Core.Convert;
+
+namespace TheBlock.EditorTools
+{
+    /// <summary>
+    /// Generates the ambient traffic prefabs — <b>The Block → Build Traffic Cars</b>.
+    ///
+    /// One prefab per entry in <c>config.traffic.models</c>, each carrying its measured bumper box,
+    /// a kinematic Rigidbody, a cull group and the whole street palette as material assets so a
+    /// recycled car can be repainted without a per-instance colour.
+    ///
+    /// <b>The prefab's origin is the body centre in XZ and the contact patch in Y</b>, which is what
+    /// makes a lane sample directly usable as a position: the baked network's Y is the road surface,
+    /// so "put the car here" needs no ride-height arithmetic at runtime and no assumption about
+    /// where the artist put the model's pivot. The web build does the same thing with a
+    /// <c>recentre</c> matrix and then adds half the body height back every frame; doing it once, at
+    /// build time, in the transform, is the same answer without the per-frame term.
+    ///
+    /// <b>Materials are cloned onto U15's compressed textures.</b> A .glb's textures are sub-assets
+    /// no importer ever compresses (memory: <c>gltfast-textures-never-compressed</c>), and
+    /// <c>WorldBuilder</c>'s rebinding pass only ever sees objects in the SCENE — these are prefabs
+    /// instantiated at runtime, so they would have quietly pulled the raw copies back in: 110 MB of
+    /// RGB24 across the three car models, for cars whose compressed twins are already on disk.
+    /// The clones land in <see cref="MaterialFolder"/>, which only this builder writes and only this
+    /// builder sweeps, so a world build can never delete them out from under a prefab.
+    /// </summary>
+    public static class TrafficCarBuilder
+    {
+        private const string ModelFolder = "Assets/Models";
+        private const string PrefabFolder = "Assets/Prefabs/Traffic";
+        private const string MaterialFolder = "Assets/Materials/Traffic";
+
+        /// <summary>
+        /// What the source models call their body-paint material — the same convention
+        /// <c>traffic-cars.ts</c>, <c>lot-cars.ts</c> and <c>vehicle.ts</c> all match on.
+        /// </summary>
+        private static readonly string[] PaintMaterialNames = { "CarPrimaryColor", "primary" };
+
+        /// <summary>Mass once a wrecked car becomes a real body. Same order as the Mustang's.</summary>
+        private const float Mass = 1400f;
+
+        [MenuItem("The Block/Build Traffic Cars", priority = 22)]
+        public static void BuildMenu() => Build();
+
+        public static string Build()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                const string message = "TrafficCarBuilder: stop Play mode first.";
+                Debug.LogError(message);
+                return message;
+            }
+
+            var snapshot = TheBlockConfig.Load(reload: true);
+            var traffic = snapshot?.Config?.Traffic;
+            if (traffic?.Models == null || traffic.Models.Count == 0)
+                return Fail("TrafficCarBuilder: config.traffic.models is empty.");
+
+            var log = new StringBuilder();
+            var written = new HashSet<string>(StringComparer.Ordinal);
+            var built = new List<string>();
+
+            foreach (var spec in traffic.Models)
+            {
+                var name = ModelName(spec.Url);
+                var model = LoadModel(spec.Url);
+                if (model == null)
+                {
+                    log.AppendLine($"{name,-10} MISSING — no asset for {spec.Url} under {ModelFolder}");
+                    continue;
+                }
+
+                var path = BuildOne(model, spec, traffic, name, written, log);
+                if (path != null) built.Add(path);
+            }
+
+            SweepMaterials(written, log);
+            AssetDatabase.SaveAssets();
+
+            var report = $"TrafficCarBuilder — {built.Count} prefab(s)\n{log}";
+            Debug.Log(report);
+            return report;
+        }
+
+        // --- one car ------------------------------------------------------------------------------
+
+        private static string BuildOne(
+            GameObject model, TheBlockConfig.TrafficModelSpec spec, TheBlockConfig.TrafficSpec traffic,
+            string name, HashSet<string> written, StringBuilder log)
+        {
+            var root = new GameObject($"TrafficCar_{name}");
+
+            try
+            {
+                float scale = spec.Scale <= 0f ? 1f : spec.Scale;
+
+                var visual = (GameObject)PrefabUtility.InstantiatePrefab(model, root.transform);
+                visual.name = "Visual";
+                visual.transform.localPosition = Vector3.zero;
+                // Both rotations are about Y, so they commute — see Convert.ModelFacing. After this
+                // the model's nose points down the root's +Z, which is all the sim ever assumes.
+                visual.transform.localRotation = Convert.RotFromRadians(spec.ModelYaw) * Convert.ModelFacing;
+                visual.transform.localScale = Vector3.one * scale;
+
+                var renderers = visual.GetComponentsInChildren<MeshRenderer>(true);
+                if (renderers.Length == 0)
+                {
+                    log.AppendLine($"{name,-10} SKIPPED — the model has no MeshRenderers");
+                    return null;
+                }
+
+                // Measured with the root at the origin and the model already turned, so this AABB is
+                // the box the car will actually occupy. Measuring before the rotation would give the
+                // pre-turn box, and measuring a car already yawed into a lane would give the bounding
+                // box of a bounding box — the trap U13 hit on the lot.
+                var body = renderers[0].bounds;
+                foreach (var renderer in renderers) body.Encapsulate(renderer.bounds);
+
+                var shift = new Vector3(body.center.x, body.min.y, body.center.z);
+                visual.transform.localPosition = -shift;
+                body.center -= shift;
+
+                // The GLB ships a lamp-slide animation on some of these models and glTFast adds an
+                // Animator for it. Nothing here animates; an Animator on 32 cars is 32 avatarless
+                // update calls a frame for no output.
+                foreach (var animator in visual.GetComponentsInChildren<Animator>(true))
+                    UnityEngine.Object.DestroyImmediate(animator);
+
+                var paints = BuildMaterials(
+                    visual, spec, traffic, name, written, log,
+                    out var paintRenderers, out var paintSlots);
+
+                AddCollider(root, body);
+                AddBody(root);
+                AddCullGroup(root, body, traffic.CullDistanceM);
+
+                var car = root.AddComponent<TrafficCar>();
+                float halfLength = Mathf.Max(body.size.x, body.size.z) * 0.5f;
+                float halfWidth = Mathf.Min(body.size.x, body.size.z) * 0.5f;
+                car.Configure(halfLength, halfWidth, body.size.y, paintRenderers, paintSlots, paints);
+
+                var path = SavePrefab(root, $"TrafficCar_{name}");
+                log.AppendLine(
+                    $"{name,-10} {body.size.x:0.00} x {body.size.y:0.00} x {body.size.z:0.00} m, " +
+                    $"scale {scale:0.##}, {paints.Length} paint(s), {paintRenderers.Length} paint slot(s) → {path}");
+                return path;
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(root);
+            }
+        }
+
+        /// <summary>
+        /// One box per car, not a MeshCollider.
+        ///
+        /// The web build uses a Rapier cuboid for the same reason U13's lot cars use a box: a convex
+        /// hull of tens of thousands of triangles buys nothing against another box, a wheel and a
+        /// capsule, and would cost it thirty-two times over. The root's scale is 1 — the model's
+        /// scale lives on the Visual child — so unlike the lot cars this size needs no dividing back
+        /// out, which is the mistake that made the 37.4× Avenger's collider a kilometre wide.
+        /// </summary>
+        private static void AddCollider(GameObject root, Bounds body)
+        {
+            var box = root.AddComponent<BoxCollider>();
+            box.center = new Vector3(0f, body.size.y * 0.5f, 0f);
+            box.size = body.size;
+        }
+
+        /// <summary>
+        /// Kinematic, interpolated, continuous.
+        ///
+        /// <c>Interpolate</c> is what lets the sim run in <c>FixedUpdate</c> at 50 Hz and still look
+        /// smooth at any frame rate — without it a car driven by <c>MovePosition</c> visibly steps.
+        /// <c>ContinuousSpeculative</c> is the mode a kinematic body is allowed to have, and it is
+        /// worth having: a car crossing a junction at 12 m/s moves a quarter of its own length
+        /// between steps, which is enough for a thin collider to be missed.
+        /// </summary>
+        private static void AddBody(GameObject root)
+        {
+            var body = root.AddComponent<Rigidbody>();
+            body.isKinematic = true;
+            body.mass = Mass;
+            body.interpolation = RigidbodyInterpolation.Interpolate;
+            body.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+        }
+
+        /// <summary>
+        /// Culls the car past the config's own cull distance with a single-LOD <c>LODGroup</c>.
+        ///
+        /// Identical to the lot cars': LOD screen height is relative, so the threshold is derived
+        /// from the car's own height rather than typed in as a bare 0.01. The sim keeps running past
+        /// this — a car is recycled by distance, not by visibility — so all this decides is whether
+        /// the renderer is submitted.
+        /// </summary>
+        private static void AddCullGroup(GameObject root, Bounds body, float cullDistance)
+        {
+            float fov = Camera.main != null ? Camera.main.fieldOfView : 75f;
+            float screenHeight = body.size.y /
+                                 (2f * Mathf.Max(cullDistance, 1f) * Mathf.Tan(fov * 0.5f * Mathf.Deg2Rad));
+
+            var group = root.AddComponent<LODGroup>();
+            group.SetLODs(new[] { new LOD(screenHeight, root.GetComponentsInChildren<Renderer>(true)) });
+            group.RecalculateBounds();
+        }
+
+        // --- materials ----------------------------------------------------------------------------
+
+        /// <summary>
+        /// Clones every material this model uses into <see cref="MaterialFolder"/>, rebinding each
+        /// texture that lives inside a .glb onto its compressed twin, and expands the body-paint
+        /// material into one asset per street colour.
+        ///
+        /// <b>Why materials and not per-instance colour.</b> The web build clones the paint material
+        /// white and drives the colour through <c>InstancedMesh.setColorAt</c>, because that is the
+        /// only place three.js has to put it. Here a <c>MaterialPropertyBlock</c> would be the
+        /// obvious reach and is the wrong one: it gives every car its own draw call, while twelve
+        /// shared material assets give twelve batches for the whole city. Same call U1 made for the
+        /// facade tint and U13 for the lot.
+        /// </summary>
+        private static Material[] BuildMaterials(
+            GameObject visual, TheBlockConfig.TrafficModelSpec spec, TheBlockConfig.TrafficSpec traffic,
+            string name, HashSet<string> written, StringBuilder log,
+            out MeshRenderer[] paintRenderers, out int[] paintSlots)
+        {
+            EnsureFolder(MaterialFolder);
+
+            var palette = spec.Palette != null && spec.Palette.Count > 0 ? spec.Palette : traffic.Palette;
+            if (palette == null || palette.Count == 0) palette = new List<int> { 0xFFFFFF };
+
+            var clones = new Dictionary<Material, Material>();
+            var slotOwners = new List<MeshRenderer>();
+            var slotIndices = new List<int>();
+            Material paintSource = null;
+            int rebound = 0, misses = 0;
+
+            foreach (var renderer in visual.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                var materials = renderer.sharedMaterials;
+                bool changed = false;
+
+                for (int i = 0; i < materials.Length; i++)
+                {
+                    var source = materials[i];
+                    if (source == null) continue;
+
+                    if (!clones.TryGetValue(source, out var clone))
+                    {
+                        clone = CloneMaterial(source, name, written);
+                        rebound += RebindCompressed(clone, ref misses);
+                        clones[source] = clone;
+                    }
+
+                    materials[i] = clone;
+                    changed = true;
+
+                    if (!PaintMaterialNames.Contains(source.name)) continue;
+
+                    if (paintSource == null) paintSource = clone;
+                    else if (paintSource != clone)
+                        log.AppendLine(
+                            $"{name,-10} NOTE — a second distinct paint material ('{source.name}'); " +
+                            "the whole car takes the first one's palette");
+
+                    slotOwners.Add(renderer);
+                    slotIndices.Add(i);
+                }
+
+                if (changed) renderer.sharedMaterials = materials;
+            }
+
+            paintRenderers = slotOwners.ToArray();
+            paintSlots = slotIndices.ToArray();
+
+            if (paintSource == null)
+            {
+                log.AppendLine(
+                    $"{name,-10} NOTE — no material named {string.Join("/", PaintMaterialNames)}; " +
+                    "this model keeps its shipped colour");
+                if (misses > 0) log.AppendLine($"{name,-10} {misses} texture(s) have no compressed twin");
+                return Array.Empty<Material>();
+            }
+
+            var paints = new Material[palette.Count];
+            for (int i = 0; i < palette.Count; i++) paints[i] = PaintVariant(paintSource, name, palette[i], written);
+
+            // The prefab is saved showing the first colour; every instance is repainted on spawn.
+            foreach (var renderer in paintRenderers.Distinct())
+            {
+                var materials = renderer.sharedMaterials;
+                for (int i = 0; i < materials.Length; i++)
+                    if (materials[i] == paintSource) materials[i] = paints[0];
+                renderer.sharedMaterials = materials;
+            }
+
+            log.AppendLine(
+                $"{name,-10} materials {clones.Count} cloned, {rebound} texture slot(s) onto compressed copies" +
+                (misses > 0 ? $", {misses} with no twin (run The Block → Compress Textures)" : string.Empty));
+            return paints;
+        }
+
+        private static Material CloneMaterial(Material source, string carName, HashSet<string> written)
+        {
+            var assetPath = $"{MaterialFolder}/{carName}_{SanitizeAsset(source.name)}.mat";
+            for (int i = 2; written.Contains(assetPath); i++)
+                assetPath = $"{MaterialFolder}/{carName}_{SanitizeAsset(source.name)}_{i}.mat";
+            written.Add(assetPath);
+
+            var clone = AssetDatabase.LoadAssetAtPath<Material>(assetPath);
+            if (clone == null)
+            {
+                clone = new Material(source);
+                AssetDatabase.CreateAsset(clone, assetPath);
+            }
+            else
+            {
+                // Rewritten from the source every run, so a re-exported model carries through rather
+                // than leaving a stale clone that looks right until someone changes the asset.
+                clone.shader = source.shader;
+                clone.CopyPropertiesFromMaterial(source);
+            }
+
+            // Named after the FILE, not after the source material. A .mat whose object name differs
+            // from its file name makes URP's material upgrader log "Main Object Name … does not
+            // match filename" on every import — the same cosmetic noise U15's compressed clones
+            // still produce, and there is no reason to add ninety more of it.
+            clone.name = System.IO.Path.GetFileNameWithoutExtension(assetPath);
+            clone.renderQueue = source.renderQueue;
+            clone.doubleSidedGI = source.doubleSidedGI;
+            clone.enableInstancing = true;
+            EditorUtility.SetDirty(clone);
+            return clone;
+        }
+
+        private static Material PaintVariant(Material source, string carName, int hex, HashSet<string> written)
+        {
+            var assetPath = $"{MaterialFolder}/{carName}_Paint_{hex:X6}.mat";
+            written.Add(assetPath);
+
+            var material = AssetDatabase.LoadAssetAtPath<Material>(assetPath);
+            if (material == null)
+            {
+                material = new Material(source);
+                AssetDatabase.CreateAsset(material, assetPath);
+            }
+            else
+            {
+                material.shader = source.shader;
+                material.CopyPropertiesFromMaterial(source);
+            }
+
+            // glTFast's `baseColorFactor` is gamma-tagged: the sRGB value goes in as written, and
+            // calling .linear on it renders the car near-black (memory: gltfast-basecolorfactor-gamma).
+            // URP/Lit's `_BaseColor` is untagged and so is read as linear — hence the two branches.
+            if (material.HasProperty("baseColorFactor"))
+                material.SetColor("baseColorFactor", TheBlockConfig.ColorFromHex(hex));
+            else if (material.HasProperty("_BaseColor"))
+                material.SetColor("_BaseColor", TheBlockConfig.ColorFromHex(hex).linear);
+
+            material.name = System.IO.Path.GetFileNameWithoutExtension(assetPath);
+            material.enableInstancing = true;
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        /// <summary>
+        /// Points every .glb-sourced texture on a material at the copy <c>TextureCompressor</c>
+        /// extracted, if there is one.
+        ///
+        /// The lookup contract is <c>TextureCompressor</c>'s own — folder from the .glb's stem, file
+        /// name from <see cref="TextureCompressor.AssetName"/> — so the two sides cannot disagree
+        /// about where a texture landed. A miss is counted rather than silently accepted: a
+        /// half-compressed car costs the disk of the new copy and keeps the old one resident anyway.
+        /// </summary>
+        private static int RebindCompressed(Material material, ref int misses)
+        {
+            var shader = material.shader;
+            if (shader == null) return 0;
+
+            int rebound = 0;
+
+            for (int i = 0; i < shader.GetPropertyCount(); i++)
+            {
+                if (shader.GetPropertyType(i) != UnityEngine.Rendering.ShaderPropertyType.Texture) continue;
+
+                var property = shader.GetPropertyName(i);
+                if (material.GetTexture(property) is not Texture2D texture) continue;
+
+                var sourcePath = AssetDatabase.GetAssetPath(texture);
+                if (!sourcePath.EndsWith(".glb", StringComparison.OrdinalIgnoreCase)) continue;
+                if ((long)texture.width * texture.height < TextureCompressor.SkipBelowPixels) continue;
+
+                var stem = SanitizeAsset(System.IO.Path.GetFileNameWithoutExtension(sourcePath));
+                var folder = $"{TextureCompressor.GeneratedTextureFolder}/{stem}";
+                var assetName = TextureCompressor.AssetName(texture);
+
+                Texture2D compressed = null;
+                foreach (var extension in new[] { ".png", ".jpg" })
+                {
+                    compressed = AssetDatabase.LoadAssetAtPath<Texture2D>($"{folder}/{assetName}{extension}");
+                    if (compressed != null) break;
+                }
+
+                if (compressed == null) { misses++; continue; }
+
+                material.SetTexture(property, compressed);
+                rebound++;
+            }
+
+            return rebound;
+        }
+
+        /// <summary>
+        /// Deletes anything in <see cref="MaterialFolder"/> this run did not write.
+        ///
+        /// The folder is build output, and only this builder writes it — which is also why it is not
+        /// in <c>WorldBuilder.SweepGenerated</c>'s list. Putting it there would let an ordinary world
+        /// build delete the materials these prefabs point at, which is the same shape of fault that
+        /// once blanked U16's zebras.
+        /// </summary>
+        private static void SweepMaterials(HashSet<string> written, StringBuilder log)
+        {
+            if (!AssetDatabase.IsValidFolder(MaterialFolder)) return;
+
+            int deleted = 0;
+            foreach (var guid in AssetDatabase.FindAssets(string.Empty, new[] { MaterialFolder }))
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                if (AssetDatabase.IsValidFolder(path) || written.Contains(path)) continue;
+                AssetDatabase.DeleteAsset(path);
+                deleted++;
+            }
+
+            if (deleted > 0) log.AppendLine($"swept      {deleted} stale material(s) from {MaterialFolder}");
+        }
+
+        // --- plumbing -----------------------------------------------------------------------------
+
+        /// <summary>Resolves a config URL to an asset by base file name, as WorldBuilder does.</summary>
+        private static GameObject LoadModel(string url)
+        {
+            if (string.IsNullOrEmpty(url)) return null;
+            var fileName = url.Substring(url.LastIndexOf('/') + 1);
+            var bare = System.IO.Path.GetFileNameWithoutExtension(fileName);
+
+            var path = AssetDatabase
+                .FindAssets($"{bare} t:GameObject", new[] { ModelFolder })
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .FirstOrDefault(p =>
+                    string.Equals(System.IO.Path.GetFileName(p), fileName, StringComparison.OrdinalIgnoreCase));
+
+            return path == null ? null : AssetDatabase.LoadAssetAtPath<GameObject>(path);
+        }
+
+        /// <summary>"/models/optimized/lod/tesla.glb" → "Tesla". The config names these nowhere else.</summary>
+        private static string ModelName(string url)
+        {
+            if (string.IsNullOrEmpty(url)) return "Unnamed";
+            var bare = System.IO.Path.GetFileNameWithoutExtension(url);
+            return bare.Length == 0 ? "Unnamed" : char.ToUpperInvariant(bare[0]) + bare.Substring(1);
+        }
+
+        private static string SavePrefab(GameObject root, string prefabName)
+        {
+            EnsureFolder(PrefabFolder);
+            var path = $"{PrefabFolder}/{prefabName}.prefab";
+            // SaveAsPrefabAsset over an existing path keeps the GUID, so the scene's TrafficSystem
+            // keeps its reference across a rebuild.
+            PrefabUtility.SaveAsPrefabAsset(root, path);
+            return path;
+        }
+
+        private static void EnsureFolder(string folder)
+        {
+            if (AssetDatabase.IsValidFolder(folder)) return;
+            var parts = folder.Split('/');
+            var built = parts[0];
+            for (int i = 1; i < parts.Length; i++)
+            {
+                var next = $"{built}/{parts[i]}";
+                if (!AssetDatabase.IsValidFolder(next)) AssetDatabase.CreateFolder(built, parts[i]);
+                built = next;
+            }
+        }
+
+        /// <summary>The same rule <see cref="TextureCompressor"/> uses, so both agree on a file name.</summary>
+        private static string SanitizeAsset(string name)
+        {
+            var sb = new StringBuilder(name.Length);
+            foreach (var c in name) sb.Append(char.IsLetterOrDigit(c) || c is '_' or '-' or '.' ? c : '_');
+            return sb.ToString();
+        }
+
+        private static string Fail(string message)
+        {
+            Debug.LogError(message);
+            return message;
+        }
+    }
+}

@@ -19,9 +19,13 @@ namespace TheBlock.Npc
     /// the far side routes over a zebra because there is nothing else to route over, and no
     /// pedestrian is assigned to a crossing at all.
     ///
-    /// <see cref="MayCross"/> is the gate. U16 answers it with "no vehicle is on the line right
-    /// now"; U17 replaces <see cref="Gate"/> with the light controller and nothing else changes —
-    /// the same seam the web build has as <c>CrossingSpec.mayCross</c>.
+    /// <see cref="MayCross"/> is the gate, and as of U17 it is the traffic light.
+    /// <c>TrafficLightSystem.AssignGates</c> hands every crossing a closure over its own
+    /// <see cref="NodeId"/> and <see cref="EdgeId"/> at startup, which is the same seam the web
+    /// build has as <c>CrossingSpec.mayCross</c>. U16's stand-in — an overlap sphere asking whether
+    /// anything with a Rigidbody was sitting on the line — is gone: it could not tell a stopped car
+    /// from a moving one, so a pedestrian would have waited on a parked car forever, and with real
+    /// traffic the question it was approximating is now answerable exactly.
     /// </summary>
     [DisallowMultipleComponent]
     public class Crossing : MonoBehaviour
@@ -36,22 +40,15 @@ namespace TheBlock.Npc
         [Tooltip("Traffic-graph street being crossed. U17 keys the light's phase off this.")]
         [SerializeField] private int edgeId = -1;
 
-        [Tooltip("How far either side of the line still counts as a vehicle being on it.")]
-        [SerializeField] private float clearanceRadius = 3.5f;
-
-        /// <summary>Samples taken along the line when testing it for traffic. Endpoints included.</summary>
-        private const int ClearanceSamples = 5;
-
-        private static readonly Collider[] Overlap = new Collider[8];
-
         public Vector3 KerbA => kerbA;
         public Vector3 KerbB => kerbB;
         public int NodeId => nodeId;
         public int EdgeId => edgeId;
 
         /// <summary>
-        /// The signal. Null means U16's fallback — the line is open whenever it is clear of traffic.
-        /// U17 assigns the light controller here and the fallback stops being consulted.
+        /// The signal, assigned by <c>TrafficLightSystem</c> at startup. Null means no light system
+        /// is running at all — a scene with the crowd but no traffic — and then the line is simply
+        /// open, which is what it was before U17 built anything that could drive over it.
         /// </summary>
         public Func<bool> Gate { get; set; }
 
@@ -69,35 +66,7 @@ namespace TheBlock.Npc
         private void OnDisable() => CrossingRegistry.Unregister(this);
 
         /// <summary>May a pedestrian step off the kerb this frame?</summary>
-        public bool MayCross() => Gate?.Invoke() ?? IsClearOfTraffic();
-
-        /// <summary>
-        /// True when nothing with a Rigidbody is sitting on the line.
-        ///
-        /// Deliberately crude, and deliberately not a prediction: with no traffic system yet the
-        /// only things that can be here are the player's own car and the bike, and a pedestrian who
-        /// waits for a stationary car to move would wait forever. U17's lights make the question a
-        /// real one, and this method goes away when they do.
-        /// </summary>
-        private bool IsClearOfTraffic()
-        {
-            for (int i = 0; i < ClearanceSamples; i++)
-            {
-                var point = Vector3.Lerp(kerbA, kerbB, i / (float)(ClearanceSamples - 1));
-                int hits = Physics.OverlapSphereNonAlloc(
-                    point, clearanceRadius, Overlap, ~0, QueryTriggerInteraction.Ignore);
-
-                for (int h = 0; h < hits; h++)
-                {
-                    // A Rigidbody is the cheap test for "something that drives": the world's static
-                    // geometry has none, and pedestrians are CharacterControllers, which have none
-                    // either. Without it every sample would hit the road it is painted on.
-                    if (Overlap[h].attachedRigidbody != null) return false;
-                }
-            }
-
-            return true;
-        }
+        public bool MayCross() => Gate?.Invoke() ?? true;
 
         private void OnDrawGizmosSelected()
         {

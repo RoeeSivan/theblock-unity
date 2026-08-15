@@ -862,6 +862,119 @@ namespace TheBlock.Core
             public float LaneGap = 3.2f;
 
             public LightsSpec Lights;
+
+            // --- U17: the cars ----------------------------------------------------------------
+            // Everything below is declared by U17. U16 needed only the network and the setbacks
+            // above; these are read by `TrafficSystem` and were already present in the exported
+            // JSON, so nothing about the exporter changes.
+
+            /// <summary>The three street models, with their scale and facing correction.</summary>
+            public List<TrafficModelSpec> Models = new();
+
+            /// <summary>Cruise speed, m/s. 12 is ~43 km/h.</summary>
+            public float DefaultSpeed = 12f;
+
+            /// <summary>Fallback road height when the ground probe misses.</summary>
+            public float Y = 0.1f;
+
+            /// <summary>Metres from the centreline to a lane centre on an ordinary street.</summary>
+            public float LaneOffset = 2f;
+
+            /// <summary>The street paint mix, packed <c>0xRRGGBB</c>.</summary>
+            public List<int> Palette = new();
+
+            /// <summary>
+            /// The web build's world population: 130 cars spread over all 12.7 km. NOT the pool size
+            /// here — `TrafficSystem.liveCount` is, and it is a local density instead (see that
+            /// field). Kept because it is what the original states and because the ratio between
+            /// the two is the argument for the pool.
+            /// </summary>
+            public int CarCount = 130;
+
+            /// <summary>Metres past which a car is recycled. The web freezes and hides at the same range.</summary>
+            public float CullDistanceM = 160f;
+
+            /// <summary>m/s² back up to cruise.</summary>
+            public float Accel = 3f;
+
+            /// <summary>m/s² braking for obstacles and red lights.</summary>
+            public float Decel = 8f;
+
+            /// <summary>Bumper gap in metres below which a car is fully stopped.</summary>
+            public float GapStop = 4f;
+
+            /// <summary>Bumper gap in metres below which a car starts easing off.</summary>
+            public float GapFollow = 14f;
+
+            /// <summary>Sideways tolerance for "that obstacle is in MY lane".</summary>
+            public float GapLateral = 1.8f;
+
+            /// <summary>Slack on the any-angle overlap backstop.</summary>
+            public float AntiOverlapMargin = 0.8f;
+
+            /// <summary>How big an obstacle the player counts as, on foot or driving.</summary>
+            public float PlayerRadius = 2.2f;
+
+            /// <summary>How big an obstacle a pedestrian on a zebra counts as.</summary>
+            public float PedRadius = 0.8f;
+
+            /// <summary>Metres either side of a node where the turn curve runs.</summary>
+            public float CornerDist = 6f;
+
+            /// <summary>Cruise multiplier while turning through an intersection.</summary>
+            public float CornerSpeedFactor = 0.6f;
+
+            /// <summary>Metres before the stop line where the brake target hits a hard zero.</summary>
+            public float StopMargin = 0.4f;
+
+            /// <summary>m/s — slower than this past the stop line means hold, not committed.</summary>
+            public float LightCommitSpeed = 3f;
+
+            /// <summary>Metres past the stop line beyond which a car always clears the junction.</summary>
+            public float LightCommitDist = 2f;
+
+            /// <summary>Seconds pinned by an obstacle before the gridlock escape fires.</summary>
+            public float StuckAfterSec = 20f;
+
+            /// <summary>Per-car jitter on that threshold, so a blocked ring unfreezes one at a time.</summary>
+            public float StuckJitterSec = 6f;
+
+            /// <summary>Seconds of ignoring obstacles once the escape fires.</summary>
+            public float StuckNudgeSec = 2f;
+
+            /// <summary>Right-of-way window: the lower-id car drives through a mutual standoff.</summary>
+            public float StandoffPushSec = 2.5f;
+
+            public GasStopsSpec GasStops;
+
+            // `hijack` is deliberately NOT declared. Carjacking is U17b — it needs CarBuilder
+            // generalised past the Mustang first — and an undeclared field is simply ignored.
+        }
+
+        /// <summary>One ambient traffic model. Same three GLBs the parking lot fills with.</summary>
+        public class TrafficModelSpec
+        {
+            public string Url;
+            public float Scale = 1f;
+
+            /// <summary>The model's own facing correction, radians. Right-handed.</summary>
+            public float ModelYaw;
+
+            /// <summary>When present, this model ignores the street palette and picks from here.</summary>
+            public List<int> Palette;
+        }
+
+        /// <summary>
+        /// The pumps beside the Paz station. A car that drives within <see cref="TriggerRadius"/> of
+        /// one pulls in and idles, which is the only place ambient traffic ever stops for a reason
+        /// other than the car or the light in front of it.
+        /// </summary>
+        public class GasStopsSpec
+        {
+            public List<Vec3> Points = new();
+            public float TriggerRadius = 4f;
+            public float StopSeconds = 10f;
+            public float CooldownSec = 30f;
         }
 
         /// <summary>
@@ -909,9 +1022,12 @@ namespace TheBlock.Core
         }
 
         /// <summary>
-        /// Traffic lights. U16 needs exactly one number from here — <see cref="SideOffset"/>, the
-        /// centreline-to-kerb distance that sets how wide a crossing is. The timings are declared
-        /// because U17 owns them and the section should be read once, not twice.
+        /// Traffic lights. U16 needed exactly one number from here — <see cref="SideOffset"/>, the
+        /// centreline-to-kerb distance that sets how wide a crossing is. U17 uses the rest.
+        ///
+        /// The cycle is the Israeli one: red → red+yellow → green → yellow → red, two phase groups
+        /// alternating. One half-cycle is <c>green + yellow + allRed + redYellow</c> = 13 s here, so
+        /// a full cycle is 26 s and a pedestrian waits at most ~11.5 s.
         /// </summary>
         public class LightsSpec
         {
@@ -921,10 +1037,22 @@ namespace TheBlock.Core
             public float AllRedSec = 1f;
             public float PoleHeight = 4.5f;
 
+            /// <summary>Radius of the post's collider. Just the post — nothing reaches the head.</summary>
+            public float PoleColliderRadius = 0.18f;
+
+            /// <summary>Lamp size on the procedural fallback pole, metres.</summary>
+            public float HeadSize = 0.35f;
+
             /// <summary>Metres from the centreline to the kerb — half the carriageway.</summary>
             public float SideOffset = 4.5f;
 
             public string ModelUrl;
+
+            /// <summary>The GLB's own height in model units; <see cref="PoleHeight"/> / this is the scale.</summary>
+            public float ModelNativeHeight = 78.64f;
+
+            /// <summary>Extra yaw applied to the model on top of the approach heading, radians.</summary>
+            public float ModelYawTune;
         }
     }
 }

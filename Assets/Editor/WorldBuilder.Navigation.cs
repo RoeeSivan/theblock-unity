@@ -99,10 +99,23 @@ namespace TheBlock.EditorTools
             public List<Vector3> Points;
             public float Length;
             public float HalfWidth;
+
+            /// <summary>Parallel lanes per direction. U17's cars read it; the carve only needs the width.</summary>
+            public int Lanes = 1;
+
+            /// <summary>Innermost lane's offset from the centreline, the street's own or the global one.</summary>
+            public float LaneOffset;
         }
 
+        /// <summary>
+        /// <paramref name="graph"/> is built by <see cref="BuildTraffic"/>, which runs on every build
+        /// and therefore owns it. Building a second one here would be two copies of the same
+        /// derivation drifting apart — and the crossings' <c>NodeId</c>/<c>EdgeId</c> are the keys
+        /// U17's lights answer to, so they have to come from the same numbering.
+        /// </summary>
         private static void BuildNavigation(
-            Transform root, Transform districts, TheBlockConfig.Root config, Options options, Report report)
+            Transform root, Transform districts, TheBlockConfig.Root config,
+            (List<NavNode> Nodes, List<NavEdge> Edges)? graph, Options options, Report report)
         {
             if (districts == null)
             {
@@ -117,12 +130,18 @@ namespace TheBlock.EditorTools
                 return;
             }
 
+            if (graph == null)
+            {
+                report.Warnings.Add("navigation skipped — the traffic pass produced no graph");
+                return;
+            }
+
             // Colliders were added by the passes above through the editor API, which does not push
             // them into the physics scene until something asks. The Y-baking raycasts below are that
             // something, and without this they all miss and every zebra lands at y 0.
             Physics.SyncTransforms();
 
-            var (nodes, edges) = BuildGraph(traffic, report);
+            var (nodes, edges) = graph.Value;
             if (edges.Count == 0)
             {
                 report.Warnings.Add("navigation skipped — the traffic network produced no usable streets");
@@ -210,6 +229,8 @@ namespace TheBlock.EditorTools
                     Points = points,
                     Length = length,
                     HalfWidth = HalfWidth(street, traffic),
+                    Lanes = Mathf.Max(1, street.Lanes),
+                    LaneOffset = street.LaneOffset ?? traffic.LaneOffset,
                 };
 
                 edges.Add(edge);
@@ -595,6 +616,13 @@ namespace TheBlock.EditorTools
         ///
         /// So: the lowest hit that is not the ground plate. The plate is the fallback if it is the
         /// only thing there — that is what the web build's <c>bakeY</c> returns off-district too.
+        ///
+        /// ⚠ AND THE LOWEST NON-PLATE HIT CAN STILL BE A ROOF, which U17 found by baking 6,590 of
+        /// these instead of 230. Downtown is a single merged mesh with no street geometry under
+        /// parts of its avenue, so under an overhang there the only non-plate hit is the building
+        /// itself and this returned 6.4 m — a zebra on a first floor, or a car flying over a block.
+        /// A street is never more than <see cref="StreetHeightBand"/> above the plate, so anything
+        /// that is falls back to the plate, which is what is actually under the wheels there.
         /// </summary>
         private static float GroundY(Vector3 point)
         {
@@ -609,8 +637,20 @@ namespace TheBlock.EditorTools
                 lowest = Mathf.Min(lowest, hit.point.y);
             }
 
-            if (lowest != float.MaxValue) return lowest;
-            return plate != float.MaxValue ? plate : 0f;
+            bool plausible = lowest != float.MaxValue &&
+                             (plate == float.MaxValue || lowest - plate <= StreetHeightBand);
+            if (plausible) return lowest;
+            if (plate != float.MaxValue) return plate;
+            return lowest != float.MaxValue ? lowest : 0f;
         }
+
+        /// <summary>
+        /// Metres above the ground plate a surface may be and still be a street.
+        ///
+        /// Every district's road sits within a few centimetres of zero and the highest pavement in
+        /// the game is the 7-Eleven's at 0.22 m, so 2 m is generous for anything walkable or
+        /// drivable and comfortably under a first floor.
+        /// </summary>
+        private const float StreetHeightBand = 2f;
     }
 }

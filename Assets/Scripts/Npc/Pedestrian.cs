@@ -51,6 +51,9 @@ namespace TheBlock.Npc
 
         /// <summary>Set while stepping across a zebra under manual control.</summary>
         private bool _crossing;
+
+        /// <summary>Set once this pedestrian has actually left the kerb, not merely arrived at it.</summary>
+        private bool _stepped;
         private Vector3 _crossFrom;
         private Vector3 _crossTo;
         private Crossing _gate;
@@ -59,6 +62,18 @@ namespace TheBlock.Npc
 
         /// <summary>True once the agent is on the NavMesh and has somewhere to be.</summary>
         public bool Active { get; private set; }
+
+        /// <summary>
+        /// True while this pedestrian is actually ON a carriageway — not merely standing at the kerb
+        /// waiting for the light.
+        ///
+        /// U17's traffic reads exactly this to decide whom to brake for, and the difference between
+        /// "waiting" and "walking" is what keeps the two systems from deadlocking. A pedestrian at
+        /// the kerb gates on the LIGHT and never on cars; if cars braked for them too, a car and a
+        /// pedestrian could end up each waiting on the other. Once they have stepped out they are a
+        /// real obstacle, including when the light flips green under them.
+        /// </summary>
+        public bool IsCrossing => _crossing && _stepped;
 
         private void Awake()
         {
@@ -78,6 +93,7 @@ namespace TheBlock.Npc
         {
             _rng = rng;
             _crossing = false;
+            _stepped = false;
             _gate = null;
             _pauseLeft = 0f;
 
@@ -93,6 +109,7 @@ namespace TheBlock.Npc
         {
             Active = false;
             _crossing = false;
+            _stepped = false;
             if (_agent.isOnNavMesh) _agent.ResetPath();
         }
 
@@ -201,6 +218,7 @@ namespace TheBlock.Npc
             _crossFrom = transform.position;
             _crossTo = link.endPos;
             _crossing = true;
+            _stepped = false;
 
             // Which zebra this is. Looked up once per traversal rather than held on the link, so a
             // crossing whose geometry U17 moves does not need the links rebuilt to match.
@@ -220,10 +238,12 @@ namespace TheBlock.Npc
             transform.position = Vector3.MoveTowards(
                 transform.position, _crossTo, _agent.speed * Time.deltaTime);
             FaceAlong(_crossTo - _crossFrom);
+            _stepped = true;
 
             if ((transform.position - _crossTo).sqrMagnitude > 0.01f) return;
 
             _crossing = false;
+            _stepped = false;
             _gate = null;
             _agent.CompleteOffMeshLink();
         }

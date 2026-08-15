@@ -123,3 +123,17 @@ crashlytics-build.properties
 # from the gitignored district .glbs, so it has no source of its own here either.
 /Assets/Navigation/
 /Assets/Navigation.meta
+
+# U17's traffic build output. The baked street graph and the lamp mesh/materials are derived from
+# the config plus a raycast against the gitignored district .glbs, and Build World rewrites and
+# sweeps all of it — the same reasoning as the NavMesh it is built beside.
+/Assets/Traffic/
+/Assets/Traffic.meta
+
+# Everything The Block → Build Traffic Cars makes. The prefabs point at material clones that in
+# turn point at textures inside the gitignored Textures/Generated, so committing them would commit
+# dangling GUIDs; one menu item rebuilds both folders from the tracked car .glbs.
+/Assets/Prefabs/Traffic/
+/Assets/Prefabs/Traffic.meta
+/Assets/Materials/Traffic/
+/Assets/Materials/Traffic.meta

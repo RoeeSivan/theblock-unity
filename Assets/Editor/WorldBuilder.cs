@@ -160,6 +160,13 @@ namespace TheBlock.EditorTools
             public bool Navigation = false;
 
             /// <summary>
+            /// U17's traffic: the light poles and the car pool. ON by default and cheap — nothing in
+            /// it bakes. Turning it off still builds the street graph, because U16's crossings key
+            /// off that graph's node and edge numbering and the navigation pass shares it.
+            /// </summary>
+            public bool Traffic = true;
+
+            /// <summary>
             /// Rebind materials onto <see cref="TextureCompressor"/>'s compressed textures (U15).
             /// Off is the "what did this actually buy" comparison, not a mode anything should ship in.
             /// </summary>
@@ -227,9 +234,14 @@ namespace TheBlock.EditorTools
                 BuildLotCars(places, snapshot.Config.LotCars, options, report);
             }
 
-            // Last, and it has to be: the carve raycasts for the street surface under every crossing,
-            // and the bake reads the colliders every pass above put there.
-            if (options.Navigation) BuildNavigation(root.transform, districts, snapshot.Config, options, report);
+            // Last, and it has to be: the traffic pass raycasts for the street surface under every
+            // sample, the carve does the same under every crossing, and the bake reads the colliders
+            // every pass above put there. The graph is derived ONCE, by the traffic pass, and handed
+            // to navigation — two derivations of the same node numbering is how the crossings and
+            // the lights would end up disagreeing about which junction is which.
+            var trafficGraph = BuildTraffic(root.transform, snapshot.Config, options, report);
+            if (options.Navigation)
+                BuildNavigation(root.transform, districts, snapshot.Config, trafficGraph, options, report);
             else ReattachNavigation(root, districts, keptNavigation, report);
 
             SweepGenerated(report);
@@ -337,6 +349,20 @@ namespace TheBlock.EditorTools
                             surface = districts.gameObject.AddComponent<Unity.AI.Navigation.NavMeshSurface>();
                         UnityEditorInternal.ComponentUtility.CopyComponent(carried);
                         UnityEditorInternal.ComponentUtility.PasteComponentValues(surface);
+
+                        // ⚠ The paste does NOT reliably bring `navMeshData` across, and when it does
+                        // not the failure is silent and total: the surface looks correctly
+                        // configured, the asset is still on disk, and `NavMesh.CalculateTriangulation`
+                        // returns zero vertices — so every agent fails to spawn and the city is empty
+                        // of people with nothing in the console. Found at U17's play-test by counting
+                        // pedestrians. The asset the bake wrote is the authority, so bind it from
+                        // disk rather than trusting a component copy to carry a reference.
+                        var baked = AssetDatabase.LoadAssetAtPath<UnityEngine.AI.NavMeshData>(
+                            $"{GeneratedNavigationFolder}/NavMesh.asset");
+                        if (baked != null) surface.navMeshData = baked;
+                        else report.Warnings.Add(
+                            "navigation: no baked NavMesh.asset to re-attach — run Build World + NavMesh (slow)");
+
                         // Pasting values onto a live component does not re-run OnEnable, and
                         // OnEnable is where the surface registers its data with the NavMesh. Bounce
                         // it, or the asset is referenced and nothing is walkable until a reload.
