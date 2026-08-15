@@ -44,8 +44,19 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-**Next action: U16 — pedestrian crowd (NavMesh agents).** Nothing is half-built; U15 closed clean,
-the two U12-era faults it uncovered are closed with it, and U7b (swimming) closed on top.
+**Next action: PLAY-TEST U16.** It is built and `wip`, waiting on the user's eyes — nothing else is
+half-built. Everything is generated and the scene is saved; press Play in `World` and look for, in
+order: (1) pedestrians exist at all, (2) none of them render magenta, (3) **nobody is standing in
+the road**, (4) zebras are painted ~10 m before every 3-way-or-bigger junction, (5) somebody waits
+at a kerb while your car is on the zebra and crosses once it moves, (6) nobody is walking on a roof.
+(3) and (6) are the two that can actually be wrong.
+
+**If it passes:** set U16 `done`, fill the commit hash, and the next unit is U17 — which inherits
+U16's traffic graph and crossings rather than building its own (see its row).
+
+**Rebuild order if anything is regenerated:** The Block → **Build NPC Animator** → **Build
+Pedestrians** → **Build World**. The world build now ends with the NavMesh bake, so it is the last
+word on navigation and the only step that has to be re-run after a district changes.
 
 **U7b is done** — swimming, user-confirmed 2026-08-15. It was **never a row in the 32**: the web
 build has the state, the sequence forgot it, and the port would have shipped a sea that drowns you.
@@ -72,15 +83,42 @@ caused by U15 — both in the decisions log:
 2. **The ground plate showed through the sea's wave troughs** — 0.37 m of swell against a plate at
    −0.05 m. `WorldBuilder.BuildGroundMesh` cuts the sea's rectangle out of the plate.
 
-**U16's groundwork is already checked.** `Assets/npc_casual_set_00` (user-added, 2026-08-15)
-works for a combinatorial crowd: every part FBX shares one Humanoid avatar (`npc_hmn_01mAvatar`,
-male + female variants), bones are unprefixed Mixamo names, so Joe's existing clips retarget.
-12 finished character prefabs plus modular parts — 7 cloth pieces, 8 haircuts, 4 facial hair,
-4 shoes, blendshape body subtypes. ⚠ The vendor prefabs carry all 5 LODs as ~30 always-on
-SkinnedMeshRenderers with NO LODGroup — U16 needs an `NpcBuilder` (CarBuilder pattern) that picks
-parts, rebinds bones onto one skeleton, and wires a real LODGroup. Walking/stopping comes from
-NavMesh (districts are `NavigationStatic` since U5) + Joe's clips; readme's "Animation: none" is
-irrelevant.
+**What U16 built** (all of it re-runnable; the numbers below are from the build that is in the scene
+now — **22 placed, 0 missing, 288 colliders**, 22 because Navigation reports itself as a placed item):
+
+- `Assets/Editor/WorldBuilder.Navigation.cs` — the traffic graph (97 nodes / 142 streets, ported
+  from `traffic-graph.ts`), **172 `Not Walkable` volumes** carving all 12.7 km of carriageway,
+  **230 zebra crossings** on **70 lit intersections** (3 approaches dropped — street under 20 m),
+  and the NavMesh bake: **963 × 805 m @ 0.25 m voxels**, districts only, from PhysicsColliders.
+- `Assets/Scripts/Npc/` — `Crossing` + `CrossingRegistry` (the gate), `Pedestrian` (agent + manual
+  kerb control), `CrowdSpawner` (pool of 40 following the player), `NpcAppearance` (face × shirt).
+- `Assets/Editor/NpcAnimatorBuilder.cs` → `Npc.controller`; `Assets/Editor/NpcBuilder.cs` → 12
+  `Assets/Prefabs/Npc/Ped_*.prefab`.
+- `TheBlockConfig` gained `TrafficSpec` / `StreetSpec` (+ a `JsonConverter`, because the exporter
+  emits a street as either a bare point array or an object with lane metadata) and `LightsSpec`.
+- Scene: one `Crowd` root holding `CrowdSpawner` with all 12 prefabs.
+
+**Two things the plan had wrong, corrected here so they are not re-derived:**
+
+1. ~~"the vendor prefabs carry all 5 LODs as ~30 always-on SkinnedMeshRenderers with NO LODGroup"~~
+   — **false.** Each character prefab has a real 5-level `LODGroup` (6 renderers per level, screen
+   heights 0.7/0.4/0.2/0.05/0) and an Animator already bound to `npc_hmn_01mAvatar`. There was no
+   perf problem to solve and no bone rebinding to do. `NpcBuilder` exists for a different reason —
+   see (2) — and for adding the agent, the capsule and the appearance table.
+2. ~~"the web build has no crosswalks"~~ — **false, and it was my claim, from grepping `crosswalk`
+   when the code says `crossing`.** `traffic.ts:99-124` derives one zebra per approach of every lit
+   intersection and `crowd.ts:43` walks two dedicated crossers over each. What the web build has
+   NOT got is any connection between those crossings and the rest of the crowd.
+
+**The real U16 gotcha:** the pack's 12 prefabs reference `npc_casual_set_00/Materials`, which is the
+**built-in Standard** shader, while the URP twins sit unused in `MaterialsUPR` beside them — same 54
+names, unrelated GUIDs. Dropped in as-is every pedestrian renders magenta. `NpcBuilder.RebindToUrp`
+rebinds by name: **455 slots**. Memory: `asset-store-prefabs-ship-built-in-materials`.
+
+**Known and deliberate:** rooftops bake walkable — the bake cannot tell a flat roof from a pavement,
+and downtown is one mesh so there is nothing to mark. Both the spawner and the re-target reject
+samples more than a storey off the current height. If anyone is ever seen on a roof, that band is
+the thing to tighten, not the bake.
 
 **U14 is done** — the user confirmed on 2026-08-15 that the minimap and the `M` map read right.
 
@@ -782,9 +820,9 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 ### Tier 4 — Living world
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
-| U16 | Pedestrian crowd (NavMesh agents) | todo | | |
-| U17 | Traffic — graph, cars, lights | todo | | |
-| U18 | Run-over + blood VFX | todo | | Root Motion ON — the clip's motion IS the knockback |
+| U16 | Pedestrian crowd (NavMesh agents) + zebra crossings | wip | | **Built, not yet play-tested.** The pavement is not enforced, it is the only thing that exists: `WorldBuilder.Navigation.cs` carves all 12.7 km of `config.traffic.network` **Not Walkable** (172 volumes over 142 streets), which disconnects the two sides of every road, so the only route across is a gated `NavMeshLink` at one of **230 zebras** on 70 lit intersections — derived from the same graph and the same `stopLineDist + crossingSetback` as `traffic.ts`. NavMesh baked 963 × 805 m @ 0.25 m voxels over the DISTRICTS only (`CollectObjects.Children`, PhysicsColliders) → `Assets/Navigation/Generated/NavMesh.asset`. `config.traffic` ported (`TrafficSpec`, `StreetSpec` + its union converter). Crowd is a **pool of 40 that follows the player**, not the web build's ~400 seeded-at-boot-and-frozen — `CrowdSpawner`/`Pedestrian`/`NpcAppearance`. Zero of the 80 hand-recorded rectangles and strips in `npc.config.ts` are ported and none are needed. **Caught: the pack's prefabs reference the BUILT-IN Standard materials while the URP twins sit unused beside them — 455 slots rebound, or every pedestrian is magenta.** ⚠ Rooftops bake walkable and are filtered at spawn/re-target by a height band, not by the bake |
+| U17 | Traffic — graph, cars, lights | todo | | **U16 already ported the graph and the crossings** — `config.traffic.network`, `snapDist`, `stopLineDist`, `crossingSetback`, `lights.sideOffset`, and the 97-node/142-edge graph builder in `WorldBuilder.Navigation.cs`. Do not build a second one. The one thing to change on the pedestrian side is `Crossing.Gate`: set it to the light controller and `Crossing.IsClearOfTraffic` (U16's stand-in) goes away |
+| U18 | Run-over + blood VFX | todo | | Root Motion ON — the clip's motion IS the knockback. **Owes U16 one thing:** a struck pedestrian must leave the NavMesh, so the agent has to be disabled for the knockback and re-`Warp`ed after. Panic-fleeing into the road (if it is wanted) is the same switch — the carve makes the road unreachable by pathfinding on purpose |
 | U19 | Police pursuit + wanted level | todo | | real NavMesh; do NOT inherit the straight-line hack untested |
 
 ### Tier 5 — Missions
@@ -849,6 +887,35 @@ would trigger it. A `wip` unit is work half-done; this is work deliberately not 
 ## Decisions log
 
 Dated one-liners. These are settled — do not re-litigate them without the user reopening.
+
+- **2026-08-16** (U16) — **The pavement is not enforced, it is the only thing that exists.** The web
+  build's pedestrians drift into the road because nothing there knows a road is a thing: a 4096²
+  top-down material mask, a 67 MB GPU readback, a session-long boolean grid, straight-line movement
+  between sampled points, and — when that was not enough — eighty rectangles and strips recorded by
+  hand beside the pavements rather than on them. **None of it is ported and none of it is replaced.**
+  All 12.7 km of `config.traffic.network` is carved `Not Walkable`, which disconnects the two sides
+  of every street, so being in the road is not unlikely, it is unrepresentable. This is the answer
+  to the standing remark for U16, and it is the strong form of it: the mechanism is not a better
+  version of the web build's, there is no equivalent of the web build's at all.
+- **2026-08-16** (U16) — **A crossing is a hole in connectivity, not a scripted walk.** With the
+  carriageway carved, the only route to the far pavement is a `NavMeshLink` at a zebra, so an
+  ordinary wanderer crosses at a zebra because there is nowhere else — no pedestrian is assigned to
+  a crossing at all. The web build's crossings are real (`traffic.ts`) but serve two dedicated
+  pingpong walkers each while the rest of the crowd ignores roads entirely. `autoTraverseOffMeshLink`
+  is OFF so `Pedestrian` owns the kerb, and `Crossing.Gate` is the seam U17 hands the light to —
+  the same shape as `CrossingSpec.mayCross`.
+- **2026-08-16** (U16) — **The crowd is a pool that follows the player, not a population.** The web
+  build creates several hundred pedestrians at boot and freezes them individually past 90 m, because
+  a three.js pedestrian is cheap to hold and dear to create. A NavMeshAgent is the reverse, and a
+  frozen one still sits in the avoidance solver. 40 live agents that recycle from behind you to
+  ahead of you — rerolling face and shirt each time — read denser than 400 frozen ones and cost a
+  fraction. It also means `npc.config.ts`'s `paintedZones`, `strips` and `zones` have no port: where
+  people can stand is the NavMesh's answer now.
+- **2026-08-16** (U16) — **U17 inherits U16's traffic graph; it must not build a second one.**
+  `config.traffic` is ported in full (`TrafficSpec`, `StreetSpec` + a union `JsonConverter`,
+  `LightsSpec`) and `WorldBuilder.Navigation.cs` already builds the 97-node graph, finds the 70 lit
+  intersections and places the 230 crossings. U17 adds cars, lights and phases on top and replaces
+  `Crossing.IsClearOfTraffic` with the controller.
 
 - **2026-08-15** (U7b) — **The 32 units are not a complete inventory of the game.** Swimming is in
   `config.ts`, in `player.ts` and in the shipped build, and no unit owned it; it surfaced only

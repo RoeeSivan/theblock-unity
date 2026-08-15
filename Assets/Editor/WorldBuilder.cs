@@ -141,6 +141,12 @@ namespace TheBlock.EditorTools
             public bool Colliders = true;
 
             /// <summary>
+            /// U16's pedestrian world: the carriageway carve, the zebra crossings and the NavMesh
+            /// bake. Off is the only fast rebuild — the bake is the slowest thing in the build.
+            /// </summary>
+            public bool Navigation = true;
+
+            /// <summary>
             /// Rebind materials onto <see cref="TextureCompressor"/>'s compressed textures (U15).
             /// Off is the "what did this actually buy" comparison, not a mode anything should ship in.
             /// </summary>
@@ -175,9 +181,10 @@ namespace TheBlock.EditorTools
             if (options.Roads) BuildRoads(root.transform, snapshot.Config.Roads, report);
             if (options.Sea) BuildSea(root.transform, snapshot.Config.Sea, options, report);
 
+            Transform districts = null;
             if (options.Districts)
             {
-                var districts = NewGroup("Districts", root.transform);
+                districts = NewGroup("Districts", root.transform);
                 var city = snapshot.Config.City;
                 if (city != null)
                 {
@@ -206,6 +213,10 @@ namespace TheBlock.EditorTools
                 BuildInterior(places, snapshot.Config.Interior, snapshot.Config.Player, options, report);
                 BuildLotCars(places, snapshot.Config.LotCars, options, report);
             }
+
+            // Last, and it has to be: the carve raycasts for the street surface under every crossing,
+            // and the bake reads the colliders every pass above put there.
+            if (options.Navigation) BuildNavigation(root.transform, districts, snapshot.Config, options, report);
 
             SweepGenerated(report);
 
@@ -946,7 +957,7 @@ namespace TheBlock.EditorTools
             foreach (var folder in new[]
                      {
                          CutoutMaterialFolder, CompressedMaterialFolder, GeneratedMeshFolder,
-                         GeneratedWorldFolder, LotCarMaterialFolder,
+                         GeneratedWorldFolder, LotCarMaterialFolder, GeneratedNavigationFolder,
                      })
             {
                 if (!AssetDatabase.IsValidFolder(folder)) continue;

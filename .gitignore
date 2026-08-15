@@ -103,3 +103,23 @@ crashlytics-build.properties
 # rewritten by every Build World.
 /Assets/Materials/LotCars/
 /Assets/Materials/LotCars.meta
+
+# U16's pedestrian pack — Chepatack "NPC Casual set 00", Unity Asset Store free tier, 505 MB
+# (185 MB of FBX, 280 MB of .tif). The authoritative copy is the .unitypackage in
+# ~/Library/Unity/Asset Store-5.x/Chepatack/, so this is a re-downloadable dependency and not
+# a source asset. Free LFS is 1 GiB shared with the original repo — this alone would be half of it.
+/Assets/npc_casual_set_00/
+/Assets/npc_casual_set_00.meta
+
+# Everything The Block → Build Pedestrians makes. The prefabs reference meshes and avatars inside
+# the gitignored pack above, so committing them would commit dangling GUIDs; the tinted shirt
+# materials are clones of the pack's own. One menu item rebuilds all of it.
+/Assets/Prefabs/Npc/
+/Assets/Prefabs/Npc.meta
+/Assets/Materials/Npc/
+/Assets/Materials/Npc.meta
+
+# The baked NavMesh — 2.3 MB, written by Build World's navigation pass and swept by it. Derived
+# from the gitignored district .glbs, so it has no source of its own here either.
+/Assets/Navigation/
+/Assets/Navigation.meta
