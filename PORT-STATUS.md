@@ -36,24 +36,18 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-**Next action: play-test U11, then close it.** All three of its known issues are fixed and the
-world builds clean — `12 placed, 2 missing, 109 colliders`, the two missing still being U13's gas
-station and police station. **U11 stays `wip` until the user says it looks right**, then flip it to
-`done`, fill the commit hash and rewrite this block to point at U12.
+**Next action: U12 — roads, kerbs and the sea.** The 1400 × 1400 m ground plate is already built
+(pulled forward into U8, because a car leaving a district had nothing to land on); what is left is
+`config.roads`, the kerbs and `config.sea`. The world builds clean as of U11 —
+`12 placed, 2 missing, 109 colliders`, the two missing being U13's gas station and police station.
 
-**What to look at, in the Editor:**
+Read `config.roads` before designing anything: the web build carries road polylines that U17's
+traffic graph also consumes, so the shape U12 chooses to store them in is U17's input, not just
+geometry. Ask the standing question — three.js drew roads as flat meshes on the ground plane
+because it had nothing else; Unity has splines, decal projectors and a real terrain-agnostic mesh
+pipeline, and whatever U12 builds is also what NavMesh bakes onto for U16 and U19.
 
-1. **Trees are green.** Fly over any district. Before, every canopy was a cluster of white shards;
-   they should now read as leaves, hard-edged rather than smeared, with no white halo.
-2. **No parked cars in cities 2 and 3** — the two districts either side of downtown, at Unity
-   x +150 and x −156. Their baked-in cars are gone from the streets AND from collision: drive into
-   a spot where one used to be and nothing should stop you.
-3. **No magenta.** Small pink rectangles used to sit on the pavement in every procedural district.
-4. Nothing else went pale or opaque. If something did, the build report's **STILL BLENDED** line
-   names every material that is still transparent — that list is the suspect pool.
-
-Reference shots from the last build are in `Assets/Screenshots/` (gitignored):
-`u11_top0.png` is the before, `u11_final0..3.png` the after.
+**U11 is done** — the user confirmed on 2026-08-15 that all nine districts read right.
 
 ### What U11 built
 
@@ -105,13 +99,7 @@ That is how the six stale `CityGen_Streets` cutouts got cleaned up rather than l
 folders derive entirely from the gitignored district GLBs, so a fresh clone rebuilds them along with
 everything else under `World`.
 
-**Foliage still collides, and that is the decision, not an oversight.** `noCollidePatterns` needs
-node or material names to match and a merged district has neither, so each district takes 2–4
-whole-mesh colliders with the palms inside them. The strip machinery could produce a foliage-free
-COLLIDER mesh too — it is the same five lines — but that is a second full copy of every district's
-geometry in memory to fix something no player can reach: these canopies start above head height and
-neither Joe nor a vehicle gets into one. The web build has the identical hole. Revisit at U30 if
-the profiler ever makes it a memory question rather than a gameplay one.
+**Foliage still collides — left open on purpose, low priority.** See "Deferred" below.
 
 **MSAA is off** (`PC_RPAsset`, `antiAliasing = 0`), so the `_AlphaToMask` the cutout materials carry
 is inert. Turning MSAA on would soften the leaf edges via alpha-to-coverage — a real improvement,
@@ -452,9 +440,9 @@ the correction stays visible in the build report. User-confirmed 2026-08-13.
 Stand-ins also **skip the config's `hideNodes`**: those name parts of the original model, and this
 one happens to share the name `PizzaLight` — which is its lamp post, not the original's light.
 
-**Known issues — all three were U11's, and all three are closed.** Foliage, the mixed car renderers
-and the merged-mesh colliders are covered in "What U11 built" above; the collider one was decided
-rather than fixed, and the reasoning is written down there.
+**Known issues — all three were U11's.** The white foliage and the mixed car renderers are fixed;
+see "What U11 built" above. The merged-mesh colliders are not fixed and not forgotten — they moved
+to the **Deferred** section, with the trigger that would make them worth doing.
 
 **District GLBs are gitignored** (40–85 MB each; free LFS is 1 GiB and shared with the original
 repo). Working copies live in `Assets/Models/City/`, zips in `~/TheBlockSource/cities/zips/`. A
@@ -496,7 +484,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 ### Tier 3 — World
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
-| U11 | All 9 districts via WorldBuilder | wip | | **Built and verified in the Editor by render, NOT yet play-tested by the user** — that is the only thing standing between this and `done`. Placement and colliders shipped in U5; U11 fixed the three rendering faults. Foliage: the white shards were a spurious V flip in glTFast's `_ST`, not the blend mode — `WorldBuilder.UnflipV`, plus a real alpha-clip pass that rebinds to generated URP/Lit materials. Cities 2/3: baked cars stripped at the SUBMESH level in Unity (86% of the mesh) instead of a Blender split, out of collision as well as sight. Empty material slots were rendering magenta and now get glTF's default material. Foliage colliders left as-is, deliberately — see RESUME HERE |
+| U11 | All 9 districts via WorldBuilder | done | `21857c3` | Placement and colliders shipped in U5; U11 is the three rendering faults that survived it. Foliage: the white shards were a spurious V flip in glTFast's `_ST`, NOT the blend mode — `WorldBuilder.UnflipV`, plus a real alpha-clip pass that rebinds to generated URP/Lit materials because `_AlphaClip` on an imported glTFast material is inert. Cities 2/3: baked cars stripped at the SUBMESH level in Unity — 86% of the mesh — instead of a Blender split, out of collision as well as sight. Empty material slots were drawing magenta and now get glTF's default material. **Caught and fixed: a substring pattern list that alpha-clipped every road, because "tree" is inside "CityGen_Streets".** Foliage colliders left open on purpose — see Deferred. User-confirmed 2026-08-15 |
 | U12 | Roads, ground, sea | todo | | The 1400 m ground plate was pulled forward into U8 — a car needs somewhere to land. Roads, kerbs and the sea are still open |
 | U13 | Places — pizza + interior, gas, police station, lot cars | todo | | |
 | U14 | Map + minimap | todo | | |
@@ -549,6 +537,23 @@ A unit is **not done** until all three are true:
 If a unit **cannot** be finished, set it to `wip` and write in the notes exactly what is built,
 what is not, and the next concrete action. Then update `RESUME HERE` to point at it. A `wip` unit
 with a vague note is the one failure mode this whole system exists to prevent.
+
+---
+
+## Deferred — known, low priority, fix if it ever becomes worth it
+
+**Not** the decisions log: these are open, and picking one up needs no permission. Each says what
+would trigger it. A `wip` unit is work half-done; this is work deliberately not started.
+
+- **Foliage collides.** `noCollidePatterns` matches node or material names and a merged district has
+  neither, so each district takes 2–4 whole-mesh colliders with the palms inside them — the same
+  hole the web build has. **The fix is now cheap**: U11's `Compact()` already builds a mesh from a
+  chosen subset of submeshes, so a foliage-free COLLIDER mesh is that call again with the foliage
+  submeshes dropped, assigned to the `MeshCollider` instead of the `MeshFilter`. The cost is what
+  holds it back — a second full copy of every district's geometry in memory, for canopies that start
+  above head height and that neither Joe nor a vehicle can reach today. **Trigger:** anything that
+  gets a player INTO a canopy (U23's helicopter is the obvious one), or a U30 profiler pass that
+  makes it a memory question rather than a gameplay one.
 
 ---
 
@@ -759,10 +764,6 @@ Dated one-liners. These are settled — do not re-litigate them without the user
   deleted. Without the sweep they are append-only and a corrected pattern list leaves behind a
   plausible-looking material that nothing references — the same invisible-and-unreproducible failure
   that keeps the world out of the scene file.
-- **2026-08-15** (U11) — **Foliage keeps its colliders.** A foliage-free collider mesh is now five
-  lines away, and the answer is still no: it is a second full copy of every district's geometry to
-  fix something unreachable, since these canopies start above head height. The web build has the
-  same hole. This is a U30 memory question if it is ever a question at all.
 - **2026-08-12** (U1) — **Downtown gets one collider over the whole mesh.** `city.noCollidePatterns`
   matches node *or* material names; `first-one.glb` has no per-object nodes and its only foliage
   material (`AM113_072_Washingtonia_filifera`) matches no pattern — so the shipped web build
