@@ -167,7 +167,16 @@ namespace TheBlock.Npc
 
             // Anything left over from a previous bind — after a domain reload the children are still
             // in the scene but every reference to them is gone.
-            for (int i = transform.childCount - 1; i >= 0; i--) Destroy(transform.GetChild(i).gameObject);
+            //
+            // PEDESTRIANS ONLY, and that qualifier is load-bearing: this used to wipe every child,
+            // which quietly deleted the stain pool U18's Blood builds on the same object. The symptom
+            // was a MissingReferenceException out of the run-over three seconds later, nowhere near
+            // the cause. A component may only destroy what it made.
+            for (int i = transform.childCount - 1; i >= 0; i--)
+            {
+                var child = transform.GetChild(i);
+                if (child.GetComponent<Pedestrian>() != null) Destroy(child.gameObject);
+            }
 
             if (seedTable == null || seedTable.Seeds.Length == 0)
             {
@@ -302,6 +311,28 @@ namespace TheBlock.Npc
             for (int i = 0; i < _live.Count; i++) _live[i].Tick(dt, tuning);
         }
 
+        /// <summary>
+        /// U18's downed bodies, stepped here rather than in their own <c>Update</c>.
+        ///
+        /// <b>Late, and that is the whole reason this method exists.</b> A knocked-down pedestrian is
+        /// the one place in the project where an animation clip moves a transform, and root motion is
+        /// applied between Update and LateUpdate — so the reaction has to run after it to add its arc
+        /// on top rather than have the animator overwrite it. Iterating <see cref="_live"/> costs one
+        /// pass over at most a few dozen people and keeps the per-MonoBehaviour dispatch off the
+        /// crowd, which is the same reason <see cref="Pedestrian"/> has no Update either.
+        /// </summary>
+        private void LateUpdate()
+        {
+            if (_hidden || _live.Count == 0) return;
+
+            float dt = Time.deltaTime;
+            for (int i = _live.Count - 1; i >= 0; i--)
+            {
+                var person = _live[i];
+                if (person != null && person.Downed) person.TickDown(dt);
+            }
+        }
+
         private Pedestrian.Tuning CurrentTuning() => new()
         {
             StepRadius = stepRadius,
@@ -411,6 +442,11 @@ namespace TheBlock.Npc
 
         private void Release(Pedestrian body)
         {
+            // Culled mid-flight — the player drove off and the body is behind the camera. Stand them
+            // up where they were hit and hand the seed back, rather than holding a whole reaction
+            // alive for four seconds to animate a fade nobody is looking at.
+            body.AbortRunOver();
+
             int index = body.SeedIndex;
             if (index >= 0 && index < _seeds.Length)
             {

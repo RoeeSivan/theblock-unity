@@ -106237,6 +106237,8 @@ GameObject:
   m_Component:
   - component: {fileID: 958789295}
   - component: {fileID: 958789294}
+  - component: {fileID: 958789297}
+  - component: {fileID: 958789296}
   m_Layer: 0
   m_Name: Crowd
   m_TagString: Untagged
@@ -106306,6 +106308,59 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &958789296
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 958789293}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00db91afe26024c45bb0633d4cbf0bdc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Npc.RunOverSystem
+  minSpeedKmh: 12
+  boxPad: 0.35
+  reaction:
+    FlightTime: 0.5
+    ArcHeight: 1.1
+    PushPerSpeed: 0.06
+    PushMax: 4
+    LieTime: 2
+    FadeTime: 0.8
+  sameStoreyBand: 3
+  logHits: 1
+  crowd: {fileID: 958789294}
+  vehicles: {fileID: 776202321}
+  blood: {fileID: 958789297}
+--- !u!114 &958789297
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 958789293}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9997ea849d5c048d39b52e43e6d8a695, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Vfx.Blood
+  dropsPerBurst: 55
+  dropSize: 0.05
+  burstSpeed: 3.5
+  burstUp: 2.6
+  burstSpread: 0.55
+  dropLife: 0.7
+  maxPools: 8
+  poolRadius: 0.62
+  poolGrow: 1.1
+  poolHold: 1.8
+  poolFade: 1.2
+  poolOpacity: 0.85
+  groundLift: 0.02
+  color: {r: 0.30588236, g: 0.039215688, b: 0.039215688, a: 1}
+  enable: 1
 --- !u!1 &960110585
 GameObject:
   m_ObjectHideFlags: 0
@@ -170182,6 +170237,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1525800947}
   - component: {fileID: 1525800948}
+  - component: {fileID: 1525800949}
   m_Layer: 0
   m_Name: Lamp_1
   m_TagString: Untagged
@@ -170269,6 +170325,35 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &1525800949
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1525800946}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &1527273089
 GameObject:
   m_ObjectHideFlags: 0
@@ -176263,6 +176348,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1583412019}
   - component: {fileID: 1583412020}
+  - component: {fileID: 1583412021}
   m_Layer: 0
   m_Name: Lamp_2
   m_TagString: Untagged
@@ -176350,6 +176436,35 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &1583412021
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1583412018}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &1583805897
 GameObject:
   m_ObjectHideFlags: 0
@@ -203592,6 +203707,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1820413404}
   - component: {fileID: 1820413405}
+  - component: {fileID: 1820413406}
   m_Layer: 0
   m_Name: Lamp_0
   m_TagString: Untagged
@@ -203679,6 +203795,35 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &1820413406
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1820413403}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &1820489173
 GameObject:
   m_ObjectHideFlags: 0

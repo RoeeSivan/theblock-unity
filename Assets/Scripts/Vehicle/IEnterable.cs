@@ -48,6 +48,15 @@ namespace TheBlock.Vehicles
         /// <summary>The side you step out onto, as a world direction.</summary>
         Vector3 DriverSide => Vector3.left;
 
+        /// <summary>
+        /// Signed speed along the vehicle's own forward, in m/s — negative while reversing.
+        ///
+        /// On the interface because U18's run-over asks every vehicle the same question and must not
+        /// care which one it is holding. Both the car and the bike already answered it; the sign is
+        /// what tells the knockback which way to throw a body when someone reverses over them.
+        /// </summary>
+        float ForwardSpeed { get; }
+
         /// <summary>True while somebody is driving it.</summary>
         bool Driven { get; set; }
 

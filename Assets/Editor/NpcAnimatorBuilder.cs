@@ -31,6 +31,20 @@ namespace TheBlock.EditorTools
         private const string ControllerPath = "Assets/Animation/Npc.controller";
         private const string OverrideFolder = "Assets/Animation/Npc";
 
+        /// <summary>
+        /// The knockdown state's name, which is what <c>Pedestrian</c> cross-fades to by string — so
+        /// the name lives there and this file agrees with it.
+        ///
+        /// <b>The state is deliberately not overridden per character.</b> Idle and walk are, because
+        /// each of the six was authored on its own body; the hit is one Humanoid clip that retargets
+        /// onto all of them, so there is one state holding one clip and the override controllers say
+        /// nothing about it.
+        /// </summary>
+        private const string HitState = TheBlock.Npc.Pedestrian.HitState;
+
+        /// <summary>The state everyone returns to once the reaction is over.</summary>
+        private const string LocomotionState = TheBlock.Npc.Pedestrian.LocomotionState;
+
         /// <summary>The character whose clips fill the base graph. The others override them.</summary>
         private const string BaseCharacter = "Sophie";
 
@@ -80,7 +94,7 @@ namespace TheBlock.EditorTools
 
             controller.AddParameter("Speed", AnimatorControllerParameterType.Float);
 
-            var locomotion = controller.CreateBlendTreeInController("Locomotion", out var gait);
+            var locomotion = controller.CreateBlendTreeInController(LocomotionState, out var gait);
             gait.name = "Gait";
             gait.blendType = BlendTreeType.Simple1D;
             gait.blendParameter = "Speed";
@@ -91,11 +105,33 @@ namespace TheBlock.EditorTools
             gait.children = children.ToArray();
 
             controller.layers[0].stateMachine.defaultState = locomotion;
-            EditorUtility.SetDirty(controller);
 
             log.AppendLine(
                 $"  base {ControllerPath}: idle 0 / walk " +
                 string.Join(" / ", WalkRatios.Select(r => $"{r:0.#}×")) + "  (Speed is a RATIO, not m/s)");
+
+            // --- U18's knockdown ------------------------------------------------------------------
+            //
+            // No transitions in or out, and no trigger parameter. Pedestrian cross-fades to this
+            // state at impact and back to Locomotion when the body is recycled, because the reaction
+            // has a clock of its own — the arc, the stain and the fade all hang off it — and a
+            // transition graph would give the same reaction a second, disagreeing one.
+            var hit = HitClipImporter.Load();
+            if (hit == null)
+            {
+                log.AppendLine("  ⚠ no hit clip — run The Block → Import Hit Clip. The crowd is unhittable.");
+            }
+            else
+            {
+                var hitState = controller.layers[0].stateMachine.AddState(HitState);
+                hitState.motion = hit;
+                hitState.writeDefaultValues = false;
+                log.AppendLine(
+                    $"  {HitState,-11} {hit.name} {hit.length:0.00} s, root motion ON at runtime only, " +
+                    "shared by all six");
+            }
+
+            EditorUtility.SetDirty(controller);
 
             // --- one override per character -----------------------------------------------------
 
@@ -145,7 +181,7 @@ namespace TheBlock.EditorTools
 
             var report =
                 $"NpcAnimatorBuilder — {built}/{PeopleImporter.Names.Length} override(s)\n{log}" +
-                "  No run, no hit, no panic: U18 owns the run-over reaction, U19 the fleeing";
+                "  No run and no panic: U19 owns the fleeing";
             Debug.Log(report, controller);
             return report;
         }

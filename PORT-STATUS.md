@@ -51,8 +51,39 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-**Next action: build U17b** — carjacking, and generalising `CarBuilder` past the Mustang. It also
-inherits U13's deferred lot-car promotion. See its row.
+**Next action: the user play-tests U18.** Everything is built, wired and measured in Play; the row
+stays `wip` until they say it feels right, then it is marked `done` and U17b is next.
+
+**How to test it:** press `E` by the Mustang or the bike, drive into the city (the starting lot is
+quiet on purpose — the crowd is downtown and west), and drive through people **above 12 km/h**.
+Below that the capsule is still solid and you bump into them, which is deliberate. The console
+prints one line per victim with the speed and how far the body was actually thrown; that logging is
+`Log Hits` on the **Crowd** object's `RunOverSystem` and can be switched off there.
+
+**What to watch for, in the order it is most likely to be wrong:**
+
+1. **The aim.** The body should be thrown roughly along the car's direction of travel. The clip
+   throws sideways and is re-aimed by 85.1° — measured off the clip, not ported — so if bodies fly
+   sideways instead of forwards, that measurement is the thing to look at.
+2. **The fade.** The body lies for 2 s then fades over 0.8 s. The fade swaps in transparent clones
+   of the character's own materials; if a victim goes black, magenta or stays solid, that swap is
+   why and not the reaction.
+3. **The blood.** A spray of 55 droplets on the impact frame and a stain where the body lands. The
+   stain is a quad lifted 2 cm — if it flickers against the road, `Ground Lift` on the `Blood`
+   component is the knob (memory: `lowest-raycast-hit-is-the-ground-plate`).
+
+**Measured in Play, so do not re-derive:** a 54 km/h pass through a pavement downed **2 people**,
+thrown **2.14 m and 2.28 m**, both coming to rest at y 0.00, both recovering and walking on; peak
+2 stains live; 0 errors. Detector, arc, root-motion harvest, stain, fade and recovery all exercised.
+The clip is **1.13 s of a 4.83 s file** — Mixamo pads a one-shot with idle, and the body stands
+still for the first 79 of 145 frames — and its own body reaches the ground at frame 15 of 34, which
+is where `flightTime` 0.5 s comes from.
+
+**One fault found and fixed on the way, and it was not in U18:** `CrowdSpawner.Bind` destroyed
+**every** child of the Crowd object, which silently deleted the stain pool `Blood` builds on that
+same object. It now destroys only children that have a `Pedestrian`. **A component may only destroy
+what it made** — the symptom was a `MissingReferenceException` three seconds into a run-over,
+nowhere near the cause.
 
 **U17, U16b and the vehicle hardening are all done, user-confirmed 2026-08-15**, and everything is
 committed and pushed (`origin/main` is a real remote now: `RoeeSivan/theblock-unity`). The
@@ -941,8 +972,8 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | — | Vehicle hardening, folded into U16b | done | `31f5767` | User-confirmed 2026-08-15 (*"i notice that it is fixed"*). **The wedge came back once after the first hardening, and the ledger's own one-variable prediction held: it was the car.** The first pass validated only that the pose was a finite unit quaternion, which a stale-but-valid pose passes. `CarWheel.Pose` now also enforces the geometric bound — a `WheelCollider` pose is its own transform slid along the suspension axis, so it can never leave a sphere of `suspensionDistance` around the anchor; further than that did not come from the spring and the bone is left on the skeleton for a frame. Live: 0.126 m out against a 0.5 m limit. `Assets/Scripts/Core/SkinWatchdog.cs` added so a next occurrence names its own bone — and it reads BONES, because baked `renderer.bounds` do not grow when one is thrown (verified by throwing one 500 m). Original notes: `CarWheel` took its bone rest offset from `WheelCollider.GetWorldPose` in `Awake` — before the first physics step, where the pose is not guaranteed to be a unit quaternion, and `Quaternion.Inverse` of a zero quaternion is NaN. It also had no rebind guard, so a mid-Play recompile left `_boneRestOffset` deserialized as `(0,0,0,0)` and every LateUpdate wrote a degenerate rotation into a wheel bone — on a car whose body, doors and wheels are ONE skin over 16 bones, that is a black wedge across the sky. Now: offset from `transform.rotation`, `Bind()` guard like `CarDoor`, validation on the WRITE, and nothing posed before the first `FixedUpdate`. `CarController.Respawn` also rewritten — it used `cars.FirstOrDefault()` (whichever car pressed R), teleported to the raw config spawn which carries no Y (dropping the car to 0, under the road), and moved the Rigidbody with no `Physics.SyncTransforms`, so for one frame the wheel bones were posed where the car used to be |
 | U17 | Traffic — graph, cars, lights | done | `2ea3c54` + `31f5767` | User-confirmed 2026-08-15. **Play-test fault: the lights looked frozen because the lamp quads were built 14 cm INSIDE the housing** — the epsilon was measured off the animated disc, which sits behind the lens, instead of off the shell's front face (shell at 9.675, discs at 6.883–7.163, so the shell stands 2.51–2.79 model units proud). The state machine was correct throughout: sampled live it held 125 red / 79 green / 20 amber / 9 red+amber across the 233 poles. Fixed in `WorldBuilder.Traffic.cs`; 233/233 now 1.7 cm proud of the shell. ⚠ **Still open, deferred by the user: standing beside a pole, its lights do not appear to change** — separate from the above, unmeasured, see Deferred. Cars, lights and phases on U16's graph, which is now derived ONCE by the traffic pass and handed to the navigation pass — the crossings and the lights key off the same node numbering by construction. `Crossing.IsClearOfTraffic` deleted; `TrafficLightSystem` fills `Crossing.Gate` for all 230. **The population is DERIVED, not configured**: 130 cars over 12,759 m is one car per 98 m, so the live count is the metres of centreline in range divided by that — a fixed 32 was the plan and it gridlocked the city in under a minute, because the disc around the starting lot holds 1,230 m and 32 there is jam density. The graph is BAKED to a ScriptableObject at build time (6,590 Y-samples), so the runtime casts no rays for traffic at all. Kinematic while driving, a real Rigidbody wreck when rammed. **Caught and fixed, both by measuring rather than looking: `GroundY` could return a ROOF (downtown's avenue baked at 6–10 m) and the fast `Build World` was silently losing the whole NavMesh — `PasteComponentValues` does not carry `navMeshData`, so the crowd failed to spawn with nothing in the console.** Cars stop BEHIND the zebra, which the original does not. Carjacking split out to U17b |
 | U17b | Carjack + `CarBuilder` past the Mustang | todo | | `config.traffic.hijack` — `E` on a stopped street car promotes it to a drivable `Vehicle`, the sim slot recycling far away (`traffic-cars.ts` `nearestStopped`/`hold`/`claim`, `transitions.ts hijackTrafficCar`). **Also owns U13's deferred lot-car promotion**, which is the same mechanism. The blocker is that `CarBuilder` only builds the Mustang, and `config.vehicle.cars` has full drivable specs (door joint, seat, paint) for Tesla/Audi/Avenger — but **none of those three GLBs has a wheel node at all**, so `FindWheelBones` has nothing to find and their wheel geometry must be STATED the way `MotorcycleBuilder` states the bike's. Split out of U17 by the user, 2026-08-15, to keep U17 to one checkpoint |
-| U18 | Run-over + blood VFX | todo | | Root Motion ON — the clip's motion IS the knockback. **Owes U16 one thing:** a struck pedestrian must leave the NavMesh, so the agent has to be disabled for the knockback and re-`Warp`ed after. Panic-fleeing into the road (if it is wanted) is the same switch — the carve makes the road unreachable by pathfinding on purpose |
-| U19 | Police pursuit + wanted level | todo | | real NavMesh; do NOT inherit the straight-line hack untested |
+| U18 | Run-over + blood VFX | wip | | **Built, wired and measured in Play; awaiting the user's play-test** — see RESUME HERE for how to test it and what to watch. Root Motion ON, and this is the only place in the project where it is: the clip's own 1.74 m of travel IS the knockback, harvested off the visual child onto the pedestrian's transform each LateUpdate (and multiplied by that child's scale, because Humanoid retargeting produces root motion in the TARGET avatar's units and Remy's really is 4.20 m). Code adds only what the clip lacks — a 1.1 m arc and a speed-scaled push. **The debt to U16 in this row's old note is void:** U16b deleted `NavMeshAgent` from the crowd, so there is no agent to disable and no `Warp` to do. **The throw angle is MEASURED, not ported** — `clip.averageSpeed` gives 85.1°, which is the mirror of the web's hand-tuned −85.8° and is the cleanest handedness cross-check in the project so far. **Caught: Mixamo pads a one-shot clip with idle** (the body stands still for 79 of 145 frames), so `HitClipImporter` finds the action's own window by watching the root move rather than trimming to a typed-in number; and **`CrowdSpawner.Bind` destroyed every child of the Crowd object**, which deleted the `Blood` stain pool built on that same object — now Pedestrians only. New: `HitClipImporter`, `RunOverReaction`, `RunOverSystem`, `Vfx/Blood`, a `Hit` state on `Npc.controller`, `IEnterable.ForwardSpeed`. **Audio is U27's**: the original's scream pool and body thud fire from this exact impact frame, so `RunOverReaction.Begin` is where they go |
+| U19 | Police pursuit + wanted level | todo | | real NavMesh; do NOT inherit the straight-line hack untested. **The run-over's heat hooks into `RunOverSystem`** — `Victims` and the `RanOver` event — and there is deliberately no second detector to add: the original's `crime.ts pedHit` radius scan is dead upstream (see the decisions log). Weight is **+1 star per victim-FRAME** (`> 0`, not the count) on a 3 s cooldown, and it applies during missions too |
 
 ### Tier 5 — Missions
 | id | unit | state | commit | notes |
@@ -958,7 +989,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | --- | --- | --- | --- | --- |
 | U25 | HUD + in-game UI (UI Toolkit) | todo | | Panel scaffolding already exists from U14 (`HudBuilder`, `HudPanelSettings`) — extend it, do not build a second panel. Owes U14 two things: an emoji-capable font so POI pins can draw their `⛽`/`🚓`/`🏪` glyphs again, and the fade behind U13's interior teleport |
 | U26 | Menus — title, character select, briefing, controls, pause | todo | | **Settings → Display wants a Radar on/off toggle** (user, 2026-08-15) that hides U14's collapsed minimap while playing. `M` must still open the full map with the radar off — the toggle is about the always-on widget, not the map |
-| U27 | Audio — sfx, engine, ambient, radio | todo | | |
+| U27 | Audio — sfx, engine, ambient, radio | todo | | **Owes U18 two sounds**, and the seam is already there: the original fires a gender-specific scream from a male/female pool plus a synth body thud on the run-over's impact frame, which here is `RunOverReaction.Begin` beside `blood.Splash`. Its own settled calls are worth reading before rebuilding them — gender POOLS not per-character voices, `maxConcurrent: 2` + `minGapSec: 0.18` because plowing a pavement downs five people in one frame, and no spatial audio because the victim is always under the player's own bumper. `CharacterSpec` has no gender field in this port either |
 | U28 | Economy + fuel + power-ups | todo | | |
 | U29 | Character roster | todo | | |
 
@@ -1023,6 +1054,61 @@ would trigger it. A `wip` unit is work half-done; this is work deliberately not 
 
 Dated one-liners. These are settled — do not re-litigate them without the user reopening.
 
+- **2026-08-15** (U18) — **The clip's root motion IS the knockback, and it is the only root motion
+  in the project.** Every other clip a character plays has its travel discarded because a script
+  owns the position — U7 settled that for Joe and U16b for the crowd. The hit is the deliberate
+  opposite: the limbs, the tumble and the landing are frame-exact by construction, and code supplies
+  only the two things the clip has no opinion about (a 1.1 m vertical arc, since the clip's own
+  vertical is flat, and a speed-scaled push). Reproducing the throw in code would be two clocks for
+  one body, which is exactly what the web build rejected.
+- **2026-08-15** (U18) — **Root motion is HARVESTED onto the pedestrian's transform, scaled by the
+  visual child's scale.** The Animator sits on the visual child because that is where the model is,
+  and a character that did not import at 1.70 m is scaled there too — so plain `applyRootMotion`
+  slides the body out from under its own collider, its culling and its seed. The scale factor is not
+  cosmetic: Humanoid retargeting produces root motion in the TARGET avatar's units and Remy's avatar
+  really is 4.20 m tall, so his knockback arrives 2.5× too long in local units and is then drawn
+  0.405×. Multiplying by the child's scale is what makes the transform travel as far as the body
+  appears to; for anyone who imported at 1.70 m the factor is 1.
+- **2026-08-15** (U18) — **The throw angle is measured off the clip, never ported.** The web carries
+  a hand-tuned `clipYawOffset` of −85.8°; `clip.averageSpeed` reads **+85.1°** here. Same physical
+  angle, opposite sign — a clean confirmation of the handedness rule from a direction nothing else
+  has tested, and a number nobody has to decide the sign of ever again. `Pedestrian.ThrowYaw` is the
+  one implementation and the importer logs it through the same function, so the two cannot drift.
+- **2026-08-15** (U18) — **The victim's window is found by watching the root move.** Mixamo pads a
+  one-shot clip with seconds of idle — `Hit_By_Car.fbx` is 145 frames and the body stands still for
+  79 of them — and the reaction's phases hang off the clip's LENGTH, so importing it whole would
+  push the lie and the fade out behind 2.6 s of nothing. The threshold is a fraction of the clip's
+  own peak frame speed rather than an absolute, so it survives a re-export. The original trims the
+  same clip in Blender for the same reason.
+- **2026-08-15** (U18) — **ONE detector, and it is the bumper box.** The original shipped two — the
+  box, and a separate radius scan in `crime.ts` that decided whether to call the police — and they
+  fought, because the radius scan skipped anyone already yielding to the car and wanted the victim
+  within 1.8 m of the vehicle CENTRE while the box downs them at ~3.2 m. Blood on the road, usually
+  no stars. That call is dead upstream and is not ported back: U19's wanted level reads
+  `RunOverSystem.Victims`.
+- **2026-08-15** (U18) — **The hit fires a physics step BEFORE contact, and the gate is what keeps a
+  crawl honest.** A person's capsule is solid, so a car at 20 m/s would hit a wall for one step
+  before anything downed them; the box is padded by the victim's own capsule radius plus the
+  distance the vehicle covers before the next step. Below 12 km/h none of that happens and the
+  capsule stays solid, so nudging someone bumps into them rather than gliding through. The web
+  needed Rapier interaction groups to reach the same place.
+- **2026-08-15** (U18) — **A component may only destroy what it made.** `CrowdSpawner.Bind` cleared
+  **every** child of the Crowd object to sweep stale bodies after a domain reload, and quietly
+  deleted the stain pool `Blood` builds on that same object — surfacing as a
+  `MissingReferenceException` three seconds into a run-over, nowhere near the cause. It now destroys
+  only children carrying a `Pedestrian`, and `Blood` keeps everything under one child it sweeps by
+  name.
+- **2026-08-15** (U18) — **A borrowed clip whose bone namespace differs must CREATE its own avatar.**
+  `JoeClipImporter` copies Joe's avatar into every clip he borrows, which works because they came out
+  of one Mixamo upload. `Hit_By_Car.fbx` did not: it is `mixamorig:Hips` against the crowd's
+  `mixamorigN:Hips`, Copy From Other matches by NAME, and it fails outright. Create From This Model
+  plus Humanoid retargeting plays one clip on all six bodies regardless of what their bones are
+  called — the same namespace trap the web build renamed tracks by hand to escape.
+- **2026-08-15** (U18) — **The stain is a lifted quad, not a URP Decal Projector.** A decal would
+  conform to the road properly and costs a Decal renderer feature plus the depth it needs, on a
+  frame the user has already flagged. Pavement is flat where people walk, so 2 cm of lift looks the
+  same for free. Both blood textures are drawn in code rather than authored: two small procedural
+  textures, no LFS, and the shape stays tunable — the same call the web made with its canvas.
 - **2026-08-15** (U16) — **The pavement is not enforced, it is the only thing that exists.** The web
   build's pedestrians drift into the road because nothing there knows a road is a thing: a 4096²
   top-down material mask, a 67 MB GPU readback, a session-long boolean grid, straight-line movement

@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using TheBlock.Vfx;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -58,6 +60,18 @@ namespace TheBlock.Npc
 
         private static readonly int SpeedParameter = Animator.StringToHash("Speed");
 
+        /// <summary>
+        /// The animator states this class drives by name. Declared on the runtime side rather than in
+        /// <c>NpcAnimatorBuilder</c> because the builder is editor-only and this is the consumer — the
+        /// builder references these, not the other way round.
+        /// </summary>
+        public const string LocomotionState = "Locomotion";
+
+        public const string HitState = "Hit";
+
+        /// <summary>The knockdown clip, shared by all six characters. See <c>HitClipImporter</c>.</summary>
+        public const string HitClipName = "Ped_HitByCar";
+
         private CrowdSpawner _owner;
         private CrowdSeedTable.LanePath _path;
         private Crossing _gate;
@@ -70,6 +84,19 @@ namespace TheBlock.Npc
         private float _blockedFor;
         private bool _blocked;
         private Vector3 _lastPosition;
+
+        // --- U18's run-over ---------------------------------------------------------------------
+        private RunOverReaction _reaction;
+        private Blood _blood;
+        private Vector3 _standingPosition;      // where this person was when the bumper arrived
+        private Quaternion _standingRotation;
+        private Collider _collider;
+        private Renderer[] _renderers;
+        private Material[][] _solidMaterials;   // the prefab's own, restored when the fade is over
+        private Material[][] _fadeMaterials;    // transparent clones, built on the first knockdown
+        private float _appliedOpacity = 1f;
+        private bool _logHit;
+        private float _logSpeed;
 
         /// <summary>True between <see cref="Bind"/> and <see cref="Release"/>.</summary>
         public bool Live { get; private set; }
@@ -93,6 +120,31 @@ namespace TheBlock.Npc
         public bool IsCrossing { get; private set; }
 
         public float WalkClipSpeed => walkClipSpeed;
+
+        /// <summary>
+        /// True from the frame a vehicle hits this person until the body has faded out.
+        ///
+        /// A downed person is not a pedestrian in any sense the rest of the game cares about: they do
+        /// not walk, they are not a braking obstacle, they have no capsule, and they cannot be hit
+        /// again. Every one of those is a separate early-out below rather than one flag doing four
+        /// jobs, because they come back at different moments.
+        /// </summary>
+        public bool Downed => _reaction != null;
+
+        /// <summary>
+        /// This person's own capsule radius, read off the prefab rather than configured a second
+        /// time. It is what widens a vehicle's hit box from "the fender touched their origin" to "the
+        /// fender touched them" — testing the bare origin means a corner clip with the capsule
+        /// visibly inside the metal does nothing at all.
+        /// </summary>
+        public float BodyRadius
+        {
+            get
+            {
+                if (_collider == null) TryGetComponent(out _collider);
+                return _collider is CapsuleCollider capsule ? capsule.radius : 0.3f;
+            }
+        }
 
         /// <summary>Set by <c>NpcBuilder</c> at build time.</summary>
         public void Configure(Animator characterAnimator, float measuredWalkClipSpeed)
@@ -130,7 +182,21 @@ namespace TheBlock.Npc
 
             transform.position = position;
             _lastPosition = position;
-            if (animator != null) animator.SetFloat(SpeedParameter, 0f);
+
+            // A body coming out of the pool may have been someone's corpse a moment ago. Every one of
+            // these is already undone by Recover; they are repeated here because a pooled object that
+            // wakes up half-dead is the classic pooling bug, and the cost is four assignments.
+            _reaction = null;
+            _logHit = false;
+            SetOpacity(1f);
+            if (_collider != null) _collider.enabled = true;
+
+            if (animator != null)
+            {
+                animator.applyRootMotion = false;
+                animator.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+                animator.SetFloat(SpeedParameter, 0f);
+            }
         }
 
         /// <summary>Hands the seed back with whatever this body did to it.</summary>
@@ -151,7 +217,7 @@ namespace TheBlock.Npc
         /// <summary>One step. Called by <see cref="CrowdSpawner"/>, not by Unity.</summary>
         public void Tick(float dt, in Tuning tuning)
         {
-            if (!Live) return;
+            if (!Live || Downed) return;
 
             float animSpeed;
             if (_state.Mode == CrowdSeedTable.Mode.Wander) animSpeed = Wander(dt, tuning);
@@ -350,5 +416,295 @@ namespace TheBlock.Npc
 
         /// <summary>Debug read-out for the crowd's gizmos and the MCP scans.</summary>
         public bool BlockedByTraffic => _blocked;
+
+        // --- U18: run over ------------------------------------------------------------------------
+
+        /// <summary>
+        /// Hit by a vehicle. <see cref="RunOverSystem"/> decides who and when; this puts the body into
+        /// the reaction and takes it back out again.
+        ///
+        /// <b>Root motion goes ON here and OFF in <see cref="Recover"/>, and this is the only place in
+        /// the project where it is on.</b> Every other clip a pedestrian plays is a locomotion cycle
+        /// whose travel is discarded because the script owns the position — but the knockback IS the
+        /// clip's travel, and reproducing it in code would be two clocks for one body.
+        ///
+        /// <b>The aim is derived from the clip, never from a constant.</b> The animation is authored
+        /// as "hit from the side while crossing", so its travel leaves the body at roughly a right
+        /// angle to where it was facing. Reading that angle off the clip's own root motion and
+        /// subtracting it puts the authored throw along the vehicle's forward, whatever the clip does
+        /// — and it means nobody has to decide whether the web build's −85.8° survives a change of
+        /// handedness.
+        /// </summary>
+        public void KnockDown(
+            Vector3 throwDirection, float speedMs, in RunOverReaction.Tuning tuning, Blood blood)
+        {
+            if (!Live || Downed || animator == null) return;
+
+            var clip = HitClip();
+            if (clip == null) return;   // no clip, no reaction — RunOverSystem says so once, loudly
+
+            _standingPosition = transform.position;
+            _standingRotation = transform.rotation;
+            _blood = blood;
+            IsCrossing = false;
+            _blocked = false;
+
+            var flat = new Vector3(throwDirection.x, 0f, throwDirection.z);
+            if (flat.sqrMagnitude < 1e-4f) flat = transform.forward;
+            flat.Normalize();
+
+            float aim = Mathf.Atan2(flat.x, flat.z) * Mathf.Rad2Deg - ThrowYaw(clip);
+            transform.rotation = Quaternion.Euler(0f, aim, 0f);
+
+            // A body flying through the air is not something the player's car should also be pushing,
+            // and a corpse is not a wall to drive into.
+            if (_collider == null) TryGetComponent(out _collider);
+            if (_collider != null) _collider.enabled = false;
+
+            animator.applyRootMotion = true;
+
+            // The reaction runs on its own clock, so a culled animator would leave the pose frozen
+            // mid-flight while the body still travelled, landed and faded. Costly for a crowd, free
+            // for the two or three people actually under a car.
+            animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            animator.CrossFadeInFixedTime(HitState, 0.05f, 0, 0f);
+
+            float groundY = transform.position.y;
+            if (CrowdGround.TrySample(transform.position, ~0, 1.5f, 3f, out float sampled))
+                groundY = sampled;
+
+            _reaction = new RunOverReaction();
+            _reaction.Begin(transform, flat, speedMs, groundY, clip.length, tuning, blood);
+        }
+
+        /// <summary>
+        /// The downed body's step. Driven from <see cref="CrowdSpawner"/>'s <c>LateUpdate</c> so it
+        /// runs AFTER the animator — the harvest below has to see this frame's root motion, and the
+        /// arc has to be applied on top of it rather than under it.
+        /// </summary>
+        public void TickDown(float dt)
+        {
+            if (!Downed) return;
+
+            HarvestRootMotion();
+            _reaction.Tick(dt, _blood);
+            SetOpacity(_reaction.Opacity);
+
+            // Reported when the body comes to REST, not when it touches down. Those are ~0.9 m apart:
+            // the clip keeps sliding for about 0.6 s after its own vertical settles, which is a body
+            // skidding to a stop and is the animation being right rather than the reaction being
+            // wrong. Measuring at touchdown would report the throw as roughly half what it is.
+            if (_logHit && _reaction.Done)
+            {
+                _logHit = false;
+                var travel = transform.position - _standingPosition;
+                travel.y = 0f;
+                Debug.Log(
+                    $"Run-over: {name} at {_logSpeed * 3.6f:0.0} km/h → thrown {travel.magnitude:0.00} m " +
+                    $"(clip root motion + push), came to rest at y {transform.position.y:0.00}", this);
+            }
+
+            if (_reaction.Done) Recover();
+        }
+
+        /// <summary>Ask for this hit to report what it actually did, once, on the landing frame.</summary>
+        public void LogHit(float speedMs)
+        {
+            _logHit = true;
+            _logSpeed = speedMs;
+        }
+
+        /// <summary>
+        /// Moves the clip's root motion from the visual child up onto the pedestrian's own transform.
+        ///
+        /// <b>Why it is not simply <c>applyRootMotion</c> and done.</b> The Animator is on the VISUAL
+        /// child, because that is where the model is — and a character that did not import at 1.70 m
+        /// is scaled there too (see <c>NpcBuilder</c>). Left alone, root motion slides the visual out
+        /// from under its own collider, its culling and its seed. Harvesting it puts the body and the
+        /// logical person back in one place every frame.
+        ///
+        /// <b>Scaled by the visual's own scale, and that is the part worth reading twice.</b>
+        /// Humanoid retargeting produces root motion in the TARGET avatar's units, and Remy's avatar
+        /// really is 4.20 m tall — his knockback comes out 2.5× too long in local units, and is then
+        /// drawn 0.405× because that is what makes him 1.70 m on screen. Multiplying by the visual's
+        /// scale is what makes the transform travel exactly as far as the body appears to. For anyone
+        /// who imported at 1.70 m the factor is 1 and this line does nothing.
+        ///
+        /// Y is dropped on purpose: the clip's vertical is baked into its pose and the arc owns the
+        /// height.
+        /// </summary>
+        private void HarvestRootMotion()
+        {
+            var visual = animator.transform;
+            if (visual == transform) return;
+
+            var local = visual.localPosition;
+            if (local.x == 0f && local.z == 0f) return;
+
+            var scale = visual.localScale;
+            transform.position += transform.TransformVector(new Vector3(local.x * scale.x, 0f, local.z * scale.z));
+            visual.localPosition = Vector3.zero;
+        }
+
+        /// <summary>
+        /// Back on their feet and back on their route, at the spot they were standing when they were
+        /// hit — which is the original's "recovery is free" call, and the reason the crowd never
+        /// depletes. The seed was never touched, so the person resumes their own walk rather than
+        /// being replaced by a new one.
+        /// </summary>
+        private void Recover()
+        {
+            _reaction = null;
+            _blood = null;
+
+            SetOpacity(1f);
+
+            if (animator != null)
+            {
+                animator.applyRootMotion = false;
+                animator.cullingMode = AnimatorCullingMode.CullCompletely;
+                animator.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+                animator.CrossFadeInFixedTime(LocomotionState, 0.15f, 0, 0f);
+            }
+
+            if (_collider != null) _collider.enabled = true;
+
+            transform.SetPositionAndRotation(_standingPosition, _standingRotation);
+            _lastPosition = _standingPosition;
+            _state.Position = _standingPosition;
+        }
+
+        /// <summary>
+        /// Cut the reaction short and stand the person back up wherever they are — used when the body
+        /// is culled mid-flight because the player drove off. It is behind the camera by then, so the
+        /// alternative is holding a body alive for four seconds to animate a fade nobody sees.
+        /// </summary>
+        public void AbortRunOver()
+        {
+            if (Downed) Recover();
+        }
+
+        /// <summary>
+        /// Fade the body out, by swapping to transparent clones of its own materials.
+        ///
+        /// A clone rather than a shared material, because two people can be fading at once and they
+        /// are at different opacities. The clones are kept for the session and swapped back OUT at
+        /// full opacity: a transparent material on a walking pedestrian would cost sorting and
+        /// overdraw for the rest of the run to solve a problem that lasts 0.8 seconds.
+        /// </summary>
+        private void SetOpacity(float opacity)
+        {
+            if (Mathf.Approximately(opacity, _appliedOpacity)) return;
+
+            if (_renderers == null)
+            {
+                _renderers = GetComponentsInChildren<Renderer>(true);
+                _solidMaterials = new Material[_renderers.Length][];
+                _fadeMaterials = new Material[_renderers.Length][];
+
+                for (int i = 0; i < _renderers.Length; i++)
+                {
+                    _solidMaterials[i] = _renderers[i].sharedMaterials;
+                    var clones = new Material[_solidMaterials[i].Length];
+                    for (int m = 0; m < clones.Length; m++)
+                    {
+                        if (_solidMaterials[i][m] == null) continue;
+                        clones[m] = MakeTransparent(new Material(_solidMaterials[i][m]));
+                    }
+
+                    _fadeMaterials[i] = clones;
+                }
+            }
+
+            bool solid = opacity >= 0.999f;
+            for (int i = 0; i < _renderers.Length; i++)
+            {
+                if (_renderers[i] == null) continue;
+
+                if (solid)
+                {
+                    if (_appliedOpacity < 0.999f) _renderers[i].sharedMaterials = _solidMaterials[i];
+                    continue;
+                }
+
+                if (_appliedOpacity >= 0.999f) _renderers[i].sharedMaterials = _fadeMaterials[i];
+                foreach (var material in _fadeMaterials[i])
+                {
+                    if (material == null) continue;
+                    var colour = material.GetColor(BaseColorId);
+                    colour.a = opacity;
+                    material.SetColor(BaseColorId, colour);
+                }
+            }
+
+            _appliedOpacity = opacity;
+        }
+
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        private static readonly int SurfaceId = Shader.PropertyToID("_Surface");
+        private static readonly int SrcBlendId = Shader.PropertyToID("_SrcBlend");
+        private static readonly int DstBlendId = Shader.PropertyToID("_DstBlend");
+        private static readonly int ZWriteId = Shader.PropertyToID("_ZWrite");
+
+        /// <summary>
+        /// Flips a URP/Lit material to alpha-blended transparency.
+        ///
+        /// The keyword is the load-bearing line — URP picks the variant by keyword, so setting
+        /// <c>_Surface</c> alone changes the inspector and nothing else.
+        /// </summary>
+        private static Material MakeTransparent(Material material)
+        {
+            material.SetFloat(SurfaceId, 1f);
+            material.SetFloat(ZWriteId, 0f);
+            material.SetFloat(SrcBlendId, (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            material.SetFloat(DstBlendId, (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            material.DisableKeyword("_ALPHATEST_ON");
+            material.SetOverrideTag("RenderType", "Transparent");
+            material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            return material;
+        }
+
+        // --- the clip ----------------------------------------------------------------------------
+
+        private static readonly Dictionary<RuntimeAnimatorController, AnimationClip> HitClips = new();
+
+        /// <summary>
+        /// The knockdown clip out of this character's own controller.
+        ///
+        /// Looked up rather than serialized so there is one source of truth — the graph
+        /// <c>NpcAnimatorBuilder</c> writes — and cached per controller because six characters share
+        /// six override controllers and the lookup is a linear scan of every clip in each.
+        /// </summary>
+        private AnimationClip HitClip()
+        {
+            var controller = animator.runtimeAnimatorController;
+            if (controller == null) return null;
+            if (HitClips.TryGetValue(controller, out var cached)) return cached;
+
+            AnimationClip found = null;
+            foreach (var clip in controller.animationClips)
+            {
+                if (clip == null || clip.name != HitClipName) continue;
+                found = clip;
+                break;
+            }
+
+            HitClips[controller] = found;
+            return found;
+        }
+
+        /// <summary>
+        /// Which way this clip throws the body, in degrees about Y, measured off its own root motion.
+        /// Zero would mean "straight ahead of where the victim was facing"; this one is authored
+        /// sideways, so it is near a right angle.
+        /// </summary>
+        public static float ThrowYaw(AnimationClip clip)
+        {
+            if (clip == null) return 0f;
+            var travel = clip.averageSpeed;
+            if (travel.x * travel.x + travel.z * travel.z < 1e-6f) return 0f;
+            return Mathf.Atan2(travel.x, travel.z) * Mathf.Rad2Deg;
+        }
     }
 }
