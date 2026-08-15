@@ -94,11 +94,9 @@ namespace TheBlock.Vehicles
             var car = Instantiate(prefab, position, rotation, transform);
             car.name = spec.Name;
 
-            if (car.TryGetComponent<CarController>(out var controller))
-            {
-                _spawned.Add(controller);
-                EnterableRegistry.Register(controller);
-            }
+            // The controller has already put itself on the enterable list in OnEnable; this list is
+            // only the spawner's own record of what it made.
+            if (car.TryGetComponent<CarController>(out var controller)) _spawned.Add(controller);
             else Debug.LogWarning($"CarSpawner: {spec.Name} has no CarController.", car);
         }
 

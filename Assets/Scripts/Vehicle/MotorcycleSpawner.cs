@@ -6,10 +6,13 @@ namespace TheBlock.Vehicles
     /// <summary>
     /// Spawns the motorcycle at runtime from its prefab and its config spec.
     ///
-    /// Unlike <c>CarSpawner</c>, this is a one-shot: there is only one motorcycle in the game,
-    /// and it spawns once at startup. It finds ground like the cars do (one raycast at spawn,
-    /// then suspension takes over), and registers itself with <c>EnterableRegistry</c> so
-    /// <c>VehicleEnterExit.Nearest()</c> can find it.
+    /// Unlike <c>CarSpawner</c>, this is a one-shot: there is only one motorcycle in the game, and
+    /// it spawns once at startup. It finds ground the way the cars do — one raycast at spawn, then
+    /// the suspension takes over — so the bike lands correctly on lot asphalt, a district street, or
+    /// nothing at all.
+    ///
+    /// It does NOT put the bike on the enterable list; the controller does that itself in
+    /// <c>OnEnable</c>. See <see cref="EnterableRegistry"/> for why that has to be the vehicle's job.
     /// </summary>
     public class MotorcycleSpawner : MonoBehaviour
     {
@@ -66,17 +69,17 @@ namespace TheBlock.Vehicles
             }
 
             var position = new Vector3(ground.x, y + settleGap, ground.z);
-            var rotation = Quaternion.identity; // Motorcycle config has no spawn rotation currently
 
-            var bike = Instantiate(motorcyclePrefab, position, rotation, transform);
+            // config.vehicle.motorcycle has no spawn yaw, and the web build leaves the bike at 0 —
+            // which is its -Z, and Unity's +Z, so identity is the converted equivalent, not a stub.
+            var bike = Instantiate(motorcyclePrefab, position, Quaternion.identity, transform);
             bike.name = "Motorcycle";
 
-            if (bike.TryGetComponent<MotorcycleController>(out var controller))
-            {
-                _bike = controller;
-                EnterableRegistry.Register(controller);
-            }
-            else Debug.LogError("MotorcycleSpawner: prefab has no MotorcycleController.", bike);
+            if (bike.TryGetComponent<MotorcycleController>(out var controller)) _bike = controller;
+            else Debug.LogError(
+                "MotorcycleSpawner: the assigned prefab has no MotorcycleController — this is almost " +
+                "always the raw imported model rather than the one The Block → Build Motorcycle makes.",
+                bike);
         }
 
         private static string Fmt(Vector3 v) => $"({v.x:0.#}, {v.z:0.#})";

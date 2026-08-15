@@ -121,6 +121,15 @@ namespace TheBlock.Vehicles
         private void Awake() => Bind();
 
         /// <summary>
+        /// The car puts itself on the enterable list rather than being put there by its spawner: a
+        /// spawner has no idea when its car is destroyed, and a stale entry means `E` aims at a
+        /// corpse. See <see cref="EnterableRegistry"/>.
+        /// </summary>
+        private void OnEnable() => EnterableRegistry.Register(this);
+
+        private void OnDisable() => EnterableRegistry.Unregister(this);
+
+        /// <summary>
         /// Reads the config and caches what the drive loop needs.
         ///
         /// Called from Awake, and again from FixedUpdate if the spec has gone null — which happens

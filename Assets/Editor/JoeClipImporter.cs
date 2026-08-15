@@ -57,6 +57,16 @@ namespace TheBlock.EditorTools
         private static readonly ClipSpec[] Clips =
         {
             new("Joe_EnterCar.fbx", "Joe_EnterCar", loop: false, bakeRoot: true),
+
+            // The seated riding pose, shared by the motorcycle (U10) and the jetski (U24) — which is
+            // why the web build has it as a file of its own rather than inside either vehicle.
+            // BakeRoot for the same reason as the entry clip: the rider anchor is a fixed child of
+            // the bike and the body must not drift off it, so whatever travel the clip carries stays
+            // in the pose. Looping, because unlike the entry clip this one never ends.
+            //
+            // This FBX ships a body (55 MB, Mixamo's with-skin download) exactly as Joe_Sprint and
+            // Joe_Jumping do. Only its animation is imported; the mesh inside it is never used.
+            new("Joe_Driving.fbx", "Joe_Ride", loop: true, bakeRoot: true),
         };
 
         [MenuItem("The Block/Import Joe Clips", priority = 21)]

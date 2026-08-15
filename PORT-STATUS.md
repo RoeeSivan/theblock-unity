@@ -6,15 +6,174 @@ this file is.
 
 ---
 
+## Standing remark — every unit asks "can Unity do this better?"
+
+**This is a rebuild, not a transcription.** Before building any `U`, ask the question explicitly and
+write the answer down in that unit's notes: *what did the web build settle for here because three.js
+or Rapier could not do better, and what does Unity give us instead?*
+
+The game must stay the same game — same missions, same world, same feel. But the mechanism
+underneath is free, and the point of the port is engine breadth, so a faithful copy of a workaround
+is a wasted unit. Where Unity has a real mechanism, take it and make the thing **feel better** than
+the original did.
+
+Already banked, as evidence this is a real rule and not a slogan: the facade tint is a material
+asset instead of a load-time recolour (U1); `CharacterController` with `stepOffset` replaces
+hand-rolled collide-and-slide (U6); the car is a Rigidbody on WheelColliders instead of a kinematic
+capsule snapped to the road (U8); one Joe is reparented into the seat instead of a second skinned
+body being mounted (U9); the bike leans and has real suspension and real collisions (U10). Still
+queued: NavMesh police instead of "drive straight at the player" (U19), Addressables instead of
+one big download (U15), UI Toolkit instead of DOM overlays (U25).
+
+The counterweight is port rule 5 in `CLAUDE.md`: **design intent carries, scar tissue does not** —
+and telling them apart is the actual work. Tank controls stayed (U6) because they are the design.
+Kinematic vehicles went (U8, U10) because they were a Rapier limitation. When it is genuinely
+unclear, re-test before inheriting.
+
+---
+
 ## RESUME HERE
 
-**Next action:** **U10 — motorcycle — user play-test phase.** Code is complete. User must:
-1. Place `MotorcycleSpawner` component in `World.unity` scene (new GameObject under `Vehicles` root, assign prefab)
-2. Build motorcycle prefab via **The Block → Build Motorcycle**
-3. Play-test: E-enter bike, test W/S/A/D/Space/R controls, verify spawn location (parking lot near Mustang), check rider pose, tune parameters if needed
-4. Confirm "it drives and feels right" before committing
+**Next action:** **U11 — all 9 districts.** WorldBuilder already places and collides every one of
+them; the last build reported 12 placed, 2 missing, 109 colliders. What is actually left is two
+rendering faults and one honest limitation, all described under "Known issues" further down:
 
-After that: **U11 — all 9 districts** (WorldBuilder already ships them, foliage alpha-clip and city 2/3 submesh split remain)
+1. **Foliage renders as white shards.** Imported `alphaMode: BLEND` with ZWrite off. Alpha-clip is
+   the right fix but glTFast's Shader Graph ignores `_AlphaClip`, so the surface mode has to be
+   driven another way. Attempted once and reverted — not left half-applied.
+2. **Cities 2 and 3 each mix baked-in parked cars with real geometry in one renderer**, so
+   `hideMaterials` cannot strip them without taking buildings too. A submesh split in Blender is the
+   fix; every other district hides its cars cleanly.
+3. **Districts are merged meshes**, so `noCollidePatterns` almost never matches and a district gets
+   2–4 whole-mesh colliders, palms included. The web build has the same hole, so this is faithful
+   rather than broken — decide whether to leave it or source raw multi-node models.
+
+Ask the standing question first (see the remark at the top of this file): the web build's foliage
+looks the way it does because three.js had one material path. Unity has Shader Graph, per-material
+render queues and alpha-to-coverage — the fix should make the palms look BETTER than the original,
+not merely not-white.
+
+### U10 tuning knobs, if the bike ever needs re-feeling
+
+**All serialized on `MotorcycleController`** — select the spawned `Motorcycle`
+during Play and edit in the Inspector; the values live on `Assets/Prefabs/Vehicles/Motorcycle.prefab`:
+
+| feels wrong | knob | now |
+| --- | --- | --- |
+| too eager / too slow off the line | `motorTorque` | 950 Nm |
+| won't stop, or stops dead | `brakeTorque` | 1200 Nm |
+| pitches over the bars braking | `frontBrakeShare` | 0.55 |
+| coasts forever / drags to a halt | `coastBrake` | 220 Nm |
+| steering too slow or too twitchy | `steerRate` | 200 °/s |
+| understeers, or spins at speed | `steerAtTopSpeed` | 0.30 |
+| **wobbles, or lies down** | `uprightSpring` / `uprightPredict` | 9000 / 0.35 s |
+| leans too much, or not enough | `maxLeanDegrees` | 32° |
+| lean snaps instead of rolling in | `leanRate` | 180 °/s |
+| `Space` won't step the back out | `skidGrip` | 0.35 |
+
+Suspension, tyre grip, mass, wheel radius and the chassis box are NOT here — they are baked into the
+prefab by `MotorcycleBuilder` and live as constants at the top of `Assets/Editor/MotorcycleBuilder.cs`.
+Change them there and re-run **The Block → Build Motorcycle**, which rebuilds the prefab in place so
+the scene keeps its reference.
+
+Controls while riding: `W`/`S` throttle and brake-then-reverse, `A`/`D` steer, `Space` rear-brake
+skid, `R` back to the spawn. `E` gets on and off — the bike sits 8 m west of the Mustang on the lot,
+and `E` picks whichever is nearer.
+
+### What U10 built
+
+**U10 is done** — the user confirmed on 2026-08-15 that riding the motorcycle feels right.
+
+**The bike is a Rigidbody on two WheelColliders, not a port of `motorcycle.ts`.** That file is
+kinematic — scalar speed and heading through a Rapier character controller with a ray snapping it to
+the road — for exactly the reason the car was, and U8 already ruled that scar tissue. What the swap
+buys, none of which the web build has: it collides with the world and the cars instead of sliding
+through them, it has suspension so a kerb is a bump rather than a teleport, it keeps its momentum
+(U18's run-over and U19's ramming inherit that), and **it leans**.
+
+| file | is |
+| --- | --- |
+| `Assets/Scripts/Vehicle/MotorcycleController.cs` | drive, steer, the upright stabiliser, the lean |
+| `Assets/Scripts/Vehicle/MotorcycleSpawner.cs` | one-shot spawn + ground probe, on the `Vehicles` root |
+| `Assets/Editor/MotorcycleBuilder.cs` | **The Block → Build Motorcycle** — generates the prefab |
+| `Assets/Scripts/Vehicle/IEnterable.cs` | + `UsesEntryAnimation`, `ShowRiderOnQuickMount` |
+| `Assets/Models/Characters/Joe_Driving.fbx` | the seated riding pose, imported as `Joe_Ride` |
+
+**A two-wheeled Rigidbody has no roll stability and falls over on frame one.** `Stabilize()` is what
+holds it up, and it runs whether or not anyone is riding — a parked bike has to stand there too, and
+this model has no kickstand. The torque is a spring toward world up measured against where the roll
+will BE in `uprightPredict` seconds rather than where it is now; that look-ahead IS the damping term.
+Correcting only the current error makes a pendulum and the bike wobbles forever. As shipped it is
+about 3.6× over-damped, which is the safe side of the choice — it will feel firmly held rather than
+floaty, and `uprightPredict` is the knob if that reads as stiff.
+
+**The lean is on a separate `Lean` node, and the Rigidbody never rolls.** Rolling a two-wheeler's
+body is not a lean, it is a fall. The pivot sits between the prefab root and `Visual`, and the rider
+anchor hangs off it too so Joe leans with the bike instead of staying bolt upright on top of it. The
+target angle is read off the physics — `tan(lean) = v·ω / g`, the angle at which gravity and the
+corner's centripetal force line up — not off the steering key, so a stationary bike does not lean and
+a bike sliding sideways out of a `Space` skid still does.
+
+**Wheel geometry is stated, not measured, and that is a property of this asset.** The Mustang's rig
+names its own corners; `pizza_delivery_bike_wolt.glb` is two nodes — `Bike` and `WoltBox` — each one
+merged mesh with no wheel to find. So the radius is `WheelRadiusFraction` (0.22 of body height →
+0.268 m) and the axles go one radius in from each end of the bounding box, which is a fact about
+bikes rather than a guess about this model. Nothing visible depends on it: there is no wheel mesh to
+spin either, so `CarWheel` has no counterpart here and the shipped web build never rotated one.
+
+**The chassis box's WIDTH is overridden.** Measured bounds are 1.037 m across because they span the
+mirrors and the bars; colliding as a metre-wide brick makes the bike handle like a car in traffic.
+`ChassisWidth` forces 0.5 m — bike plus rider. Length and height stay measured.
+
+**The rider seat block IS a seat, unlike the car's.** `{x: 0.01, y: -0.49, z: 0.23}` is measured from
+the body centre and lands at prefab-local **(0.01, 0.238, -0.23)** once the centre is added back —
+the same correction `CarBuilder` applies, and the arithmetic reproduces the web build's rider height
+exactly (`surface + 0.728 − 0.49`), which is the cross-check that the centre-add-back is right.
+`Convert.ModelOffset` for the offset, `Convert.RotFromRadians` for the yaw with **no** extra π: the
+web build adds one to turn a Mixamo body that faces `+Z` in a `-Z`-forward engine, and Unity's
+forward already is `+Z`.
+
+**`Nearest()` now walks `EnterableRegistry`, and vehicles register THEMSELVES.** Registration moved
+out of the spawners in `OnEnable`/`OnDisable`, because a spawner cannot know when its vehicle is
+destroyed and a stale entry means `E` aims at a corpse. `EnterableRegistry.All` also sweeps dead
+entries on the way out — a destroyed MonoBehaviour reached through an *interface* reference does not
+compare equal to null, since the overloaded operator lives on `Object` and an interface does not
+carry it, so the sweep goes through the concrete type to ask the question at all.
+
+**⚠ `VehicleEnterExit.activeVehicle` was `[SerializeField]` on an interface type, which Unity cannot
+serialize.** It silently stored nothing, so the whole mid-Play-recompile guard that field exists for
+was doing nothing for the one piece of state the scene cannot rebuild. It is now stored as a
+`MonoBehaviour` and cast back through a property.
+
+**No third enter path was added** — the two flags on `IEnterable` parameterise the quick mount
+instead. `UsesEntryAnimation` is false on the bike, so it never plays Joe's car-entry clip (it would
+have: that test was `RiderAnchor != null && clipLength > 0`, and both are true on a bike).
+`ShowRiderOnQuickMount` is true, so the rider stays visible rather than being hidden as an untuned
+car's is. A door-less vehicle also skips the door timings entirely and mounts in
+`doorlessMountSeconds` (0.35 s) rather than paying config's 1.05 s of waiting for a swing that does
+not exist.
+
+**`Joe_Driving.fbx` is the 55 MB with-skin Mixamo download**, same as `Joe_Sprint` and `Joe_Jumping`.
+Only its animation is used; its body never appears. It imports as `Joe_Ride`, 5.00 s, looping, root
+baked into pose, and `JoeAnimatorBuilder` gives it a `Ride` state off an `Any State` transition on a
+new `Ride` bool. U24's jetski reuses that exact state, which is why the clip is its own file.
+The `Ride` parameter is declared even when the clip is missing, because `PlayerAnimator` sets it on
+every mount and `SetBool` against an absent parameter warns once per call forever.
+
+**Verified in Play with synthetic input** (the rest is the user's to judge): spawns at Unity
+(198, −236) upright with `upness` 1.0000 and both wheels grounded; the registry holds the Mustang and
+the bike 8 m apart, so `Nearest()` genuinely has to choose; `E` mounts in 0.35 s with Joe parented to
+`RiderAnchor`, `Joe_Ride` looping, all 9 renderers on and the camera 7.0 m back on config's boom;
+throttle gives ~11 m/s² and tracks dead straight — 153 m with `x` unchanged to 2 decimal places.
+**One bug caught that way and fixed**: at the 20 m/s cap the motor cut but nothing bled the
+overshoot, so it held 22.6 m/s. `capped` now takes the coast brake as well.
+
+**Two things the user did by hand that were quietly wrong, both corrected:** the scene's
+`MotorcycleSpawner.motorcyclePrefab` pointed at `pizza_delivery_bike_wolt copy.prefab` — the raw
+imported model, which has no `MotorcycleController` — and the GLB itself was named
+`pizza_delivery_bike_wolt copy.glb`, which no exact-name lookup would find. The stray prefab is
+deleted, the GLB carries its config name, and the spawner points at `Motorcycle.prefab`. The spawner
+now says so by name if it is ever handed a raw model again.
 
 ### What U9 built
 
@@ -275,7 +434,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | --- | --- | --- | --- | --- |
 | U8 | Vehicle base + one drivable car | done | `b789c5a` | Rigidbody + 4 WheelColliders, NOT a port of the kinematic `vehicle.ts`. `Assets/Scripts/Vehicle/{CarController,CarWheel,CarSpawner}.cs`; prefab generated by **The Block → Build Mustang** (`Assets/Editor/CarBuilder.cs`). User-confirmed 2026-08-13: it drives and feels right. Tuning table in RESUME HERE |
 | U9 | Enter/exit state machine + seated driver | done | `a86df20` | `E` and a real door. `Assets/Scripts/{Core/GameMode,Vehicle/VehicleEnterExit,Vehicle/CarDoor}.cs`; `DebugVehicleSwitch.cs` deleted. Both of the web build's enter paths — the 5.47 s entry clip for a car with a seat block, the timed door swing for everything else. **Caught and fixed a wrong X in `Convert.ModelOffset`.** User-confirmed 2026-08-13 |
-| U10 | Motorcycle | done | (pending user play-test) | Kinematic arcade physics like the original (no WheelColliders). `Assets/Scripts/Vehicle/{MotorcycleController,MotorcycleSpawner}.cs`, `Assets/Editor/MotorcycleBuilder.cs`. Interface `IEnterable` unified cars/bike entry, `EnterableRegistry` replaces hard-coded `CarSpawner.Spawned`. Rider is frame 0 of `Driving.fbx` parented to bike. **User must**: (1) place `MotorcycleSpawner` in `World.unity` scene (Vehicles root, prefab from `Assets/Prefabs/Vehicles/Motorcycle.prefab`); (2) build the prefab via **The Block → Build Motorcycle**; (3) play-test controls, tuning, spawn position, rider pose. If anything moves, feel has been re-derived. Commit only after user confirms bike drives and feels right |
+| U10 | Motorcycle | done | `PENDING` | Rigidbody + 2 WheelColliders + an always-on upright stabiliser + a visual lean, NOT the original's kinematic model. `Assets/Scripts/Vehicle/{MotorcycleController,MotorcycleSpawner}.cs`, `Assets/Editor/MotorcycleBuilder.cs`. `IEnterable` gained `UsesEntryAnimation` + `ShowRiderOnQuickMount` so one enter/exit machine still serves both; vehicles now self-register with `EnterableRegistry`. Rider is `Joe_Driving.fbx` → `Joe_Ride`, a real looping state, parented to the bike's seat. **Caught and fixed: an interface `[SerializeField]` Unity was never serializing, and a speed cap that held 22.6 m/s against 20.** User-confirmed 2026-08-15: riding feels right |
 
 ### Tier 3 — World
 | id | unit | state | commit | notes |
@@ -340,6 +499,10 @@ with a vague note is the one failure mode this whole system exists to prevent.
 
 Dated one-liners. These are settled — do not re-litigate them without the user reopening.
 
+- **2026-08-15** — **Every unit opens with "can Unity do this better?"** and closes with the answer
+  written into its notes. Not a new decision so much as the 2026-08-12 "Unity-idiomatic, same game"
+  call promoted to a per-unit checklist item, because it kept getting remembered only after the fact.
+  Same game, better mechanism, better feel. See the standing remark at the top of this file.
 - **2026-08-12** — Scope is the **full game**, not a slice. No deadline; resumability matters more
   than speed.
 - **2026-08-12** — **Unity-idiomatic, same game.** Where Unity offers a better mechanism than the
@@ -487,6 +650,32 @@ Dated one-liners. These are settled — do not re-litigate them without the user
   mode wakes up disagreeing with the world — Joe parented inside a car while the machine believes he
   is on foot, which no `Bind()` guard recovers. `[SerializeField, HideInInspector]` on the state
   fields, and the existing null-check rebind for everything derived from config.
+- **2026-08-15** (U10) — **The bike is a Rigidbody on two WheelColliders, not a port of
+  `motorcycle.ts`.** Same call as U8's car and for the same reason: the web build's kinematic
+  speed-and-heading model is a Rapier workaround, not a statement about two-wheelers. It buys real
+  collisions, suspension, momentum and a lean. Gameplay numbers carry (20 m/s cap, 7 m/s reverse,
+  ~34° lock); every physics number is re-derived.
+- **2026-08-15** (U10) — **The lean is visual, on its own pivot; the Rigidbody stays upright.**
+  Rolling the body of a two-wheeler is not a lean, it is a fall. The rider anchor hangs off the same
+  pivot so Joe leans with it. The angle is read off `v·ω / g` rather than off the steering key, so it
+  is right during a skid and absent when parked.
+- **2026-08-15** (U10) — **A two-wheeler needs an active upright torque, always on.** Two contact
+  points give a Rigidbody no roll stability whatsoever, riderless or not, and this model has no
+  kickstand. The damping term is a look-ahead on angular velocity, not a `-kω` — correcting only the
+  present error makes a pendulum.
+- **2026-08-15** (U10) — **Enterable vehicles register themselves, in `OnEnable`/`OnDisable`.** A
+  spawner cannot know when its vehicle dies, and a stale registry entry is `E` aimed at a corpse.
+  The registry also sweeps dead entries itself, because a destroyed MonoBehaviour reached through an
+  INTERFACE reference does not compare equal to null — the operator is on `Object`, and an interface
+  does not carry it.
+- **2026-08-15** (U10) — **The quick mount is parameterised, not duplicated.** Two defaulted members
+  on `IEnterable` (`UsesEntryAnimation`, `ShowRiderOnQuickMount`) cover the difference between
+  getting into a car and getting onto a bike; a door-less vehicle also skips the door timings rather
+  than waiting 1.05 s for a swing it does not have. U23's helicopter and U24's jetski are meant to
+  land as two more flag values, not a third code path.
+- **2026-08-15** (U10) — **A `[SerializeField]` on an interface type serializes NOTHING.** Unity
+  writes no value and gives no warning, so `VehicleEnterExit`'s mid-Play-recompile guard was silently
+  not guarding the one field it most needed to. Store the concrete `MonoBehaviour` and cast back.
 - **2026-08-12** (U1) — **Downtown gets one collider over the whole mesh.** `city.noCollidePatterns`
   matches node *or* material names; `first-one.glb` has no per-object nodes and its only foliage
   material (`AM113_072_Washingtonia_filifera`) matches no pattern — so the shipped web build

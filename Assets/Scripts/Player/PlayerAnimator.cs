@@ -29,6 +29,7 @@ namespace TheBlock.Player
         private static readonly int GroundedId = Animator.StringToHash("Grounded");
         private static readonly int JumpId = Animator.StringToHash("Jump");
         private static readonly int EnterCarId = Animator.StringToHash("EnterCar");
+        private static readonly int RideId = Animator.StringToHash("Ride");
 
         /// <summary>Clip name the builder gives the entry animation, and the length probe looks for.</summary>
         private const string EnterCarClip = "Joe_EnterCar";
@@ -106,20 +107,28 @@ namespace TheBlock.Player
         /// Starts the entry animation. It plays once and holds its last frame — the seated pose —
         /// for as long as the flag stays set, which is the whole drive.
         /// </summary>
-        public void SeatIn() => Seat(true);
+        public void SeatIn() => Seat(inCar: true, riding: false);
 
-        /// <summary>Back to the gait blend. Called when stepping out.</summary>
-        public void SeatOut() => Seat(false);
+        /// <summary>
+        /// Straight into the riding pose, with no walk-up. This is the bike: you do not enter a
+        /// motorcycle, you sit on it, so there is no clip to play through first — the pose is
+        /// simply held for the whole ride.
+        /// </summary>
+        public void RideOn() => Seat(inCar: false, riding: true);
 
-        private void Seat(bool inCar)
+        /// <summary>Back to the gait blend. Called when stepping out of anything.</summary>
+        public void SeatOut() => Seat(inCar: false, riding: false);
+
+        private void Seat(bool inCar, bool riding)
         {
-            // Both of these are called from another component's Update, which may well run before
-            // this one's has had a chance to rebind after a recompile.
+            // These are called from another component's Update, which may well run before this
+            // one's has had a chance to rebind after a recompile.
             if (_animator == null) Bind();
             if (_animator == null) return;
 
-            _inCar = inCar;
+            _inCar = inCar || riding;
             _animator.SetBool(EnterCarId, inCar);
+            _animator.SetBool(RideId, riding);
         }
     }
 }

@@ -47,6 +47,10 @@ namespace TheBlock.EditorTools
             // timings, which is a real path in the game rather than a degraded one.
             var enterCar = FindClip("Joe_EnterCar.fbx", "Joe_EnterCar", optional: true);
 
+            // Optional too, and its absence is more visible: without it the bike is ridden by a
+            // standing Joe. The bike still works, which is why this is a warning and not an error.
+            var ride = FindClip("Joe_Driving.fbx", "Joe_Ride", optional: true);
+
             var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath)
                              ?? AnimatorController.CreateAnimatorControllerAtPath(ControllerPath);
             Wipe(controller);
@@ -55,6 +59,9 @@ namespace TheBlock.EditorTools
             controller.AddParameter("Grounded", AnimatorControllerParameterType.Bool);
             controller.AddParameter("Jump", AnimatorControllerParameterType.Trigger);
             controller.AddParameter("EnterCar", AnimatorControllerParameterType.Bool);
+            // Declared whether or not the clip exists: PlayerAnimator sets it on every mount, and
+            // SetBool against a parameter the graph does not have warns once per call forever.
+            controller.AddParameter("Ride", AnimatorControllerParameterType.Bool);
 
             // One 1-D tree covers the whole gait ladder. Jog (4.5 m/s) needs no clip and no state of
             // its own: it is simply where the blend sits between walk and sprint.
@@ -79,9 +86,10 @@ namespace TheBlock.EditorTools
             // Any State, so a jump reads instantly from any gait rather than waiting out a cycle.
             var toJump = stateMachine.AddAnyStateTransition(jumpState);
             toJump.AddCondition(AnimatorConditionMode.If, 0f, "Jump");
-            // ...but never out of the car. A trigger left set from the frame before E was pressed
+            // ...but never out of a vehicle. A trigger left set from the frame before E was pressed
             // would otherwise have the driver hop in his seat.
             toJump.AddCondition(AnimatorConditionMode.IfNot, 0f, "EnterCar");
+            toJump.AddCondition(AnimatorConditionMode.IfNot, 0f, "Ride");
             toJump.hasExitTime = false;
             // Fixed duration, or `duration` is read as a fraction of the clip: 0.18 of the 1.9 s jump
             // is a third of a second, and Joe keeps jogging for a beat after he lands.
@@ -122,6 +130,28 @@ namespace TheBlock.EditorTools
                 outOfCar.duration = CrossfadeSec;
             }
 
+            // Riding. No walk-up clip and nothing to play through: the pose is simply held, looping,
+            // for as long as the rider is on the bike. That is the difference between a car and a
+            // motorcycle stated in one state — and the jetski (U24) reuses this exact one.
+            if (ride != null)
+            {
+                var rideState = stateMachine.AddState("Ride");
+                rideState.motion = ride;
+
+                var toRide = stateMachine.AddAnyStateTransition(rideState);
+                toRide.AddCondition(AnimatorConditionMode.If, 0f, "Ride");
+                toRide.hasExitTime = false;
+                toRide.hasFixedDuration = true;
+                toRide.duration = CrossfadeSec;
+                toRide.canTransitionToSelf = false;
+
+                var offBike = rideState.AddTransition(locomotion);
+                offBike.AddCondition(AnimatorConditionMode.IfNot, 0f, "Ride");
+                offBike.hasExitTime = false;
+                offBike.hasFixedDuration = true;
+                offBike.duration = CrossfadeSec;
+            }
+
             EditorUtility.SetDirty(controller);
             AssetDatabase.SaveAssets();
             Debug.Log(
@@ -133,6 +163,9 @@ namespace TheBlock.EditorTools
                     ? "  EnterCar: NO CLIP — enter/exit falls back to config's quick-enter timings\n"
                     : $"  EnterCar: {enterCar.length:0.00}s, Any State on the EnterCar bool, holds " +
                       "its last frame as the seated pose\n") +
+                (ride == null
+                    ? "  Ride: NO CLIP — the bike gets ridden by a standing Joe\n"
+                    : $"  Ride: {ride.length:0.00}s looping, Any State on the Ride bool\n") +
                 "  No clip yet for exhausted or falling — both fall through to the states above",
                 controller);
         }
