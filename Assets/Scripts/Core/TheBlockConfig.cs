@@ -48,14 +48,22 @@ namespace TheBlock.Core
             return _cached;
         }
 
-        /// <summary>The exporter's envelope: provenance fields plus the config itself.</summary>
+        /// <summary>The exporter's envelope: provenance fields plus the two configs it dumps.</summary>
         public class Snapshot
         {
             [JsonProperty("$generator")] public string Generator;
             [JsonProperty("$source")] public string Source;
             [JsonProperty("$sourceSha256")] public string SourceSha256;
+            [JsonProperty("$npcSource")] public string NpcSource;
+            [JsonProperty("$npcSourceSha256")] public string NpcSourceSha256;
             [JsonProperty("$handedness")] public string Handedness;
             [JsonProperty("config")] public Root Config;
+
+            /// <summary>
+            /// <c>src/npc/npc.config.ts</c> — a SIBLING of <see cref="Config"/>, not a member of it,
+            /// because they are two separate files with two separate hashes. The crowd's own module.
+            /// </summary>
+            [JsonProperty("npcConfig")] public NpcSpec Npc;
         }
 
         /// <summary>Mirrors the top level of <c>config.ts</c>. Only the ported sections are declared.</summary>
@@ -957,7 +965,18 @@ namespace TheBlock.Core
             public string Url;
             public float Scale = 1f;
 
-            /// <summary>The model's own facing correction, radians. Right-handed.</summary>
+            /// <summary>
+            /// The model's own facing correction, radians, right-handed — and it is
+            /// <b>the opposite convention to <see cref="CarSpec.ModelYaw"/> and
+            /// <see cref="LotCarModelSpec.ModelYaw"/></b>, which is not a typo in the original.
+            /// Those turn the front to three.js's <c>-Z</c>; this one turns it to the TRAVEL
+            /// direction, which the traffic renderer's <c>heading + modelYaw</c> (heading =
+            /// <c>atan2(tx, tz)</c>) puts at <c>+Z</c>. The same Tesla is <c>π</c> here and <c>0</c>
+            /// there, the Audi the other way round: exactly π apart, everywhere.
+            ///
+            /// So this one reaches Unity's <c>+Z</c> on its own — do NOT compose it with
+            /// <see cref="Convert.ModelFacing"/>. Z passes through the X-negation untouched.
+            /// </summary>
             public float ModelYaw;
 
             /// <summary>When present, this model ignores the street palette and picks from here.</summary>
@@ -975,6 +994,179 @@ namespace TheBlock.Core
             public float TriggerRadius = 4f;
             public float StopSeconds = 10f;
             public float CooldownSec = 30f;
+        }
+
+        // --- the street crowd (src/npc/npc.config.ts) --------------------------------------------
+
+        /// <summary>
+        /// The whole of <c>npc.config.ts</c>. Mostly DATA, not tuning: <see cref="PaintedZones"/> and
+        /// <see cref="Strips"/> are where the crowd physically stands, captured by hand with the web
+        /// build's in-game recorder, and re-typing them here would be re-authoring the crowd.
+        ///
+        /// Reached through <see cref="Snapshot.Npc"/>, not through <see cref="Root"/> — two files,
+        /// two hashes.
+        /// </summary>
+        public class NpcSpec
+        {
+            /// <summary>The six faces, in the order that decides who is who. Round-robin at bake.</summary>
+            public List<PersonSpec> People = new();
+
+            /// <summary>
+            /// A named character pinned to one spot, walking a→b. <b>Empty in the original</b> —
+            /// Mordechai was removed and the campaign never replaced him. Declared so the shape is
+            /// known; the machinery is U29's.
+            /// </summary>
+            public List<PlacedCharacterSpec> Placed = new();
+
+            /// <summary>
+            /// Manual override rectangles. <b>Empty in the original</b>, which is what switches the
+            /// crowd into auto mode — a non-empty list replaces the per-district seeding with
+            /// <see cref="DefaultPerZone"/> people per rectangle.
+            /// </summary>
+            public List<NpcZoneSpec> Zones = new();
+
+            /// <summary>Sidewalk strips: 38 of them, walked back and forth. Two lanes each.</summary>
+            public List<NpcStripSpec> Strips = new();
+
+            /// <summary>Painted pavement rectangles: 33, seeded with <see cref="PerDistrict"/> each.</summary>
+            public List<NpcRectSpec> PaintedZones = new();
+
+            /// <summary>People per strip when it names no <c>count</c>. 3 of the 38 override it.</summary>
+            public int PerStrip = 8;
+
+            /// <summary>
+            /// Sideways gap between a strip's two walking lanes, metres. This is what makes a
+            /// pavement read as two-way foot traffic instead of a single file queue. Crossers use
+            /// half of it, so two people on a zebra pass about a metre apart.
+            /// </summary>
+            public float LaneOffset = 1f;
+
+            /// <summary>
+            /// Per-person capsule — 1.6 m tall, centred at y 0.8. Shares the player's
+            /// <see cref="ColliderSpec"/> shape, but not its numbers: a pedestrian's half-height is
+            /// 0.5 against Joe's 0.6, and both arrive from the JSON.
+            /// </summary>
+            public ColliderSpec Collider = new();
+
+            /// <summary>People per rectangle in MANUAL mode only — unused while Zones is empty.</summary>
+            public int DefaultPerZone = 2;
+
+            /// <summary>People per painted rectangle, and per district in the auto fallback.</summary>
+            public int PerDistrict = 9;
+
+            /// <summary>How far the next wander target may hop, metres.</summary>
+            public float StepRadius = 8f;
+
+            /// <summary>
+            /// Resolution of the web build's sidewalk mask. <b>Declared and never read.</b> The port
+            /// has no mask: the whole carriageway is carved Not Walkable in the NavMesh bake (U16),
+            /// so <c>NavMesh.SamplePosition</c> answers "is this pavement" and <c>NavMesh.Raycast</c>
+            /// answers "does this straight line stay on it" — the mask's only two questions — with no
+            /// 4096² render target and no 67 MB readback.
+            /// </summary>
+            public int MaskRes = 4096;
+
+            /// <summary>Walking speed, m/s, rolled once per person and never again.</summary>
+            public SpeedRangeSpec Speed = new();
+
+            /// <summary>Seconds idling at each reached spot, before picking the next one.</summary>
+            public float PauseTime = 1.2f;
+
+            /// <summary>
+            /// Beyond this from the player (or the car they are driving), a person is frozen. The
+            /// web's comment is worth keeping: it was 220, which left nearly the whole crowd live
+            /// every frame, and fog starts at 70 so 90 is already past anything readable.
+            /// </summary>
+            public float CullDistanceM = 90f;
+        }
+
+        /// <summary>One face. The web ships each pose as its own GLB; the port imports the FBX.</summary>
+        public class PersonSpec
+        {
+            public string Name;
+
+            /// <summary>
+            /// <c>'m'</c> or <c>'f'</c>. Reads to exactly one thing in the original — which scream
+            /// pool plays when this person is run over — so it is dead weight until U18.
+            /// </summary>
+            public string Gender;
+
+            /// <summary>Web asset paths. The port imports the Mixamo FBX these were built from.</summary>
+            public string IdleUrl;
+
+            public string WalkUrl;
+
+            /// <summary>The shared hit-by-a-car clip. U18.</summary>
+            public string HitUrl;
+        }
+
+        public class SpeedRangeSpec
+        {
+            public float Min = 1f;
+            public float Max = 1.5f;
+        }
+
+        /// <summary>An XZ point in the web's frame. Convert it.</summary>
+        public struct NpcPointSpec
+        {
+            public float X;
+            public float Z;
+
+            /// <summary>Unconverted. Feed it to <see cref="Convert.Pos(Vector3)"/>.</summary>
+            public Vector3 Raw => new Vector3(X, 0f, Z);
+        }
+
+        /// <summary>
+        /// An axis-aligned XZ rectangle of pavement, right-handed.
+        ///
+        /// <b>Not <see cref="RectSpec"/>, and that is not an oversight.</b> The same rectangle is
+        /// spelled <c>minX/maxX/minZ/maxZ</c> in <c>lotCars.bounds</c> and <c>xMin/xMax/zMin/zMax</c>
+        /// here, in the original. Newtonsoft matches by name, so one class cannot read both.
+        ///
+        /// Negating X swaps the two X bounds: <c>xMin</c> becomes the Unity <c>xMax</c>. Convert both
+        /// corners through <see cref="Convert.Pos(Vector3)"/> and re-derive min/max — never negate a
+        /// field in place.
+        /// </summary>
+        public class NpcRectSpec
+        {
+            public float XMin;
+            public float XMax;
+            public float ZMin;
+            public float ZMax;
+        }
+
+        /// <summary>A painted rectangle with a name and its own headcount. Manual mode only.</summary>
+        public class NpcZoneSpec : NpcRectSpec
+        {
+            public string Id;
+
+            /// <summary>Null falls back to <see cref="NpcSpec.DefaultPerZone"/>.</summary>
+            public int? Count;
+        }
+
+        /// <summary>
+        /// One sidewalk strip: people walk back and forth between <see cref="A"/> and <see cref="B"/>.
+        ///
+        /// Two points, never more — so the web's centripetal Catmull-Rom through them is a straight
+        /// line, and the port resamples the segment only to bake a ground height per sample.
+        /// </summary>
+        public class NpcStripSpec
+        {
+            public string Id;
+            public NpcPointSpec A;
+            public NpcPointSpec B;
+
+            /// <summary>Null falls back to <see cref="NpcSpec.PerStrip"/>. Three strips override it.</summary>
+            public int? Count;
+        }
+
+        /// <summary>A mission character pinned to a route, idling at each end. U29.</summary>
+        public class PlacedCharacterSpec
+        {
+            public PersonSpec Spec;
+            public NpcPointSpec A;
+            public NpcPointSpec B;
+            public float IdleTime;
         }
 
         /// <summary>

@@ -1,174 +1,326 @@
 using System.Collections.Generic;
 using TheBlock.Core;
 using TheBlock.Player;
+using TheBlock.Traffic;
 using TheBlock.Vehicles;
 using UnityEngine;
-using UnityEngine.AI;
 
 namespace TheBlock.Npc
 {
     /// <summary>
-    /// The street crowd — U16's population, as opposed to <see cref="Pedestrian"/>'s behaviour.
+    /// The street crowd — U16b's population, as opposed to <see cref="Pedestrian"/>'s behaviour.
     ///
-    /// THE WEB BUILD SEEDS THE WHOLE WORLD AT BOOT: nine people per district on the auto-detected
-    /// grid, eight per hand-recorded strip across forty strips, two per painted rectangle across
-    /// forty rectangles, plus two dedicated crossers per zebra — several hundred characters, every
-    /// one of them created before the first frame and then frozen individually whenever the player
-    /// is more than 90 m away (`cullDistanceM`, which the comment there notes was 220 until "nearly
-    /// the whole crowd" was live every frame).
+    /// <b>Placement is the original's, verbatim.</b> 33 painted rectangles at nine people each, 38
+    /// sidewalk strips split into two opposing lanes, a per-district fallback, and two gated
+    /// crossers per zebra — baked into <see cref="CrowdSeedTable"/> by <c>CrowdBuilder</c>. U16
+    /// replaced all of that with a spawn ring that follows the player; this puts the authored
+    /// pavements back, because they are where the game's streets actually look inhabited.
     ///
-    /// That arrangement exists because a three.js pedestrian is cheap to hold and expensive to
-    /// create. A NavMeshAgent is the other way round, and freezing one is not free — it stays in the
-    /// avoidance solver's grid. So the crowd here is a POOL that follows the player: a fixed number
-    /// of agents, recycled out of the far side of the world and back in ahead of you, each rerolling
-    /// its face and its shirt on the way (<see cref="NpcAppearance"/>). Forty live agents give a
-    /// denser-looking street than four hundred frozen ones did, at a fraction of the cost, and the
-    /// number is a budget rather than a consequence of how the world was authored.
+    /// <b>Bodies are a pool; people are a table.</b> The web keeps ~700 objects alive and freezes
+    /// the far ones. Here the far ones do not exist: a seed is a struct, and the nearest
+    /// <see cref="liveCap"/> of them inside <see cref="cullDistance"/> are handed a prefab instance.
+    /// This is the unit's one deliberate deviation from "literal", and it is the deviation U16
+    /// measured the case for — the crowd's steady cost was zero and the whole stutter was ninety
+    /// <c>Instantiate</c> calls in a single frame. Nothing about a person is lost by it: the seed
+    /// carries their position, target, pace, path position and face, so walking away and back finds
+    /// them mid-stride where you left them.
     ///
-    /// What it deliberately does NOT do is place anybody. Where people can stand is the NavMesh's
-    /// answer, and the NavMesh is the districts' own pavements — so the eighty hand-recorded
-    /// rectangles and strips in <c>npc.config.ts</c> have no port and need none.
+    /// <c>C</c> toggles the whole crowd in Play, which is the instrument for judging its frame cost.
     /// </summary>
     public class CrowdSpawner : MonoBehaviour
     {
-        [Tooltip("Pedestrian prefabs from The Block → Build Pedestrians.")]
+        [Header("Build products")]
+        [Tooltip("Where everyone stands, from The Block → Bake Crowd Seeds.")]
+        [SerializeField] private CrowdSeedTable seedTable;
+
+        [Tooltip("Pedestrian prefabs from The Block → Build Pedestrians, in config.people order.")]
         [SerializeField] private List<GameObject> pedestrianPrefabs = new();
 
-        [Tooltip("Agents alive at once. A budget, not a world population. 40 read as sparse on the " +
-                 "first play-test; 90 with the vendor's five LODs stuttered. 60 on two LODs.")]
-        [SerializeField] private int liveCount = 60;
-
-        [Tooltip("Nobody is spawned closer than this — a person appearing in front of you reads badly.")]
-        [SerializeField] private float spawnMinRadius = 20f;
-
-        [Tooltip("...nor further than this, which must stay under the cull distance. Tighter than the " +
-                 "cull so most of the pool is where you are actually looking.")]
-        [SerializeField] private float spawnMaxRadius = 60f;
-
-        [Tooltip("Beyond this from the player, an agent is recycled. `npc.config.ts` cullDistanceM.")]
+        [Header("From npc.config.ts")]
+        [Tooltip("Beyond this from the player, a person is released back to the table. cullDistanceM.")]
         [SerializeField] private float cullDistance = 90f;
 
-        [Tooltip("Walking speed range, randomised per person. `npc.config.ts` speed.")]
-        [SerializeField] private Vector2 speedRange = new(1.0f, 1.5f);
+        [Tooltip("Seconds idling at each reached spot. pauseTime.")]
+        [SerializeField] private float pauseTime = 1.2f;
 
-        [Tooltip("Metres of height difference that still counts as street level, so nobody spawns on a roof.")]
-        [SerializeField] private float sameStoreyBand = 3f;
+        [Tooltip("How far the next wander target may hop. stepRadius.")]
+        [SerializeField] private float stepRadius = 8f;
+
+        [Tooltip("Sideways gap between a strip's two lanes. Crossers use half. laneOffset.")]
+        [SerializeField] private float laneOffset = 1f;
+
+        [Header("From pedestrian.ts / crowd.ts")]
+        [Tooltip("Close enough to a target to count as arrived. ARRIVE.")]
+        [SerializeField] private float arriveDistance = 0.3f;
+
+        [Tooltip("Keeps wander targets off the very edge of their rectangle. ZONE_INSET.")]
+        [SerializeField] private float zoneInset = 0.6f;
+
+        [Tooltip("Seconds blocked by a car before a wanderer picks a new target. AVOID_REPICK.")]
+        [SerializeField] private float avoidRepickSec = 0.6f;
+
+        [Tooltip("Padding around a car's footprint that counts as blocked. CAR_AVOID_BUF = 0.3 + 0.3.")]
+        [SerializeField] private float carAvoidBuffer = 0.6f;
+
+        [Tooltip("Past this from BOTH its own kerbs, a crosser is on the road and traffic brakes for " +
+                 "it. Below it, it is waiting and brakes for nobody. CURB_MARGIN.")]
+        [SerializeField] private float curbMargin = 1f;
+
+        [Header("Unity-only")]
+        [Tooltip("Most bodies alive at once. Set this from the bake's measured peak-within-cull.")]
+        [SerializeField] private int liveCap = 160;
+
+        [Tooltip("Metres past the cull distance before a person is actually released, so somebody " +
+                 "standing exactly on the boundary does not flicker in and out.")]
+        [SerializeField] private float cullHysteresis = 5f;
+
+        [Tooltip("Seconds between binder sweeps. Every frame is pointless — nobody walks 90 m in one.")]
+        [SerializeField] private float sweepInterval = 0.25f;
+
+        [Tooltip("Seeds bound per sweep. Trickled for the reason U16 measured: the burst IS the hitch.")]
+        [SerializeField] private int bindsPerSweep = 8;
+
+        [Tooltip("New bodies instantiated per frame. The other half of the same lesson.")]
+        [SerializeField] private int instantiatesPerFrame = 2;
+
+        [Tooltip("Rooftops bake walkable, so a re-target more than this far up or down is rejected.")]
+        [SerializeField] private float sameStoreyBand = 2.5f;
+
+        [Tooltip("Tries per re-target before a person keeps its current target and waits a beat.")]
+        [SerializeField] private int sampleAttempts = 6;
+
+        [Tooltip("How far a NavMesh sample may snap. SMALL on purpose: a generous radius stops the " +
+                 "sample being a test of the point at all and starts being a search.")]
+        [SerializeField] private float sampleRadius = 0.75f;
+
+        [Tooltip("What counts as ground. Leave the Pedestrian layer OUT or people stand on each other.")]
+        [SerializeField] private LayerMask groundMask = ~0;
 
         [Tooltip("Seeded, so a run is reproducible — the same call WorldBuilder makes.")]
         [SerializeField] private int seed = 20260816;
 
-        [Tooltip("Attempts per spawn before this agent waits for the next tick.")]
-        [SerializeField] private int sampleAttempts = 12;
+        [Header("Crossings")]
+        [Tooltip("Off makes a crosser step off the kerb as soon as its light is red, whether or not a " +
+                 "car is standing on the zebra. The original checks; U16 deleted its version of this " +
+                 "check because it could not tell a stopped car from a moving one.")]
+        [SerializeField] private bool requireClearLine = true;
 
-        [Tooltip("Seconds between recycle sweeps. Every frame is pointless — people do not walk 90 m in one.")]
-        [SerializeField] private float sweepInterval = 0.5f;
+        [Tooltip("Seconds a crosser will wait for the zebra to clear before stepping off anyway. Safe " +
+                 "by construction: a metre from the kerb it is IsCrossing and the traffic brakes.")]
+        [SerializeField] private float clearLineWaitCap = 6f;
 
-        [Tooltip("Placements per sweep. Everyone at once is a hitch: each is a NavMesh sample plus a " +
-                 "path request plus a Warp, and 60 of those in one frame is the stutter that read as " +
-                 "'too many people'. Trickled at this rate the pool fills in a couple of seconds and " +
-                 "nothing is felt.")]
-        [SerializeField] private int placementsPerSweep = 6;
+        [Tooltip("Samples along the zebra when testing whether it is clear.")]
+        [SerializeField] private int clearLineSamples = 6;
 
+        [Header("Wiring")]
         [SerializeField] private PlayerController player;
         [SerializeField] private VehicleEnterExit vehicles;
+        [SerializeField] private TrafficSystem traffic;
 
-        private readonly List<Pedestrian> _crowd = new();
+        // --- runtime ---------------------------------------------------------------------------
+
+        private CrowdSeedTable.Seed[] _seeds;
+        private CrowdSeedTable.Rect[] _rects;
+        private readonly List<CrowdSeedTable.LanePath> _paths = new();
+        private Crossing[] _gates;
+        private Pedestrian[] _bound;
+        private float[] _waitingSince;
+
+        private readonly List<Pedestrian> _live = new();
+        private readonly List<List<Pedestrian>> _pool = new();
+        private readonly List<int> _candidates = new();
+
         private System.Random _rng;
         private float _sweepIn;
+        private bool _hidden;
+        private int _spawnedThisFrame;
 
-        /// <summary>Everyone currently walking. U18's run-over pass and U19's police both want this.</summary>
-        public IReadOnlyList<Pedestrian> Crowd => _crowd;
+        /// <summary>Everyone with a body right now. U18's run-over pass and U19's police want this.</summary>
+        public IReadOnlyList<Pedestrian> Crowd => _live;
 
-        private void Awake()
+        public int LiveCount => _live.Count;
+        public int SeedCount => _seeds?.Length ?? 0;
+        public int SeedsInRange { get; private set; }
+        public int PoolSize { get; private set; }
+
+        private void Awake() => Bind();
+
+        /// <summary>
+        /// Builds the runtime copy of the table.
+        ///
+        /// Called from Awake and again from Update if a mid-Play recompile wiped it — the domain
+        /// reloads, non-serialized fields come back null, and Awake does not run again. Without the
+        /// guard the crowd silently stops existing for the rest of the session.
+        /// </summary>
+        private void Bind()
         {
             _rng = new System.Random(seed);
-
             if (player == null) player = FindAnyObjectByType<PlayerController>();
             if (vehicles == null) vehicles = FindAnyObjectByType<VehicleEnterExit>();
+            if (traffic == null) traffic = FindAnyObjectByType<TrafficSystem>();
 
             pedestrianPrefabs.RemoveAll(p => p == null);
-            if (pedestrianPrefabs.Count == 0)
+            _pool.Clear();
+            _live.Clear();
+            for (int i = 0; i < pedestrianPrefabs.Count; i++) _pool.Add(new List<Pedestrian>());
+            PoolSize = 0;
+
+            // Anything left over from a previous bind — after a domain reload the children are still
+            // in the scene but every reference to them is gone.
+            for (int i = transform.childCount - 1; i >= 0; i--) Destroy(transform.GetChild(i).gameObject);
+
+            if (seedTable == null || seedTable.Seeds.Length == 0)
             {
                 Debug.LogError(
-                    "CrowdSpawner: no pedestrian prefabs assigned, so the street will be empty. Build " +
-                    "them with The Block → Build Pedestrians and drag them onto this component.", this);
-                enabled = false;
+                    "CrowdSpawner: no seed table, so the street will be empty. Run " +
+                    "The Block → Bake Crowd Seeds.", this);
+                _seeds = System.Array.Empty<CrowdSeedTable.Seed>();
                 return;
             }
 
-            // Instantiate over the first frames rather than all in Awake: sixty prefab
-            // instantiations — each an Animator, an agent, and a hundred-odd transforms — is a
-            // visible hitch on entering Play, and it is one that scales with the count.
-            StartCoroutine(FillPool());
-        }
-
-        private System.Collections.IEnumerator FillPool()
-        {
-            for (int i = 0; i < liveCount; i++)
+            if (pedestrianPrefabs.Count == 0)
             {
-                var agent = CreateAgent(i);
-                if (agent != null) _crowd.Add(agent);
-                if (i % placementsPerSweep == placementsPerSweep - 1) yield return null;
+                Debug.LogError(
+                    "CrowdSpawner: no pedestrian prefabs assigned. Run The Block → Build Pedestrians.", this);
+                _seeds = System.Array.Empty<CrowdSeedTable.Seed>();
+                return;
             }
-        }
 
-        private void Update()
-        {
-            // Debug: C toggles the whole crowd off and on in play. It exists to answer one question
-            // — "is the stutter the pedestrians?" — without a rebuild, and it can go once U16 is
-            // confirmed. It is not a game control.
-            var keyboard = UnityEngine.InputSystem.Keyboard.current;
-            if (keyboard != null && keyboard.cKey.wasPressedThisFrame) ToggleCrowd();
-            if (_hidden) return;
+            _rects = seedTable.Rects;
+            _paths.Clear();
+            _paths.AddRange(seedTable.Paths);
 
-            var focus = Focus();
-            if (focus == null || _crowd.Count == 0) return;
+            var baked = seedTable.Seeds;
+            _seeds = new CrowdSeedTable.Seed[baked.Length];
+            System.Array.Copy(baked, _seeds, baked.Length);
 
-            _sweepIn -= Time.deltaTime;
-            if (_sweepIn > 0f) return;
-            // A short first sweep interval while the pool is filling, the normal one after.
-            _sweepIn = _crowd.Exists(p => p != null && !p.Active) ? 0.1f : sweepInterval;
-
-            float cullSqr = cullDistance * cullDistance;
-            var centre = focus.position;
-            int budget = placementsPerSweep;
-
-            // Round-robin from where the last sweep stopped, so a capped sweep does not starve the
-            // tail of the list — the same 6 people would otherwise be re-placed forever.
-            for (int n = 0; n < _crowd.Count && budget > 0; n++)
-            {
-                _cursor = (_cursor + 1) % _crowd.Count;
-                var pedestrian = _crowd[_cursor];
-                if (pedestrian == null) continue;
-
-                bool tooFar = (pedestrian.transform.position - centre).sqrMagnitude > cullSqr;
-                if (pedestrian.Active && !tooFar) continue;
-
-                Place(pedestrian, centre);
-                budget--;
-            }
-        }
-
-        private int _cursor;
-        private bool _hidden;
-
-        private void ToggleCrowd()
-        {
-            _hidden = !_hidden;
-            foreach (var pedestrian in _crowd)
-            {
-                if (pedestrian == null) continue;
-                if (_hidden) { pedestrian.End(); pedestrian.gameObject.SetActive(false); }
-                // Re-showing leaves them inactive; the next sweep re-places them, trickled as usual.
-            }
-            Debug.Log($"CrowdSpawner: crowd {(_hidden ? "HIDDEN" : "shown")} (C)");
+            _gates = new Crossing[_seeds.Length];
+            _bound = new Pedestrian[_seeds.Length];
+            _waitingSince = new float[_seeds.Length];
         }
 
         /// <summary>
-        /// What the crowd walks around: the player on foot, or the vehicle they are driving.
+        /// Crossers are built here rather than baked: they hold a reference to the live
+        /// <see cref="Crossing"/> whose <c>Gate</c> <c>TrafficLightSystem</c> fills in at ITS Start.
+        /// Ordering between the two does not matter — <see cref="Crossing.MayCross"/> reads open
+        /// while the gate is null, so the worst case is one frame of a green light.
+        /// </summary>
+        private void Start() => AddCrossers();
+
+        private void AddCrossers()
+        {
+            if (_seeds == null || _seeds.Length == 0) return;
+
+            var crossings = CrossingRegistry.All;
+            if (crossings.Count == 0) return;
+
+            var seeds = new List<CrowdSeedTable.Seed>(_seeds);
+            var gates = new List<Crossing>(_gates);
+
+            float half = laneOffset * 0.5f;
+            int added = 0;
+
+            foreach (var crossing in crossings)
+            {
+                var a = crossing.KerbA;
+                var b = crossing.KerbB;
+
+                var across = b - a;
+                across.y = 0f;
+                if (across.sqrMagnitude < 0.01f) continue;
+
+                // Along the street, so the two crossers walk parallel lines about a metre apart
+                // instead of through each other.
+                var along = Vector3.Cross(Vector3.up, across.normalized);
+
+                for (int side = 0; side < 2; side++)
+                {
+                    float sign = side == 0 ? 1f : -1f;
+                    var path = Lane(a + along * (half * sign), b + along * (half * sign));
+
+                    _paths.Add(path);
+                    seeds.Add(new CrowdSeedTable.Seed
+                    {
+                        Position = side == 0 ? path.At(0f) : path.At(path.Length),
+                        Target = Vector3.zero,
+                        S = side == 0 ? 0f : path.Length,
+                        Dir = (sbyte)(side == 0 ? 1 : -1),
+                        Face = (byte)(added % Mathf.Max(1, pedestrianPrefabs.Count)),
+                        Speed = Mathf.Lerp(1f, 1.5f, (float)_rng.NextDouble()),
+                        Mode = CrowdSeedTable.Mode.Crosser,
+                        RectId = -1,
+                        PathId = _paths.Count - 1,
+                    });
+                    gates.Add(crossing);
+                    added++;
+                }
+            }
+
+            _seeds = seeds.ToArray();
+            _gates = gates.ToArray();
+            _bound = new Pedestrian[_seeds.Length];
+            _waitingSince = new float[_seeds.Length];
+        }
+
+        /// <summary>A two-point lane, resampled so each sample can carry its own ground height.</summary>
+        private static CrowdSeedTable.LanePath Lane(Vector3 a, Vector3 b)
+        {
+            float length = Vector3.Distance(new Vector3(a.x, 0f, a.z), new Vector3(b.x, 0f, b.z));
+            int samples = Mathf.Max(2, Mathf.CeilToInt(length / 2f) + 1);
+
+            var points = new Vector3[samples];
+            for (int i = 0; i < samples; i++) points[i] = Vector3.Lerp(a, b, i / (float)(samples - 1));
+
+            return new CrowdSeedTable.LanePath { Points = points, Length = Mathf.Max(length, 0.01f) };
+        }
+
+        // --- the frame -------------------------------------------------------------------------
+
+        private void Update()
+        {
+            if (_seeds == null) Bind();
+            if (_seeds == null || _seeds.Length == 0) return;
+
+            if (UnityEngine.InputSystem.Keyboard.current?.cKey.wasPressedThisFrame == true) Toggle();
+            if (_hidden) return;
+
+            _spawnedThisFrame = 0;
+
+            var focus = Focus();
+            if (focus != null)
+            {
+                _sweepIn -= Time.deltaTime;
+                if (_sweepIn <= 0f)
+                {
+                    _sweepIn = sweepInterval;
+                    Sweep(focus.position);
+                }
+            }
+
+            var tuning = CurrentTuning();
+            float dt = Time.deltaTime;
+            for (int i = 0; i < _live.Count; i++) _live[i].Tick(dt, tuning);
+        }
+
+        private Pedestrian.Tuning CurrentTuning() => new()
+        {
+            StepRadius = stepRadius,
+            PauseTime = pauseTime,
+            ArriveDistance = arriveDistance,
+            ZoneInset = zoneInset,
+            AvoidRepickSec = avoidRepickSec,
+            SameStoreyBand = sameStoreyBand,
+            CurbMargin = curbMargin,
+            SampleAttempts = sampleAttempts,
+            SampleRadius = sampleRadius,
+            GroundMask = groundMask.value,
+        };
+
+        /// <summary>
+        /// What the crowd is arranged around: the player on foot, or the vehicle they are driving.
         ///
-        /// Same resolution as the map's (U14) — and it has to be, or the crowd empties out around
-        /// the player's abandoned body the moment they get into a car.
+        /// Same resolution as the map's (U14) — and it has to be, or the crowd empties out around the
+        /// player's abandoned body the moment they get into a car.
         /// </summary>
         private Transform Focus()
         {
@@ -181,72 +333,222 @@ namespace TheBlock.Npc
             return player != null ? player.transform : null;
         }
 
-        private Pedestrian CreateAgent(int index)
-        {
-            var prefab = pedestrianPrefabs[_rng.Next(pedestrianPrefabs.Count)];
-            var instance = Instantiate(prefab, transform);
-            instance.name = $"Pedestrian_{index:00}";
-            instance.SetActive(false);
-
-            if (instance.TryGetComponent<Pedestrian>(out var pedestrian)) return pedestrian;
-
-            Debug.LogError($"CrowdSpawner: {prefab.name} has no Pedestrian component.", instance);
-            return null;
-        }
-
         /// <summary>
-        /// Drops a pedestrian back into the world somewhere in the ring around the focus.
-        ///
-        /// The height band is the same guard <see cref="Pedestrian"/> applies when it re-targets, and
-        /// for the same reason: the bake cannot tell a flat roof from a pavement, so without it a share of
-        /// the crowd spawns three storeys up and strolls around a rooftop in plain view.
+        /// Release whoever has walked out of range, then bind the nearest unbound seeds that are in
+        /// it. Linear over the whole table — about 1,600 distance compares, which is ~0.01 ms and
+        /// needs no spatial index. If the table ever grows past a few thousand, a uniform bucket grid
+        /// belongs in the ASSET, not here.
         /// </summary>
-        private void Place(Pedestrian pedestrian, Vector3 centre)
+        private void Sweep(Vector3 focus)
         {
-            for (int attempt = 0; attempt < sampleAttempts; attempt++)
+            float releaseSqr = (cullDistance + cullHysteresis) * (cullDistance + cullHysteresis);
+            float bindSqr = cullDistance * cullDistance;
+
+            for (int i = _live.Count - 1; i >= 0; i--)
             {
-                float angle = (float)_rng.NextDouble() * Mathf.PI * 2f;
-                float radius = _rng.Range(spawnMinRadius, spawnMaxRadius);
-                var candidate = centre + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * radius;
-
-                // A generous sample radius, because the ring almost never lands on pavement first
-                // try — most of a city block is building, and all of the street is carved away.
-                if (!NavMesh.SamplePosition(candidate, out var hit, 12f, NavMesh.AllAreas)) continue;
-                if (Mathf.Abs(hit.position.y - centre.y) > sameStoreyBand) continue;
-                if (((Vector3)hit.position - centre).sqrMagnitude < spawnMinRadius * spawnMinRadius) continue;
-                if (Crowded(hit.position, pedestrian)) continue;
-
-                if (!pedestrian.gameObject.activeSelf) pedestrian.gameObject.SetActive(true);
-                if (pedestrian.TryGetComponent<NpcAppearance>(out var appearance)) appearance.Randomize(_rng);
-                pedestrian.Begin(hit.position, _rng.Range(speedRange.x, speedRange.y), _rng);
-                return;
+                var body = _live[i];
+                if ((body.transform.position - focus).sqrMagnitude <= releaseSqr) continue;
+                Release(body);
             }
 
-            // Nowhere to put this one — the player is off the NavMesh, on the beach or out at sea.
-            // Park it and try again on the next sweep rather than dropping it into the water.
-            pedestrian.End();
-            pedestrian.gameObject.SetActive(false);
+            _candidates.Clear();
+            int inRange = 0;
+
+            for (int i = 0; i < _seeds.Length; i++)
+            {
+                float sqr = (_seeds[i].Position - focus).sqrMagnitude;
+                if (sqr > bindSqr) continue;
+
+                inRange++;
+                if (_bound[i] == null) _candidates.Add(i);
+            }
+
+            SeedsInRange = inRange;
+            if (_candidates.Count == 0) return;
+
+            // Crossers first at equal distance: an unbound crosser is a dead zebra, and U17's traffic
+            // has nobody to brake for.
+            _candidates.Sort((a, b) =>
+            {
+                bool crosserA = _seeds[a].Mode == CrowdSeedTable.Mode.Crosser;
+                bool crosserB = _seeds[b].Mode == CrowdSeedTable.Mode.Crosser;
+                if (crosserA != crosserB) return crosserA ? -1 : 1;
+
+                float da = (_seeds[a].Position - focus).sqrMagnitude;
+                float db = (_seeds[b].Position - focus).sqrMagnitude;
+                return da.CompareTo(db);
+            });
+
+            int budget = bindsPerSweep;
+            foreach (int index in _candidates)
+            {
+                if (budget <= 0 || _live.Count >= liveCap) break;
+                if (TryBind(index)) budget--;
+            }
         }
 
-        [Tooltip("A spawn point with this many people already within `crowdRadius` is rejected. " +
-                 "Without it a wide open NavMesh — the car park — swallows the whole ring, because " +
-                 "the pavements around it are thin and it is not.")]
-        [SerializeField] private int crowdLimit = 3;
-
-        [SerializeField] private float crowdRadius = 8f;
-
-        private bool Crowded(Vector3 point, Pedestrian self)
+        private bool TryBind(int index)
         {
-            float radiusSqr = crowdRadius * crowdRadius;
-            int near = 0;
-            foreach (var other in _crowd)
+            ref var seed = ref _seeds[index];
+            int face = seed.Face % pedestrianPrefabs.Count;
+
+            var body = Take(face);
+            if (body == null) return false;
+
+            var path = seed.PathId >= 0 && seed.PathId < _paths.Count ? _paths[seed.PathId] : null;
+            var gate = _gates[index];
+            bool hasRect = seed.RectId >= 0 && _rects != null && seed.RectId < _rects.Length;
+            var rect = hasRect ? _rects[seed.RectId] : default;
+
+            body.gameObject.SetActive(true);
+            body.Bind(this, index, seed, path, gate, rect, hasRect, _rng);
+
+            _bound[index] = body;
+            _waitingSince[index] = 0f;
+            _live.Add(body);
+            return true;
+        }
+
+        private void Release(Pedestrian body)
+        {
+            int index = body.SeedIndex;
+            if (index >= 0 && index < _seeds.Length)
             {
-                if (other == null || other == self || !other.Active) continue;
-                if ((other.transform.position - point).sqrMagnitude > radiusSqr) continue;
-                if (++near >= crowdLimit) return true;
+                _seeds[index] = body.Release();
+                _bound[index] = null;
+            }
+            else body.Release();
+
+            _live.Remove(body);
+            body.gameObject.SetActive(false);
+        }
+
+        /// <summary>An idle body of this face, or a new one if the frame's budget allows.</summary>
+        private Pedestrian Take(int face)
+        {
+            var pool = _pool[face];
+            for (int i = 0; i < pool.Count; i++)
+                if (!pool[i].Live) return pool[i];
+
+            if (_spawnedThisFrame >= instantiatesPerFrame) return null;
+            _spawnedThisFrame++;
+
+            var instance = Instantiate(pedestrianPrefabs[face], transform);
+            instance.name = $"{pedestrianPrefabs[face].name}_{pool.Count:00}";
+            instance.SetActive(false);
+
+            if (!instance.TryGetComponent<Pedestrian>(out var pedestrian))
+            {
+                Debug.LogError($"CrowdSpawner: {instance.name} has no Pedestrian component.", instance);
+                Destroy(instance);
+                return null;
+            }
+
+            pool.Add(pedestrian);
+            PoolSize++;
+            return pedestrian;
+        }
+
+        // --- what a pedestrian asks -------------------------------------------------------------
+
+        /// <summary>
+        /// Is a moving car sitting on this point? The port of <c>crowd.ts</c>'s <c>avoidCar</c>.
+        ///
+        /// Against the traffic's own box list, never a physics overlap: an overlap also finds the
+        /// player's parked car and every wreck, and then people refuse to walk past a car that has
+        /// been standing there all session.
+        /// </summary>
+        public bool BlockedByCar(Vector3 point)
+        {
+            if (traffic == null) return false;
+
+            var cars = traffic.Cars;
+            for (int i = 0; i < cars.Count; i++)
+            {
+                var car = cars[i];
+                if (car == null || car.Mode == TrafficCar.State.Idle) continue;
+                if (TrafficGeometry.PointInBox(car.Box, point.x, point.z, carAvoidBuffer)) return true;
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// May a crosser step off the kerb? The light, and then the zebra itself.
+        ///
+        /// The second half is the awkward one and it is why <see cref="requireClearLine"/> and
+        /// <see cref="clearLineWaitCap"/> are both serialized and live in Play. The original gates on
+        /// <c>mayCross() &amp;&amp; crossingClear()</c>, but the geometry makes those two fight: the
+        /// zebra is 10 m from the junction and cars stop at 8 m, so a legitimately queued car covers
+        /// the crossing exactly when the light is red for it. U16 already deleted a version of this
+        /// check for a related reason — it could not tell a stopped car from a parked one. The cap is
+        /// the compromise: wait, then go anyway, which is safe because a metre from the kerb the
+        /// crosser is <see cref="Pedestrian.IsCrossing"/> and U17's traffic brakes for it.
+        /// </summary>
+        public bool MayCross(Crossing crossing, CrowdSeedTable.LanePath path)
+        {
+            if (crossing == null) return true;
+            if (!crossing.MayCross()) return false;
+
+            if (!requireClearLine || traffic == null) return true;
+
+            int index = System.Array.IndexOf(_gates, crossing);
+            if (ClearLine(path))
+            {
+                if (index >= 0) _waitingSince[index] = 0f;
+                return true;
+            }
+
+            if (index >= 0)
+            {
+                _waitingSince[index] += Time.deltaTime;
+                if (_waitingSince[index] >= clearLineWaitCap) return true;
+            }
+
+            return false;
+        }
+
+        private bool ClearLine(CrowdSeedTable.LanePath path)
+        {
+            if (path == null) return true;
+
+            for (int i = 0; i <= clearLineSamples; i++)
+            {
+                var point = path.At(path.Length * i / clearLineSamples);
+                if (BlockedByCar(point)) return false;
+            }
+
+            return true;
+        }
+
+        // --- debug ------------------------------------------------------------------------------
+
+        private void Toggle()
+        {
+            _hidden = !_hidden;
+            if (_hidden)
+            {
+                for (int i = _live.Count - 1; i >= 0; i--) Release(_live[i]);
+            }
+
+            Debug.Log($"CrowdSpawner: crowd {(_hidden ? "HIDDEN" : "shown")} (C)");
+        }
+
+        private void OnDrawGizmosSelected()
+        {
+            if (seedTable == null) return;
+
+            Gizmos.color = new Color(0.3f, 0.8f, 1f, 0.6f);
+            foreach (var path in seedTable.Paths)
+            {
+                if (path?.Points == null || path.Points.Length < 2) continue;
+                for (int i = 1; i < path.Points.Length; i++) Gizmos.DrawLine(path.Points[i - 1], path.Points[i]);
+            }
+
+            Gizmos.color = new Color(1f, 0.8f, 0.2f, 0.7f);
+            foreach (var seed in seedTable.Seeds)
+                if (seed.Mode == CrowdSeedTable.Mode.Wander)
+                    Gizmos.DrawWireSphere(seed.Position, 0.3f);
         }
     }
 }

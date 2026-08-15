@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
@@ -6,14 +8,20 @@ using UnityEngine;
 namespace TheBlock.EditorTools
 {
     /// <summary>
-    /// Builds <c>Assets/Animation/Npc.controller</c> — the whole animation state of a pedestrian,
-    /// which is idle, walking, and the blend between them.
+    /// Builds <c>Assets/Animation/Npc.controller</c> and one override controller per character —
+    /// the whole animation state of a pedestrian, which is idle, walking, and the blend between.
     ///
-    /// It reuses JOE'S clips rather than shipping its own. Both sides are Humanoid — Joe's FBXs
-    /// import at <c>animationType: 3</c> and every part of <c>npc_casual_set_00</c> shares the
-    /// <c>npc_hmn_01mAvatar</c>/<c>01fAvatar</c> pair — so a clip authored on Joe's skeleton
-    /// retargets onto a pedestrian's without a bone in common being named the same. That is the
-    /// reason the pack's "Animation: none" in its readme does not matter.
+    /// <b>Six faces, six pairs of clips, ONE graph.</b> Each of the original's characters carries its
+    /// own Mixamo idle and walk (see <see cref="PeopleImporter"/>), so the naive arrangement is six
+    /// controllers. The objection to overrides is real — an <c>AnimatorOverrideController</c> can
+    /// swap the CLIPS in a blend tree but not the thresholds or time scales, which live in the base
+    /// asset — and six characters whose walks were authored at 0.85 to 1.65 m/s would each need
+    /// their own numbers.
+    ///
+    /// <b>The fix is to make the blend parameter dimensionless.</b> <c>Speed</c> is not metres per
+    /// second here; it is <c>moveSpeed / walkClipSpeed</c>, a RATIO. One set of thresholds is then
+    /// correct for every character, overrides become viable, and U18's hit reaction lands as one new
+    /// state in one graph instead of six.
     ///
     /// Same idiom and same reasoning as <see cref="JoeAnimatorBuilder"/>: a graph built by hand in
     /// the Animator window cannot be reviewed or reproduced.
@@ -21,33 +29,51 @@ namespace TheBlock.EditorTools
     public static class NpcAnimatorBuilder
     {
         private const string ControllerPath = "Assets/Animation/Npc.controller";
-        private const string CharactersPath = "Assets/Models/Characters";
+        private const string OverrideFolder = "Assets/Animation/Npc";
+
+        /// <summary>The character whose clips fill the base graph. The others override them.</summary>
+        private const string BaseCharacter = "Sophie";
 
         /// <summary>
-        /// Ground speed <c>Joe_Walking</c> was authored at. <see cref="JoeAnimatorBuilder"/> puts
-        /// that clip in the player's gait ladder at a 2 m/s threshold with no time scaling, which is
-        /// the same statement made from the other side.
+        /// What a walk clip is assumed to travel at when its own reading is useless — a Mixamo "in
+        /// place" export, or one whose root got baked. Roughly the middle of the crowd's band.
         /// </summary>
-        private const float WalkClipSpeed = 2f;
+        internal const float FallbackWalkSpeed = 1.35f;
+
+        /// <summary>Below this the clip is not really travelling and the reading is not trusted.</summary>
+        internal const float MinTrustedWalkSpeed = 0.2f;
 
         /// <summary>
-        /// The crowd's own pace, from <c>npc.config.ts</c>: <c>speed { min: 1.0, max: 1.5 }</c>.
+        /// The dimensionless gait ladder: ratio of ground speed to the clip's own authored speed.
         ///
-        /// A pedestrian moves at roughly half the speed the walk clip was authored for, so playing
-        /// it straight would slide their feet across the pavement — the same fault
-        /// <see cref="JoeAnimatorBuilder"/> corrects at the top of the ladder for the sprint. The
-        /// low anchor is set below the crowd's minimum so the SLOWEST pedestrian is still fully
-        /// walking rather than a blend of walking and standing still.
+        /// Three walk children, not one. The crowd walks at 1.0–1.5 m/s against clips authored at
+        /// 0.85–1.65, so the ratio lands anywhere in roughly 0.6–1.4 — and every point of that range
+        /// blends walk-to-walk, never walk-to-idle, which is the foot-sliding fault the old
+        /// <c>StrollSpeed</c> anchor existed to avoid. The 1.4 child is there because a 1-D tree
+        /// clamps past its last threshold: without it the fastest walker on the slowest clip skates.
         /// </summary>
-        private const float StrollSpeed = 0.9f;
+        private static readonly float[] WalkRatios = { 0.6f, 1.0f, 1.4f };
 
         [MenuItem("The Block/Build NPC Animator", priority = 21)]
-        public static void Build()
-        {
-            var idle = FindClip("Joe.fbx", "Joe_Idle");
-            var walk = FindClip("Joe_Walking.fbx", "Joe_Walk");
-            if (idle == null || walk == null) return;
+        public static void BuildMenu() => Build();
 
+        public static string Build()
+        {
+            var log = new StringBuilder();
+
+            var baseIdle = FindClip(PeopleImporter.IdlePath(BaseCharacter), PeopleImporter.IdleClip(BaseCharacter));
+            var baseWalk = FindClip(PeopleImporter.WalkPath(BaseCharacter), PeopleImporter.WalkClip(BaseCharacter));
+            if (baseIdle == null || baseWalk == null)
+            {
+                const string message =
+                    "NpcAnimatorBuilder: the base character's clips are missing. Run " +
+                    "The Block → Import People (slow) first.";
+                Debug.LogError(message);
+                return message;
+            }
+
+            // Rebuilt IN PLACE so the GUID survives: the scene's pedestrian prefabs reference this
+            // asset, and a fresh one would leave them pointing at nothing.
             var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath)
                              ?? AnimatorController.CreateAnimatorControllerAtPath(ControllerPath);
             Wipe(controller);
@@ -59,27 +85,82 @@ namespace TheBlock.EditorTools
             gait.blendType = BlendTreeType.Simple1D;
             gait.blendParameter = "Speed";
             gait.useAutomaticThresholds = false;
-            // The walk clip appears twice on purpose: once slowed to the crowd's stroll and once at
-            // its authored pace. Between them the blend is walk-to-walk, so a pedestrian anywhere in
-            // the 1.0–1.5 m/s band is fully walking and only the cadence changes.
-            gait.children = new[]
-            {
-                Child(idle, 0f, 1f),
-                Child(walk, StrollSpeed, StrollSpeed / WalkClipSpeed),
-                Child(walk, WalkClipSpeed, 1f),
-            };
+
+            var children = new List<ChildMotion> { Child(baseIdle, 0f, 1f) };
+            foreach (var ratio in WalkRatios) children.Add(Child(baseWalk, ratio, ratio));
+            gait.children = children.ToArray();
 
             controller.layers[0].stateMachine.defaultState = locomotion;
-
             EditorUtility.SetDirty(controller);
+
+            log.AppendLine(
+                $"  base {ControllerPath}: idle 0 / walk " +
+                string.Join(" / ", WalkRatios.Select(r => $"{r:0.#}×")) + "  (Speed is a RATIO, not m/s)");
+
+            // --- one override per character -----------------------------------------------------
+
+            if (!AssetDatabase.IsValidFolder(OverrideFolder))
+                AssetDatabase.CreateFolder("Assets/Animation", "Npc");
+
+            int built = 0;
+            foreach (var name in PeopleImporter.Names)
+            {
+                var idle = FindClip(PeopleImporter.IdlePath(name), PeopleImporter.IdleClip(name));
+                var walk = FindClip(PeopleImporter.WalkPath(name), PeopleImporter.WalkClip(name));
+                if (idle == null)
+                {
+                    log.AppendLine($"  {name,-11} SKIPPED — no idle clip");
+                    continue;
+                }
+
+                var path = OverridePath(name);
+                var over = AssetDatabase.LoadAssetAtPath<AnimatorOverrideController>(path);
+                if (over == null)
+                {
+                    over = new AnimatorOverrideController();
+                    AssetDatabase.CreateAsset(over, path);
+                }
+
+                over.runtimeAnimatorController = controller;
+
+                // Sophie's own override is an identity map, kept so NpcBuilder has ONE rule to
+                // follow rather than a rule plus an exception.
+                var overrides = new List<KeyValuePair<AnimationClip, AnimationClip>>
+                {
+                    new(baseIdle, idle),
+                    new(baseWalk, walk ?? baseWalk),
+                };
+                over.ApplyOverrides(overrides);
+                EditorUtility.SetDirty(over);
+
+                float speed = WalkSpeed(walk);
+                log.AppendLine(
+                    $"  {name,-11} → {System.IO.Path.GetFileName(path)}  walk {speed:0.00} m/s" +
+                    (walk == null ? "  ⚠ NO WALK CLIP, idles only"
+                        : speed <= MinTrustedWalkSpeed + 0.001f ? "  ⚠ measured ~0, using the fallback" : ""));
+                built++;
+            }
+
             AssetDatabase.SaveAssets();
-            Debug.Log(
-                $"NpcAnimatorBuilder — rebuilt {ControllerPath}\n" +
-                $"  Locomotion blend: idle 0 / stroll {StrollSpeed} (clip at " +
-                $"{StrollSpeed / WalkClipSpeed:0.00}x) / walk {WalkClipSpeed} m/s\n" +
-                "  Joe's Humanoid clips, retargeted — the NPC pack ships no animation of its own\n" +
-                "  No run, no hit, no panic: U18 owns the run-over reaction, U19 the fleeing",
-                controller);
+
+            var report =
+                $"NpcAnimatorBuilder — {built}/{PeopleImporter.Names.Length} override(s)\n{log}" +
+                "  No run, no hit, no panic: U18 owns the run-over reaction, U19 the fleeing";
+            Debug.Log(report, controller);
+            return report;
+        }
+
+        internal static string OverridePath(string name) => $"{OverrideFolder}/Npc_{name}.overrideController";
+
+        /// <summary>
+        /// The ground speed a character's walk clip was authored at — the denominator of the
+        /// dimensionless <c>Speed</c> parameter. <see cref="NpcBuilder"/> bakes it onto the prefab.
+        /// </summary>
+        internal static float WalkSpeed(AnimationClip walk)
+        {
+            if (walk == null) return FallbackWalkSpeed;
+            float speed = walk.averageSpeed.magnitude;
+            return speed >= MinTrustedWalkSpeed ? speed : FallbackWalkSpeed;
         }
 
         private static void Wipe(AnimatorController controller)
@@ -109,14 +190,13 @@ namespace TheBlock.EditorTools
             directBlendParameter = "Speed",
         };
 
-        private static AnimationClip FindClip(string fileName, string clipName)
+        private static AnimationClip FindClip(string path, string clipName)
         {
-            var path = $"{CharactersPath}/{fileName}";
             var clip = AssetDatabase.LoadAllAssetsAtPath(path)
                 .OfType<AnimationClip>()
                 .FirstOrDefault(c => c.name == clipName);
 
-            if (clip == null) Debug.LogError($"NpcAnimatorBuilder: no clip '{clipName}' in {path}.");
+            if (clip == null) Debug.LogWarning($"NpcAnimatorBuilder: no clip '{clipName}' in {path}.");
             return clip;
         }
     }

@@ -71,11 +71,40 @@ namespace TheBlock.Vehicles
 
         private void Spawn(GameObject prefab, TheBlockConfig.CarSpec spec)
         {
+            var position = Settle(spec, probeHeight, settleGap, this);
+            var rotation = Convert.RotFromRadians(spec.SpawnYaw ?? 0f);
+
+            var car = Instantiate(prefab, position, rotation, transform);
+            car.name = spec.Name;
+
+            // The controller has already put itself on the enterable list in OnEnable; this list is
+            // only the spawner's own record of what it made.
+            if (car.TryGetComponent<CarController>(out var controller))
+            {
+                // Where R sends it back to. Handed over rather than looked up again, because the
+                // spawner is the only place that already knows WHICH spec this instance came from.
+                controller.BindHome(spec.Name, position, rotation);
+                _spawned.Add(controller);
+            }
+            else Debug.LogWarning($"CarSpawner: {spec.Name} has no CarController.", car);
+        }
+
+        /// <summary>
+        /// Where a car should stand at <paramref name="spec"/>'s spawn: the config's XZ, the ground
+        /// under it, plus a gap so it settles onto its springs instead of starting inside the road.
+        ///
+        /// Static and shared because <see cref="CarController.Respawn"/> needs the same answer. It
+        /// used to teleport to the raw config point, which carries NO Y — so R dropped the car to
+        /// y = 0, under the road surface, every time.
+        /// </summary>
+        public static Vector3 Settle(
+            TheBlockConfig.CarSpec spec, float probeHeight, float settleGap, Object context)
+        {
             var ground = Convert.Pos(spec.Spawn.Raw);
             var y = spec.RoadSurfaceY;
 
             // staticOnly is not a thing for a single raycast, so this can in principle hit another
-            // car — but spawns are metres apart and this runs before any of them has moved.
+            // car — but spawns are metres apart and at boot none of them has moved.
             var from = new Vector3(ground.x, probeHeight, ground.z);
             if (Physics.Raycast(from, Vector3.down, out var hit, probeHeight * 2f))
             {
@@ -85,19 +114,10 @@ namespace TheBlock.Vehicles
             {
                 Debug.LogWarning(
                     $"CarSpawner: nothing under {spec.Name}'s spawn {Fmt(ground)} — " +
-                    $"dropped at config roadSurfaceY {spec.RoadSurfaceY:0.##} instead.", this);
+                    $"dropped at config roadSurfaceY {spec.RoadSurfaceY:0.##} instead.", context);
             }
 
-            var position = new Vector3(ground.x, y + settleGap, ground.z);
-            var rotation = Convert.RotFromRadians(spec.SpawnYaw ?? 0f);
-
-            var car = Instantiate(prefab, position, rotation, transform);
-            car.name = spec.Name;
-
-            // The controller has already put itself on the enterable list in OnEnable; this list is
-            // only the spawner's own record of what it made.
-            if (car.TryGetComponent<CarController>(out var controller)) _spawned.Add(controller);
-            else Debug.LogWarning($"CarSpawner: {spec.Name} has no CarController.", car);
+            return new Vector3(ground.x, y + settleGap, ground.z);
         }
 
         private static string Fmt(Vector3 v) => $"({v.x:0.#}, {v.z:0.#})";

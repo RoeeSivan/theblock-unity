@@ -105,9 +105,13 @@ namespace TheBlock.EditorTools
                 var visual = (GameObject)PrefabUtility.InstantiatePrefab(model, root.transform);
                 visual.name = "Visual";
                 visual.transform.localPosition = Vector3.zero;
-                // Both rotations are about Y, so they commute — see Convert.ModelFacing. After this
-                // the model's nose points down the root's +Z, which is all the sim ever assumes.
-                visual.transform.localRotation = Convert.RotFromRadians(spec.ModelYaw) * Convert.ModelFacing;
+                // NOT `* Convert.ModelFacing`, unlike every other vehicle builder in this project.
+                // `config.traffic.models[].modelYaw` is authored in the OPPOSITE convention to
+                // `vehicle.cars` and `lotCars` (see TrafficModelSpec.ModelYaw): it already turns the
+                // nose to the travel direction, which the web build's heading math puts at +Z — and
+                // Z survives the X-negation untouched, so +Z there is +Z here. Composing the
+                // -Z→+Z flip on top of numbers that contain it drives every ambient car in reverse.
+                visual.transform.localRotation = Convert.RotFromRadians(spec.ModelYaw);
                 visual.transform.localScale = Vector3.one * scale;
 
                 var renderers = visual.GetComponentsInChildren<MeshRenderer>(true);

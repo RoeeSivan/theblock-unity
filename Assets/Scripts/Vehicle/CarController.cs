@@ -305,28 +305,86 @@ namespace TheBlock.Vehicles
         /// <summary>Exit the car (handled by VehicleEnterExit; this is a pass-through).</summary>
         public void Exit() { }
 
-        /// <summary>Respawn to the configured spawn point.</summary>
+        /// <summary>
+        /// Where <see cref="Respawn"/> puts this car back. Set by <see cref="CarSpawner"/> at spawn,
+        /// which is the only place that knows which config entry this instance came from.
+        ///
+        /// Serialized and hidden so it survives a mid-Play recompile: a plain private field comes
+        /// back zeroed after the domain reload, and R would then teleport the car to the origin.
+        /// </summary>
+        [SerializeField, HideInInspector] private bool hasHome;
+        [SerializeField, HideInInspector] private Vector3 homePosition;
+        [SerializeField, HideInInspector] private Quaternion homeRotation = Quaternion.identity;
+
+        /// <summary>Called by <see cref="CarSpawner"/> immediately after Instantiate.</summary>
+        public void BindHome(string specName, Vector3 position, Quaternion rotation)
+        {
+            name = specName;
+            homePosition = position;
+            homeRotation = rotation;
+            hasHome = true;
+        }
+
+        /// <summary>
+        /// Teleport back to this car's own spawn, upright and stopped.
+        ///
+        /// <b>Its own.</b> This used to take <c>cars.FirstOrDefault()</c> — the first entry in the
+        /// config, whichever car pressed R — and to teleport to the raw config point, which carries
+        /// no Y, dropping the car through the road to y = 0. The spawn position is now the same
+        /// ground-probed answer <see cref="CarSpawner"/> computed, handed over at spawn.
+        ///
+        /// The order below is the whole point:
+        ///  1. stop the body BEFORE moving it, or the old velocity is still applied on the next step;
+        ///  2. <c>Physics.SyncTransforms</c> — without it the WheelColliders keep their pre-teleport
+        ///     world poses for a frame, and <see cref="CarWheel"/> then poses four bones at the place
+        ///     the car just left while the body is here. On one skin that draws as a wedge stretched
+        ///     between the two positions, which is exactly the artefact R was reported for;
+        ///  3. brake all four, not just zero the motor — a WheelCollider LATCHES the last brake
+        ///     torque it was given, so zeroing the motor alone can leave the car held or rolling;
+        ///  4. re-pose the wheels now that the colliders agree with the body.
+        /// </summary>
         public void Respawn()
         {
-            var snapshot = TheBlockConfig.Load();
-            var cars = snapshot?.Config?.Vehicle?.Cars;
-            if (cars == null || cars.Count == 0) return;
+            var position = homePosition;
+            var rotation = homeRotation;
 
-            var thisSpec = cars.FirstOrDefault();
+            if (!hasHome)
+            {
+                // Never spawned by CarSpawner (dropped into the scene by hand, or a test). Ask the
+                // config for the entry that matches this object's name — never "the first one".
+                var cars = TheBlockConfig.Load()?.Config?.Vehicle?.Cars;
+                var spec = cars?.FirstOrDefault(c =>
+                    string.Equals(c.Name, name, System.StringComparison.OrdinalIgnoreCase));
 
-            if (thisSpec == null) return;
-
-            Vector3 position = Convert.Pos(thisSpec.Spawn.Raw);
-            transform.position = position;
-
-            transform.rotation = Quaternion.identity;
+                if (spec?.Spawn == null)
+                {
+                    // Nothing to go home to: at least stand it up where it is, which is what the
+                    // key is for after a roll.
+                    position = transform.position;
+                    rotation = Quaternion.Euler(0f, transform.eulerAngles.y, 0f);
+                }
+                else
+                {
+                    position = CarSpawner.Settle(spec, 20f, 0.05f, this);
+                    rotation = Convert.RotFromRadians(spec.SpawnYaw ?? 0f);
+                }
+            }
 
             _body.linearVelocity = Vector3.zero;
             _body.angularVelocity = Vector3.zero;
+
+            transform.SetPositionAndRotation(position, rotation);
+            Physics.SyncTransforms();
+
+            _steerAngle = 0f;
             foreach (var wheel in new[] { frontLeft, frontRight, rearLeft, rearRight })
             {
-                if (wheel != null) wheel.motorTorque = 0f;
+                if (wheel == null) continue;
+                wheel.steerAngle = 0f;
+                SetTorque(wheel, 0f, brakeTorque);
             }
+
+            foreach (var wheel in GetComponentsInChildren<CarWheel>(true)) wheel.Pose();
         }
     }
 }

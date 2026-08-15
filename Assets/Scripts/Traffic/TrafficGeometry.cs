@@ -54,6 +54,25 @@ namespace TheBlock.Traffic
             (px - car.X) * car.Fx + (pz - car.Z) * car.Fz - otherHalf - car.HalfLen;
 
         /// <summary>
+        /// Is a point inside this car's footprint, padded by <paramref name="pad"/>? Any direction,
+        /// not just ahead.
+        ///
+        /// This is the crowd's side of the same conversation <see cref="InFrontCone"/> is the car's
+        /// side of: <c>crowd.ts</c>'s <c>avoidCar</c>, which a pedestrian uses to decide not to walk
+        /// into a car that is simply in the way. It lives here rather than in the crowd because it is
+        /// the same box arithmetic, against the same <see cref="Box"/> the traffic already keeps up
+        /// to date — no traffic code changes to support it.
+        /// </summary>
+        public static bool PointInBox(in Box car, float px, float pz, float pad)
+        {
+            float rx = px - car.X;
+            float rz = pz - car.Z;
+            float forward = rx * car.Fx + rz * car.Fz;
+            float lateral = rx * -car.Fz + rz * car.Fx;
+            return Mathf.Abs(forward) < car.HalfLen + pad && Mathf.Abs(lateral) < car.HalfW + pad;
+        }
+
+        /// <summary>
         /// Do two oriented bumper boxes come within <paramref name="margin"/>? 2D SAT over the four
         /// box axes.
         ///

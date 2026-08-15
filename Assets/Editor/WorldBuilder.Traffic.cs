@@ -46,8 +46,18 @@ namespace TheBlock.EditorTools
         private const float PoleCullDistance = 120f;
 
         /// <summary>
-        /// How far in front of the housing's lamp face our discs sit, in MODEL units (the model is
-        /// ~78.6 units tall and scaled down to 4.5 m). Enough to clear the glass without z-fighting.
+        /// How far in front of the housing's FRONT FACE our discs sit, in MODEL units (the model is
+        /// ~78.6 units tall and scaled down to 4.5 m). Enough to clear the shell without z-fighting.
+        ///
+        /// <b>In front of the shell, not in front of the disc — and that distinction was the whole
+        /// bug.</b> This used to be measured from <c>lampBox.max.z</c>, the front of the animated
+        /// disc, on the assumption that the disc was the outermost thing at that height. It is not:
+        /// the discs slide BEHIND a lens, and the shell's front face measures 9.675 against disc
+        /// fronts at 6.883–7.163 — so the shell stands 2.51–2.79 units proud of them. A 0.3 epsilon
+        /// off the wrong datum left every quad ~2.5 units INSIDE the housing, which at the pole's
+        /// 0.06 world scale is 14 cm of solid model in front of the lamp.
+        ///
+        /// The lights were switching correctly the entire time; the city simply could not see them.
         /// </summary>
         private const float DiscFaceEpsilon = 0.3f;
 
@@ -468,7 +478,27 @@ namespace TheBlock.EditorTools
             // German node names, which arrive mojibaked ("grün") through the glTF's UTF-8.
             lamps.Sort((a, b) => b.Box.center.y.CompareTo(a.Box.center.y));
 
-            var discs = BuildLampMesh(lamps.Select(l => l.Box).ToList(), generated, report);
+            // The face the quads have to clear. Measured off the housing itself rather than off the
+            // discs, because the discs sit behind the lens — see DiscFaceEpsilon. Taken while the
+            // probe is still unrotated and unscaled, so this is in model units like everything else
+            // in BuildLampMesh, and taken BEFORE the lamp nodes are destroyed.
+            float housingFrontZ = float.MinValue;
+            foreach (var renderer in visual.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                if (renderer.name.StartsWith("lichtanimation", System.StringComparison.Ordinal)) continue;
+                housingFrontZ = Mathf.Max(housingFrontZ, renderer.bounds.max.z);
+            }
+
+            if (housingFrontZ <= float.MinValue * 0.5f)
+            {
+                // No housing to hide behind. Falling back to the discs' own face is what this used to
+                // do unconditionally, and it is right only in this case.
+                housingFrontZ = lamps.Count > 0 ? lamps.Max(l => l.Box.max.z) : 0f;
+                report.Warnings.Add(
+                    "traffic lights: no housing renderer found — lamp quads placed off the discs.");
+            }
+
+            var discs = BuildLampMesh(lamps.Select(l => l.Box).ToList(), housingFrontZ, generated, report);
             foreach (var lamp in lamps) UnityEngine.Object.DestroyImmediate(lamp.Renderer.gameObject);
 
             var housing = BuildHousingMaterial(visual, generated, report);
@@ -513,9 +543,12 @@ namespace TheBlock.EditorTools
 
         /// <summary>
         /// Three quads, three submeshes, one mesh — in MODEL units, so the whole thing scales with
-        /// the pole. Each quad sits on the housing's lamp face, sized from that lamp's own box.
+        /// the pole. Each quad is sized from its own lamp's box and placed on the plane
+        /// <paramref name="housingFrontZ"/>, the front of the shell, so it is the outermost thing at
+        /// that height and nothing of the model's own can draw over it.
         /// </summary>
-        private static Mesh BuildLampMesh(List<Bounds> lamps, HashSet<string> generated, Report report)
+        private static Mesh BuildLampMesh(
+            List<Bounds> lamps, float housingFrontZ, HashSet<string> generated, Report report)
         {
             var mesh = new Mesh { name = "LampDiscs", subMeshCount = Mathf.Max(1, lamps.Count) };
             var vertices = new List<Vector3>();
@@ -527,7 +560,11 @@ namespace TheBlock.EditorTools
             {
                 var box = lamps[i];
                 float radius = Mathf.Max(box.size.x, box.size.y) * 0.5f * 0.9f;
-                float z = box.max.z + DiscFaceEpsilon;
+
+                // The quad keeps its own lamp's X and Y — that is what puts red above amber above
+                // green — but every one of them shares the shell's front plane for Z. Taking Z from
+                // the lamp box instead is what buried them.
+                float z = housingFrontZ + DiscFaceEpsilon;
                 var centre = new Vector3(box.center.x, box.center.y, z);
                 int start = vertices.Count;
 

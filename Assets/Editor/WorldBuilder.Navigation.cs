@@ -624,7 +624,11 @@ namespace TheBlock.EditorTools
         /// A street is never more than <see cref="StreetHeightBand"/> above the plate, so anything
         /// that is falls back to the plate, which is what is actually under the wheels there.
         /// </summary>
-        private static float GroundY(Vector3 point)
+        /// <summary>
+        /// Internal rather than private because <c>CrowdBuilder</c> bakes its lanes against the same
+        /// answer. Two copies of this would be two copies of the two scars it carries.
+        /// </summary>
+        internal static float GroundY(Vector3 point)
         {
             var hits = Physics.RaycastAll(
                 new Vector3(point.x, 50f, point.z), Vector3.down, 200f, ~0, QueryTriggerInteraction.Ignore);

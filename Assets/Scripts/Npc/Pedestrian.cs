@@ -4,273 +4,351 @@ using UnityEngine.AI;
 namespace TheBlock.Npc
 {
     /// <summary>
-    /// One person walking the pavement — U16.
+    /// One person walking the pavement — U16b's port of the original's <c>pedestrian.ts</c>.
     ///
-    /// The web build's pedestrian picks a point out of a sampled grid and walks to it IN A STRAIGHT
-    /// LINE, with no path and no idea that a road exists (`pedestrian.ts`: "No physics body, no
-    /// collision avoidance"). This one asks the NavMesh for a destination and lets the agent find
-    /// the corridor, so "stays on the pavement" is a property of the world rather than of a
-    /// heuristic that mostly holds. Everything that used to enforce it — the 4096² walkable mask,
-    /// the 67 MB readback, the forty hand-recorded rectangles, the forty hand-recorded strips — has
-    /// no equivalent here and no replacement.
+    /// <b>No NavMeshAgent, deliberately, and it is a reversal of U16.</b> U16 gave every pedestrian
+    /// an agent so that "stays on the pavement" was a property of the world rather than of a
+    /// heuristic. It works, and it costs: an agent owns the transform, does its own avoidance and
+    /// pathfinding, and has to be created on the mesh before it will do anything — which is what the
+    /// "Failed to create agent because it is not close enough to the NavMesh" spam was. The original
+    /// needs none of it, because it does not wander freely: it walks a hand-authored strip, or
+    /// wanders inside a hand-painted rectangle, and both are pavement by construction.
     ///
-    /// What this class does own is the KERB. Automatic off-mesh link traversal is switched off, so
-    /// arriving at a zebra hands control back here: the pedestrian stops at the edge, asks the
-    /// <see cref="Crossing"/> whether it may go, and walks across under its own power when the
-    /// answer is yes. That is the one moment the crowd is not simply "the agent knows best".
+    /// So the port is the web's own state machine — arrive, pause, re-pick; or walk the lane and
+    /// turn around — and the NavMesh stays only as a QUERY SURFACE: <c>SamplePosition</c> answers
+    /// "is this pavement" and <c>Raycast</c> answers "does this straight line stay on it". Those are
+    /// the only two questions the web build's 4096² sidewalk mask ever answered, and the carve makes
+    /// the answer better than the mask's (it let people onto kerbstones). <b>The agent is gone; the
+    /// mesh is not.</b> Deleting the queries does not "finish the job", it removes the pavement.
+    ///
+    /// What this class also owns is the KERB. A crosser waits at the edge, asks its
+    /// <see cref="Crossing"/> whether it may go, and walks across under its own power — the one
+    /// moment the crowd is gated on something outside itself, and U17's traffic light is what
+    /// answers.
+    ///
+    /// Ticked by <see cref="CrowdSpawner"/> rather than by its own <c>Update</c>: Unity's
+    /// per-MonoBehaviour dispatch is a real cost across a live crowd, and the spawner has to walk
+    /// the same list anyway.
     /// </summary>
-    [RequireComponent(typeof(NavMeshAgent))]
+    [DisallowMultipleComponent]
     public class Pedestrian : MonoBehaviour
     {
-        [Tooltip("How far the next wander target may be. `npc.config.ts` stepRadius.")]
-        [SerializeField] private float stepRadius = 8f;
+        /// <summary>Everything from <c>npc.config.ts</c>, handed over by the spawner each bind.</summary>
+        public struct Tuning
+        {
+            public float StepRadius;
+            public float PauseTime;
+            public float ArriveDistance;
+            public float ZoneInset;
+            public float AvoidRepickSec;
+            public float SameStoreyBand;
+            public float CurbMargin;
+            public int SampleAttempts;
+            public float SampleRadius;
+            public int GroundMask;
+        }
 
-        [Tooltip("Seconds standing at each reached spot. `npc.config.ts` pauseTime.")]
-        [SerializeField] private float pauseTime = 1.2f;
+        [Tooltip("Ground speed this character's walk clip was authored at, from the clip itself. " +
+                 "The animator's Speed parameter is a RATIO against this, not a m/s — see " +
+                 "NpcAnimatorBuilder.")]
+        [SerializeField] private float walkClipSpeed = 1.35f;
 
-        [Tooltip("Metres of height difference that still counts as the same storey. Keeps targets " +
-                 "off the rooftops the bake cannot tell from pavement.")]
-        [SerializeField] private float sameStoreyBand = 2.5f;
-
-        [Tooltip("Tries per re-target before the pedestrian gives up and waits a beat.")]
-        [SerializeField] private int sampleAttempts = 6;
-
-        [Tooltip("Chance, per re-target, of heading for the far side of the nearest zebra instead of " +
-                 "wandering. With 8 m hops almost nobody would otherwise ever want the other pavement.")]
-        [Range(0f, 1f)]
-        [SerializeField] private float crossingBias = 0.25f;
-
-        [Tooltip("How far a pedestrian will look for a zebra to be drawn to.")]
-        [SerializeField] private float crossingSearchRadius = 45f;
-
-        private NavMeshAgent _agent;
-        private Animator _animator;
-        private System.Random _rng;
-
-        private float _pauseLeft;
-
-        /// <summary>Set while stepping across a zebra under manual control.</summary>
-        private bool _crossing;
-
-        /// <summary>Set once this pedestrian has actually left the kerb, not merely arrived at it.</summary>
-        private bool _stepped;
-        private Vector3 _crossFrom;
-        private Vector3 _crossTo;
-        private Crossing _gate;
+        [Tooltip("The visual child. Its Animator is what gets the Speed parameter.")]
+        [SerializeField] private Animator animator;
 
         private static readonly int SpeedParameter = Animator.StringToHash("Speed");
 
-        /// <summary>True once the agent is on the NavMesh and has somewhere to be.</summary>
-        public bool Active { get; private set; }
+        private CrowdSpawner _owner;
+        private CrowdSeedTable.LanePath _path;
+        private Crossing _gate;
+        private CrowdSeedTable.Rect _rect;
+        private bool _hasRect;
+        private System.Random _rng;
+
+        private CrowdSeedTable.Seed _state;
+        private float _pauseLeft;
+        private float _blockedFor;
+        private bool _blocked;
+        private Vector3 _lastPosition;
+
+        /// <summary>True between <see cref="Bind"/> and <see cref="Release"/>.</summary>
+        public bool Live { get; private set; }
+
+        /// <summary>Which seed this body currently is. −1 when pooled.</summary>
+        public int SeedIndex { get; private set; } = -1;
 
         /// <summary>
-        /// True while this pedestrian is actually ON a carriageway — not merely standing at the kerb
+        /// True while this person is actually ON a carriageway — not merely standing at the kerb
         /// waiting for the light.
         ///
-        /// U17's traffic reads exactly this to decide whom to brake for, and the difference between
-        /// "waiting" and "walking" is what keeps the two systems from deadlocking. A pedestrian at
-        /// the kerb gates on the LIGHT and never on cars; if cars braked for them too, a car and a
-        /// pedestrian could end up each waiting on the other. Once they have stepped out they are a
-        /// real obstacle, including when the light flips green under them.
-        /// </summary>
-        public bool IsCrossing => _crossing && _stepped;
-
-        private void Awake()
-        {
-            _agent = GetComponent<NavMeshAgent>();
-            _animator = GetComponentInChildren<Animator>();
-
-            // The whole point: arriving at a crossing must hand control back to this script rather
-            // than teleport-sliding the agent over the road regardless of the traffic.
-            _agent.autoTraverseOffMeshLink = false;
-        }
-
-        /// <summary>
-        /// Wakes this pedestrian up at <paramref name="position"/>. Called by
-        /// <see cref="CrowdSpawner"/> on spawn and on every recycle.
-        /// </summary>
-        public void Begin(Vector3 position, float speed, System.Random rng)
-        {
-            _rng = rng;
-            _crossing = false;
-            _stepped = false;
-            _gate = null;
-            _pauseLeft = 0f;
-
-            _agent.speed = speed;
-            // Warp, not `transform.position`: an agent moved by its transform keeps the internal
-            // position it had, and then walks back to it the moment it is enabled.
-            _agent.Warp(position);
-            Active = _agent.isOnNavMesh;
-            if (Active) Retarget();
-        }
-
-        public void End()
-        {
-            Active = false;
-            _crossing = false;
-            _stepped = false;
-            if (_agent.isOnNavMesh) _agent.ResetPath();
-        }
-
-        private void Update()
-        {
-            if (!Active) return;
-
-            if (_crossing) StepAcross();
-            else if (_agent.isOnOffMeshLink) BeginCrossing();
-            else Wander();
-
-            if (_animator != null)
-            {
-                float speed = _crossing ? (_gate == null || _gate.MayCross() ? _agent.speed : 0f)
-                                        : _agent.velocity.magnitude;
-                _animator.SetFloat(SpeedParameter, speed);
-            }
-        }
-
-        // --- wandering ---------------------------------------------------------------------------
-
-        private void Wander()
-        {
-            if (_agent.pathPending) return;
-
-            if (_agent.remainingDistance > _agent.stoppingDistance)
-            {
-                _pauseLeft = pauseTime;
-                return;
-            }
-
-            // Arrived. Stand for a moment before choosing again — without it the crowd never stops
-            // moving, which reads as a conveyor belt rather than a street.
-            _pauseLeft -= Time.deltaTime;
-            if (_pauseLeft > 0f) return;
-
-            Retarget();
-        }
-
-        /// <summary>
-        /// Picks somewhere else to be, within <see cref="stepRadius"/>.
+        /// U17's traffic reads exactly this to decide whom to brake for, and the difference is what
+        /// keeps the two systems from deadlocking: a pedestrian at the kerb gates on the LIGHT and
+        /// never on cars, so a car and a pedestrian cannot end up each waiting on the other. Once
+        /// they have stepped out they are a real obstacle, including when the light flips under them.
         ///
-        /// The height band is the one thing here that is not simply "ask the NavMesh". The bake
-        /// cannot tell a flat roof from a pavement — both are horizontal geometry a Humanoid agent
-        /// fits on — so a district's rooftops are walkable surface as far as pathfinding is
-        /// concerned. Rejecting samples more than a storey off this pedestrian's own height keeps
-        /// the crowd on the ground without a second bake or a hand-painted mask.
+        /// Measured against this lane's OWN endpoints rather than the road centreline — the web's
+        /// <c>refreshOnRoad</c>. A crosser is on the road when it is more than
+        /// <c>curbMargin</c> from both of its own kerbs.
         /// </summary>
-        private void Retarget()
+        public bool IsCrossing { get; private set; }
+
+        public float WalkClipSpeed => walkClipSpeed;
+
+        /// <summary>Set by <c>NpcBuilder</c> at build time.</summary>
+        public void Configure(Animator characterAnimator, float measuredWalkClipSpeed)
         {
-            // Some of the time, want the other side of the street. Left to pure wandering the
-            // crowd never crosses — not because it cannot, but because an 8 m hop from a pavement
-            // almost never lands on the opposite one, so the path that goes over a zebra is never
-            // the path that gets asked for. This is the ONLY steering the crowd has, and it steers
-            // towards a place, not along a route: how to get there is still the NavMesh's answer.
-            if (_rng.NextDouble() < crossingBias && TryTargetAcrossCrossing()) return;
+            animator = characterAnimator;
+            walkClipSpeed = measuredWalkClipSpeed;
+        }
 
-            for (int attempt = 0; attempt < sampleAttempts; attempt++)
-            {
-                var offset = _rng.InsideUnitCircle() * stepRadius;
-                var candidate = transform.position + new Vector3(offset.x, 0f, offset.y);
+        // --- lifecycle --------------------------------------------------------------------------
 
-                if (!NavMesh.SamplePosition(candidate, out var hit, stepRadius, NavMesh.AllAreas)) continue;
-                if (Mathf.Abs(hit.position.y - transform.position.y) > sameStoreyBand) continue;
+        /// <summary>Puts this body on a seed. Everything the seed remembers is restored.</summary>
+        public void Bind(
+            CrowdSpawner owner, int seedIndex, in CrowdSeedTable.Seed state,
+            CrowdSeedTable.LanePath path, Crossing gate, CrowdSeedTable.Rect rect, bool hasRect,
+            System.Random rng)
+        {
+            _owner = owner;
+            _path = path;
+            _gate = gate;
+            _rect = rect;
+            _hasRect = hasRect;
+            _rng = rng;
+            _state = state;
 
-                _agent.SetDestination(hit.position);
-                _pauseLeft = pauseTime;
-                return;
-            }
+            SeedIndex = seedIndex;
+            Live = true;
+            _pauseLeft = 0f;
+            _blockedFor = 0f;
+            _blocked = false;
+            IsCrossing = false;
 
-            // Boxed in — try again next second rather than every frame.
-            _pauseLeft = 1f;
+            var position = _state.Mode == CrowdSeedTable.Mode.Wander || _path == null
+                ? _state.Position
+                : _path.At(_state.S);
+
+            transform.position = position;
+            _lastPosition = position;
+            if (animator != null) animator.SetFloat(SpeedParameter, 0f);
+        }
+
+        /// <summary>Hands the seed back with whatever this body did to it.</summary>
+        public CrowdSeedTable.Seed Release()
+        {
+            _state.Position = transform.position;
+            Live = false;
+            SeedIndex = -1;
+            _owner = null;
+            _path = null;
+            _gate = null;
+            IsCrossing = false;
+            return _state;
+        }
+
+        // --- the tick ---------------------------------------------------------------------------
+
+        /// <summary>One step. Called by <see cref="CrowdSpawner"/>, not by Unity.</summary>
+        public void Tick(float dt, in Tuning tuning)
+        {
+            if (!Live) return;
+
+            float animSpeed;
+            if (_state.Mode == CrowdSeedTable.Mode.Wander) animSpeed = Wander(dt, tuning);
+            else animSpeed = Walk(dt, tuning);
+
+            if (animator != null)
+                animator.SetFloat(SpeedParameter, walkClipSpeed > 0.01f ? animSpeed / walkClipSpeed : 0f);
         }
 
         /// <summary>
-        /// Aims for the far kerb of the nearest zebra. False if there is none in range or the far
-        /// side is not on the NavMesh, in which case the caller wanders as usual.
+        /// Walk to the target, stand a moment, pick another. A line-for-line port of the web's
+        /// wander mode — including the two behaviours that are easy to drop and change how a street
+        /// reads: the pause at each arrival (without it the crowd is a conveyor belt), and re-picking
+        /// after being blocked by a car for <c>AvoidRepickSec</c> so people step AROUND it instead of
+        /// standing in the road until it moves.
         /// </summary>
-        private bool TryTargetAcrossCrossing()
+        private float Wander(float dt, in Tuning tuning)
         {
-            var crossing = CrossingRegistry.Nearest(transform.position, crossingSearchRadius);
-            if (crossing == null) return false;
+            var position = transform.position;
+            var flat = new Vector3(_state.Target.x - position.x, 0f, _state.Target.z - position.z);
+            float distance = flat.magnitude;
 
-            // Whichever kerb is further from here is the one on the other side. A little past it,
-            // onto the pavement proper, so the destination is not the boundary of the carve.
-            var a = crossing.KerbA;
-            var b = crossing.KerbB;
-            bool aIsFar = (a - transform.position).sqrMagnitude > (b - transform.position).sqrMagnitude;
-            var far = aIsFar ? a : b;
-            var near = aIsFar ? b : a;
-            var beyond = far + (far - near).normalized * 2f;
-
-            if (!NavMesh.SamplePosition(beyond, out var hit, 3f, NavMesh.AllAreas)) return false;
-            if (Mathf.Abs(hit.position.y - transform.position.y) > sameStoreyBand) return false;
-
-            _agent.SetDestination(hit.position);
-            _pauseLeft = pauseTime;
-            return true;
-        }
-
-        // --- crossing ----------------------------------------------------------------------------
-
-        private void BeginCrossing()
-        {
-            var link = _agent.currentOffMeshLinkData;
-            _crossFrom = transform.position;
-            _crossTo = link.endPos;
-            _crossing = true;
-            _stepped = false;
-
-            // Which zebra this is. Looked up once per traversal rather than held on the link, so a
-            // crossing whose geometry U17 moves does not need the links rebuilt to match.
-            _gate = CrossingRegistry.Nearest(transform.position, 12f);
-        }
-
-        private void StepAcross()
-        {
-            // Waiting on the kerb. The gate is the only thing in the crowd that says "not yet" —
-            // U16 answers it with the road being clear, U17 with the light.
-            if (_gate != null && !_gate.MayCross())
+            if (distance < tuning.ArriveDistance)
             {
-                FaceAlong(_crossTo - _crossFrom);
-                return;
+                _blocked = false;
+                _pauseLeft += dt;
+                if (_pauseLeft >= tuning.PauseTime)
+                {
+                    _pauseLeft = 0f;
+                    PickTarget(tuning);
+                }
+
+                return 0f;
             }
 
-            transform.position = Vector3.MoveTowards(
-                transform.position, _crossTo, _agent.speed * Time.deltaTime);
-            FaceAlong(_crossTo - _crossFrom);
-            _stepped = true;
+            var direction = flat / distance;
+            float step = Mathf.Min(_state.Speed * dt, distance);
+            var next = position + direction * step;
 
-            if ((transform.position - _crossTo).sqrMagnitude > 0.01f) return;
+            if (_owner != null && _owner.BlockedByCar(next))
+            {
+                _blocked = true;
+                _blockedFor += dt;
+                if (_blockedFor >= tuning.AvoidRepickSec)
+                {
+                    _blockedFor = 0f;
+                    PickTarget(tuning);
+                }
 
-            _crossing = false;
-            _stepped = false;
-            _gate = null;
-            _agent.CompleteOffMeshLink();
+                return 0f;
+            }
+
+            _blocked = false;
+            _blockedFor = 0f;
+
+            // "Sidewalks are flat" — the web snaps to the target's height rather than probing every
+            // step, and the target's height came from a real ground sample when it was picked.
+            next.y = _state.Target.y;
+            transform.SetPositionAndRotation(next, Quaternion.LookRotation(direction, Vector3.up));
+            _state.Position = next;
+            return _state.Speed;
         }
 
-        private void FaceAlong(Vector3 direction)
+        /// <summary>
+        /// Walks the lane. Ungated ends reflect (a strip walker turns around); gated ends CLAMP and
+        /// wait, which is the difference between a pavement stroller and someone at a kerb.
+        /// </summary>
+        private float Walk(float dt, in Tuning tuning)
         {
-            direction.y = 0f;
-            if (direction.sqrMagnitude < 1e-4f) return;
+            if (_path == null || _path.Points.Length < 2) return 0f;
 
-            transform.rotation = Quaternion.RotateTowards(
-                transform.rotation,
-                Quaternion.LookRotation(direction, Vector3.up),
-                _agent.angularSpeed * Time.deltaTime);
+            bool gated = _gate != null;
+
+            if (gated && (_state.S <= 0f || _state.S >= _path.Length))
+            {
+                IsCrossing = false;
+                if (!_owner.MayCross(_gate, _path)) return 0f;
+
+                // Whichever kerb we are on, set off towards the other one.
+                _state.Dir = (sbyte)(_state.S <= 0f ? 1 : -1);
+            }
+
+            float previous = _state.S;
+            _state.S += _state.Dir * _state.Speed * dt;
+
+            if (gated)
+            {
+                _state.S = Mathf.Clamp(_state.S, 0f, _path.Length);
+            }
+            else if (_state.S > _path.Length)
+            {
+                _state.S = _path.Length - (_state.S - _path.Length);
+                _state.Dir = -1;
+            }
+            else if (_state.S < 0f)
+            {
+                _state.S = -_state.S;
+                _state.Dir = 1;
+            }
+
+            var position = _path.At(_state.S);
+
+            // A strip walker holds for a car in its way; a crosser does NOT, and that asymmetry is
+            // load-bearing. Mid-road the crosser keeps going and the traffic yields to it, which is
+            // what keeps the pedestrian↔car wait graph acyclic.
+            if (!gated && _owner != null && _owner.BlockedByCar(position))
+            {
+                _state.S = previous;
+                _blocked = true;
+                return 0f;
+            }
+
+            _blocked = false;
+
+            var delta = position - _lastPosition;
+            delta.y = 0f;
+            if (delta.sqrMagnitude > 1e-4f)
+                transform.rotation = Quaternion.LookRotation(delta.normalized, Vector3.up);
+
+            transform.position = position;
+            _lastPosition = position;
+            _state.Position = position;
+
+            if (gated)
+            {
+                var a = _path.At(0f);
+                var b = _path.At(_path.Length);
+                float margin = tuning.CurbMargin;
+                IsCrossing = Flat(position, a) > margin && Flat(position, b) > margin;
+            }
+
+            return _state.Speed;
         }
-    }
 
-    /// <summary>A point in the unit circle from a seeded RNG — <c>Random.insideUnitCircle</c> is global.</summary>
-    internal static class RandomExtensions
-    {
-        public static Vector2 InsideUnitCircle(this System.Random rng)
+        private static float Flat(Vector3 a, Vector3 b)
         {
-            float angle = (float)rng.NextDouble() * Mathf.PI * 2f;
-            float radius = Mathf.Sqrt((float)rng.NextDouble()); // sqrt, or every point clusters at the centre
-            return new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
+            float dx = a.x - b.x;
+            float dz = a.z - b.z;
+            return Mathf.Sqrt(dx * dx + dz * dz);
         }
 
-        public static float Range(this System.Random rng, float min, float max) =>
-            min + (float)rng.NextDouble() * (max - min);
+        /// <summary>
+        /// Somewhere else to be, within <c>stepRadius</c> — the port of the web's
+        /// <c>sampleNearReachable</c>, and the one place the 4096² walkable mask is replaced rather
+        /// than dropped.
+        ///
+        /// The mask answers two questions and the NavMesh answers both with no memory and no
+        /// readback: <c>SamplePosition</c> is <c>isWalkable</c>, and <c>Raycast</c> is
+        /// <c>segmentWalkable</c> — which is what stops a wanderer cutting through a building corner
+        /// or across a carriageway. The sample radius is deliberately SMALL: a generous one snaps
+        /// the candidate somewhere else entirely and stops being a test of the point at all.
+        ///
+        /// Finding nothing is not an error. The web's answer is "stay put and try again next time",
+        /// and so is this one — the target is left alone.
+        /// </summary>
+        private void PickTarget(in Tuning tuning)
+        {
+            var here = transform.position;
+
+            for (int attempt = 0; attempt < tuning.SampleAttempts; attempt++)
+            {
+                var offset = InsideUnitCircle() * tuning.StepRadius;
+                var candidate = here + new Vector3(offset.x, 0f, offset.y);
+
+                if (!NavMesh.SamplePosition(candidate, out var hit, tuning.SampleRadius, NavMesh.AllAreas))
+                    continue;
+
+                // The bake cannot tell a flat roof from a pavement — both are horizontal geometry a
+                // Humanoid agent fits on — so reject anything a storey off where this person is.
+                if (Mathf.Abs(hit.position.y - here.y) > tuning.SameStoreyBand) continue;
+
+                if (_hasRect && !Inside(hit.position, tuning.ZoneInset)) continue;
+
+                if (NavMesh.Raycast(here, hit.position, out _, NavMesh.AllAreas)) continue;
+
+                var target = hit.position;
+                if (CrowdGround.TrySample(target, tuning.GroundMask, 1.5f, 4f, out float y)) target.y = y;
+
+                _state.Target = target;
+                return;
+            }
+        }
+
+        /// <summary>Inside this person's own rectangle, kept off its very edge.</summary>
+        private bool Inside(Vector3 point, float inset) =>
+            point.x >= _rect.MinX + inset && point.x <= _rect.MaxX - inset &&
+            point.z >= _rect.MinZ + inset && point.z <= _rect.MaxZ - inset;
+
+        /// <summary>Uniform in the disc, from this pedestrian's own stream so the crowd stays seeded.</summary>
+        private Vector2 InsideUnitCircle()
+        {
+            double angle = _rng.NextDouble() * System.Math.PI * 2.0;
+            double radius = System.Math.Sqrt(_rng.NextDouble());
+            return new Vector2((float)(System.Math.Cos(angle) * radius), (float)(System.Math.Sin(angle) * radius));
+        }
+
+        /// <summary>Debug read-out for the crowd's gizmos and the MCP scans.</summary>
+        public bool BlockedByTraffic => _blocked;
     }
 }

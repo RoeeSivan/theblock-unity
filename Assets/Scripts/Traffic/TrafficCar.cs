@@ -178,9 +178,12 @@ namespace TheBlock.Traffic
 
             if (_body != null)
             {
+                // Zero a WRECK's motion before it goes kinematic again, never after: a kinematic
+                // body refuses a velocity write and logs a warning for every one, and the transition
+                // clears both anyway. Writing them in the other order is three console lines per
+                // recycle for no effect.
+                ClearMotion();
                 _body.isKinematic = true;
-                _body.linearVelocity = Vector3.zero;
-                _body.angularVelocity = Vector3.zero;
                 _body.position = position;
                 _body.rotation = transform.rotation;
             }
@@ -218,12 +221,19 @@ namespace TheBlock.Traffic
             Mode = State.Idle;
             if (_body != null)
             {
+                ClearMotion();
                 _body.isKinematic = true;
-                _body.linearVelocity = Vector3.zero;
-                _body.angularVelocity = Vector3.zero;
             }
 
             gameObject.SetActive(false);
+        }
+
+        /// <summary>Stops a wreck dead. A no-op on a car that is already kinematic — deliberately.</summary>
+        private void ClearMotion()
+        {
+            if (_body.isKinematic) return;
+            _body.linearVelocity = Vector3.zero;
+            _body.angularVelocity = Vector3.zero;
         }
 
         private void OnCollisionEnter(Collision collision)

@@ -51,22 +51,45 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-**Next action: the user play-tests U17.** It is built, committed (`2ea3c54`) and measured, and the
-scene is saved with it. U17 is `wip` until the user says it reads right — everything below is what
-to look at and what is already known-good.
+**Next action: the user play-tests U17 + U16b together.** Both are built and measured, the scene is
+saved, and NOTHING IS COMMITTED YET — the working tree holds all of it. Both stay `wip` until the
+user says they read right.
 
-**What to drive around and judge** (I cannot see the Game view; these are the questions I could not
-answer by measurement):
+**U16b happened because U17's play-test found three things**, and only the first was U17's:
 
-1. **Which side is the traffic on?** It should be the right, Israeli-style. Verified by arithmetic
-   against the web build's own lane expression, never by eye.
-2. **Do the poles read as traffic lights?** One per approach, on the kerb to the driver's right,
+1. **Traffic drove in reverse — fixed.** `config.traffic.models[].modelYaw` uses the OPPOSITE
+   convention to `vehicle.cars`/`lotCars`: it aims the nose at the travel direction (`+Z` under the
+   web's heading math), they aim it at `-Z`. `TrafficCarBuilder` composed `Convert.ModelFacing` on
+   top of numbers that already contain that flip. Total rotation now matches the known-good lot cars
+   per model (Tesla 180°, Audi 0°, Avenger 0°); prefabs rebuilt.
+2. **A giant black wedge**, intermittently, apex near the player's car. Never conclusively pinned:
+   toggling the `Crowd` root off and on killed it live, and `NpcBuilder` documented that exact
+   symptom as the vendor pack's LOD-swap explosion — but the apex also sat on the Mustang. U16b
+   removes the crowd mechanism by construction AND hardens the car. **If it ever comes back, it is
+   the car**, and that is now a one-variable answer instead of a two-variable one.
+3. **The crowd was the perf worry the user flagged at U16.** Their call: stop patching the vendor
+   pack, go back to the six Mixamo people and the placement the three.js build ships.
+
+**What to drive around and judge** (I cannot see the Game view; these are the questions measurement
+cannot answer):
+
+1. **Which side is the traffic on?** Right, Israeli-style. Verified two ways — the config's own lane
+   expression, and live car headings: a car going `+X` sits 4 m to `-Z` of its opposite number,
+   which is `2 × laneOffset` on the correct side.
+2. **Do the cars drive nose-first?** This is fix 1 above and it is the one thing that most needs eyes.
+3. **Do the poles read as traffic lights?** One per approach, on the kerb to the driver's right,
    head facing the oncoming cars. Red / red+amber / green / amber, 26 s cycle, junctions desynced.
-3. **Does the queueing feel like traffic** rather than like cars taking turns to be stuck?
-4. **Ram one.** It should become a real wreck and stay one until you drive away. `wreckOnImpact` on
+4. **Does the queueing feel like traffic** rather than like cars taking turns to be stuck?
+5. **Ram one.** It should become a real wreck and stay one until you drive away. `wreckOnImpact` on
    `TrafficCar` turns that off in one click if it is bad.
-5. **Density.** 13 cars around the starting lot is the shipped game's own density (below), which
-   may read as quiet. `densityScale` on `TrafficSystem` is the knob — it is live in Play.
+6. **The crowd.** Six recognisable people — Sophie, Remy, Elizabeth, Chinese, Peter, Lewis — on the
+   painted pavements, two-way foot traffic along the long downtown strips and the beach, nobody on a
+   carriageway except on a zebra, crossers waiting on red and going together.
+7. **`R` in a car.** Upright, on the ground, at its OWN spawn, wheels attached.
+
+**The starting lot is quiet on purpose.** The original's 33 painted rectangles are downtown and
+west; the Reichman lot gets only its 9-person district share. Drive into the city before judging
+density.
 
 **`T` toggles all traffic off and on in Play**, the same debug affordance `C` gives the crowd. Both
 are debug-only and both can go once U17 is confirmed.
@@ -77,6 +100,13 @@ numbers U16 had, because it is now literally the same graph object. 12,759 m bak
 13 live against a target of 13, no gridlock, nobody reaching the stuck escape, no car more than
 0.25 m off its lane centreline, every car's Y inside the road band, 230/230 crossings gated.
 
+**U16b, measured the same way:** 687 seeds baked (297 painted + 72 district + 318 strip) from 33
+rectangles and 76 lanes over 7,082 m, plus 460 crossers built at Start = **1,147 people**. Peak
+within the 90 m cull radius is **139**, p95 is **79**, so `liveCap` is 155. In Play: 0 exploded
+skinned meshes, 0 on a carriageway, 0 on a rooftop, 230/230 gates live, all six faces present,
+16/16 bound people actually walking. **Frame time with the crowd on 42.39 ms, off 42.31 ms — a
+delta of 0.09 ms.** The crowd is free; whatever the frame costs, it is not this.
+
 **If it needs another pass, the knobs are all serialized on `TrafficSystem`** (select
 `World/Traffic` during Play): `densityScale`, `cullDistance`, the spawn ring, and every number from
 `config.traffic`. Nothing needs a rebuild to try.
@@ -84,8 +114,11 @@ numbers U16 had, because it is now literally the same graph object. 12,759 m bak
 **U17b is the next unit after this one** — carjacking, and generalising `CarBuilder` past the
 Mustang. It also inherits U13's deferred lot-car promotion. See its row.
 
-**Rebuild order:** The Block → **Build NPC Animator** → **Build Pedestrians** → **Build Traffic
-Cars** → **Build World + NavMesh (slow)**. Plain **Build World** is the fast path and KEEPS the last
+**Rebuild order:** The Block → **Import People (slow)** → **Build NPC Animator** → **Build
+Pedestrians** → **Build Traffic Cars** → **Build World + NavMesh (slow)** → **Bake Crowd Seeds**.
+The bake is last because it asks the NavMesh what is pavement; Import People is first and only ever
+needs re-running if a character FBX changes (it is ~576 MB and several minutes, and the MCP bridge
+drops while it runs). Plain **Build World** is the fast path and KEEPS the last
 bake — it lifts the `Crossings` group, the carve volumes and the `NavMeshSurface` out of the old root
 and re-attaches them, re-binding `NavMesh.asset` from disk (see the U17 decision: the component copy
 alone silently dropped it), and it never sweeps `Assets/Navigation/Generated/`. Run the slow one
@@ -93,14 +126,14 @@ after anything that moves a district or a street. In practice "slow" is ~3 s at 
 name is a warning that the bake is main-thread with no progress bar. **The traffic pass runs on both
 paths** — nothing in it bakes, and the lights must come from the same graph the crossings did.
 
-**U16's performance note** (user's call, 2026-08-15: *"flag this step as low performance, we will
-try to make it better later"*). Measured, not guessed — the numbers are in the decisions log:
-- The crowd's steady cost is ~0: frame time is the same with the crowd on and off (`C` toggles it in
-  Play; that key is debug-only and can go). What stuttered was the SPAWN BURST — 90 agents
-  instantiated, warped and pathed in one frame — and the vendor's five-LOD skinned meshes stacking up
-  to 2,960 SMRs. Both are fixed (trickled spawn, LODs 0+2 only). What is left to improve is
-  density: 60 live agents at 20–60 m reads as a street but not a busy one, and pushing it up means
-  looking at NavMesh agent count and skinning cost together, with the profiler, not by feel.
+**U16's performance note is now U16b's answer** (user's call, 2026-08-15: *"flag this step as low
+performance, we will try to make it better later"*, then 2026-08-15: *"return to the NPC's we had in
+three js version, and same placement"*). Measured both times, and the measurement said the same
+thing twice: **the crowd is not what costs.** U16 measured 0 delta with 60 agents; U16b measures
+0.09 ms with 139. What stuttered at U16 was the spawn burst and the vendor's 33-SMR five-LOD rigs.
+What is left, if the frame is still short, is elsewhere — start with the 18 shadow-casting punctual
+lights the console complains about (`Reduced additional punctual light shadows resolution by 4 to
+make 18 shadow maps fit in the 2048×2048 atlas`), which is the traffic lights and the headlights.
 - The 111 build warnings (`Main Object Name … does not match filename`) are U15's compressed
   material clones keeping their source name inside a district-prefixed file. Cosmetic, from URP's
   material upgrader. One line in `WorldBuilder.Textures.cs` (`material.name = fileName`) silences
@@ -900,6 +933,8 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
 | U16 | Pedestrian crowd (NavMesh agents) + zebra crossings | done | `0dc4398` + `27058ae` | User-confirmed 2026-08-15 — flagged **low performance, revisit later** by the user (see RESUME HERE). The pavement is not enforced, it is the only thing that exists: `WorldBuilder.Navigation.cs` carves all 12.7 km of `config.traffic.network` **Not Walkable** (172 volumes over 142 streets), which disconnects the two sides of every road, so the only route across is a gated `NavMeshLink` at one of **230 zebras** on 70 lit intersections — derived from the same graph and the same `stopLineDist + crossingSetback` as `traffic.ts`. NavMesh baked 963 × 805 m @ 0.4 m voxels over the DISTRICTS only (car park excluded) (`CollectObjects.Children`, PhysicsColliders) → `Assets/Navigation/Generated/NavMesh.asset`. `config.traffic` ported (`TrafficSpec`, `StreetSpec` + its union converter). Crowd is a **pool of 60 that follows the player**, trickled in 6 per sweep, not the web build's ~400 seeded-at-boot-and-frozen — `CrowdSpawner`/`Pedestrian`/`NpcAppearance`. Zero of the 80 hand-recorded rectangles and strips in `npc.config.ts` are ported and none are needed. **Caught: the pack's prefabs reference the BUILT-IN Standard materials while the URP twins sit unused beside them — 455 slots rebound, or every pedestrian is magenta. Then, at play-test: zebras 2 cm UNDER the street (GroundY took the lowest hit — the ground plate — z-fighting up as orange); the vendor's five LODs are 33 skinned meshes per person, all posed every frame whether drawn or not, and an unposed one swapping in by LOD change draws at bind pose against a walked-off skeleton — the 'exploding pedestrian'; and 90 agents spawned in one frame was the stutter, not the crowd's steady cost, which measured as zero.** LODs 0+2 only now (395 → 158 SMRs), spawn trickled, car park excluded. ⚠ Rooftops bake walkable and are filtered at spawn/re-target by a height band, not by the bake |
+| U16b | Crowd rebuilt on the ORIGINAL's six people + authored placement | wip — built and measured, awaiting the user's play-test | | **The user's call after U16's play-test: stop patching the vendor pack, port the crowd the shipped game actually has.** Six Mixamo characters (Sophie/Remy/Elizabeth/Chinese/Peter/Lewis) imported from the original's `source-assets` FBX — 576 MB, Humanoid, one avatar CREATED per character and only that character's walk copying it (a shared avatar across six different bodies is how you get six subtly broken skeletons), `optimizeGameObjects` on, textures extracted so they can be compressed at all. Placement is `npc.config.ts` verbatim, now EXPORTED rather than re-typed: `export-config.mjs` gained a second source (`$npcSource`, `$npcSourceSha256`, `npcConfig` as a sibling of `config`) — 33 painted rectangles × 9, 38 strips × 8 split into two opposing lanes, a 9-per-district fallback, 2 gated crossers per zebra = **687 baked + 460 runtime = 1,147 people**. **NavMeshAgent is GONE from the crowd** and that reverses U16: the agent owned the transform, did its own avoidance and had to be created on the mesh first (the 'Failed to create agent' spam), and the original needs none of it because it walks authored strips and rectangles. The NavMesh STAYS as a query surface — `SamplePosition` is the web's `isWalkable`, `Raycast` is its `segmentWalkable`, which is the whole job of the 4096² mask with no readback and no 67 MB grid. **No LODGroup, one or two renderers per person: the 'exploding pedestrian' mechanism cannot occur.** Measured: peak 139 within 90 m (p95 79) so `liveCap` 155; frame time crowd-on 42.39 ms vs crowd-off 42.31 ms — **delta 0.09 ms**; 0 exploded, 0 on a carriageway, 0 on a rooftop, 230/230 gated. **Caught: `mesh.bounds` reports FILE units and ignores import scale, so an earlier pass 'measured' every character at 170 m, scaled the importer to fix it, and broke every rig (`Avatar Rig Configuration mis-match … position error = 43757 mm`) — height is now measured by instantiating into a preview scene and corrected on the prefab's VISUAL CHILD, never the importer and never the root (that would scale the physics capsule). Remy really is 4.20 m native, exactly as the web build's comment says.** Unity 6 removed External material location; not needed — Mixamo FBX come out of Unity's own importer as URP/Lit with base+normal already bound. Deliberate deviation, and the only one: the 1,147 are structs and only those in range own a GameObject, because U16 measured that the cost was the `Instantiate` burst, not the population |
+| — | Vehicle hardening, folded into U16b | wip | | `CarWheel` took its bone rest offset from `WheelCollider.GetWorldPose` in `Awake` — before the first physics step, where the pose is not guaranteed to be a unit quaternion, and `Quaternion.Inverse` of a zero quaternion is NaN. It also had no rebind guard, so a mid-Play recompile left `_boneRestOffset` deserialized as `(0,0,0,0)` and every LateUpdate wrote a degenerate rotation into a wheel bone — on a car whose body, doors and wheels are ONE skin over 16 bones, that is a black wedge across the sky. Now: offset from `transform.rotation`, `Bind()` guard like `CarDoor`, validation on the WRITE, and nothing posed before the first `FixedUpdate`. `CarController.Respawn` also rewritten — it used `cars.FirstOrDefault()` (whichever car pressed R), teleported to the raw config spawn which carries no Y (dropping the car to 0, under the road), and moved the Rigidbody with no `Physics.SyncTransforms`, so for one frame the wheel bones were posed where the car used to be |
 | U17 | Traffic — graph, cars, lights | wip — built, awaiting the user's play-test | `2ea3c54` | Cars, lights and phases on U16's graph, which is now derived ONCE by the traffic pass and handed to the navigation pass — the crossings and the lights key off the same node numbering by construction. `Crossing.IsClearOfTraffic` deleted; `TrafficLightSystem` fills `Crossing.Gate` for all 230. **The population is DERIVED, not configured**: 130 cars over 12,759 m is one car per 98 m, so the live count is the metres of centreline in range divided by that — a fixed 32 was the plan and it gridlocked the city in under a minute, because the disc around the starting lot holds 1,230 m and 32 there is jam density. The graph is BAKED to a ScriptableObject at build time (6,590 Y-samples), so the runtime casts no rays for traffic at all. Kinematic while driving, a real Rigidbody wreck when rammed. **Caught and fixed, both by measuring rather than looking: `GroundY` could return a ROOF (downtown's avenue baked at 6–10 m) and the fast `Build World` was silently losing the whole NavMesh — `PasteComponentValues` does not carry `navMeshData`, so the crowd failed to spawn with nothing in the console.** Cars stop BEHIND the zebra, which the original does not. Carjacking split out to U17b |
 | U17b | Carjack + `CarBuilder` past the Mustang | todo | | `config.traffic.hijack` — `E` on a stopped street car promotes it to a drivable `Vehicle`, the sim slot recycling far away (`traffic-cars.ts` `nearestStopped`/`hold`/`claim`, `transitions.ts hijackTrafficCar`). **Also owns U13's deferred lot-car promotion**, which is the same mechanism. The blocker is that `CarBuilder` only builds the Mustang, and `config.vehicle.cars` has full drivable specs (door joint, seat, paint) for Tesla/Audi/Avenger — but **none of those three GLBs has a wheel node at all**, so `FindWheelBones` has nothing to find and their wheel geometry must be STATED the way `MotorcycleBuilder` states the bike's. Split out of U17 by the user, 2026-08-15, to keep U17 to one checkpoint |
 | U18 | Run-over + blood VFX | todo | | Root Motion ON — the clip's motion IS the knockback. **Owes U16 one thing:** a struck pedestrian must leave the NavMesh, so the agent has to be disabled for the knockback and re-`Warp`ed after. Panic-fleeing into the road (if it is wanted) is the same switch — the carve makes the road unreachable by pathfinding on purpose |

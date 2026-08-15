@@ -106256,33 +106256,41 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: db86c7b25fbb4493d8fb8afecd4635d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Npc.CrowdSpawner
+  seedTable: {fileID: 11400000, guid: 14e158b9e8ce542b39ee0e347f3a2d9a, type: 2}
   pedestrianPrefabs:
-  - {fileID: 990974760258666257, guid: 1c00d33c792d44bd5ad8881d8f63c698, type: 3}
-  - {fileID: 3422424433634672371, guid: fc211409ed8ed47328c8b7359ef287dd, type: 3}
-  - {fileID: 5828158804558639289, guid: 9fcd0edea0f1b4595bfc7cd85fc95ea5, type: 3}
-  - {fileID: 1068571429283943402, guid: 8503b2bca1c314d6d91699f833e4e962, type: 3}
-  - {fileID: 3939950146736194420, guid: fb8a96917683f43d08e6e3e76bf25912, type: 3}
-  - {fileID: 5350155250801014058, guid: 21b1f589605c8407b94a511a110cc338, type: 3}
-  - {fileID: 4972079147427608142, guid: 48266a080496f45e28e7f629a8e08214, type: 3}
-  - {fileID: 285810922696567174, guid: db0c237ef23e04af8bca02cdfc2555ee, type: 3}
-  - {fileID: 6623133464393100816, guid: 0361ac685ea234fc986831952e07b83b, type: 3}
-  - {fileID: 901636954665920296, guid: a39c7812bc0e0439c818b19c8cb04b73, type: 3}
-  - {fileID: 6362365358941778230, guid: c44af946da3b84363aabfa678562d141, type: 3}
-  - {fileID: 2250330182974277375, guid: 10c4c50e054b2466bb2bd2ebf539637b, type: 3}
-  liveCount: 60
-  spawnMinRadius: 20
-  spawnMaxRadius: 60
+  - {fileID: 7825495599607868117, guid: d241b81a5e1494c3884a12fae3dd2c22, type: 3}
+  - {fileID: 8612020689478981858, guid: 5e8e92f6c6b4141488490367ce7855e5, type: 3}
+  - {fileID: 5823248588273922690, guid: b7178af2ac04e49ea8fe090f5a252b68, type: 3}
+  - {fileID: 6849206836181657243, guid: 5054a7466d77a4c0b9490e0961eab8f1, type: 3}
+  - {fileID: 4868625441103634788, guid: 4590dd7ca12394f31aa50ca39e09463a, type: 3}
+  - {fileID: 2935524365625324196, guid: 0ceab4d8cdbe14fd0a41859f5a5351a5, type: 3}
   cullDistance: 90
-  speedRange: {x: 1, y: 1.5}
-  sameStoreyBand: 3
-  seed: 20260816
-  sampleAttempts: 12
+  pauseTime: 1.2
+  stepRadius: 8
+  laneOffset: 1
+  arriveDistance: 0.3
+  zoneInset: 0.6
+  avoidRepickSec: 0.6
+  carAvoidBuffer: 0.6
+  curbMargin: 1
+  liveCap: 155
+  cullHysteresis: 5
   sweepInterval: 0.5
-  placementsPerSweep: 6
+  bindsPerSweep: 8
+  instantiatesPerFrame: 2
+  sameStoreyBand: 3
+  sampleAttempts: 12
+  sampleRadius: 0.75
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967039
+  seed: 20260816
+  requireClearLine: 1
+  clearLineWaitCap: 6
+  clearLineSamples: 6
   player: {fileID: 0}
   vehicles: {fileID: 0}
-  crowdLimit: 3
-  crowdRadius: 8
+  traffic: {fileID: 0}
 --- !u!4 &958789295
 Transform:
   m_ObjectHideFlags: 0

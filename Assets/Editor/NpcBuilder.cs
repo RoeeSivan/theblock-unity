@@ -1,414 +1,215 @@
-using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using TheBlock.Core;
 using TheBlock.Npc;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.AI;
 
 namespace TheBlock.EditorTools
 {
     /// <summary>
-    /// Turns Chepatack's <c>npc_casual_set_00</c> characters into pedestrians — U16.
+    /// Builds the six pedestrian prefabs — <b>The Block → Build Pedestrians</b>.
     ///
-    /// Same idiom as <see cref="CarBuilder"/> and <see cref="MotorcycleBuilder"/>: the prefab is a
-    /// build product, generated from a vendor asset plus a list of decisions written down here,
-    /// rather than a thing assembled by hand in the Inspector and impossible to review.
+    /// One per character imported by <see cref="PeopleImporter"/>: the body, its own animator
+    /// override, the capsule <c>npc.config.ts</c> specifies, and nothing else.
     ///
-    /// THE PACK IS WELL BUILT AND TOO HEAVY, both at once. Each of the twelve character prefabs
-    /// carries a real 5-level <c>LODGroup</c> and an Animator already bound to
-    /// <c>npc_hmn_01mAvatar</c>, so there is no bone rebinding to do — but that LODGroup sits over
-    /// thirty-odd SkinnedMeshRenderers (six parts × five LODs), and a LODGroup only decides what
-    /// the camera draws; every one of those is still skinned each frame. See <see cref="KeepLods"/>
-    /// for what that cost and what is done about it. This builder adds the game's own components,
-    /// strips the ladder to two rungs, and fixes one real fault.
+    /// <b>What this file no longer does is the whole point of U16b.</b> The vendor pack it used to
+    /// build from shipped six body parts at five LOD levels — 33 SkinnedMeshRenderers per person —
+    /// and every one of them was posed every frame whether or not it was drawn. Stripping that back
+    /// to two levels was U16's perf fix, and the leftover mechanism was still the "exploding
+    /// pedestrian": a renderer that had never been posed, swapped in by a LOD change, drawing its
+    /// first frame at bind pose against a skeleton that had walked off — a fan of black triangles
+    /// reaching for the horizon. <b>These rigs have no LODGroup and one or two renderers each, so
+    /// that cannot happen.</b> Do not add LODs back without reading this paragraph twice.
     ///
-    /// THAT FAULT: the prefabs reference <c>npc_casual_set_00/Materials</c>, which is the BUILT-IN
-    /// pipeline's Standard shader. This project is URP. The pack ships the URP set beside it as
-    /// <c>MaterialsUPR</c> — same 54 names, <c>Universal Render Pipeline/Lit</c> — and nothing
-    /// points at it, so dropped in as they are, every pedestrian renders magenta. The rebind below
-    /// is by NAME, one folder to the other.
+    /// Three more things it deliberately does not do:
+    ///  - <b>No material work.</b> Mixamo FBX imported by Unity's own importer produce URP/Lit
+    ///    materials with their base and normal maps already bound (verified on all six). The
+    ///    <c>MaterialsUPR</c> rebinding dance is a property of Asset Store PREFABS, not of this
+    ///    pipeline.
+    ///  - <b>No appearance randomiser.</b> The vendor pack had one head mesh and swappable faces;
+    ///    these are six different people, which is what the original ships.
+    ///  - <b>No scale on the root.</b> A character that did not import at 1.70 m is corrected on the
+    ///    VISUAL CHILD, because scaling the root scales the physics capsule with it — and the capsule
+    ///    is the one dimension the config actually specifies.
     /// </summary>
     public static class NpcBuilder
     {
-        private const string PackRoot = "Assets/npc_casual_set_00";
         private const string PrefabFolder = "Assets/Prefabs/Npc";
-        private const string GeneratedMaterialFolder = "Assets/Materials/Npc/Generated";
-        private const string ControllerPath = "Assets/Animation/Npc.controller";
 
-        /// <summary>Capsule from <c>npc.config.ts</c>: total height 2 * (halfHeight + radius) = 1.6 m.</summary>
-        private const float ColliderRadius = 0.3f;
-        private const float ColliderHalfHeight = 0.5f;
-
-        /// <summary>
-        /// Agent radius, narrower than the default Humanoid 0.5.
-        ///
-        /// Pavements in these districts run about 2 m wide, and two agents at 0.5 cannot pass on
-        /// one — the avoidance solver puts one of them into the building. This is the AGENT's
-        /// radius, not the bake's, which stays at the shared Humanoid type's.
-        /// </summary>
-        private const float AgentRadius = 0.3f;
-
-        private const float AgentHeight = 1.7f;
-
-        /// <summary>Shirt tints. Deliberately drab: this is Florentin on a weekday, not a parade.</summary>
-        private static readonly Color[] TopTints =
-        {
-            new(1.00f, 1.00f, 1.00f), // untouched — the vendor's own colourway
-            new(0.62f, 0.66f, 0.72f),
-            new(0.78f, 0.72f, 0.58f),
-            new(0.55f, 0.60f, 0.55f),
-            new(0.72f, 0.55f, 0.52f),
-            new(0.45f, 0.48f, 0.58f),
-        };
-
-        /// <summary>Node-name fragments that identify the head, whose material carries the face.</summary>
-        private static readonly string[] HeadParts = { "_head", "_face" };
-
-        /// <summary>Node-name fragments that identify the garment worn on the torso.</summary>
-        private static readonly string[] TopParts = { "tshirt", "shirtopenrolled" };
+        /// <summary>Where a pedestrian's collider lives, so the ground probe can ignore it.</summary>
+        internal const string PedestrianLayer = "Pedestrian";
 
         [MenuItem("The Block/Build Pedestrians", priority = 22)]
-        public static void Build()
+        public static void BuildMenu() => Build();
+
+        public static string Build()
         {
-            var controller = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(ControllerPath);
-            if (controller == null)
+            var snapshot = TheBlockConfig.Load(reload: true);
+            var npc = snapshot?.Npc;
+            if (npc == null)
             {
-                Debug.LogError(
-                    $"NpcBuilder: {ControllerPath} does not exist. Run The Block → Build NPC Animator first.");
-                return;
+                const string message =
+                    "NpcBuilder: the config snapshot has no npcConfig section. Run tools/export-config.sh.";
+                Debug.LogError(message);
+                return message;
             }
 
-            var sources = AssetDatabase.FindAssets("t:Prefab", new[] { $"{PackRoot}/Prefabs" })
-                .Select(AssetDatabase.GUIDToAssetPath)
-                .Where(p => System.IO.Path.GetFileNameWithoutExtension(p).StartsWith("npc_csl_00_character_"))
-                .OrderBy(p => p)
-                .ToList();
+            int layer = EnsureLayer(PedestrianLayer);
+            if (!AssetDatabase.IsValidFolder(PrefabFolder))
+                AssetDatabase.CreateFolder("Assets/Prefabs", "Npc");
 
-            if (sources.Count == 0)
+            var log = new StringBuilder();
+            int built = 0;
+
+            foreach (var name in PeopleImporter.Names)
             {
-                Debug.LogError(
-                    $"NpcBuilder: no character prefabs under {PackRoot}/Prefabs. Is the pack imported?");
-                return;
-            }
-
-            EnsureFolder(PrefabFolder);
-            EnsureFolder(GeneratedMaterialFolder);
-
-            var urpMaterials = LoadUrpMaterials();
-            var faceMaterials = LoadFaceMaterials(urpMaterials);
-            var tintCache = new Dictionary<string, Material[]>();
-            var built = new List<string>();
-            int rebound = 0, missingUrp = 0, smrsBefore = 0, smrsAfter = 0;
-
-            foreach (var source in sources)
-            {
-                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(source);
-                if (prefab == null) continue;
-
-                var instance = Object.Instantiate(prefab);
-                instance.name = $"Ped_{prefab.name.Replace("npc_csl_00_character_", string.Empty)}";
-
-                int smrBefore = instance.GetComponentsInChildren<SkinnedMeshRenderer>(true).Length;
-                RebindToUrp(instance, urpMaterials, ref rebound, ref missingUrp);
-                WireAgent(instance, controller);
-                WireAppearance(instance, prefab.name, faceMaterials, tintCache);
-                smrsBefore += smrBefore;
-                smrsAfter += instance.GetComponentsInChildren<SkinnedMeshRenderer>(true).Length;
-
-                var name = instance.name;
-                PrefabUtility.SaveAsPrefabAsset(instance, $"{PrefabFolder}/{name}.prefab");
-                Object.DestroyImmediate(instance);
-                built.Add(name);
+                if (BuildOne(name, npc, layer, log)) built++;
             }
 
             AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
 
-            Debug.Log(
-                $"NpcBuilder — {built.Count} pedestrian prefab(s) in {PrefabFolder}\n" +
-                $"  {string.Join(", ", built)}\n" +
-                $"  Materials rebound to MaterialsUPR: {rebound}" +
-                (missingUrp > 0
-                    ? $" — {missingUrp} had NO URP twin and stay on the built-in shader (they will render magenta)\n"
-                    : " (the pack's prefabs all point at the BUILT-IN set, which is magenta under URP)\n") +
-                $"  Skinned meshes: {smrsBefore} → {smrsAfter} across the set (LODs kept: " +
-                $"{string.Join("/", KeepLods)}; the rest destroyed, not disabled)\n" +
-                $"  NavMeshAgent r={AgentRadius} h={AgentHeight}, auto off-mesh traversal OFF so " +
-                "Pedestrian owns the kerb\n" +
-                "  Appearance: face material × shirt tint, both as shared assets so the SRP Batcher survives\n" +
-                "  Drag these onto a CrowdSpawner's Pedestrian Prefabs list");
+            var report =
+                $"NpcBuilder — {built}/{PeopleImporter.Names.Length} pedestrian prefab(s)\n{log}" +
+                $"  capsule r {npc.Collider.Radius:0.##} h {2f * (npc.Collider.HalfHeight + npc.Collider.Radius):0.##} " +
+                $"on layer '{PedestrianLayer}' ({layer})\n" +
+                "  Drag these onto the Crowd object's Pedestrian Prefabs list, or run Bake Crowd Seeds";
+            Debug.Log(report);
+            return report;
         }
 
-        // --- materials ---------------------------------------------------------------------------
-
-        private static Dictionary<string, Material> LoadUrpMaterials()
+        private static bool BuildOne(string name, TheBlockConfig.NpcSpec npc, int layer, StringBuilder log)
         {
-            var map = new Dictionary<string, Material>(System.StringComparer.Ordinal);
-            foreach (var guid in AssetDatabase.FindAssets("t:Material", new[] { $"{PackRoot}/MaterialsUPR" }))
+            var modelPath = PeopleImporter.IdlePath(name);
+            var model = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
+            if (model == null)
             {
-                var path = AssetDatabase.GUIDToAssetPath(guid);
-                var material = AssetDatabase.LoadAssetAtPath<Material>(path);
-                if (material != null) map[material.name] = material;
+                log.AppendLine($"{name,-11} SKIPPED — no {modelPath}. Run Import People (slow) first.");
+                return false;
             }
 
-            return map;
-        }
-
-        /// <summary>The pack's ten face materials, split by the gender their name carries.</summary>
-        private static Dictionary<char, Material[]> LoadFaceMaterials(Dictionary<string, Material> urp)
-        {
-            var byGender = new Dictionary<char, List<Material>> { ['m'] = new(), ['f'] = new() };
-
-            foreach (var pair in urp)
+            var over = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(
+                NpcAnimatorBuilder.OverridePath(name));
+            if (over == null)
             {
-                // mtl_npc_hmn_face_01m_03_01 — the character letter after "face_01" is the gender.
-                const string marker = "_face_01";
-                int at = pair.Key.IndexOf(marker, System.StringComparison.Ordinal);
-                if (at < 0 || at + marker.Length >= pair.Key.Length) continue;
-
-                char gender = pair.Key[at + marker.Length];
-                if (byGender.TryGetValue(gender, out var list)) list.Add(pair.Value);
+                log.AppendLine($"{name,-11} SKIPPED — no override controller. Run Build NPC Animator first.");
+                return false;
             }
 
-            return byGender.ToDictionary(p => p.Key, p => p.Value.OrderBy(m => m.name).ToArray());
-        }
+            var root = new GameObject($"Ped_{name}");
 
-        /// <summary>
-        /// Points every renderer at the URP twin of the material it currently uses.
-        ///
-        /// By name, because that is the only thing the two folders share — the GUIDs are unrelated
-        /// and the vendor prefab hard-references the built-in ones. A material with no twin is left
-        /// alone and counted, so a silently magenta pedestrian is a number in the log rather than a
-        /// thing to discover in the Game view.
-        /// </summary>
-        private static void RebindToUrp(
-            GameObject instance, Dictionary<string, Material> urp, ref int rebound, ref int missing)
-        {
-            foreach (var renderer in instance.GetComponentsInChildren<Renderer>(true))
+            try
             {
-                var materials = renderer.sharedMaterials;
-                bool changed = false;
+                root.layer = layer;
 
-                for (int i = 0; i < materials.Length; i++)
+                var visual = (GameObject)PrefabUtility.InstantiatePrefab(model, root.transform);
+                visual.name = "Visual";
+                visual.transform.localPosition = Vector3.zero;
+                visual.transform.localRotation = Quaternion.identity;
+
+                // Mixamo characters already face +Z in both engines, and these are FBX read by
+                // Unity's own importer rather than glTFast — so no ModelFacing and no X negation.
+                // The handedness rule governs hand-authored config numbers and .glb mesh data.
+                float measured = PeopleImporter.MeasureHeight(modelPath);
+                float scale = PeopleImporter.HeightScale(measured);
+                visual.transform.localScale = Vector3.one * scale;
+
+                foreach (var child in visual.GetComponentsInChildren<Transform>(true)) child.gameObject.layer = layer;
+
+                var animator = visual.GetComponentInChildren<Animator>(true);
+                if (animator == null)
                 {
-                    if (materials[i] == null) continue;
-                    if (urp.TryGetValue(materials[i].name, out var replacement))
-                    {
-                        if (materials[i] == replacement) continue;
-                        materials[i] = replacement;
-                        changed = true;
-                        rebound++;
-                    }
-                    else
-                    {
-                        missing++;
-                    }
+                    log.AppendLine($"{name,-11} SKIPPED — the imported model has no Animator");
+                    return false;
                 }
 
-                if (changed) renderer.sharedMaterials = materials;
-            }
-        }
+                animator.runtimeAnimatorController = over;
 
-        /// <summary>
-        /// Tinted clones of one shirt material, generated once and shared by every pedestrian
-        /// wearing it — the same call U13 made for the car park's eighteen paints, and for the same
-        /// reason: a <see cref="MaterialPropertyBlock"/> would tint the shirt and drop the wearer
-        /// out of the SRP Batcher.
-        /// </summary>
-        private static Material[] TintsFor(Material source, Dictionary<string, Material[]> cache)
-        {
-            if (source == null) return System.Array.Empty<Material>();
-            if (cache.TryGetValue(source.name, out var cached)) return cached;
+                // The crowd script owns movement, so the clip's travel is discarded — the same
+                // arrangement PlayerAnimator uses. Baked into the pose it would fight the script.
+                animator.applyRootMotion = false;
 
-            var variants = new Material[TopTints.Length];
-            for (int i = 0; i < TopTints.Length; i++)
-            {
-                var path = $"{GeneratedMaterialFolder}/{source.name}_t{i}.mat";
-                var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
-                if (existing != null)
-                {
-                    variants[i] = existing;
-                    continue;
-                }
-
-                var variant = new Material(source) { name = $"{source.name}_t{i}" };
-                variant.SetColor("_BaseColor", TopTints[i]);
-                AssetDatabase.CreateAsset(variant, path);
-                variants[i] = variant;
-            }
-
-            cache[source.name] = variants;
-            return variants;
-        }
-
-        // --- components --------------------------------------------------------------------------
-
-        /// <summary>
-        /// LOD levels kept, by index into the vendor's five. Everything else is deleted.
-        ///
-        /// The pack's LODGroup is real, but a LODGroup only decides which renderers the CAMERA
-        /// draws — every SkinnedMeshRenderer under it is still a live skinned mesh whose vertices
-        /// are re-posed each frame whether or not it is shown. Five LODs × six parts is 30–33 of
-        /// them per person, so a 90-person crowd was 2,960 skinned meshes being posed for 747 that
-        /// were visible, and the frame time went with it. It also produced the "exploding
-        /// pedestrian": a renderer that had sat unposed since spawn, swapped in by a LOD change,
-        /// draws its first frame at bind pose against a skeleton that has long since walked off —
-        /// which is a fan of black triangles reaching for the horizon.
-        ///
-        /// Two levels is the whole ladder a street crowd needs: full detail up close, and the ~800
-        /// tri LOD2 for everything past that. Nothing here is ever examined at LOD1 distance for
-        /// long enough to notice, and LOD3/4 are for a hundred metres out, where the animator is
-        /// culled entirely anyway.
-        /// </summary>
-        private static readonly int[] KeepLods = { 0, 2 };
-
-        /// <summary>Screen-height thresholds for the kept levels, then cull. Vendor's were 0.7/0.4/0.2/0.05/0.</summary>
-        private static readonly float[] KeepLodHeights = { 0.25f, 0.02f };
-
-        private static void WireAgent(GameObject instance, RuntimeAnimatorController controller)
-        {
-            StripLods(instance);
-
-            if (instance.TryGetComponent<Animator>(out var animator))
-            {
-                animator.runtimeAnimatorController = controller;
-                animator.applyRootMotion = false; // the agent drives movement, not the clip
-                // Cull completely off-screen. The agent still moves the root — that is a
-                // NavMeshAgent, not the animator — so a culled pedestrian keeps walking and is in
-                // the right place when it comes back into view; only its limbs stop being posed
-                // while nobody can see them. This was misread as the cause of the exploding
-                // pedestrian in an earlier pass and switched to AlwaysAnimate, which doubled the
-                // frame cost and fixed nothing: the real cause was renderers that had never been
-                // posed at all (see <see cref="KeepLods"/>), and StripLods removes them.
+                // Off-screen, stop posing entirely. The pedestrian keeps walking because its
+                // transform is script-driven, so it is in the right place when it comes back into
+                // view; only the limbs pause. U16 tried AlwaysAnimate as a fix for the exploding
+                // pedestrian, doubled the cost and fixed nothing — the fault was elsewhere.
                 animator.cullingMode = AnimatorCullingMode.CullCompletely;
+
+                var capsule = root.AddComponent<CapsuleCollider>();
+                capsule.radius = npc.Collider.Radius;
+                capsule.height = 2f * (npc.Collider.HalfHeight + npc.Collider.Radius);
+                capsule.center = new Vector3(0f, capsule.height * 0.5f, 0f);
+
+                // The port of the web's kinematicPositionBased body. A moving collider with NO
+                // Rigidbody is a moving STATIC collider, and PhysX rebuilds its static tree for every
+                // one of them every frame — across a live crowd that is the most expensive thing in
+                // the unit. (U16's comment forbidding a Rigidbody protected Crossing.IsClearOfTraffic,
+                // which U17 deleted.)
+                var body = root.AddComponent<Rigidbody>();
+                body.isKinematic = true;
+                body.useGravity = false;
+                body.interpolation = RigidbodyInterpolation.None;
+                body.collisionDetectionMode = CollisionDetectionMode.Discrete;
+
+                var walkClip = AssetDatabase.LoadAllAssetsAtPath(PeopleImporter.WalkPath(name))
+                    .OfType<AnimationClip>()
+                    .FirstOrDefault(c => c.name == PeopleImporter.WalkClip(name));
+
+                float clipSpeed = NpcAnimatorBuilder.WalkSpeed(walkClip);
+
+                var pedestrian = root.AddComponent<Pedestrian>();
+                pedestrian.Configure(animator, clipSpeed);
+
+                var path = $"{PrefabFolder}/Ped_{name}.prefab";
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+
+                log.AppendLine(
+                    $"{name,-11} {measured:0.00} m × {scale:0.###} → 1.70 m | " +
+                    $"{visual.GetComponentsInChildren<SkinnedMeshRenderer>(true).Length} skinned mesh(es), " +
+                    $"no LODGroup | walk clip {clipSpeed:0.00} m/s → {path}");
+                return true;
             }
-
-            var agent = instance.GetComponent<NavMeshAgent>();
-            if (agent == null) agent = instance.AddComponent<NavMeshAgent>();
-            agent.radius = AgentRadius;
-            agent.height = AgentHeight;
-            agent.baseOffset = 0f;
-            agent.acceleration = 8f;
-            agent.angularSpeed = 360f;
-            agent.stoppingDistance = 0.4f;
-            agent.autoBraking = true;
-            agent.autoRepath = true;
-            // Good quality costs more than a crowd of forty is worth, and None lets people merge
-            // into each other on a narrow pavement, which is the thing you actually notice.
-            agent.obstacleAvoidanceType = ObstacleAvoidanceType.MedQualityObstacleAvoidance;
-
-            var capsule = instance.GetComponent<CapsuleCollider>();
-            if (capsule == null) capsule = instance.AddComponent<CapsuleCollider>();
-            capsule.radius = ColliderRadius;
-            capsule.height = 2f * (ColliderHalfHeight + ColliderRadius);
-            capsule.center = new Vector3(0f, capsule.height * 0.5f, 0f);
-            // NO RIGIDBODY, and that is load-bearing: Crossing.IsClearOfTraffic decides whether the
-            // road is busy by looking for attached Rigidbodies, so a pedestrian with one would make
-            // every other pedestrian wait for it.
-
-            if (!instance.TryGetComponent<Pedestrian>(out _)) instance.AddComponent<Pedestrian>();
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
         }
 
         /// <summary>
-        /// Rebuilds the LODGroup with only <see cref="KeepLods"/> and DESTROYS the renderers of every
-        /// other level. Destroyed, not disabled: a disabled SkinnedMeshRenderer is still a skinned
-        /// mesh the animator owns, and the cost is the ownership.
+        /// Finds or creates a project layer by name.
+        ///
+        /// The crowd needs one so its ground probe can ignore other pedestrians — without it people
+        /// sample each other's capsules and stack up.
         /// </summary>
-        private static void StripLods(GameObject instance)
+        private static int EnsureLayer(string name)
         {
-            var group = instance.GetComponentInChildren<LODGroup>();
-            if (group == null) return;
+            int existing = LayerMask.NameToLayer(name);
+            if (existing >= 0) return existing;
 
-            var lods = group.GetLODs();
-            var kept = new List<LOD>();
-            var doomed = new List<Renderer>();
-
-            for (int i = 0; i < lods.Length; i++)
+            var asset = AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset").FirstOrDefault();
+            if (asset == null)
             {
-                int keepIndex = System.Array.IndexOf(KeepLods, i);
-                if (keepIndex < 0)
-                {
-                    doomed.AddRange(lods[i].renderers);
-                    continue;
-                }
-
-                var lod = lods[i];
-                lod.screenRelativeTransitionHeight = KeepLodHeights[keepIndex];
-                kept.Add(lod);
+                Debug.LogWarning($"NpcBuilder: could not open TagManager to add the '{name}' layer.");
+                return 0;
             }
 
-            group.SetLODs(kept.ToArray());
-            group.RecalculateBounds();
+            var tagManager = new SerializedObject(asset);
+            var layers = tagManager.FindProperty("layers");
 
-            foreach (var renderer in doomed)
+            // 0-7 are Unity's own. 8 upwards is the user range.
+            for (int i = 8; i < layers.arraySize; i++)
             {
-                if (renderer == null) continue;
-                // The vendor puts each LOD renderer on its own child object with nothing else on
-                // it, so the object goes with it. Anything else — a shared bone, a container — is
-                // left standing and only the renderer is removed.
-                var go = renderer.gameObject;
-                bool bare = go.transform.childCount == 0 && go.GetComponents<Component>().Length <= 2;
-                if (bare) Object.DestroyImmediate(go);
-                else Object.DestroyImmediate(renderer);
-            }
-        }
+                var element = layers.GetArrayElementAtIndex(i);
+                if (!string.IsNullOrEmpty(element.stringValue)) continue;
 
-        private static void WireAppearance(
-            GameObject instance, string sourceName,
-            Dictionary<char, Material[]> faces, Dictionary<string, Material[]> tintCache)
-        {
-            // npc_csl_00_character_01f_02 — the letter after the body-type digits is the gender.
-            char gender = sourceName.Contains("f_", System.StringComparison.Ordinal) ? 'f' : 'm';
-            faces.TryGetValue(gender, out var faceVariants);
-
-            var heads = new List<Renderer>();
-            var headSlots = new List<int>();
-            var tops = new List<Renderer>();
-            Material topSource = null;
-
-            foreach (var renderer in instance.GetComponentsInChildren<Renderer>(true))
-            {
-                var name = renderer.name.ToLowerInvariant();
-
-                if (HeadParts.Any(p => name.Contains(p)))
-                {
-                    int slot = System.Array.FindIndex(
-                        renderer.sharedMaterials,
-                        m => m != null && m.name.Contains("_face_", System.StringComparison.Ordinal));
-                    if (slot >= 0)
-                    {
-                        heads.Add(renderer);
-                        headSlots.Add(slot);
-                    }
-                }
-
-                if (TopParts.Any(p => name.Contains(p)))
-                {
-                    tops.Add(renderer);
-                    topSource ??= renderer.sharedMaterial;
-                }
+                element.stringValue = name;
+                tagManager.ApplyModifiedProperties();
+                AssetDatabase.SaveAssets();
+                return i;
             }
 
-            var appearance = instance.GetComponent<NpcAppearance>();
-            if (appearance == null) appearance = instance.AddComponent<NpcAppearance>();
-            appearance.Configure(
-                faceVariants ?? System.Array.Empty<Material>(),
-                heads.ToArray(), headSlots.ToArray(),
-                TintsFor(topSource, tintCache), tops.ToArray());
-        }
-
-        private static void EnsureFolder(string path)
-        {
-            if (AssetDatabase.IsValidFolder(path)) return;
-
-            var parts = path.Split('/');
-            var current = parts[0];
-            for (int i = 1; i < parts.Length; i++)
-            {
-                var next = $"{current}/{parts[i]}";
-                if (!AssetDatabase.IsValidFolder(next)) AssetDatabase.CreateFolder(current, parts[i]);
-                current = next;
-            }
+            Debug.LogWarning($"NpcBuilder: no free layer slot for '{name}'. Pedestrians stay on Default.");
+            return 0;
         }
     }
 }
