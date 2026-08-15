@@ -36,19 +36,17 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-**Next action: play-test U13, then U14 — map + minimap.** U13 is built and waiting on the user's
-eyes. Last build: **20 placed, 0 missing, 288 colliders**.
+**Next action: U14 — map + minimap.** Nothing is half-built; U13 closed clean.
 
-What to check, in the Editor:
+**U13 is done** — the user confirmed on 2026-08-15 that the station, the lot and the interior all
+read right. Last build: **20 placed, 0 missing, 288 colliders**.
 
-1. **The gas station** (Unity ~(320.9, 0, −123.3)) stands upright on the road, canopy overhead,
-   forecourt drivable. It was lying on its side and 5.4 m underground.
-2. **The parking lot** is full of parked cars in mixed colours — white, black, grey, the odd red,
-   yellow and blue — and the Mustang and the bike still have their own clear patch to spawn in.
-   Drive into one: it should stop you.
-3. **The pizzeria doorway.** Walk to the storefront at Unity (−28, ~0.3, −100) and press `E`: the
-   screen should cut to a warm lit room. Press `E` again standing on the spot you arrived on and
-   you step back out onto the street. There is no fade yet — that is U25's.
+**One thing carried forward, deliberately, into U21:** the interior *looks* right but its
+**mission mechanics are not settled** — the user's words on accepting it. Nothing is broken; what is
+missing is the shape the delivery mission wants from the room (where the counter hand-off happens,
+what the exit pad means once you are carrying pizzas, whether stepping out should be the thing that
+starts the shift). U21 owns that, and it is expected to change `Assets/Scripts/World/Interior.cs`
+rather than build beside it. Do not treat the current doorway behaviour as settled design.
 
 **U12 is done** — the user confirmed on 2026-08-15 that the roads, the water and the beach all read
 right.
@@ -641,7 +639,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | --- | --- | --- | --- | --- |
 | U11 | All 9 districts via WorldBuilder | done | `21857c3` | Placement and colliders shipped in U5; U11 is the three rendering faults that survived it. Foliage: the white shards were a spurious V flip in glTFast's `_ST`, NOT the blend mode — `WorldBuilder.UnflipV`, plus a real alpha-clip pass that rebinds to generated URP/Lit materials because `_AlphaClip` on an imported glTFast material is inert. Cities 2/3: baked cars stripped at the SUBMESH level in Unity — 86% of the mesh — instead of a Blender split, out of collision as well as sight. Empty material slots were drawing magenta and now get glTF's default material. **Caught and fixed: a substring pattern list that alpha-clipped every road, because "tree" is inside "CityGen_Streets".** Foliage colliders left open on purpose — see Deferred. User-confirmed 2026-08-15 |
 | U12 | Roads, ground, sea | done | `7dc8208` | Roads are `com.unity.splines` + a generated ribbon, NOT the web's per-segment stretched tile: 1864 m of spline vs 1859.5 m of polyline, corners curved, markings continuous through them. The `SplineContainer`s are kept as U17/U19's centreline. Road surface texture is generated because the web tile's paint is geometry. Sea is a port of `sea-surface.ts` into `Assets/Shaders/{Water,Beach}.shader` (URP has no built-in water) — unlit on purpose, since the original does its own lighting. Beach is a displaced MeshCollider you walk down. `Assets/Scripts/World/SeaGeometry.cs` owns the waterline and its handedness — the sea is Unity **+x**. **Caught and fixed: the ground plate's collider held the player up over the whole beach; it now stops at the shore. "Kerbs" were phantom scope — no such system exists in the original.** Splines needs ≥2.9.0 on Unity 6.5. User-confirmed 2026-08-15 |
-| U13 | Places — pizza + interior, gas, police station, lot cars | wip | `211abc2` | Built, awaiting the user's play-test — nothing known outstanding. Gas station was Y/Z swapped by the Sketchfab export's cancelling root matrices; `Rx(-90)` in `AssetAliases`, whose entries can now correct the REAL asset (`File = null`) instead of only swapping in a stand-in. Lot cars are 101 real GameObjects with per-car culling and `LODGroup`s, NOT an InstancedMesh — same seeded layout as the web build (`Mulberry32` in `uint`), paint as 18 generated materials so the instancing survives. Interior is a teleport cell with the fog/ambient swap; its lights stay on and the sun stays up, both of which the web build only fights because of three's forward renderer. **Caught and fixed: `tesla.glb`/`avenger.glb` require `EXT_texture_webp` and glTFast rejects the whole file — `tools/glb-webp-to-png.py`; and a BoxCollider that ignores the model scale is a kilometre wide on the 37.4× Avenger.** NPC + pizza pickups deferred to U21, lot-car promotion to U17, the fade to U25 — all by the user's call |
+| U13 | Places — pizza + interior, gas, police station, lot cars | done | `211abc2` | User-confirmed 2026-08-15. Gas station was Y/Z swapped by the Sketchfab export's cancelling root matrices; `Rx(-90)` in `AssetAliases`, whose entries can now correct the REAL asset (`File = null`) instead of only swapping in a stand-in. Lot cars are 101 real GameObjects with per-car culling and `LODGroup`s, NOT an InstancedMesh — same seeded layout as the web build (`Mulberry32` in `uint`), paint as 18 generated materials so the instancing survives. Interior is a teleport cell with the fog/ambient swap; its lights stay on and the sun stays up, both of which the web build only fights because of three's forward renderer. **Caught and fixed: `tesla.glb`/`avenger.glb` require `EXT_texture_webp` and glTFast rejects the whole file — `tools/glb-webp-to-png.py`; and a BoxCollider that ignores the model scale is a kilometre wide on the 37.4× Avenger.** NPC + pizza pickups deferred to U21, lot-car promotion to U17, the fade to U25 — all by the user's call. **The interior's MISSION mechanics are explicitly unsettled and belong to U21** — the room is right, what the delivery does inside it is not |
 | U14 | Map + minimap | todo | | |
 | U15 | Addressables streaming | todo | | ONLY if the profiler says so — measure first |
 
@@ -657,7 +655,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
 | U20 | Mission framework + campaign director + persistence | todo | | |
-| U21 | M1 pizza delivery | todo | | |
+| U21 | M1 pizza delivery | todo | | Owns the interior's mission mechanics, left open at U13 by the user: the counter hand-off, what the exit pad means while carrying pizzas, whether leaving starts the shift. Expect to change `Interior.cs`, not build beside it |
 | U22 | M2 rhythm / dance minigame | todo | | |
 | U23 | Helicopter + M3 rooftop rescue | todo | | |
 | U24 | Jetski + M4 chase | todo | | |
