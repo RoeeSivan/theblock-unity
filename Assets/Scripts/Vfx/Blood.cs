@@ -83,6 +83,11 @@ namespace TheBlock.Vfx
         private ParticleSystem _spray;
         private ParticleSystem.EmitParams _emit;
         private Stain[] _stains;
+        private int _builtOnFrame = -1;
+
+        /// <summary>Everything allocated on the GPU, so a rebuild can free what it replaces.</summary>
+        private readonly System.Collections.Generic.List<Texture2D> _textures = new();
+        private readonly System.Collections.Generic.List<Material> _materials = new();
         private int _nextStain;
         private MaterialPropertyBlock _block;
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
@@ -104,10 +109,22 @@ namespace TheBlock.Vfx
         /// Rebuilt from Update as well as Awake, for the same reason the crowd rebinds: a mid-Play
         /// recompile reloads the domain, non-serialized fields come back null and Awake never runs
         /// again (memory: <c>recompile-during-play-nulls-fields</c>).
+        ///
+        /// <b>It destroys the textures and materials it replaces, and it refuses to run twice in a
+        /// frame.</b> Both matter more than they look. This is the only code in the project that
+        /// allocates a Texture2D at runtime, and a rebuild path that leaks them is a rebuild path
+        /// that can eat texture memory without ever logging anything — in a scene whose textures are
+        /// already 3.2 GB, and where the visible symptom of running out is garbage sampled over the
+        /// whole world rather than an error. `GameObject.Destroy` does not touch a material's or a
+        /// texture's memory just because the renderer using it went away.
         /// </summary>
         private void Build()
         {
+            if (_builtOnFrame == Time.frameCount && _root != null) return;
+            _builtOnFrame = Time.frameCount;
+
             _block = new MaterialPropertyBlock();
+            ReleaseGpuResources();
 
             // Everything this system owns hangs off ONE child, and only that child is swept. Reaching
             // wider — "destroy every child of this object" — is exactly how the crowd on this same
@@ -121,6 +138,17 @@ namespace TheBlock.Vfx
             BuildSpray();
             BuildStains();
         }
+
+        /// <summary>Everything this component allocated on the GPU, freed explicitly.</summary>
+        private void ReleaseGpuResources()
+        {
+            foreach (var texture in _textures) if (texture != null) Destroy(texture);
+            foreach (var material in _materials) if (material != null) Destroy(material);
+            _textures.Clear();
+            _materials.Clear();
+        }
+
+        private void OnDestroy() => ReleaseGpuResources();
 
         private void BuildSpray()
         {
@@ -294,7 +322,7 @@ namespace TheBlock.Vfx
         // --- the two textures, drawn rather than authored ----------------------------------------
 
         /// <summary>Soft round droplet with a real edge — a droplet is not smoke.</summary>
-        private static Texture2D DropTexture()
+        private Texture2D DropTexture()
         {
             const int size = 64;
             var texture = new Texture2D(size, size, TextureFormat.RGBA32, true) { name = "Blood Drop" };
@@ -311,6 +339,7 @@ namespace TheBlock.Vfx
 
             texture.SetPixels32(pixels);
             texture.Apply();
+            _textures.Add(texture);
             return texture;
         }
 
@@ -320,7 +349,7 @@ namespace TheBlock.Vfx
         /// The point is the IRREGULAR outline. A clean circle reads instantly as "a quad with a
         /// texture on it", which is the single thing most likely to make this look cheap.
         /// </summary>
-        private static Texture2D SplatTexture()
+        private Texture2D SplatTexture()
         {
             const int size = 256;
             const float mid = size / 2f;
@@ -361,6 +390,7 @@ namespace TheBlock.Vfx
 
             texture.SetPixels32(pixels);
             texture.Apply();
+            _textures.Add(texture);
             return texture;
         }
 
@@ -407,7 +437,7 @@ namespace TheBlock.Vfx
         /// dance is what URP's shader GUI does when you flip Surface Type to Transparent; setting the
         /// float alone changes nothing, because the variant is chosen by the keyword.
         /// </summary>
-        private static Material BuildMaterial(string shaderName, Texture2D texture, string name)
+        private Material BuildMaterial(string shaderName, Texture2D texture, string name)
         {
             var shader = Shader.Find(shaderName);
             if (shader == null)
@@ -417,6 +447,7 @@ namespace TheBlock.Vfx
             }
 
             var material = new Material(shader) { name = name };
+            _materials.Add(material);
             material.SetTexture("_BaseMap", texture);
             material.SetFloat("_Surface", 1f);   // transparent
             material.SetFloat("_Blend", 0f);     // alpha

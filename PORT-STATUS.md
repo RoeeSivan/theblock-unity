@@ -1032,6 +1032,21 @@ would trigger it. A `wip` unit is work half-done; this is work deliberately not 
   gets a player INTO a canopy (U23's helicopter is the obvious one), or a U30 profiler pass that
   makes it a memory question rather than a gameplay one.
 
+- **Green blocks tiled over the whole world, and the Editor's own toolbar corrupted with it.**
+  User-flagged 2026-08-15 during U18's play-test; cleared on an editor restart. **Measured, and it is
+  not an allocation this project makes:** texture memory sat flat at **1,634 MB** across 45 s of Play
+  and across 16 run-overs in one frame (Texture2D count 1,346 → 1,346, texture memory 1,634 → 1,634
+  MB; only material COUNT moved, 756 → 851, which is the fade's per-body clones and carries no
+  texture memory). The decisive evidence is in the screenshot rather than the numbers: **the Game
+  view's own toolbar icons were drawn as coloured blocks too**, and the minimap RenderTexture came
+  back magenta. Game draw calls cannot reach the editor's IMGUI atlas — only a GPU-level failure
+  can, which makes this Metal under memory pressure on a 16 GB M3, not a leak. **Trigger:** it
+  recurring, or U30's perf pass. **First step:** ask whether it predates U18 — if it does, this is a
+  standing environment ceiling and the answer is to cut resident texture memory again (Mipmap
+  Streaming with a budget is the Unity mechanism U15 did not need to reach for), plus the shadow
+  atlas the console complains about every session ("18 shadow maps in a 2048×2048 atlas"). **Do not
+  start by suspecting the newest feature** — that was tested here and came back clean.
+
 - **On foot beside a pole, its lights do not appear to change.** User-flagged 2026-08-15, their call
   to defer. Separate from U17's buried-quad fault, which is fixed and verified: the quads now sit
   1.7 cm proud of the shell and the poles provably repaint (125 red / 79 green / 20 amber /
