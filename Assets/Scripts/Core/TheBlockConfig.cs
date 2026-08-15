@@ -77,6 +77,15 @@ namespace TheBlock.Core
             public CameraSpec Camera;
             public PlayerSpec Player;
             public VehicleSpec Vehicle;
+
+            /// <summary>
+            /// The street haze. Its colour is identical to <see cref="Background"/> in
+            /// <c>config.ts</c>, and that is the whole mechanism — see <see cref="World.Atmosphere"/>.
+            /// </summary>
+            public FogSpec Fog;
+
+            /// <summary>The sky colour geometry fades into. Equal to <c>fog.color</c> by design.</summary>
+            public int Background;
         }
 
         /// <summary>A three.js <c>{x, y, z}</c> literal. Still right-handed — convert before use.</summary>

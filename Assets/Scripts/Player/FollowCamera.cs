@@ -42,7 +42,12 @@ namespace TheBlock.Player
             var lens = snapshot.Config.Camera;
             _camera.fieldOfView = lens.Fov;
             _camera.nearClipPlane = lens.Near;
-            _camera.farClipPlane = lens.Far;
+            // NOT lens.Far. The config's 320 m is a three.js draw budget that only ever worked
+            // because the fog it ships with dissolves everything before the plane reaches it, and
+            // because config.streaming unloads districts past 380 m anyway. See World.Atmosphere —
+            // it owns this number and the fog range together, because a fog end that disagreed with
+            // the far plane is exactly the hard slice this replaced.
+            _camera.farClipPlane = World.Atmosphere.DrawDistance;
 
             if (player == null) player = FindAnyObjectByType<PlayerController>();
             if (player == null)

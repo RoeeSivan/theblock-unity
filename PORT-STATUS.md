@@ -48,6 +48,18 @@ is the bug. The pipeline is: **The Block → Compress Textures** once (writes
 `Assets/Textures/Generated/`, ~4 min), then every **Build World** rebinds automatically. Both are
 already run; the scene is current.
 
+**Two U12-era faults were found and fixed on 2026-08-15, from the user's play-test of U15**, and
+they need the same confirm. Neither was caused by U15.
+
+1. **The skyline was being sliced by the camera's far plane.** `config.fog` was never ported — see
+   the decision log. The world now draws to 1500 m with the config's haze rescaled onto it
+   (328–1313 m, `#9FB8D4`), and shadow distance went 50 → 150 m to match. `Assets/Scripts/World/
+   Atmosphere.cs` owns the far plane and the fog band together, because setting one without the
+   other is what put the hard cut there. Verified against before/after captures.
+2. **The ground plate was showing through the sea's wave troughs** — 0.37 m of swell against a plate
+   at −0.05 m. `WorldBuilder.BuildGroundMesh` now cuts the sea's rectangle out of the plate
+   (`x [430, 700] z [-546, 54]`). Predates U15; the same bands are in a 320 m capture.
+
 **U16 is next and its groundwork is checked.** `Assets/npc_casual_set_00` (user-added, 2026-08-15)
 works for a combinatorial crowd: every part FBX shares one Humanoid avatar (`npc_hmn_01mAvatar`,
 male + female variants), bones are unprefixed Mixamo names, so Joe's existing clips retarget.
@@ -714,7 +726,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
 | U11 | All 9 districts via WorldBuilder | done | `21857c3` | Placement and colliders shipped in U5; U11 is the three rendering faults that survived it. Foliage: the white shards were a spurious V flip in glTFast's `_ST`, NOT the blend mode — `WorldBuilder.UnflipV`, plus a real alpha-clip pass that rebinds to generated URP/Lit materials because `_AlphaClip` on an imported glTFast material is inert. Cities 2/3: baked cars stripped at the SUBMESH level in Unity — 86% of the mesh — instead of a Blender split, out of collision as well as sight. Empty material slots were drawing magenta and now get glTF's default material. **Caught and fixed: a substring pattern list that alpha-clipped every road, because "tree" is inside "CityGen_Streets".** Foliage colliders left open on purpose — see Deferred. User-confirmed 2026-08-15 |
-| U12 | Roads, ground, sea | done | `7dc8208` | Roads are `com.unity.splines` + a generated ribbon, NOT the web's per-segment stretched tile: 1864 m of spline vs 1859.5 m of polyline, corners curved, markings continuous through them. The `SplineContainer`s are kept as U17/U19's centreline. Road surface texture is generated because the web tile's paint is geometry. Sea is a port of `sea-surface.ts` into `Assets/Shaders/{Water,Beach}.shader` (URP has no built-in water) — unlit on purpose, since the original does its own lighting. Beach is a displaced MeshCollider you walk down. `Assets/Scripts/World/SeaGeometry.cs` owns the waterline and its handedness — the sea is Unity **+x**. **Caught and fixed: the ground plate's collider held the player up over the whole beach; it now stops at the shore. "Kerbs" were phantom scope — no such system exists in the original.** Splines needs ≥2.9.0 on Unity 6.5. User-confirmed 2026-08-15 |
+| U12 | Roads, ground, sea | done | `7dc8208` (+ fixes 2026-08-15) | **Two faults found at U15's play-test, both fixed — see the decision log: `config.fog` was never ported, so the 320 m far plane sliced the skyline; and the ground plate showed through the sea's wave troughs (0.37 m of swell vs a plate at −0.05 m), now cut out of the plate mesh.** Roads are `com.unity.splines` + a generated ribbon, NOT the web's per-segment stretched tile: 1864 m of spline vs 1859.5 m of polyline, corners curved, markings continuous through them. The `SplineContainer`s are kept as U17/U19's centreline. Road surface texture is generated because the web tile's paint is geometry. Sea is a port of `sea-surface.ts` into `Assets/Shaders/{Water,Beach}.shader` (URP has no built-in water) — unlit on purpose, since the original does its own lighting. Beach is a displaced MeshCollider you walk down. `Assets/Scripts/World/SeaGeometry.cs` owns the waterline and its handedness — the sea is Unity **+x**. **Caught and fixed: the ground plate's collider held the player up over the whole beach; it now stops at the shore. "Kerbs" were phantom scope — no such system exists in the original.** Splines needs ≥2.9.0 on Unity 6.5. User-confirmed 2026-08-15 |
 | U13 | Places — pizza + interior, gas, police station, lot cars | done | `211abc2` | User-confirmed 2026-08-15. Gas station was Y/Z swapped by the Sketchfab export's cancelling root matrices; `Rx(-90)` in `AssetAliases`, whose entries can now correct the REAL asset (`File = null`) instead of only swapping in a stand-in. Lot cars are 101 real GameObjects with per-car culling and `LODGroup`s, NOT an InstancedMesh — same seeded layout as the web build (`Mulberry32` in `uint`), paint as 18 generated materials so the instancing survives. Interior is a teleport cell with the fog/ambient swap; its lights stay on and the sun stays up, both of which the web build only fights because of three's forward renderer. **Caught and fixed: `tesla.glb`/`avenger.glb` require `EXT_texture_webp` and glTFast rejects the whole file — `tools/glb-webp-to-png.py`; and a BoxCollider that ignores the model scale is a kilometre wide on the 37.4× Avenger.** NPC + pizza pickups deferred to U21, lot-car promotion to U17, the fade to U25 — all by the user's call. **The interior's MISSION mechanics are explicitly unsettled and belong to U21** — the room is right, what the delivery does inside it is not |
 | U14 | Map + minimap | done | `8ea9fc4` | User-confirmed 2026-08-15. The base layer is a LIVE second camera into a 1024² RenderTexture (`Assets/Scripts/UI/MapCamera.cs`), not the web's boot-time bake — no readback, no shader-compile spike, and moving cars show. UI Toolkit, eleven units before U25: `MapView` paints outlines/dots/arrow with Painter2D and pools `Label`s for text, `GameMap` owns the panel and the `M` toggle, `MapRegistry` is the port of `world/registry.ts` and the hook missions add objective pins to. Both states capped at 12 fps — the web caps only the minimap. Camera at `(90, 180, 0)` puts screen right on world −X, matching the web map's frame; verified against `transform.right`. **Caught and fixed: `PlaceSpec` has no `name` in config.ts — the pin labels live in `map-pois.ts`, and reading the absent field crashed the label pass; and a 16-bit RT depth that made Metal log "memoryless depth surface" as an error.** Emoji pin glyphs deferred to U25 (no emoji font), cop blips to U19, rival/arena to U32 |
 | U15 | World memory — texture compression (was: Addressables) | wip | `4b7a93d` | Built, awaiting the user's play-test. The measurement the row demanded REJECTED Addressables: 13.5 GB of scene memory, 96% textures, and streaming 13.5 GB in chunks is still 13.5 GB. Real cause: glTFast textures are .glb SUB-ASSETS with no TextureImporter, so nothing ever compressed them — 12.9 GB raw RGB24. **The Block → Compress Textures** (`TextureCompressor.cs`) slices the embedded PNG/JPEGs verbatim out of the GLB container into `Assets/Textures/Generated/`; `GeneratedTextureImporter.cs` makes the first import BC1/BC7 with settings derived from the file NAME (so a Library wipe cannot lose them); `WorldBuilder.Textures.cs` clones .glb materials and rebinds — 688 slots. **Scene texture memory 13,498 → 3,204 MB (4.2×).** Caught: texture names are NOT unique in a .glb (seven "Untitled" in city 4) — resolver matches name+size+alpha and refuses to guess, 12 refusals reported; and NPOT+mips silently skips block compression while claiming DXT1 — `npotScale ToLarger`, which was 8.9 GB of the win. Memories: `gltfast-textures-never-compressed`, `npot-mips-skip-block-compression` |
@@ -789,6 +801,21 @@ would trigger it. A `wip` unit is work half-done; this is work deliberately not 
 ## Decisions log
 
 Dated one-liners. These are settled — do not re-litigate them without the user reopening.
+
+- **2026-08-15** (U12 repair) — **`config.camera.far` is a three.js budget, not a design; the fog it
+  came with is the design.** `far` 320 m, `fog` 70→280 m and `background` are ONE mechanism: the haze
+  dissolves geometry into a sky painted the identical `#9FB8D4` long before the plane reaches it. The
+  port took the plane and left the fog, so the clip ran naked and sliced the skyline in a hard arc.
+  `config.streaming` (unload past 380 m) is the proof the distance was a budget. Unity draws to
+  1500 m; `World.Atmosphere` owns that number AND the fog range together, and rescales the config's
+  own near/far RATIOS onto it so the haze thickens at the same fraction of the view it always did.
+  Never set one without the other.
+- **2026-08-15** (U12 repair) — **The ground plate is not drawn where the sea is.** U12 kept the
+  visual plane full-size because "the water is opaque and drawn above it"; the arithmetic says
+  otherwise — the swells total 0.37 m of trough against a plate at −0.05, so every deep trough
+  exposed green through the ocean in bands that read as a shader fault. The plate's mesh now has the
+  sea's rectangle cut out of it. Moving either surface was rejected: the plate's collider is already
+  trimmed at the shore and would float above a lowered plate, and the water line is gameplay.
 
 - **2026-08-15** (U15) — **U15 is texture compression, not Addressables.** The row said "ONLY if
   the profiler says so"; the profiler said the problem is format, not streaming — 12.9 GB of the

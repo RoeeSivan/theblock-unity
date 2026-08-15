@@ -127,6 +127,12 @@ namespace TheBlock.EditorTools
 
         public class Options
         {
+            /// <summary>
+            /// Street fog + shadow distance. Off is what the world looked like before the fog was
+            /// ported: a hard arc slicing the skyline wherever the far plane fell.
+            /// </summary>
+            public bool Atmosphere = true;
+
             public bool Ground = true;
             public bool Roads = true;
             public bool Sea = true;
@@ -164,6 +170,7 @@ namespace TheBlock.EditorTools
             root.SourceSha256 = snapshot.SourceSha256;
             ResetTexturePass();
 
+            if (options.Atmosphere) BuildAtmosphere(snapshot.Config, report);
             if (options.Ground) BuildGround(root.transform, snapshot.Config.Ground, snapshot.Config.Sea, report);
             if (options.Roads) BuildRoads(root.transform, snapshot.Config.Roads, report);
             if (options.Sea) BuildSea(root.transform, snapshot.Config.Sea, options, report);
@@ -276,19 +283,16 @@ namespace TheBlock.EditorTools
                 return;
             }
 
-            var plane = GameObject.CreatePrimitive(PrimitiveType.Plane);
-            plane.name = "Ground";
+            var plane = new GameObject("Ground");
             plane.transform.SetParent(parent, worldPositionStays: false);
             plane.transform.position = new Vector3(0f, ground.Y, 0f);
-            // Unity's Plane primitive is 10 m across at scale 1.
-            plane.transform.localScale = Vector3.one * (ground.Size / 10f);
+
+            var mesh = BuildGroundMesh(ground, sea, report);
+            plane.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var groundRenderer = plane.AddComponent<MeshRenderer>();
 
             var material = LoadOrCreateGroundMaterial(ground, report);
-            if (material != null) plane.GetComponent<MeshRenderer>().sharedMaterial = material;
-
-            // The primitive's own MeshCollider covers the whole plane, so it is replaced rather than
-            // adjusted: a box that ends at the shore, top face flush with the visual plate.
-            if (plane.TryGetComponent<MeshCollider>(out var meshCollider)) UnityEngine.Object.DestroyImmediate(meshCollider);
+            if (material != null) groundRenderer.sharedMaterial = material;
 
             var floor = new GameObject("Ground Floor");
             floor.transform.SetParent(plane.transform, worldPositionStays: false);
@@ -296,8 +300,8 @@ namespace TheBlock.EditorTools
             float near = sea != null ? SeaGeometry.ShoreX(sea) : ground.Size * 0.5f; // waterline
             var box = floor.AddComponent<BoxCollider>();
             box.size = new Vector3(Mathf.Abs(near - far), 0.2f, ground.Size);
-            // Local: the parent plane is scaled, so undo that scale to keep the box in metres.
-            floor.transform.localScale = Vector3.one / plane.transform.localScale.x;
+            // The plate is a generated mesh at scale 1 now (it was a 10 m Plane primitive scaled up),
+            // so the box is already in metres and needs no scale correction.
             floor.transform.localPosition = Vector3.zero;
             box.center = new Vector3((near + far) * 0.5f, -0.1f, 0f); // top face at the plate's y
             report.Colliders++;
@@ -306,6 +310,109 @@ namespace TheBlock.EditorTools
             report.Placed.Add(
                 $"Ground {ground.Size:0} x {ground.Size:0} m @ y {ground.Y:0.##}, " +
                 $"solid over Unity x [{far:0}, {near:0}] (trimmed at the shore)");
+        }
+
+        /// <summary>
+        /// The plate as a flat mesh with the SEA'S FOOTPRINT CUT OUT of it.
+        ///
+        /// ⚠ THE WATER IS NOT RELIABLY ABOVE THE PLATE, which is what U12 assumed when it kept the
+        /// visual plane at its full 1400 m ("the water is opaque and drawn above it"). It is not
+        /// arithmetic that holds: `sea.surface.waves` carries amplitudes 0.18 + 0.12 + 0.07, so a
+        /// trough reaches 0.37 m below the water line, while the plate sits at only −0.05. Every
+        /// trough deeper than 5 cm exposes the green plate through the sea, in wide bands that
+        /// follow the swell — it reads as a shader fault and is really two surfaces interpenetrating.
+        ///
+        /// The plate is never visible under opaque water, so the fix is to stop drawing it there
+        /// rather than to move either surface: moving the plate down would leave its collider (which
+        /// U12 already trimmed at the shore) floating above the visible ground between districts,
+        /// and the water line is gameplay.
+        ///
+        /// The cut is a rectangle, so what is left is up to four rectangles. Land BEYOND the sea's
+        /// z-strip is kept — the sea is only 600 m deep in z against the plate's 1400, and trimming
+        /// the whole seaward half would put sky where there is currently ground.
+        ///
+        /// Predates U15's draw distance: the same bands are in a 320 m capture. Extending the view
+        /// only made more of the sea visible at once.
+        /// </summary>
+        private static Mesh BuildGroundMesh(
+            TheBlockConfig.GroundSpec ground, TheBlockConfig.SeaSpec sea, Report report)
+        {
+            float half = ground.Size * 0.5f;
+            var rects = new List<Rect>();
+
+            // Local space: the object already sits at ground.Y, so every vertex is y = 0.
+            var cut = SeaFootprint(sea, half);
+            if (cut.HasValue)
+            {
+                var c = cut.Value;
+                if (c.xMin > -half) rects.Add(Rect.MinMaxRect(-half, -half, c.xMin, half));
+                if (c.xMax < half) rects.Add(Rect.MinMaxRect(c.xMax, -half, half, half));
+                if (c.yMin > -half) rects.Add(Rect.MinMaxRect(c.xMin, -half, c.xMax, c.yMin));
+                if (c.yMax < half) rects.Add(Rect.MinMaxRect(c.xMin, c.yMax, c.xMax, half));
+                report.Notes.Add(
+                    $"Ground: sea footprint cut out — Unity x [{c.xMin:0}, {c.xMax:0}] z [{c.yMin:0}, {c.yMax:0}], " +
+                    "so wave troughs cannot expose the plate");
+            }
+            else
+            {
+                rects.Add(Rect.MinMaxRect(-half, -half, half, half));
+            }
+
+            var vertices = new List<Vector3>(rects.Count * 4);
+            var normals = new List<Vector3>(rects.Count * 4);
+            var uvs = new List<Vector2>(rects.Count * 4);
+            var triangles = new List<int>(rects.Count * 6);
+
+            foreach (var r in rects)
+            {
+                int b = vertices.Count;
+                // Rect's y is the world Z axis here.
+                vertices.Add(new Vector3(r.xMin, 0f, r.yMin));
+                vertices.Add(new Vector3(r.xMin, 0f, r.yMax));
+                vertices.Add(new Vector3(r.xMax, 0f, r.yMax));
+                vertices.Add(new Vector3(r.xMax, 0f, r.yMin));
+                for (int i = 0; i < 4; i++) normals.Add(Vector3.up);
+                uvs.Add(new Vector2(0f, 0f));
+                uvs.Add(new Vector2(0f, 1f));
+                uvs.Add(new Vector2(1f, 1f));
+                uvs.Add(new Vector2(1f, 0f));
+                triangles.AddRange(new[] { b, b + 1, b + 2, b, b + 2, b + 3 });
+            }
+
+            var mesh = new Mesh { name = "GroundPlate" };
+            mesh.SetVertices(vertices);
+            mesh.SetNormals(normals);
+            mesh.SetUVs(0, uvs);
+            mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateBounds();
+
+            EnsureFolder(GeneratedWorldFolder);
+            var assetPath = $"{GeneratedWorldFolder}/GroundPlate.asset";
+            report.Generated.Add(assetPath);
+            var existing = AssetDatabase.LoadAssetAtPath<Mesh>(assetPath);
+            if (existing != null) AssetDatabase.DeleteAsset(assetPath);
+            AssetDatabase.CreateAsset(mesh, assetPath);
+            return mesh;
+        }
+
+        /// <summary>
+        /// The sea's rectangle in Unity's frame, clipped to the plate — or null when they do not
+        /// overlap. <c>Rect.y</c> is world Z.
+        /// </summary>
+        private static Rect? SeaFootprint(TheBlockConfig.SeaSpec sea, float half)
+        {
+            if (sea == null || sea.Width <= 0f || sea.Length <= 0f) return null;
+
+            // Converted the same way BuildWaterSurface places the plane, so the two cannot disagree
+            // about where the water is. Never a hand-written sign flip — see Convert.
+            var centre = Convert.Pos(sea.ShoreX - sea.Width * 0.5f, 0f, sea.CenterZ);
+            float xMin = Mathf.Max(centre.x - sea.Width * 0.5f, -half);
+            float xMax = Mathf.Min(centre.x + sea.Width * 0.5f, half);
+            float zMin = Mathf.Max(centre.z - sea.Length * 0.5f, -half);
+            float zMax = Mathf.Min(centre.z + sea.Length * 0.5f, half);
+
+            if (xMin >= xMax || zMin >= zMax) return null;
+            return Rect.MinMaxRect(xMin, zMin, xMax, zMax);
         }
 
         private static Material LoadOrCreateGroundMaterial(TheBlockConfig.GroundSpec ground, Report report)
