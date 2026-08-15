@@ -65,6 +65,7 @@ namespace TheBlock.Core
             public GroundSpec Ground;
             public RoadsSpec Roads;
             public SeaSpec Sea;
+            public MapSpec Map;
             public CitySpec City;
             public List<DistrictSpec> Districts;
             public PlaceSpec PizzaPlace;
@@ -227,6 +228,77 @@ namespace TheBlock.Core
         {
             public float Height = 8f;
             public float Thickness = 3f;
+        }
+
+        /// <summary>
+        /// Minimap + full map tuning.
+        ///
+        /// Two of <c>config.map</c>'s fields are deliberately ABSENT. <c>bakeRes</c> sized a
+        /// once-per-boot top-down render that three.js read back into a canvas, because a second
+        /// live camera every frame was not affordable there; Unity renders the map camera into a
+        /// RenderTexture directly, so there is no bake to size. <c>districtFill</c> filled the
+        /// district boxes only when that bake was missing — with a live render there is always
+        /// something underneath, so only the stroke is used.
+        /// </summary>
+        public class MapSpec
+        {
+            /// <summary>Half-extent in metres shown around the player on the minimap.</summary>
+            public float MinimapRangeM = 150f;
+
+            /// <summary>Inset, in panel pixels, when fitting the whole world into the full map.</summary>
+            public float Padding = 18f;
+
+            /// <summary>How far past the shore the full map frames, so the coast is on-canvas.</summary>
+            public float SeaBandM = 140f;
+
+            /// <summary>CSS colour strings — see <see cref="ColorFromCss"/>.</summary>
+            public string DistrictStroke;
+
+            public string LabelColor;
+            public string LabelText;
+            public string LabelPill;
+            public string Player;
+
+            /// <summary>Keyed by the POI kind: <c>pizza</c>, <c>vehicle</c>, <c>spawn</c>, <c>marker</c>.</summary>
+            public Dictionary<string, string> PoiColors;
+        }
+
+        /// <summary>
+        /// A CSS colour string from config — <c>#rrggbb</c> or <c>rgba(r, g, b, a)</c> — as a Unity
+        /// colour. The map section stores its palette as CSS because the web build fed it straight to
+        /// a 2D canvas; nothing else in config.ts does.
+        ///
+        /// Built without <c>.linear</c> for the same reason as <see cref="ColorFromHex"/>: these are
+        /// sRGB bytes, and UI Toolkit's painter takes sRGB.
+        /// </summary>
+        public static Color ColorFromCss(string css, Color fallback)
+        {
+            if (string.IsNullOrWhiteSpace(css)) return fallback;
+            var s = css.Trim();
+
+            if (s[0] == '#')
+                return ColorUtility.TryParseHtmlString(s, out var parsed) ? parsed : fallback;
+
+            var open = s.IndexOf('(');
+            var close = s.IndexOf(')');
+            if (open < 0 || close < open) return fallback;
+
+            var parts = s.Substring(open + 1, close - open - 1).Split(',');
+            if (parts.Length < 3) return fallback;
+            if (!float.TryParse(parts[0], System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out var r) ||
+                !float.TryParse(parts[1], System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out var g) ||
+                !float.TryParse(parts[2], System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out var b))
+                return fallback;
+
+            var a = 1f;
+            if (parts.Length >= 4)
+                float.TryParse(parts[3], System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out a);
+
+            return new Color(r / 255f, g / 255f, b / 255f, a);
         }
 
         /// <summary>Downtown. Unlike the other districts it carries the facade tint list.</summary>

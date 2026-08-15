@@ -36,7 +36,12 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-**Next action: U14 — map + minimap.** Nothing is half-built; U13 closed clean.
+**Next action: U15 — Addressables streaming, and ONLY if the profiler says so.** Measure first: the
+whole world loads from the scene today and nothing has complained. If the measurement says no, skip
+to U16 (pedestrian crowd) and leave U15 `todo` with the numbers written into its row. Nothing is
+half-built; U14 closed clean.
+
+**U14 is done** — the user confirmed on 2026-08-15 that the minimap and the `M` map read right.
 
 **U13 is done** — the user confirmed on 2026-08-15 that the station, the lot and the interior all
 read right. Last build: **20 placed, 0 missing, 288 colliders**.
@@ -50,6 +55,58 @@ rather than build beside it. Do not treat the current doorway behaviour as settl
 
 **U12 is done** — the user confirmed on 2026-08-15 that the roads, the water and the beach all read
 right.
+
+### What U14 built
+
+**The base layer is a live camera, and that is this unit's answer to the standing question.** The
+web build bakes the world top-down once at boot into a 2048² render target, reads it back into a
+canvas and draws that image under everything — and skips the bake outright on touch, because the
+cost is not the resolution, it is that rendering the whole world once compiles every shader and
+uploads every texture in the same frame. Unity renders a second camera like any other, so
+`Assets/Scripts/UI/MapCamera.cs` is an orthographic camera pointed straight down into a 1024²
+RenderTexture: no readback, no boot spike, and the map shows the world as it *is* — parked cars,
+and later U17's traffic and U19's police cars, moving on it. `config.map.bakeRes` and
+`districtFill` are therefore not ported, and `TheBlockConfig.MapSpec` says why in place.
+
+**Both states redraw at 12 fps, which is one step past the web build.** It caps only the collapsed
+minimap and lets the open map repaint every frame so panning stays responsive; there is nothing to
+pan here — the open map is fixed on the whole world — so the cap covers both, and the thing being
+skipped is a full second camera pass over the city rather than a canvas repaint.
+
+**The overlay is UI Toolkit, arriving eleven units before U25 said it would.** The map *is* UI, so
+the choice could not be deferred: `MapView` paints district outlines, POI dots and the player arrow
+in `generateVisualContent` with Painter2D — near enough a 1:1 port of the canvas code — and labels
+are pooled `Label` children, because Painter2D draws shapes and has no text. The web build's greedy
+first-come label guard ports exactly: districts claim their rectangle before POI names, and a label
+that would overlap an earlier one is dropped rather than stacked. `HudBuilder.cs`
+(**The Block → Build Map HUD**) creates the `PanelSettings` and theme asset a fresh URP project does
+not have, plus the HUD and Map Camera objects; it is idempotent, like WorldBuilder.
+
+**Orientation is verified, not assumed.** The map camera sits at `(90, 180, 0)`, which puts screen
+right on world **−X** and screen down on world **+Z** — the web map's own frame, since its `+x` is
+Unity's `−x`. So the sea is on the left in both, and the overlay's world→panel transform is written
+against the camera's actual `transform.right`/`up` rather than a guess. Measured in Play: with the
+player facing world `+Z`, the arrow draws tip-down.
+
+**`MapRegistry` is the flexibility hook, and missions are its real customer.** It is the port of
+`world/registry.ts` — static, so a district's outline outlives the meshes it was measured from
+(U15's streaming needs exactly that), and cleared on entering Play rather than trusted to be empty.
+`AddPoi`/`RemovePoi` by name is what U20's campaign director and U21's delivery will hang their
+objective markers on.
+
+**⚠ A `PlaceSpec` in `config.ts` has no `name`** — the pin's label is typed into `map-pois.ts`, not
+read off the place. Reading the missing field back gave all four landmarks a null label, which is a
+`NullReferenceException` in the label pass and not a blank pin. The names are literals in
+`MapPois.cs` now, and both label placers skip a nameless pin.
+
+**Emoji POI glyphs are not ported.** The web build draws `⛽`/`🚓`/`🏪` instead of the dot for those
+three pins; Unity's default UI font has no emoji, so they would render as boxes. Every pin gets its
+kind-coloured dot and its name until U25 settles HUD typography and can add an emoji-capable font.
+
+**Not in this unit, on purpose:** cop blips (`drawCops`) belong to U19 with the pursuit that
+produces them; the rival arrow and arena ring (`map-rival.ts`) to U32 with multiplayer; and the dev
+zone-paint / road-draw tools are authoring tools for `config.ts`, which is authored in the original
+repo, so they have nothing to author here.
 
 ### What U13 built
 
@@ -640,7 +697,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | U11 | All 9 districts via WorldBuilder | done | `21857c3` | Placement and colliders shipped in U5; U11 is the three rendering faults that survived it. Foliage: the white shards were a spurious V flip in glTFast's `_ST`, NOT the blend mode — `WorldBuilder.UnflipV`, plus a real alpha-clip pass that rebinds to generated URP/Lit materials because `_AlphaClip` on an imported glTFast material is inert. Cities 2/3: baked cars stripped at the SUBMESH level in Unity — 86% of the mesh — instead of a Blender split, out of collision as well as sight. Empty material slots were drawing magenta and now get glTF's default material. **Caught and fixed: a substring pattern list that alpha-clipped every road, because "tree" is inside "CityGen_Streets".** Foliage colliders left open on purpose — see Deferred. User-confirmed 2026-08-15 |
 | U12 | Roads, ground, sea | done | `7dc8208` | Roads are `com.unity.splines` + a generated ribbon, NOT the web's per-segment stretched tile: 1864 m of spline vs 1859.5 m of polyline, corners curved, markings continuous through them. The `SplineContainer`s are kept as U17/U19's centreline. Road surface texture is generated because the web tile's paint is geometry. Sea is a port of `sea-surface.ts` into `Assets/Shaders/{Water,Beach}.shader` (URP has no built-in water) — unlit on purpose, since the original does its own lighting. Beach is a displaced MeshCollider you walk down. `Assets/Scripts/World/SeaGeometry.cs` owns the waterline and its handedness — the sea is Unity **+x**. **Caught and fixed: the ground plate's collider held the player up over the whole beach; it now stops at the shore. "Kerbs" were phantom scope — no such system exists in the original.** Splines needs ≥2.9.0 on Unity 6.5. User-confirmed 2026-08-15 |
 | U13 | Places — pizza + interior, gas, police station, lot cars | done | `211abc2` | User-confirmed 2026-08-15. Gas station was Y/Z swapped by the Sketchfab export's cancelling root matrices; `Rx(-90)` in `AssetAliases`, whose entries can now correct the REAL asset (`File = null`) instead of only swapping in a stand-in. Lot cars are 101 real GameObjects with per-car culling and `LODGroup`s, NOT an InstancedMesh — same seeded layout as the web build (`Mulberry32` in `uint`), paint as 18 generated materials so the instancing survives. Interior is a teleport cell with the fog/ambient swap; its lights stay on and the sun stays up, both of which the web build only fights because of three's forward renderer. **Caught and fixed: `tesla.glb`/`avenger.glb` require `EXT_texture_webp` and glTFast rejects the whole file — `tools/glb-webp-to-png.py`; and a BoxCollider that ignores the model scale is a kilometre wide on the 37.4× Avenger.** NPC + pizza pickups deferred to U21, lot-car promotion to U17, the fade to U25 — all by the user's call. **The interior's MISSION mechanics are explicitly unsettled and belong to U21** — the room is right, what the delivery does inside it is not |
-| U14 | Map + minimap | todo | | |
+| U14 | Map + minimap | done | | User-confirmed 2026-08-15. The base layer is a LIVE second camera into a 1024² RenderTexture (`Assets/Scripts/UI/MapCamera.cs`), not the web's boot-time bake — no readback, no shader-compile spike, and moving cars show. UI Toolkit, eleven units before U25: `MapView` paints outlines/dots/arrow with Painter2D and pools `Label`s for text, `GameMap` owns the panel and the `M` toggle, `MapRegistry` is the port of `world/registry.ts` and the hook missions add objective pins to. Both states capped at 12 fps — the web caps only the minimap. Camera at `(90, 180, 0)` puts screen right on world −X, matching the web map's frame; verified against `transform.right`. **Caught and fixed: `PlaceSpec` has no `name` in config.ts — the pin labels live in `map-pois.ts`, and reading the absent field crashed the label pass; and a 16-bit RT depth that made Metal log "memoryless depth surface" as an error.** Emoji pin glyphs deferred to U25 (no emoji font), cop blips to U19, rival/arena to U32 |
 | U15 | Addressables streaming | todo | | ONLY if the profiler says so — measure first |
 
 ### Tier 4 — Living world
@@ -663,8 +720,8 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 ### Tier 6 — Shell
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
-| U25 | HUD + in-game UI (UI Toolkit) | todo | | |
-| U26 | Menus — title, character select, briefing, controls, pause | todo | | |
+| U25 | HUD + in-game UI (UI Toolkit) | todo | | Panel scaffolding already exists from U14 (`HudBuilder`, `HudPanelSettings`) — extend it, do not build a second panel. Owes U14 two things: an emoji-capable font so POI pins can draw their `⛽`/`🚓`/`🏪` glyphs again, and the fade behind U13's interior teleport |
+| U26 | Menus — title, character select, briefing, controls, pause | todo | | **Settings → Display wants a Radar on/off toggle** (user, 2026-08-15) that hides U14's collapsed minimap while playing. `M` must still open the full map with the radar off — the toggle is about the always-on widget, not the map |
 | U27 | Audio — sfx, engine, ambient, radio | todo | | |
 | U28 | Economy + fuel + power-ups | todo | | |
 | U29 | Character roster | todo | | |
@@ -713,6 +770,18 @@ would trigger it. A `wip` unit is work half-done; this is work deliberately not 
 ## Decisions log
 
 Dated one-liners. These are settled — do not re-litigate them without the user reopening.
+
+- **2026-08-15** (U14) — **The map's base layer is a live camera, never a bake.** three.js could not
+  afford a second camera, so it rendered the world once at boot and read the pixels back; a Unity
+  camera into a RenderTexture costs one throttled pass and shows the world moving. Nothing in the
+  port should reintroduce a baked map image.
+- **2026-08-15** (U14) — **Runtime UI is UI Toolkit, and the HUD panel is a single shared one.**
+  U14 created `Assets/UI/HudPanelSettings.asset` and the `HUD` object; U25, U26 and every later
+  overlay extend that panel rather than adding their own `UIDocument` stack.
+- **2026-08-15** (U14) — **The map is oriented by the camera, not by a hand-derived transform.** The
+  overlay's world→panel maths is written against the map camera's real `transform.right`/`up`, so
+  the vectors and the pixels underneath them cannot drift apart. Any new map layer reads the same
+  two vectors instead of re-deriving the handedness.
 
 - **2026-08-15** (U13) — **`AssetAliases` corrects real assets too, not just stand-ins.** An entry
   with no `File` keeps the config's own model and applies only the rotation/lift. The distinction is
