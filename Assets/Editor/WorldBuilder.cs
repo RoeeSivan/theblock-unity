@@ -133,6 +133,12 @@ namespace TheBlock.EditorTools
             public bool Districts = true;
             public bool Places = true;
             public bool Colliders = true;
+
+            /// <summary>
+            /// Rebind materials onto <see cref="TextureCompressor"/>'s compressed textures (U15).
+            /// Off is the "what did this actually buy" comparison, not a mode anything should ship in.
+            /// </summary>
+            public bool CompressedTextures = true;
         }
 
         public static string Build(Options options)
@@ -156,6 +162,7 @@ namespace TheBlock.EditorTools
 
             var root = ResetRoot(scene, report);
             root.SourceSha256 = snapshot.SourceSha256;
+            ResetTexturePass();
 
             if (options.Ground) BuildGround(root.transform, snapshot.Config.Ground, snapshot.Config.Sea, report);
             if (options.Roads) BuildRoads(root.transform, snapshot.Config.Roads, report);
@@ -344,6 +351,9 @@ namespace TheBlock.EditorTools
             if (facadeMaterials != null) ApplyFacadeMaterial(instance, facadeMaterials, report);
             if (hideMaterials != null) HideByMaterial(instance, hideMaterials, report);
             ApplyCutoutMaterials(instance, report);
+            // Last of the material passes: it has to see the cutouts too, since those point at the
+            // same uncompressed sub-asset textures.
+            if (options.CompressedTextures) ApplyCompressedTextures(instance, report);
             // After the cutout pass, so anything reported is genuinely still blended.
             report.NoteTransparentMaterials(instance);
             if (options.Colliders) AddColliders(instance, noCollidePatterns, null, null, report);
@@ -379,6 +389,7 @@ namespace TheBlock.EditorTools
                 HideByNode(instance, place.HideNodes, report);
 
             ApplyCutoutMaterials(instance, report);
+            if (options.CompressedTextures) ApplyCompressedTextures(instance, report);
             report.NoteTransparentMaterials(instance);
 
             if (options.Colliders)
@@ -826,7 +837,10 @@ namespace TheBlock.EditorTools
         private static void SweepGenerated(Report report)
         {
             foreach (var folder in new[]
-                     { CutoutMaterialFolder, GeneratedMeshFolder, GeneratedWorldFolder, LotCarMaterialFolder })
+                     {
+                         CutoutMaterialFolder, CompressedMaterialFolder, GeneratedMeshFolder,
+                         GeneratedWorldFolder, LotCarMaterialFolder,
+                     })
             {
                 if (!AssetDatabase.IsValidFolder(folder)) continue;
 

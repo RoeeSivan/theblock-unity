@@ -116,6 +116,11 @@ namespace TheBlock.EditorTools
                 foreach (var material in paints.Values) EditorUtility.SetDirty(material);
             }
 
+            // Once over the whole group rather than per car: the 101 instances share three models'
+            // worth of materials, and the pass dedupes by material, so this is three clones and not
+            // a hundred and one.
+            if (options.CompressedTextures) ApplyCompressedTextures(group.gameObject, report);
+
             if (skipped.Count > 0)
                 report.Missing.Add($"lot cars — no model asset for {string.Join(", ", skipped)}");
 

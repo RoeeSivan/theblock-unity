@@ -89,6 +89,15 @@ crashlytics-build.properties
 /Assets/Models/Characters/Joe_Sprint.fbx
 /Assets/Models/Characters/Joe_Sprint.fbx.meta
 
+# U15's compressed district textures, and the material clones that point at them. Both are
+# extracted from the gitignored district .glbs by The Block → Compress Textures, so they are
+# derived assets with no source of their own here — and they are ~1 GB, which is the whole free
+# LFS quota several times over.
+/Assets/Textures/Generated/
+/Assets/Textures/Generated.meta
+/Assets/Materials/City/Compressed/
+/Assets/Materials/City/Compressed.meta
+
 # Lot-car paint materials — one per model per palette colour, written by WorldBuilder and
 # swept by it. Same reasoning as the cutout materials: derived from the config's palette,
 # rewritten by every Build World.
