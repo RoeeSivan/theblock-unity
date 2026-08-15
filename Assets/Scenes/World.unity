@@ -136866,6 +136866,7 @@ MonoBehaviour:
   runOver: {fileID: 0}
   vehicles: {fileID: 0}
   interior: {fileID: 0}
+  debugStarKey: 1
 --- !u!114 &1217612375
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -136880,21 +136881,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Police.Heat
   tuning:
     MaxStars: 3
-    RunOverFirst: 1.05
-    RunOverExtra: 0.25
-    RunOverCap: 2
-    RunOverCooldown: 0.5
-    CrashPerClosingSpeed: 0.1
-    CrashDeadzone: 1.5
-    CrashCopWeight: 1.5
-    CrashCap: 1.2
-    CrashCooldown: 1
-    GroundNormalY: 0.7
-    DecayAlways: 0.03
-    ContactGrace: 6
-    HiddenRamp: 2
-    DecayHidden: 0.22
-    CrimeFreeze: 1.5
+    RunOverCooldown: 3
+    CrashCrimeSpeed: 6
+    CrashCooldown: 3
+    BreakContact: 8
+    ShedStep:
+    - 4
+    - 5
+    - 6
+    GiveUpAt:
+    - 45
+    - 25
+    - 25
+    InboundGrace: 60
     SightRadius: 70
     LosEyeHeight: 1.2
     LosTargetHeight: 1
@@ -136927,22 +136926,22 @@ MonoBehaviour:
     UnwedgeLimit: 3
     MaxCops: 3
     SpawnInterval: 1
-    StationDeployRange: 120
     FieldSpawnMin: 60
     FieldSpawnMax: 110
     FieldSpawnTries: 24
     FieldSpawnClearance: 12
     CopSeparation: 30
-    RetireDistance: 220
     ReplaceDelay: 6
+    BayArrive: 6
     ReplanInterval: 1
     CorridorWidth: 12
-    OffGraphDistance: 15
     BustHold: 2.2
     BustFine: 100
-  value: 0
   stars: 0
-  sinceContact: 0
+  engaged: 0
+  inbound: 0
+  noContact: 0
+  coolTimer: 0
   sinceCrime: 0
 --- !u!114 &1217612376
 MonoBehaviour:

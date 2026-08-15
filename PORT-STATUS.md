@@ -51,19 +51,64 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-**Next action: finish U19 — it is `wip`, and everything structural is built and measured.** The
-pursuit runs end to end in Play: three cruisers deploy, plan real A\* routes over the street graph,
-drive them at 70–100% on-road, and close on the player. What is left is listed under "not done yet"
-in the U19 row — the arrest and the bust have never actually fired, the crash-heat numbers have
-never been measured against a real PhysX impact, and nobody has played it.
+**Next action: play-test U19b.** The user's play-test of U19 came back with *"מרדף המשטרה לא באמת
+עובד … אני דורס אנשים והשוטרים לא באמת מגיעים אליי"* — run people over and no police car ever
+arrives. **The cause was found, fixed and measured 2026-08-15; it needs watching now.**
 
-### ⚠ MANUALLY CHECK COPS CHASE
+### ⚠ MANUALLY CHECK COPS CHASE — 1 crime = 1 car
 
-**Nobody has yet watched a pursuit happen.** Everything below was measured through the MCP bridge —
-routes, components, spawn poses, parked-vs-deployed counts — and none of it is the same as seeing a
-cruiser come round a corner after you. Commit a crime at the lot and watch: does one roll out of a
-bay, follow streets rather than cut diagonals, close on a straight, and lose you round a corner?
-That is checkpoint items 4 and 5 in the plan, and until it is done U19 stays `wip`.
+`P` adds one star (debug-only, `CrimeWatch.debugStarKey`, alongside `T` and `C`). Drive into the
+city, run someone over, and watch a cruiser leave a bay and come after you. Then a second crime, then
+a third, and count the cars: **1 / 2 / 3**. What has NOT been seen by anyone: the arrest and the
+BUSTED overlay, and how the approach feels in the last twenty metres.
+
+### Why the police never came, and it was not the plumbing — U19b, 2026-08-15
+
+Two U19 decisions were individually defensible and jointly fatal.
+
+1. Heat became a **continuous meter with unconditional decay**, deliberately deleting the web's
+   `engaged` latch on the grounds that "three stars and nothing on screen, forever" must not be
+   possible.
+2. Every cruiser was then **moved to the station bays** (the user's own call, same day), so a
+   response gained a real travel time of 15–60 s.
+
+The arithmetic settles it without a screenshot: a run-over gave `1.05`, decay began 1.5 s later at
+`0.030/s` ramping to `0.250/s`, and the star went out at `0.90` — **a star lifetime of about 6 s
+against a drive of 15–60**. `Reconcile` then saw `wanted = 0` and teleported the car back to its bay.
+**The cop could not arrive.** The top star of any level was worse: gains land exactly on the cap, so
+the third star died ~4.8 s after the crime *with a cop on your bumper*.
+
+**Heat is a counter again — one crime, one star, one car — and the `engaged` latch is back.** Nothing
+bleeds until a cop has first reached `SightRadius`; `InboundGrace` (60 s, up from the web's 30
+because our cops drive up to ~900 m rather than appearing at 70) bounds that so an unreachable player
+still cools off.
+
+**Measured in Play, so do not re-derive:**
+
+- **The star now survives the drive.** Player 185 m from the station: cop deployed, held **1 star for
+  the whole run**, `engaged` false until it crossed 70 m, **180.5 m → 62.9 m in 10.6 s** at 13.7 m/s,
+  **88% on-road**. Under the old meter the star was gone at ~6 s.
+- **Escalation is exactly 1:1.** Three crimes → **3 stars, 3 cars Chasing, 3 map blips**, on-graph
+  97 / 94 / 78%.
+- **The stand-down drives home.** Star shed → `Mode.Returning` → routes back → parks at
+  **(164.00, 0.10, −111.00), yaw 0.0, v = 0.00**, blip removed. It does not teleport in front of you.
+- 0 errors in the console across the whole session.
+
+**A second bug fell out of the first and would have read the same way.** The hard give-up cap
+(`GiveUpAt`, 45 s since the last crime) was also running during the drive-in: measured, a cruiser
+127 m out lost the entire pursuit to it **while still 112 m away**. The cap now counts only while
+`engaged` — "the cops eventually stop even if you never lose them" presupposes they reached you, and
+the inbound phase already has `InboundGrace`.
+
+**And a third, in the arrest that has never fired.** `ChooseAim` recomputed which flank to pull in
+on every single step, from "which side is the cop already turning toward" — so the instant its nose
+swung past you the sign flipped and the aim point jumped 6 m across to the other flank. That is a
+limit cycle, and it was measured as one: a cruiser sat between **10.6 and 11.1 m** of a stationary
+player and never reached the 4 m arrest radius. The flank is now latched for the duration of a final
+approach. Alongside it, a dead band between `ArriveDistance` (8 m) and `BandNear` (12 m) left the
+rubber band's own floor as the answer, so a cop 11 m out asked for **8 m/s** and overshot; there is
+an arrival ramp now, one m/s per metre remaining. **Neither is confirmed — the arrest still has not
+been seen, because the only spot it was tested from turned out to be inside the station building.**
 
 ### The white rays out of the Mustang — FIXED 2026-08-15, `gpuSkinning = false`
 
@@ -1147,7 +1192,8 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | U17 | Traffic — graph, cars, lights | done | `2ea3c54` + `31f5767` | User-confirmed 2026-08-15. **Play-test fault: the lights looked frozen because the lamp quads were built 14 cm INSIDE the housing** — the epsilon was measured off the animated disc, which sits behind the lens, instead of off the shell's front face (shell at 9.675, discs at 6.883–7.163, so the shell stands 2.51–2.79 model units proud). The state machine was correct throughout: sampled live it held 125 red / 79 green / 20 amber / 9 red+amber across the 233 poles. Fixed in `WorldBuilder.Traffic.cs`; 233/233 now 1.7 cm proud of the shell. ⚠ **Still open, deferred by the user: standing beside a pole, its lights do not appear to change** — separate from the above, unmeasured, see Deferred. Cars, lights and phases on U16's graph, which is now derived ONCE by the traffic pass and handed to the navigation pass — the crossings and the lights key off the same node numbering by construction. `Crossing.IsClearOfTraffic` deleted; `TrafficLightSystem` fills `Crossing.Gate` for all 230. **The population is DERIVED, not configured**: 130 cars over 12,759 m is one car per 98 m, so the live count is the metres of centreline in range divided by that — a fixed 32 was the plan and it gridlocked the city in under a minute, because the disc around the starting lot holds 1,230 m and 32 there is jam density. The graph is BAKED to a ScriptableObject at build time (6,590 Y-samples), so the runtime casts no rays for traffic at all. Kinematic while driving, a real Rigidbody wreck when rammed. **Caught and fixed, both by measuring rather than looking: `GroundY` could return a ROOF (downtown's avenue baked at 6–10 m) and the fast `Build World` was silently losing the whole NavMesh — `PasteComponentValues` does not carry `navMeshData`, so the crowd failed to spawn with nothing in the console.** Cars stop BEHIND the zebra, which the original does not. Carjacking split out to U17b |
 | U17b | Carjack + `CarBuilder` past the Mustang | done | `26be56d` | User-confirmed 2026-08-15 (*"עובד טוב"*) — clean, with no play-test faults, which is the first unit since U12 that can be said of. `CarBuilder` builds all four drivable cars (one prefab per distinct `modelUrl`, so 4 out of 16 config entries — the other twelve are colour variants) and wires them into the scene's `CarSpawner` itself. `E` now resolves three ways in `main.ts`'s own order: real vehicle → **parked filler** (U13's deferred promotion, 101 of them) → **stopped street car**, which waits 5 s for you. **Both swaps were measured rather than eyeballed: the carjack lands at 0.000 m / 0.00°, the lot promotion at 0.029 m / 0.00°, paint material carried in both.** The enabling change is that every car prefab now shares one origin — body centre in XZ, contact patch in Y — so a pose taken off one prefab drops straight into another. `hijack.recycleMargin`/`recycleTries` are deliberately NOT ported: `Claim` retires the slot and the sweep that already runs twice a second re-places it out of the view cone. **Caught: the Mustang has been the wrong colour since U8** — the paint write named `_BaseColor`, glTFast's shader has `baseColorFactor`, so nothing was ever written and the car wore its model's native green. Tesla/Audi/Avenger have **0 wheel nodes** (verified in the glTF, not assumed), so their axles are stated off the body box; the Mustang's rig is the check and the rule matches it to within 4%. Split out of U17 by the user, 2026-08-15, to keep U17 to one checkpoint |
 | U18 | Run-over + blood VFX | done | `781117d` + `fe081b8` | User-confirmed 2026-08-15. Root Motion ON, and this is the only place in the project where it is: the clip's own 1.74 m of travel IS the knockback, harvested off the visual child onto the pedestrian's transform each LateUpdate (and multiplied by that child's scale, because Humanoid retargeting produces root motion in the TARGET avatar's units and Remy's really is 4.20 m). Code adds only what the clip lacks — a 1.1 m arc and a speed-scaled push. **The debt to U16 in this row's old note is void:** U16b deleted `NavMeshAgent` from the crowd, so there is no agent to disable and no `Warp` to do. **The throw angle is MEASURED, not ported** — `clip.averageSpeed` gives 85.1°, which is the mirror of the web's hand-tuned −85.8° and is the cleanest handedness cross-check in the project so far. **Caught: Mixamo pads a one-shot clip with idle** (the body stands still for 79 of 145 frames), so `HitClipImporter` finds the action's own window by watching the root move rather than trimming to a typed-in number; and **`CrowdSpawner.Bind` destroyed every child of the Crowd object**, which deleted the `Blood` stain pool built on that same object — now Pedestrians only. New: `HitClipImporter`, `RunOverReaction`, `RunOverSystem`, `Vfx/Blood`, a `Hit` state on `Npc.controller`, `IEnterable.ForwardSpeed`. **Audio is U27's**: the original's scream pool and body thud fire from this exact impact frame, so `RunOverReaction.Begin` is where they go |
-| U19 | Police pursuit + wanted level | **wip** | | **Built and running in Play; not play-tested, not finished.** See RESUME HERE for the measurements. **Routing is real A\* over a stitched view of U17's graph** (`RouteGraph` + `RoutePlanner`, baked by `WorldBuilder.Police.cs` into `Assets/Police/Generated/`) — the web's "cops drive straight at you" was scar tissue from a graph split into 5 islands, and stitching T-junctions within 3 m makes 97.9% of the city one component. Straight-line survives in exactly two places: the last 40 m with line of sight, and the rejoin when a cop is off the graph. **The cop is a real WheelCollider car** built by the existing `CarBuilder` through a new `preRotation` seam (`PoliceCarBuilder`, own material folder, `enterable=false` so `E` cannot steal one), and it is driven by writing `CarInput` into the same `ApplySteering`/`ApplyDrive` the player uses — so it cannot corner in a way your car could not. **Heat is a continuous meter, not +1 per crime**: crash severity is closing speed along the contact normal (`CrashSensor`), which makes a wall scrape geometrically worth ~0 rather than a full star; decay always runs, which deletes the web's `engaged` latch and its 30 s `inboundGrace` outright. **Not done yet:** ⚠ **nobody has manually watched a pursuit** — cops chasing is measured, not seen, and that is the next thing to do; the arrest and `BustSequence` have never fired in a test, the crash-heat constants are guesses never measured against a real impact, `PoliceProbe` is not written, the run-over → star path is wired but unproven, and the approach is slow and sometimes indirect from the starting lot (which is 80 m off-graph — the hardest case in the map, and where the game begins). Original notes: real NavMesh; do NOT inherit the straight-line hack untested. **The run-over's heat hooks into `RunOverSystem`** — `Victims` and the `RanOver` event — and there is deliberately no second detector to add: the original's `crime.ts pedHit` radius scan is dead upstream (see the decisions log). Weight is **+1 star per victim-FRAME** (`> 0`, not the count) on a 3 s cooldown, and it applies during missions too |
+| U19 | Police pursuit + wanted level | **wip** | | **Built and running in Play; not play-tested, not finished.** See RESUME HERE for the measurements. **Routing is real A\* over a stitched view of U17's graph** (`RouteGraph` + `RoutePlanner`, baked by `WorldBuilder.Police.cs` into `Assets/Police/Generated/`) — the web's "cops drive straight at you" was scar tissue from a graph split into 5 islands, and stitching T-junctions within 3 m makes 97.9% of the city one component. Straight-line survives in exactly two places: the last 40 m with line of sight, and the rejoin when a cop is off the graph. **The cop is a real WheelCollider car** built by the existing `CarBuilder` through a new `preRotation` seam (`PoliceCarBuilder`, own material folder, `enterable=false` so `E` cannot steal one), and it is driven by writing `CarInput` into the same `ApplySteering`/`ApplyDrive` the player uses — so it cannot corner in a way your car could not. ~~**Heat is a continuous meter, not +1 per crime**~~ — **REVERSED at U19b, see below.** **Not done yet:** the arrest and `BustSequence` have still never fired in a test, `PoliceProbe` is not written, and the approach is slow and sometimes indirect from the starting lot (which is 80 m off-graph — the hardest case in the map, and where the game begins). Original notes: real NavMesh; do NOT inherit the straight-line hack untested. **The run-over's heat hooks into `RunOverSystem`** — `Victims` and the `RanOver` event — and there is deliberately no second detector to add: the original's `crime.ts pedHit` radius scan is dead upstream (see the decisions log). One run-over event is one star however many go down, on a 3 s cooldown, and it applies during missions too |
+| U19b | Police pursuit — the fix | **wip** | | **The user played U19 and the police never arrived; the cause, the fix and the measurements are in RESUME HERE.** Heat is a **whole-star counter** again — 1 crime = 1 star = 1 car, the web's own escalation — and the web's **`engaged` latch is back**, which is the actual fix: nothing bleeds until a cop has first reached `SightRadius`, so a station response with a 15–60 s travel time is possible at all. The continuous meter was not wrong about scrapes, it was **incompatible with the travel time added on the same day**: star lifetime ~6 s against a drive of 15–60. A crash is now a whole star above `CrashCrimeSpeed` (6 m/s closing, the user's call — "hard crashes only") or nothing, which keeps U19's "a scrape is free" fix without a severity curve. `GiveUpAt` counts only while `engaged`; `InboundGrace` (60 s) bounds the inbound phase. New `CopCar.Mode.Returning`: a cop that loses its star **drives back to its bay** on the same planner instead of teleporting out of shot. `Reconcile` now stands down the cop **furthest** from you, never the last in the bay order. Two arrest-approach faults fixed and NOT yet confirmed — the pull-in flank was recomputed every step and orbited (measured: stuck at 10.6–11.1 m, never reaching the 4 m radius), and an 8–12 m dead band left the rubber band's floor as the answer. Dead tuning fields deleted (`StationDeployRange`, `RetireDistance`, `OffGraphDistance`, and `GroundNormalY`/`CrashDeadzone`, which duplicated `CrashSensor`'s own and were never read). ⚠ **`RunOverCooldown` and `CrashCooldown` had to be fixed in the SCENE, not just in code** — see the decisions log |
 
 ### Tier 5 — Missions
 | id | unit | state | commit | notes |
@@ -1297,6 +1343,21 @@ would trigger it. A `wip` unit is work half-done; this is work deliberately not 
 
 Dated one-liners. These are settled — do not re-litigate them without the user reopening.
 
+- **2026-08-15** (U19b) — **A mechanism and its pacing are one decision, and U19 made them
+  separately.** "Heat decays unconditionally so three stars with an empty screen is impossible" is a
+  good rule. "Cruisers park at the station, so a response has a travel time" is a good rule. Together
+  they are a pursuit that cannot happen, and neither reads as wrong on its own — the bug is only
+  visible when the star's lifetime (~6 s) is put next to the drive (15–60 s). **Whenever a unit adds
+  a duration to something, re-check every clock that was tuned before it existed.** Both faults found
+  this way — the latch and the give-up cap — were arithmetic, not screenshots.
+- **2026-08-15** (U19b) — **Changing a C# default does NOT change a value already serialized in the
+  scene.** `RunOverCooldown` was raised 0.5 → 3 in `PoliceTuning.cs` and the live component kept
+  reading 0.5, because Unity constructs the object and then overwrites it from the scene YAML — new
+  fields take their initializers, existing ones do not. Silent, and it would have shipped one pass
+  through a crowd as three stars. Fields added in the same edit (`BreakContact`, `ShedStep`, …) came
+  through correctly, which is what makes it easy to miss. **Read the value back off the live
+  component after retuning anything already in a scene**, and write the fix through `SerializedObject`
+  + `MarkSceneDirty` + `SaveScene`.
 - **2026-08-15** (U17b) — **One origin for every car prefab: body centre in XZ, contact patch in Y.**
   A car that can be swapped for another has to be placed at the pose of the thing it replaces, and
   three builders were pivoting three different ways — `TrafficCarBuilder` on the body centre,

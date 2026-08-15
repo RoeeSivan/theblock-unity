@@ -19,66 +19,52 @@ namespace TheBlock.Police
     [System.Serializable]
     public class PoliceTuning
     {
-        [Header("Wanted meter — stars, not events")]
+        [Header("Wanted level — one crime, one star, one car")]
         [Tooltip("DESIGN. Three, as the web build and every game this borrows from.")]
         public int MaxStars = 3;
 
-        [Tooltip("DESIGN. One person under the wheels is one star, lit on the frame the blood lands. " +
-                 "Just over 1.0 so the star is unambiguous rather than exactly at the threshold.")]
-        public float RunOverFirst = 1.05f;
+        [Tooltip("DESIGN. crime.pedCooldown. One star per run-over event however many go down at " +
+                 "once, and no faster than this. It was 0.5 while heat was a meter with a per-event " +
+                 "cap; under a counter that made one pass through a crowd worth three stars.")]
+        public float RunOverCooldown = 3f;
 
-        [Tooltip("DESIGN. Each extra victim in the same physics step. A pavement is worth two stars, " +
-                 "not five.")]
-        public float RunOverExtra = 0.25f;
+        [Header("Crash — hard hits only, the fix for 'too sensitive'")]
+        [Tooltip("GUESS, to be measured in Play. Closing speed at or above which an at-fault impact " +
+                 "is a crime: a wall at about 22 km/h. Below it, nothing — which is what keeps a " +
+                 "scrape free now that a crash is worth a whole star or nothing at all.")]
+        public float CrashCrimeSpeed = 6f;
 
-        [Tooltip("DESIGN. Cap on one run-over event however many were hit.")]
-        public float RunOverCap = 2f;
+        [Tooltip("DESIGN. crime.crashCooldown. Seconds before another impact can be a crime, so " +
+                 "grinding a wall is not a star every frame.")]
+        public float CrashCooldown = 3f;
 
-        [Tooltip("GUESS. The web needed 3 s because its heat was a discrete +1 per event; a meter " +
-                 "with a per-event cap needs far less.")]
-        public float RunOverCooldown = 0.5f;
+        // GroundNormalY and CrashDeadzone used to sit here and were always dead: CrashSensor has its
+        // own groundNormalY and minClosingSpeed and never read these. What reaches CrimeWatch has
+        // already passed both, so the only crash number this file still owns is CrashCrimeSpeed.
 
-        [Header("Crash heat — the fix for 'too sensitive'")]
-        [Tooltip("GUESS, to be measured in Play. Heat per m/s of closing speed above the deadzone. " +
-                 "6 m/s (a wall at ~30 km/h) -> 0.45, half a star. 12 m/s -> 1.05, one star.")]
-        public float CrashPerClosingSpeed = 0.10f;
+        [Header("Escape — how a pursuit ends")]
+        [Tooltip("DESIGN. escape.breakContact. Seconds of unbroken no-contact before stars start " +
+                 "bleeding at all.")]
+        public float BreakContact = 8f;
 
-        [Tooltip("GUESS, to be measured. Closing speed below this is a kerb hop or a car-park nudge.")]
-        public float CrashDeadzone = 1.5f;
+        [Tooltip("DESIGN. escape.shedStep, indexed by the star being shed, so the last one is the " +
+                 "cheapest. From the contact break: 1* = 12 s, 2* = 17 s, 3* = 23 s.")]
+        public float[] ShedStep = { 4f, 5f, 6f };
 
-        [Tooltip("Multiplier for hitting a police car specifically. DESIGN — the web had no such " +
-                 "case, and it should cost more than a wall.")]
-        public float CrashCopWeight = 1.5f;
+        [Tooltip("DESIGN. escape.giveUpAt. Seconds of ENGAGED pursuit since your last crime before a " +
+                 "star drops anyway, whether or not they can still see you — what makes 'the cops " +
+                 "eventually stop' true even if you never lose them. It does NOT run while they are " +
+                 "still driving in: measured, a cop 127 m out lost the whole pursuit to this cap " +
+                 "before it ever arrived. The inbound phase is bounded by InboundGrace instead.")]
+        public float[] GiveUpAt = { 45f, 25f, 25f };
 
-        [Tooltip("Cap on one impact, so a rebound chain cannot machine-gun the meter.")]
-        public float CrashCap = 1.2f;
-
-        [Tooltip("Seconds before another impact can add heat.")]
-        public float CrashCooldown = 1f;
-
-        [Tooltip("Contacts flatter than this are the ground, a kerb or a landing, never a wall. " +
-                 "|normal.y| above it is dropped outright.")]
-        [Range(0.1f, 0.99f)]
-        public float GroundNormalY = 0.7f;
-
-        [Header("Decay — always running")]
-        [Tooltip("DERIVED from the web's hard give-up cap. Stars per second with a cop on your " +
-                 "bumper: 1 star in ~33 s, 3 in ~100 s, against the web's 45/70/95 s worst case.")]
-        public float DecayAlways = 0.030f;
-
-        [Tooltip("DESIGN, softened. The web wanted 8 s of no contact before decay began; continuous " +
-                 "decay feels longer than a stepped one, so 6.")]
-        public float ContactGrace = 6f;
-
-        [Tooltip("Seconds over which hidden decay ramps in, so the meter visibly starts draining.")]
-        public float HiddenRamp = 2f;
-
-        [Tooltip("DERIVED. Fully hidden: 1 star in ~4 s, 3 in ~12 s — 8 s and 18 s end to end, " +
-                 "against the web's 12 s and 23 s.")]
-        public float DecayHidden = 0.220f;
-
-        [Tooltip("No decay at all for this long after a crime, so a star does not bleed as it lights.")]
-        public float CrimeFreeze = 1.5f;
+        [Tooltip("DERIVED, and raised from the web's 30. Heat cannot bleed until a cop has first " +
+                 "reached SightRadius — that latch is what makes a station response possible at all. " +
+                 "The web's cops appeared 70 m away; ours drive up to ~900 m of a 12.5 km network at " +
+                 "an average well under top speed, so a 30 s bound would release the latch mid-drive " +
+                 "and re-create the exact bug this replaced. It is a safety valve for an unreachable " +
+                 "player, not a pacing dial.")]
+        public float InboundGrace = 60f;
 
         [Header("Contact and sight")]
         [Tooltip("DESIGN. A cop inside this with a clear line is 'in contact', which stops decay.")]
@@ -179,11 +165,6 @@ namespace TheBlock.Police
                  "U16 and U17 both measured that the burst is the cost, not the population.")]
         public float SpawnInterval = 1f;
 
-        [Tooltip("UNUSED since the cars were made to always deploy from the station. Kept because " +
-                 "the web's 120 m is the number to compare against if a cross-city response ever " +
-                 "feels too slow to be fun.")]
-        public float StationDeployRange = 120f;
-
         [Tooltip("Field spawn ring, metres. Only reachable by a cop with no bay of its own.")]
         public float FieldSpawnMin = 60f;
 
@@ -200,14 +181,13 @@ namespace TheBlock.Police
                  "real distance between them, not just clearance from the traffic.")]
         public float CopSeparation = 30f;
 
-        [Tooltip("UNUSED. Cops now start at the station and are often legitimately hundreds of " +
-                 "metres away while driving toward you; retiring one for being far retired it for " +
-                 "doing its job. They go home when the stars do.")]
-        public float RetireDistance = 220f;
-
         [Tooltip("Seconds before a wrecked or flipped cop is replaced. Ramming one into the sea buys " +
                  "you this much, not a permanent kill.")]
         public float ReplaceDelay = 6f;
+
+        [Tooltip("Metres from its bay at which a cop driving home is parked and goes Idle. A cop " +
+                 "that loses its star drives back rather than vanishing in front of you.")]
+        public float BayArrive = 6f;
 
         [Header("Routing")]
         [Tooltip("Seconds between A* replans, staggered across cops so three never land in one frame.")]
@@ -215,10 +195,6 @@ namespace TheBlock.Police
 
         [Tooltip("Metres off its own route before a cop replans immediately.")]
         public float CorridorWidth = 12f;
-
-        [Tooltip("Beyond this from any street, the cop drives at the nearest route point rather than " +
-                 "at the target — the only other place straight-line survives.")]
-        public float OffGraphDistance = 15f;
 
         [Header("Bust")]
         [Tooltip("DESIGN. Seconds the overlay holds.")]

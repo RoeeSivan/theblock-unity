@@ -36,6 +36,9 @@ namespace TheBlock.Police
         private readonly List<Vector3> _route = new();
         private int _cursor;
 
+        /// <summary>Which flank this cop committed to for the current final approach. See ChooseAim.</summary>
+        private float _flankSign = 1f;
+
         /// <summary>Where the driver is aiming this step. Read by the probe and the gizmos.</summary>
         public Vector3 Aim { get; private set; }
 
@@ -193,8 +196,18 @@ namespace TheBlock.Police
             if (straightRun)
             {
                 var side = Vector3.Cross(Vector3.up, (Target - position).normalized);
-                float sign = Vector3.Dot(side, forward) >= 0f ? 1f : -1f;
-                return Target + side * (sign * _tuning.SideGap);
+
+                // WHICH flank is chosen once, when the final approach begins, and then held.
+                //
+                // Recomputing it every step is a limit cycle: the test is which side the cop is
+                // already turning toward, so the moment its nose swings past the target the sign
+                // flips and the aim point jumps twice SideGap across to the other flank. The car
+                // turns after it, swings past again, and orbits. Measured: a cruiser sat between
+                // 10.6 and 11.1 m of a stationary player for the rest of the pursuit and never
+                // reached the 4 m arrest radius.
+                if (!FinalApproach) _flankSign = Vector3.Dot(side, forward) >= 0f ? 1f : -1f;
+
+                return Target + side * (_flankSign * _tuning.SideGap);
             }
 
             if (_cursor >= _route.Count) return Target;
@@ -266,10 +279,15 @@ namespace TheBlock.Police
             if (distance < _tuning.ArriveDistance)
                 wanted = Mathf.Min(wanted, _tuning.ArriveSpeed);
 
-            // Straight at a target that is right there: never faster than the arrival speed, or the
-            // arrest turns into a ram.
-            if (straightRun && distance < _tuning.ArrestRadius * 2f)
-                wanted = Mathf.Min(wanted, _tuning.ArriveSpeed);
+            // An arrival ramp on the final approach, one metre per second per metre left.
+            //
+            // Without it there is a dead band between ArriveDistance and BandNear where the rubber
+            // band's own floor, MinSpeed, is the answer — so a cop eleven metres from a stationary
+            // player asks for 8 m/s, overshoots the flank it is aiming at, and has to come round for
+            // another pass. Measured at exactly that: 8 m/s commanded, 1.5 m/s delivered, and the
+            // 4 m arrest radius never reached before the pursuit expired.
+            if (straightRun)
+                wanted = Mathf.Min(wanted, Mathf.Max(_tuning.ArriveSpeed, distance - _tuning.ArrestRadius));
 
             return wanted;
         }

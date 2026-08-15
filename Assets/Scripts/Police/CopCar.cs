@@ -28,6 +28,16 @@ namespace TheBlock.Police
             /// <summary>Stopped beside you, running the arrest clock.</summary>
             Arresting,
 
+            /// <summary>
+            /// Star lost, driving itself back to its bay on the same planner it chased you with.
+            ///
+            /// It exists because the alternative is worse than it sounds: a cruiser twenty metres
+            /// off your bumper teleporting home the instant a star bleeds reads as a fresh bug, not
+            /// as a stand-down. A returning cop is also still a car in the world — it can be rammed,
+            /// and a new crime turns it round rather than making it finish the trip.
+            /// </summary>
+            Returning,
+
             /// <summary>On its roof, in the sea, or hopelessly wedged. Waiting to be replaced.</summary>
             Wrecked,
         }

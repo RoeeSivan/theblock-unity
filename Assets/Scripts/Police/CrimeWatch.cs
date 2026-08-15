@@ -29,15 +29,21 @@ namespace TheBlock.Police
         [SerializeField] private VehicleEnterExit vehicles;
         [SerializeField] private Interior interior;
 
+        [Header("Debug")]
+        [Tooltip("P adds one star, so the escalation can be play-tested without hunting three " +
+                 "separate crowds. Debug-only, like T for the traffic and C for the crowd, and it " +
+                 "goes when U19 is confirmed.")]
+        [SerializeField] private bool debugStarKey = true;
+
         private float _sinceRunOver = 999f;
         private float _sinceCrash = 999f;
         private bool _hooked;
 
-        /// <summary>Last impact's heat, for the probe's crash table. Zero when it was filtered out.</summary>
-        public float LastCrashHeat { get; private set; }
+        /// <summary>Did the last impact the sensor reported count as a crime? For the probe's table.</summary>
+        public bool LastCrashWasCrime { get; private set; }
 
         /// <summary>Raised for every impact the sensor reported, filtered or not, so the probe can log it.</summary>
-        public event System.Action<CrashSensor.Impact, float> Judged;
+        public event System.Action<CrashSensor.Impact, bool> Judged;
 
         private void Awake() => Bind();
 
@@ -84,6 +90,10 @@ namespace TheBlock.Police
             _sinceCrash += Time.deltaTime;
 
             if (heat != null && interior != null) heat.Frozen = interior.Inside;
+
+            if (debugStarKey && heat != null &&
+                UnityEngine.InputSystem.Keyboard.current?.pKey.wasPressedThisFrame == true)
+                heat.Bump();
         }
 
         /// <summary>Is the player behind a wheel? Everything here is gated on it.</summary>
@@ -97,10 +107,9 @@ namespace TheBlock.Police
 
             _sinceRunOver = 0f;
 
-            // One person is one star. Everyone after the first is worth much less, capped — a
-            // pavement full of people is worth two stars, not five.
-            float gain = heat.Tuning.RunOverFirst + heat.Tuning.RunOverExtra * (downed - 1);
-            heat.Add(Mathf.Min(gain, heat.Tuning.RunOverCap));
+            // One event, one star, however many went down — the web's rule. A pavement full of
+            // people is not five cars, and the cooldown is what stops a rampage being one either.
+            heat.Bump();
         }
 
         /// <summary>
@@ -108,13 +117,16 @@ namespace TheBlock.Police
         ///
         /// The order of the filters is the whole point, and the first two are what makes a scrape
         /// free: only the car the player is driving can commit a crime, and a contact whose normal is
-        /// near-vertical is the ground rather than a wall. The severity itself is closing speed above
-        /// a deadzone, so the relationship between "how hard did I hit that" and "how much trouble am
-        /// I in" is continuous instead of a step at 14 km/h.
+        /// near-vertical is the ground rather than a wall.
+        ///
+        /// <b>The last filter is new, and it is what a counter forces.</b> Heat is whole stars again,
+        /// so a crash is worth one star or nothing at all and "how hard did I hit that" has to become
+        /// a threshold rather than a multiplier. <see cref="PoliceTuning.CrashCrimeSpeed"/> is that
+        /// line, set where a wall at about 22 km/h is a crime and a kerb hop is not.
         /// </summary>
         private void OnCrashed(CrashSensor.Impact impact)
         {
-            LastCrashHeat = 0f;
+            LastCrashWasCrime = false;
             if (heat == null || impact.Sensor == null) return;
 
             bool mine = Driving && vehicles.ActiveVehicle != null &&
@@ -122,29 +134,27 @@ namespace TheBlock.Police
 
             if (!mine || heat.Frozen || heat.SuppressCrash)
             {
-                Judged?.Invoke(impact, 0f);
+                Judged?.Invoke(impact, false);
                 return;
             }
 
             if (_sinceCrash < heat.Tuning.CrashCooldown || !impact.Sensor.AtFault(impact))
             {
-                Judged?.Invoke(impact, 0f);
+                Judged?.Invoke(impact, false);
                 return;
             }
 
-            float over = Mathf.Max(0f, impact.ClosingSpeed - heat.Tuning.CrashDeadzone);
-            float weight = impact.Other != null && impact.Other.GetComponent<CopCar>() != null
-                ? heat.Tuning.CrashCopWeight
-                : 1f;
+            if (impact.ClosingSpeed < heat.Tuning.CrashCrimeSpeed)
+            {
+                Judged?.Invoke(impact, false);
+                return;
+            }
 
-            float gain = Mathf.Min(over * heat.Tuning.CrashPerClosingSpeed * weight, heat.Tuning.CrashCap);
-            LastCrashHeat = gain;
-            Judged?.Invoke(impact, gain);
-
-            if (gain <= 0f) return;
+            LastCrashWasCrime = true;
+            Judged?.Invoke(impact, true);
 
             _sinceCrash = 0f;
-            heat.Add(gain);
+            heat.Bump();
         }
     }
 }

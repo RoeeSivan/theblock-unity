@@ -132,21 +132,24 @@ namespace TheBlock.Police
             Reconcile(wanted, focus);
             _positions.Clear();
 
-            bool anyContact = false;
             foreach (var cop in _cops)
             {
                 if (cop.State == CopCar.Mode.Idle) continue;
+
                 if (cop.State == CopCar.Mode.Wrecked)
                 {
-                    if (Time.time - cop.WreckedAt > _tuning.ReplaceDelay) Retire(cop);
+                    // A wrecked cop goes home the short way — it is on its roof or in the sea, so
+                    // there is nothing to drive back.
+                    if (Time.time - cop.WreckedAt > _tuning.ReplaceDelay) SendHome(cop, true);
                     continue;
                 }
 
                 _positions.Add(cop.transform.position);
-                anyContact |= Step(cop, focus, dt);
+
+                if (cop.State == CopCar.Mode.Returning) StepReturn(cop, dt);
+                else Step(cop, focus, dt);
             }
 
-            if (anyContact) heat.ReportContact();
             if (traffic != null) traffic.SetPursuitObstacles(_positions);
         }
 
@@ -160,40 +163,75 @@ namespace TheBlock.Police
 
         // --- population ---------------------------------------------------------------------------
 
-        /// <summary>Brings the number of live cops to the number of stars, one per second.</summary>
+        /// <summary>
+        /// Brings the number of live cops to the number of stars, one per second.
+        ///
+        /// <b>A cop driving home is not live and is not idle either.</b> It does not count toward the
+        /// star, so a fresh crime deploys again immediately — and the car it deploys is preferably
+        /// that same one, already out on the road, rather than a cold start from the bays.
+        /// </summary>
         private void Reconcile(int wanted, Transform focus)
         {
             int live = 0;
             foreach (var cop in _cops)
                 if (cop.State == CopCar.Mode.Chasing || cop.State == CopCar.Mode.Arresting) live++;
 
-            if (live > wanted)
+            // Losing a star sends home the cop FURTHEST from you, never the last one in the list.
+            // The list order is the bay order, which has nothing to do with the chase, and retiring
+            // by it regularly stood down the one car that was actually on your bumper.
+            while (live > wanted)
             {
-                for (int i = _cops.Count - 1; i >= 0 && live > wanted; i--)
-                {
-                    if (_cops[i].State == CopCar.Mode.Idle || _cops[i].State == CopCar.Mode.Wrecked) continue;
-                    Retire(_cops[i]);
-                    live--;
-                }
+                var furthest = Furthest(focus);
+                if (furthest == null) break;
 
-                return;
+                SendHome(furthest, false);
+                live--;
             }
 
             if (live >= wanted || _sinceSpawn < _tuning.SpawnInterval) return;
 
+            // Returning first: it is already on a street and pointed at the city.
+            if (TryDeployFrom(CopCar.Mode.Returning, focus)) return;
+            TryDeployFrom(CopCar.Mode.Idle, focus);
+        }
+
+        private bool TryDeployFrom(CopCar.Mode from, Transform focus)
+        {
             foreach (var cop in _cops)
             {
-                if (cop.State != CopCar.Mode.Idle) continue;
+                if (cop.State != from) continue;
                 if (!Deploy(cop, focus)) continue;
 
                 _sinceSpawn = 0f;
-                return;
+                return true;
             }
+
+            return false;
+        }
+
+        /// <summary>The chasing cop furthest from the focus, which is the one a lost star costs.</summary>
+        private CopCar Furthest(Transform focus)
+        {
+            CopCar worst = null;
+            float best = -1f;
+
+            foreach (var cop in _cops)
+            {
+                if (cop.State != CopCar.Mode.Chasing && cop.State != CopCar.Mode.Arresting) continue;
+
+                float distance = (cop.transform.position - focus.position).sqrMagnitude;
+                if (distance <= best) continue;
+
+                best = distance;
+                worst = cop;
+            }
+
+            return worst;
         }
 
         /// <summary>
-        /// Sends one cop after the player: out of its bay if you are near the station, otherwise
-        /// placed on a street you cannot see.
+        /// Sends one cop after the player: out of its bay, off the road it was driving home on, or —
+        /// only for a car with no bay of its own — placed on a street you cannot see.
         /// </summary>
         private bool Deploy(CopCar cop, Transform focus)
         {
@@ -343,15 +381,82 @@ namespace TheBlock.Police
             return false;
         }
 
-        /// <summary>Sends a cop home: parked in its bay, or simply put away if it had none.</summary>
-        private void Retire(CopCar cop)
+        /// <summary>
+        /// Stands a cop down.
+        ///
+        /// <b>It DRIVES home.</b> The blip goes now, because the blip belongs to the star, but the
+        /// car is still a car and it routes back to its own bay on the planner it was chasing you
+        /// with. Teleporting instead is what the first version did, and a cruiser vanishing twenty
+        /// metres off your bumper the moment a star bleeds reads as a bug rather than as the police
+        /// giving up on you.
+        ///
+        /// <paramref name="immediate"/> is the two cases where there is nothing to drive: a car on
+        /// its roof or in the sea, and a car with no bay to drive to.
+        /// </summary>
+        private void SendHome(CopCar cop, bool immediate)
         {
-            cop.State = CopCar.Mode.Idle;
-            cop.Driver.Halt = true;
-            cop.Driver.ClearRoute();
             cop.ArrestHold = 0f;
             UI.MapRegistry.RemovePoi(cop.name);
-            Park(cop);
+
+            bool hasBay = cop.Bay >= 0 && cop.Bay < bayPositions.Length;
+            if (immediate || !hasBay)
+            {
+                cop.State = CopCar.Mode.Idle;
+                cop.Driver.Halt = true;
+                cop.Driver.ClearRoute();
+                Park(cop);
+                return;
+            }
+
+            cop.State = CopCar.Mode.Returning;
+            cop.Driver.Halt = false;
+            cop.Driver.HasLineOfSight = false;
+            cop.Driver.Target = bayPositions[cop.Bay];
+            cop.Driver.ClearRoute();
+            cop.Driver.ResetWedges();
+            cop.ReplanIn = 0f;
+        }
+
+        /// <summary>
+        /// One step of a cop driving itself home. No line of sight, no arrest, no contact report —
+        /// it is not chasing anybody, and reporting contact from here would hold the player's heat up
+        /// with a car that is leaving.
+        /// </summary>
+        private void StepReturn(CopCar cop, float dt)
+        {
+            if (cop.LooksWrecked(-5f))
+            {
+                cop.State = CopCar.Mode.Wrecked;
+                cop.WreckedAt = Time.time;
+                cop.Driver.Halt = true;
+                return;
+            }
+
+            var bay = bayPositions[cop.Bay];
+
+            // Close enough: park it properly, which also snaps it square in the slot rather than
+            // leaving it at whatever angle it rolled up at.
+            if ((cop.transform.position - bay).sqrMagnitude <= _tuning.BayArrive * _tuning.BayArrive)
+            {
+                cop.State = CopCar.Mode.Idle;
+                cop.Driver.Halt = true;
+                cop.Driver.ClearRoute();
+                Park(cop);
+                return;
+            }
+
+            // A cop that cannot get home is not worth a rescue mechanism — it is already off duty.
+            if (cop.Driver.Unwedges >= _tuning.UnwedgeLimit)
+            {
+                cop.State = CopCar.Mode.Idle;
+                cop.Driver.Halt = true;
+                cop.Driver.ClearRoute();
+                Park(cop);
+                return;
+            }
+
+            cop.Driver.Target = bay;
+            Replan(cop, dt);
         }
 
         /// <summary>
@@ -393,8 +498,17 @@ namespace TheBlock.Police
 
         // --- one cop, one step --------------------------------------------------------------------
 
-        /// <summary>Returns true if this cop is in contact — within range with a clear line.</summary>
-        private bool Step(CopCar cop, Transform focus, float dt)
+        /// <summary>
+        /// One step of one chasing cop, and the two facts it owes <see cref="Heat"/>.
+        ///
+        /// <b>Those two facts are different and the difference is the whole fix.</b> ARRIVING is
+        /// being inside <see cref="PoliceTuning.SightRadius"/> at all, which latches the meter and
+        /// lets it start bleeding; CONTACT is being inside it with a clear line, which holds the
+        /// meter still. Only the second existed before, so nothing could ever latch — which meant
+        /// heat bled from the moment of the crime while the cars were still hundreds of metres away
+        /// driving in, and the stars were gone before anyone arrived.
+        /// </summary>
+        private void Step(CopCar cop, Transform focus, float dt)
         {
             var target = focus.position;
 
@@ -404,7 +518,7 @@ namespace TheBlock.Police
                 cop.State = CopCar.Mode.Wrecked;
                 cop.WreckedAt = Time.time;
                 cop.Driver.Halt = true;
-                return false;
+                return;
             }
 
             // Repeatedly wedged is not the same as wrecked, and treating it as such is how a cop
@@ -428,12 +542,18 @@ namespace TheBlock.Police
             // One ray per cop per step. An occluder is anything with no Rigidbody attached, which
             // excludes every cop, every traffic car, every wreck and the player's own car in a single
             // test and needs no new layer.
-            cop.HasLos = distance <= _tuning.SightRadius && HasClearLine(
+            bool inRange = distance <= _tuning.SightRadius;
+            cop.HasLos = inRange && HasClearLine(
                 cop.transform.position + Vector3.up * _tuning.LosEyeHeight,
                 target + Vector3.up * _tuning.LosTargetHeight,
                 cop.transform);
 
-            if (cop.HasLos) cop.LastKnown = target;
+            if (inRange) heat.ReportInSight();
+            if (cop.HasLos)
+            {
+                cop.LastKnown = target;
+                heat.ReportContact();
+            }
 
             cop.Driver.Target = cop.HasLos ? target : cop.LastKnown;
             cop.Driver.HasLineOfSight = cop.HasLos;
@@ -441,8 +561,6 @@ namespace TheBlock.Police
             Replan(cop, dt);
             Arrest(cop, target, distance, dt);
             Sample(cop);
-
-            return cop.HasLos;
         }
 
         /// <summary>
@@ -521,8 +639,10 @@ namespace TheBlock.Police
         {
             FinesOwed += _tuning.BustFine;
 
+            // Everyone home the short way. The player is being teleported to custody, so there is
+            // nobody left to see the drive back and a busted street should be clear at once.
             foreach (var cop in _cops)
-                if (cop.State != CopCar.Mode.Idle) Retire(cop);
+                if (cop.State != CopCar.Mode.Idle) SendHome(cop, true);
 
             heat.Clear();
             if (bust != null) bust.Begin(custodyPoint, _tuning.BustHold, FinesOwed, _tuning.BustFine);

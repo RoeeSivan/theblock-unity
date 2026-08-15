@@ -65,11 +65,11 @@ namespace TheBlock.UI
         {
             if (_stars == null || heat == null) return;
 
-            // Cooling is the "you're losing them" readout: the meter is bleeding at the fast rate,
-            // which happens only once you have been out of sight long enough for it to matter. It
-            // replaces the web's evade arc with the one piece of information that arc carried.
-            bool cooling = heat.DecayPerSecond > heat.Tuning.DecayAlways * 1.5f;
-            _stars.Set(heat.Tuning.MaxStars, heat.Stars, heat.Fraction, cooling);
+            // Cooling is the "you're losing them" readout, and the partial star is the web's evade
+            // arc: before it, the fraction fills as you stay out of sight; after it, as the top star
+            // drains. Heat itself is whole stars, so this is the only continuous thing left to draw
+            // and it is the one worth drawing.
+            _stars.Set(heat.Tuning.MaxStars, heat.Stars, heat.Fraction, heat.Cooling);
         }
 
         public void ShowBusted(int fine)
