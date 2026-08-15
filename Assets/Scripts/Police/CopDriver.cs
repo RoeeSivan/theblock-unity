@@ -39,6 +39,14 @@ namespace TheBlock.Police
         /// <summary>Which flank this cop committed to for the current final approach. See ChooseAim.</summary>
         private float _flankSign = 1f;
 
+        // --- passing a queue ------------------------------------------------------------------------
+
+        private float _blockedFor;
+        private float _overtakeUntil;
+
+        /// <summary>True while this cop is out of its lane getting past stopped traffic.</summary>
+        public bool Overtaking => Time.time < _overtakeUntil;
+
         /// <summary>Where the driver is aiming this step. Read by the probe and the gizmos.</summary>
         public Vector3 Aim { get; private set; }
 
@@ -105,6 +113,8 @@ namespace TheBlock.Police
             _unwedgeUntil = 0f;
             _stuckFrom = transform.position;
             _stuckTimer = 0f;
+            _blockedFor = 0f;
+            _overtakeUntil = 0f;
         }
 
         /// <summary>Called after the planner has refilled <see cref="Route"/>.</summary>
@@ -123,6 +133,7 @@ namespace TheBlock.Police
             {
                 // Brake toward a stop, and hold it there. The handbrake below 0.5 m/s is what keeps
                 // a parked cruiser parked on the station's sloped apron instead of creeping.
+                _car.SpeedLimitOverride = 0f;
                 _car.SetInput(new CarInput(Mathf.Clamp(-speed, -1f, 1f), 0f, Mathf.Abs(speed) < 0.5f));
                 _stuckFrom = position;
                 _stuckTimer = 0f;
@@ -139,6 +150,12 @@ namespace TheBlock.Police
             float steer = SteerToward(aim, position);
             TargetSpeed = ChooseSpeed(position, speed, straightRun);
 
+            // The blue-light allowance, handed to the car itself: asking for 29 m/s means nothing
+            // while ApplyDrive is cutting the torque at the config's 20. Dropped to 0 — the config
+            // cap — the moment this stops being a run to the scene, so the chase you can still win
+            // is fought on exactly the numbers the play-test signed off.
+            _car.SpeedLimitOverride = Responding(position) ? _tuning.ResponseSpeed : 0f;
+
             // Proportional on the speed error: 3 m/s off target is full pedal either way. Negative
             // throttle is the brake while rolling forward and becomes reverse once stopped, which is
             // the arcade convention the player's car already has — and doubles as the way out of a
@@ -146,6 +163,7 @@ namespace TheBlock.Police
             float throttle = Mathf.Clamp((TargetSpeed - speed) / 3f, -1f, 1f);
             _car.SetInput(new CarInput(throttle, steer));
 
+            TrackBlocked(dt, speed);
             TrackStuck(dt, position);
         }
 
@@ -210,7 +228,7 @@ namespace TheBlock.Police
                 return Target + side * (_flankSign * _tuning.SideGap);
             }
 
-            if (_cursor >= _route.Count) return Target;
+            if (_cursor >= _route.Count) return Overtake(Target, position);
 
             // Walk forward along the route until the lookahead is used up. Measuring along the route
             // rather than as a radius keeps the aim on the road through a corner instead of cutting
@@ -223,13 +241,60 @@ namespace TheBlock.Police
             for (int i = _cursor; i < _route.Count; i++)
             {
                 float step = Mathf.Sqrt(FlatSqr(_route[i], at));
-                if (step >= lookahead) return Vector3.Lerp(at, _route[i], lookahead / Mathf.Max(step, 0.01f));
+                if (step >= lookahead)
+                    return Overtake(Vector3.Lerp(at, _route[i], lookahead / Mathf.Max(step, 0.01f)), position);
 
                 lookahead -= step;
                 at = _route[i];
             }
 
-            return at;
+            return Overtake(at, position);
+        }
+
+        /// <summary>
+        /// Swings the aim point out of the lane so the cop passes whatever is standing in it.
+        ///
+        /// <b>A police car does not queue.</b> Traffic pulls over for one, but a queue stopped at a
+        /// red light has nowhere to pull TO — measured, six cars around a cruiser all at 0.0 m/s, one
+        /// of them yielding its full shift and still nose-to-nose with it, and the junction cost 12
+        /// seconds of a response. When the traffic cannot move, the cop is what has to.
+        ///
+        /// It aims into the oncoming side, which is what a real car with its lights on does, and it
+        /// is time-boxed rather than latched: after <see cref="PoliceTuning.OvertakeTime"/> it tucks
+        /// back into the lane and only pulls out again if it is still stuck. That keeps it from
+        /// driving the whole city on the wrong side.
+        /// </summary>
+        private Vector3 Overtake(Vector3 aim, Vector3 position)
+        {
+            if (!Overtaking) return aim;
+
+            var along = aim - position;
+            along.y = 0f;
+            if (along.sqrMagnitude < 0.01f) return aim;
+
+            // Left is the oncoming side on this city's right-hand lanes.
+            var side = Vector3.Cross(Vector3.up, along.normalized);
+            return aim - side * _tuning.OvertakeShift;
+        }
+
+        /// <summary>
+        /// Decides when the cop has been standing still long enough to pull out and pass.
+        ///
+        /// The test is "asking to move and not moving", which is deliberately the same shape as the
+        /// wedge detector — but this one fires in a second and a half rather than two, and answers
+        /// sideways instead of in reverse, because a queue is not a wall you back off from.
+        /// </summary>
+        private void TrackBlocked(float dt, float speed)
+        {
+            if (Overtaking) return;
+
+            bool stuck = TargetSpeed > 2f && Mathf.Abs(speed) < 1.5f;
+            _blockedFor = stuck ? _blockedFor + dt : 0f;
+
+            if (_blockedFor < _tuning.OvertakeAfter) return;
+
+            _blockedFor = 0f;
+            _overtakeUntil = Time.time + _tuning.OvertakeTime;
         }
 
         /// <summary>
@@ -265,15 +330,33 @@ namespace TheBlock.Police
         /// The rubber band is ported design — far away it presses, close in it settles — but the top
         /// of the band is <see cref="PoliceTuning.MaxSpeed"/>, which is 2.5% over the player's rather
         /// than the web build's 15%. Cornering is where a cop is actually beaten.
+        ///
+        /// <b>Except on the way TO you.</b> A cop past <see cref="PoliceTuning.BandFar"/> with no
+        /// line of sight is not chasing anybody yet — it is answering a call across the city, and
+        /// holding it to chase numbers is what made the response feel slack. Measured on the drive
+        /// in: it asked for the full 20.5 and delivered **13.7 m/s**, so the binding constraint was
+        /// never the top speed, it was <see cref="CornerSpeed"/>. Both are raised for that phase and
+        /// neither applies once it can see you, so the chase and the escape are byte-for-byte what
+        /// the play-test already accepted.
         /// </summary>
+        /// <summary>
+        /// Running to the scene rather than chasing anyone: past the rubber band, with no eyes on the
+        /// target. The one condition the whole urgency allowance hangs on.
+        /// </summary>
+        private bool Responding(Vector3 position) =>
+            !HasLineOfSight && FlatSqr(Target, position) > _tuning.BandFar * _tuning.BandFar;
+
         private float ChooseSpeed(Vector3 position, float speed, bool straightRun)
         {
             float distance = Mathf.Sqrt(FlatSqr(Target, position));
+            bool responding = Responding(position);
 
             float band = Mathf.InverseLerp(_tuning.BandNear, _tuning.BandFar, distance);
-            float wanted = Mathf.Lerp(_tuning.MinSpeed, _tuning.MaxSpeed, band);
+            float wanted = responding
+                ? _tuning.ResponseSpeed
+                : Mathf.Lerp(_tuning.MinSpeed, _tuning.MaxSpeed, band);
 
-            float corner = CornerSpeed(position);
+            float corner = CornerSpeed(position, responding ? _tuning.ResponseGrip : _tuning.LateralGrip);
             wanted = Mathf.Min(wanted, corner);
 
             if (distance < _tuning.ArriveDistance)
@@ -296,12 +379,14 @@ namespace TheBlock.Police
         /// The tightest corner in the next stretch of route, as a speed.
         ///
         /// <c>v = sqrt(a / k)</c> — the speed at which a curvature <c>k</c> costs a lateral
-        /// acceleration <c>a</c>. <see cref="PoliceTuning.LateralGrip"/> is the dial: raise it and
-        /// cops take corners flat, lower it and a bend is a real place to lose one.
+        /// acceleration <c>a</c>. The grip is the dial: raise it and cops take corners flat, lower it
+        /// and a bend is a real place to lose one. It is a parameter rather than a field read because
+        /// the run to the scene and the chase itself want different answers — see
+        /// <see cref="ChooseSpeed"/>.
         /// </summary>
-        private float CornerSpeed(Vector3 position)
+        private float CornerSpeed(Vector3 position, float grip)
         {
-            float best = _tuning.MaxSpeed;
+            float best = Mathf.Max(_tuning.MaxSpeed, _tuning.ResponseSpeed);
             float scanned = 0f;
             var previous = position;
 
@@ -322,7 +407,7 @@ namespace TheBlock.Police
 
                 // Curvature of the arc that turns by `turn` over the length of the second leg.
                 float curvature = turn / lengthB;
-                float limit = Mathf.Sqrt(_tuning.LateralGrip / Mathf.Max(curvature, 1e-4f));
+                float limit = Mathf.Sqrt(grip / Mathf.Max(curvature, 1e-4f));
                 if (limit < best) best = limit;
             }
 

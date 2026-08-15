@@ -97,6 +97,25 @@ namespace TheBlock.Vehicles
         public bool Driven { get; set; }
 
         /// <summary>
+        /// Raises this car's forward speed ceiling above <c>config.vehicle.maxSpeed</c>. Zero, the
+        /// default, means the config's own limit — which is what every player-driven car uses.
+        ///
+        /// <b>It exists for one caller.</b> A police car answering a call is allowed to cover ground
+        /// faster than traffic; a police car ON you is not, because "a cop cannot corner or accelerate
+        /// in a way your car could not" is the whole reason the AI writes <see cref="CarInput"/>
+        /// instead of moving a transform. <c>CopDriver</c> raises it only while responding — beyond
+        /// the rubber band with no line of sight — and drops it the moment it can see you.
+        ///
+        /// Worth knowing before touching this: the config cap is <b>20 m/s for every car in the
+        /// game</b>, so <c>PoliceTuning.MaxSpeed</c>'s documented "20.5, a 2.5% edge over the player"
+        /// was never reachable. The torque was being cut at 20 the whole time.
+        /// </summary>
+        public float SpeedLimitOverride { get; set; }
+
+        private float MaxForwardSpeed =>
+            SpeedLimitOverride > 0f ? Mathf.Max(SpeedLimitOverride, _spec.MaxSpeed) : _spec.MaxSpeed;
+
+        /// <summary>
         /// How long a <see cref="SetInput"/> call stays in force, seconds. Long enough to survive a
         /// dropped frame, far shorter than the time it takes a coasting car to become a problem.
         /// </summary>
@@ -255,7 +274,7 @@ namespace TheBlock.Vehicles
             // brake pedal and a gear selector do, which is the arcade convention the web build had.
             var braking = throttle < 0f && speed > 0.5f || throttle > 0f && speed < -0.5f;
 
-            var atForwardLimit = speed >= _spec.MaxSpeed;
+            var atForwardLimit = speed >= MaxForwardSpeed;
             var atReverseLimit = -speed >= _spec.ReverseMaxSpeed;
             var capped = throttle > 0f && atForwardLimit || throttle < 0f && atReverseLimit;
 

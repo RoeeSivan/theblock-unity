@@ -93,6 +93,32 @@ namespace TheBlock.Police
                  "whether corners are a real escape.")]
         public float LateralGrip = 6.5f;
 
+        [Header("The run to the scene — urgency without an unbeatable chase")]
+        [Tooltip("Top speed while RESPONDING: beyond BandFar with no line of sight, which is the " +
+                 "drive in from the station and nothing else. Above the chase's MaxSpeed on purpose " +
+                 "— a car with its lights on covering ground is not the same thing as a car on your " +
+                 "bumper, and only the second one has to stay beatable.")]
+        public float ResponseSpeed = 29f;
+
+        [Tooltip("Lateral grip while responding, m/s^2. The measured drive was CORNER-limited, not " +
+                 "top-speed limited — 13.7 m/s against a 20.5 ceiling — so this is the number that " +
+                 "actually shortens the wait. It does not apply once a cop can see you, so bends are " +
+                 "still where a pursuit is lost.")]
+        public float ResponseGrip = 11f;
+
+        [Tooltip("Seconds a RESPONDING cop tolerates being stopped while asking to move before it " +
+                 "pulls out to pass. MEASURED: a queue at a red light cost one cruiser 12 s in a " +
+                 "single junction, and no amount of yielding fixes that — stationary traffic has " +
+                 "nowhere to go, so the cop is what has to move.")]
+        public float OvertakeAfter = 1.5f;
+
+        [Tooltip("Metres to the side the aim point swings while passing a queue — into the oncoming " +
+                 "side, which is what a real car with its lights on does.")]
+        public float OvertakeShift = 3.5f;
+
+        [Tooltip("Seconds one pull-out lasts before the cop tucks back into its lane and re-checks.")]
+        public float OvertakeTime = 3f;
+
         [Tooltip("Metres of route ahead scanned for the tightest corner.")]
         public float CornerScan = 25f;
 

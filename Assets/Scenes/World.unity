@@ -136964,6 +136964,11 @@ MonoBehaviour:
     BandNear: 12
     BandFar: 75
     LateralGrip: 6.5
+    ResponseSpeed: 29
+    ResponseGrip: 11
+    OvertakeAfter: 1.5
+    OvertakeShift: 3.5
+    OvertakeTime: 3
     CornerScan: 25
     LookaheadBase: 5
     LookaheadPerSpeed: 0.6
@@ -189600,7 +189605,7 @@ MonoBehaviour:
   gasCooldownSec: 30
   copYieldRange: 30
   copYieldWidth: 4
-  copYieldShift: 2
+  copYieldShift: 3
   copYieldSpeed: 6
   copYieldRate: 3
 --- !u!114 &1670596547

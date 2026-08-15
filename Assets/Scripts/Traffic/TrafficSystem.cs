@@ -184,10 +184,11 @@ namespace TheBlock.Traffic
         [Tooltip("Half-width of the cop's corridor, metres. Anything inside it is in the way.")]
         [SerializeField] private float copYieldWidth = 4f;
 
-        [Tooltip("Metres outward from the lane centre a yielding car pulls. DERIVED: the cruiser is " +
-                 "2.09 m wide and a traffic car about 1.8, so clearing one needs the better part of " +
-                 "two metres before the cop can pass without touching.")]
-        [SerializeField] private float copYieldShift = 2f;
+        [Tooltip("Metres outward from the lane centre a yielding car pulls. DERIVED, and 2.0 was too " +
+                 "tight: the cruiser's half-width is 1.05 and a traffic car's about 0.9, so a 2 m " +
+                 "shift leaves FIVE CENTIMETRES between them. Measured — a car yielding the full 2.00 " +
+                 "still had the cop's nose ray hitting it at 2.9 m. 3.0 leaves about a metre.")]
+        [SerializeField] private float copYieldShift = 3f;
 
         [Tooltip("Speed cap while yielding, m/s. Slowing helps the cop past; STOPPING does not — a " +
                  "stopped car in the lane is the wall this whole mechanism exists to remove.")]

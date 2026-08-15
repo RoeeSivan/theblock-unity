@@ -59,9 +59,41 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-**Next action: start U20 — the mission framework, campaign director and persistence.** It is the
-first row of Tier 5 and nothing above it is open. Read its row, then `mission/` and
-`game/campaign-setup.ts` / `progress.ts` in the original.
+**Next action: play-test U19d (the urgency pass), then start U20.** U19d is written, compiles clean
+and is NOT play-tested — the user's call, to be checked in the morning. If it reads right, U19d is
+done and U20 (mission framework, campaign director, persistence) is next: first row of Tier 5,
+nothing above it open, read `mission/` and `game/campaign-setup.ts` / `progress.ts` in the original.
+
+### U19d, 2026-08-15 — "I want the police to arrive a bit faster" — WRITTEN, NOT PLAY-TESTED
+
+**What actually limited the response was neither of the obvious things.** Measured on the drive in:
+the cop asked for its full 20.5 m/s and delivered **13.7** — so top speed was never the constraint,
+`CornerSpeed` was. And worse, a single red-light queue cost one cruiser **12 seconds in one
+junction**: six traffic cars around it all at 0.0 m/s, one of them yielding its entire shift and
+still nose-to-nose with it.
+
+Three changes, and the boundary between them is the point:
+
+1. **A blue-light run.** Past `BandFar` with no line of sight a cop is not chasing anyone, it is
+   answering a call — so it gets `ResponseSpeed` (29) and `ResponseGrip` (11) instead of the chase's
+   20.5 and 6.5. **Neither applies once it can see you**, so the chase and the escape are exactly
+   what the play-test already accepted, and corners are still where a pursuit is lost.
+2. **A cop does not queue.** Blocked for `OvertakeAfter` (1.5 s) while asking to move, it swings its
+   aim `OvertakeShift` (3.5 m) into the oncoming side for `OvertakeTime` (3 s), then tucks back and
+   re-checks. Time-boxed rather than latched, so it cannot drive the city on the wrong side. This one
+   applies **during a chase too** — the user's rule is *"cops do not listen to traffic lights, they
+   just get to their target"*, and being stuck behind stopped traffic is the only way they ever did.
+   It deliberately does **not** touch the final approach, where a swerve would wreck the pull-in.
+3. **`copYieldShift` 2.0 → 3.0 m.** The old value was arithmetically too tight and the measurement
+   proved it: cruiser half-width 1.05 + traffic car half-width 0.9 = 1.95, so a 2 m shift left
+   **five centimetres**. Three metres leaves about a metre.
+
+⚠ **`config.vehicle.maxSpeed` is 20 m/s and `ApplyDrive` cuts the torque there, for every car in the
+game.** So `PoliceTuning.MaxSpeed`'s documented *"20.5 — a 2.5% edge over the player"* **was never
+reachable**; both cars were pinned at exactly 20 the whole time. `CarController.SpeedLimitOverride`
+is the seam that lets one car past that cap, and `CopDriver` is its only caller — set while
+responding, cleared the instant there is line of sight or the car halts. Do not hand it to anything
+the player drives.
 
 **U19 is DONE, user-confirmed 2026-08-15** (*"mark police chase as done … maybe we will have minor
 improvements in the future but for now its solid"*). Three rows closed together: U19 the pursuit,
@@ -1261,6 +1293,8 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | U19 | Police pursuit + wanted level | done | `7993e19` (+ U19b/U19c) | **User-confirmed 2026-08-15** — *"maybe we will have minor improvements in the future but for now its solid"*. It took two follow-up rows to get there; both are below and both were the same class of fault. See RESUME HERE for what a future session actually needs. **Routing is real A\* over a stitched view of U17's graph** (`RouteGraph` + `RoutePlanner`, baked by `WorldBuilder.Police.cs` into `Assets/Police/Generated/`) — the web's "cops drive straight at you" was scar tissue from a graph split into 5 islands, and stitching T-junctions within 3 m makes 97.9% of the city one component. Straight-line survives in exactly two places: the last 40 m with line of sight, and the rejoin when a cop is off the graph. **The cop is a real WheelCollider car** built by the existing `CarBuilder` through a new `preRotation` seam (`PoliceCarBuilder`, own material folder, `enterable=false` so `E` cannot steal one), and it is driven by writing `CarInput` into the same `ApplySteering`/`ApplyDrive` the player uses — so it cannot corner in a way your car could not. ~~**Heat is a continuous meter, not +1 per crime**~~ — **REVERSED at U19b, see below.** **Not done yet:** the arrest and `BustSequence` have still never fired in a test, `PoliceProbe` is not written, and the approach is slow and sometimes indirect from the starting lot (which is 80 m off-graph — the hardest case in the map, and where the game begins). Original notes: real NavMesh; do NOT inherit the straight-line hack untested. **The run-over's heat hooks into `RunOverSystem`** — `Victims` and the `RanOver` event — and there is deliberately no second detector to add: the original's `crime.ts pedHit` radius scan is dead upstream (see the decisions log). One run-over event is one star however many go down, on a 3 s cooldown, and it applies during missions too |
 | U19b | Police pursuit — the fix | done | `5771951` | **The user played U19 and the police never arrived; the cause, the fix and the measurements are in RESUME HERE.** Heat is a **whole-star counter** again — 1 crime = 1 star = 1 car, the web's own escalation — and the web's **`engaged` latch is back**, which is the actual fix: nothing bleeds until a cop has first reached `SightRadius`, so a station response with a 15–60 s travel time is possible at all. The continuous meter was not wrong about scrapes, it was **incompatible with the travel time added on the same day**: star lifetime ~6 s against a drive of 15–60. A crash is now a whole star above `CrashCrimeSpeed` (6 m/s closing, the user's call — "hard crashes only") or nothing, which keeps U19's "a scrape is free" fix without a severity curve. `GiveUpAt` counts only while `engaged`; `InboundGrace` (60 s) bounds the inbound phase. New `CopCar.Mode.Returning`: a cop that loses its star **drives back to its bay** on the same planner instead of teleporting out of shot. `Reconcile` now stands down the cop **furthest** from you, never the last in the bay order. Two arrest-approach faults fixed and NOT yet confirmed — the pull-in flank was recomputed every step and orbited (measured: stuck at 10.6–11.1 m, never reaching the 4 m radius), and an 8–12 m dead band left the rubber band's floor as the answer. Dead tuning fields deleted (`StationDeployRange`, `RetireDistance`, `OffGraphDistance`, and `GroundNormalY`/`CrashDeadzone`, which duplicated `CrashSensor`'s own and were never read). ⚠ **`RunOverCooldown` and `CrashCooldown` had to be fixed in the SCENE, not just in code** — see the decisions log |
 | U19c | Pursuit — traffic yields, and the bust | done | `6fea7db` | **Second report: "police cars are not getting to me because they were blocked by other cars", and it was structural.** A `TrafficCar` is a **kinematic** Rigidbody, so to the cop's 1400 kg dynamic body it is a wall, not a car to squeeze past — it wedged, reversed, retried. The web build cannot hit this and its own config says why: its cops are kinematic character controllers that collide-and-slide around stopped cars, so shoving is free there and impossible here. **So traffic gets out of the way instead** — a car inside a pursuing cop's corridor eases 2 m outward and caps at 6 m/s, and NEVER stops, because a stopped car in the lane is the wall this removes. It rides on the lane-offset term the sampler already takes. Measured (isolated at `timeScale = 0.02`, because a static synthetic pursuer falls behind a 12 m/s car between two MCP calls and the first attempt read 0 for exactly that): ease-in **0 → 2.000 m**, speed **12.0 → 6.00**, clean ease-out. **The bust has two outcomes, the user's call:** in a vehicle you and it are impounded at the station; on foot you are cuffed where you stand. Money either way, which needed `Assets/Scripts/Game/Wallet.cs` — the port of `game/wallet.ts` onto `PlayerPrefs` — because `FinesOwed` was a tally nothing ever spent. `Charge` returns **what it actually took**, so a $100 fine against $40 costs $40 and the rest becomes debt: being broke is not a free pass. Measured: on-foot bust moved the player **0.04 m**, cash **$500 → $400**, cops all sent home, 0 errors. `WantedHud` gained a `$` readout and a BUSTED line that names which outcome happened. **U20 inherits `Heat.SuppressCrash`, `BustSequence.Busted` and `Wallet.Add`, all built and wired to nothing** |
+
+| U19d | Pursuit — urgency on the run in | **wip** | | **Written, compiles clean, NOT play-tested** — the user's call (*"I'll check it in the morning"*). Asked for: *"the police should arrive a bit faster, so the user feels more urgency."* The constraint was neither top speed nor the star: the cop asked for 20.5 and delivered **13.7 m/s** because `CornerSpeed` bound it, and a red-light queue cost one cruiser **12 s in a single junction**. So (1) a **blue-light run** — `ResponseSpeed` 29 and `ResponseGrip` 11 apply only past `BandFar` with NO line of sight, so the chase you can still win is untouched; (2) **a cop does not queue** — blocked 1.5 s while asking to move, it swings 3.5 m into the oncoming side for 3 s, time-boxed, and this one applies during a chase as well, per the user's *"cops do not listen to traffic lights, they just get to their target"*; it does not touch the final approach; (3) `copYieldShift` **2.0 → 3.0 m**, because 2.0 left five centimetres between a 2.09 m cruiser and a 1.8 m car and the measurement showed exactly that. ⚠ New seam `CarController.SpeedLimitOverride`, whose only caller is `CopDriver` — needed because `config.vehicle.maxSpeed` is 20 for every car and `ApplyDrive` cuts the torque there, which means `PoliceTuning.MaxSpeed`'s "20.5, a 2.5% edge over the player" **was never reachable**. ⚠ `copYieldShift` had to be fixed in the SCENE as well as in code — the same trap as U19b's cooldowns |
 
 ### Tier 5 — Missions
 | id | unit | state | commit | notes |
