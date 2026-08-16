@@ -94,10 +94,18 @@ unclear, re-test before inheriting.
 > a change of what "done" means - the graded artifacts are a video, a repo, a kanban board and a zip,
 > and only one of them is the game.
 >
-> **NEXT ACTION: U35b - vehicle damage.** ✅ **U35a is user-confirmed** (*"עובד טוב"*, 2026-08-16) and
-> needs nothing further until U30b measures its frame cost. The play-test also turned up two
-> unrelated faults - a `PlayerPrefs` radar that read as "the map vanished", and a real hole in the
-> world's seaward edge - both fixed and both in their own section below.
+> **NEXT ACTION: U35c - the police helicopter at 3★, and the GPS route on the map.** ✅ **U35a and
+> U35b are both user-confirmed** (2026-08-16) and neither needs anything further until U30b measures
+> their frame cost.
+>
+> **U35b shipped with two additions the user asked for mid-play-test**, both in its section below: a
+> wrecked car cannot be entered and says why on the HUD, and the explosion announces itself. Its
+> switch is `Settings → Gameplay → Vehicle Damage` = Off / Visual / Full, **default Off**, so the
+> world looks exactly as it did before it until someone turns it on.
+>
+> The U35a play-test also turned up two unrelated faults - a `PlayerPrefs` radar that read as "the map
+> vanished", and a real hole in the world's seaward edge - both fixed and both in their own section
+> below.
 >
 > ⚠ **THE BATCH PLAY-TEST IS OFF - the user reversed it, 2026-08-16, later the same day again:**
 > *"ברור, אנחנו צריכים לבדוק אחרי כל פיצ'ר כן."* **Every U35 sub-unit is play-tested by the user at
@@ -119,7 +127,7 @@ unclear, re-test before inheriting.
 > the Player with everything off - identical to what it would have measured before U35 - and each
 > feature is then toggled on alone for its delta. The order is now:
 >
-> **U35a (play-test) → U35b (play-test) → U35c (play-test) → U35d (play-test) → U35e (play-test) →
+> ~~U35a (play-test)~~ ✅ → ~~U35b (play-test)~~ ✅ → **U35c (play-test)** → U35d (play-test) → U35e (play-test) →
 > U30a (build) → U30b (baseline with all off, then per-feature deltas; anything over budget is tuned
 > or cut) → record the video → U30c (strip the debug keys, LAST, because they are how the recording
 > reaches every feature).** U35f-h are backlog behind all of that.
@@ -194,6 +202,85 @@ every crime on `Driving` - so a wanted level while on foot is only reachable thr
 Drive out of the spawn car park (it has **no NavMesh within 10 m**, so she falls back to running in
 straight lines there and it is the wrong place to judge her), get out on a street, press **`P`** for
 one star, and wait ~20-30 s for the cruiser to drive over from the station.
+
+### U35b, 2026-08-16 - vehicle damage - BUILT and USER-CONFIRMED, awaiting U30b's frame measurement
+
+The web build's cars are kinematic, so a crash there is a number: U34 made it cost a star and a
+thump. This makes it cost the car. **Three layers, one switch, and the switch's Off state is exactly
+today's game** - which is what keeps U30b's baseline valid (Tier 8, rule 2).
+
+**What is in it**
+
+- `Assets/Scripts/Vehicle/{VehicleDamage,DeformableBody,DetachableParts,DetachedPart,DamageBudget}.cs`
+  and `Assets/Scripts/Vfx/DamageFx.cs`. The panels and the part nodes are wired by a new
+  `BuildDamage` step in `Assets/Editor/CarBuilder.cs`, so **Build Drivable Cars** and
+  **Build Police Car** both produce them; the component itself is added at runtime by
+  `CarController.Bind`, beside `CrashSensor.Ensure`, because a component dropped on a prefab is
+  regenerated away by the next build (the U19-to-U34 `CrashSensor` scar, paid forward).
+- `Settings → Gameplay → Vehicle Damage`, `Progress.VehicleDamage`, **Off / Visual / Full,
+  default Off**. Visual floors the condition at 0.05 - the car dents, smokes, burns and loses a door
+  and still drives home; only Full lets it die.
+- **Condition**, per car, no HUD readout - the smoke IS the readout, which is what GTA does and what
+  the shared bar slot above the radar (`PlayerMeters` / `FuelGauge`, mutually exclusive by mode)
+  leaves no room for. Under 5 m/s costs nothing; above, `(v−5)/45`, ×1.4 into another vehicle, capped
+  at 0.4 per impact. **0.5 → smoke, 0.2 → fire, 0 → dead.** Three real crashes kill a car; one cannot.
+- **The fuse, and it is the user's call (2026-08-16):** at zero the engine dies and the car burns for
+  3 s. `E` gets you out; do nothing and you are put down beside it at t−0.4 s, on foot and unharmed.
+  **Not a ragdoll** - U35a settled that a car does not eject you, and a showcase feature does not get
+  to quietly reverse a decision about how the game feels.
+- **The blast:** 8 m sphere, `AddExplosionForce` on every body, `LotCar.Blast` promotes parked
+  fillers (static colliders the sweep cannot see, so U34's promotion needed a second door with no
+  collision behind it), `RunOverSystem.Blast` downs the crowd through U35a's own path, one pooled
+  point light for 0.3 s, and `SfxCue.Explosion` - the one cue with no line in `sfx.ts` to copy,
+  voiced against `Crash` deliberately since the two are heard seconds apart. A star through
+  `Heat.Bump`, and only when it is the player's doing.
+- **A wreck cannot be used, and says so** (the user's addition, same day). `CarController.TryEnter`
+  refuses once the engine is dead and `EntryRefusal` supplies the line - the U28 socket that exists
+  precisely so a prompt and a key cannot disagree: *"Get back - this car is about to blow"* while the
+  fuse burns, *"Wrecked - this car is not going anywhere"* after. The explosion also flashes
+  *"Your car exploded. Find another one."* through `MissionHud.ShowHint`, **only for the car the
+  player was driving** - a line per cruiser cooking off in a pursuit would be noise.
+- **Repair is `Teleport`**, so `R` and U19's bust both hand back a whole car. The husk lasts 20 s and
+  then the existing `Respawn` puts it home, repaired - which is also what stops four blown cars from
+  stranding the player.
+- **Caps:** 4 cars holding cloned meshes (the oldest is RESTORED, never the player's), 3 smoke/fire
+  emitters (oldest stolen), 8 shed parts, 1 blast light. Off allocates nothing at all.
+
+**Three findings, and two of them changed the design.**
+
+1. **The Mustang is eighteen SkinnedMeshRenderers, and a `MeshFilter` sweep found ZERO dentable
+   meshes on it** - reported by the build log, which is the only reason it was caught before the
+   play-test. Its vertices live in **bind space**: through the renderer's transform the shell measures
+   5.57 m in Y, a car standing on its nose. The deform core was rewritten to carry every vertex
+   through `bones[i].localToWorld * bindposes[i]`, rebuilt per dent because the rig moves (wheels
+   spin, door swings). Memory: `skinned-verts-live-in-bind-space`.
+2. **The contact normal points the other way from the guess.** Written as `-normal` first, from
+   reasoning, and the nose **bulged outward by 0.136 m**. Unity points `ContactPoint.normal` from the
+   other collider INTO the body whose callback fired, so bodywork caves ALONG it - measured, then
+   fixed: Mustang nose z 2.825 → 2.751, Audi 2.820 → 2.787. A shed part still flies against it.
+   Memory: `contact-normal-points-into-the-body`.
+3. **Layer ③ needs no Blender, and the .glb files are why.** Read out of the glTF JSON directly: the
+   Mustang's eighteen nodes are one per MATERIAL, each spanning the whole car - no bumper node exists
+   to detach - while the three lot cars kept `Door_R` / `Mirror_R` / `Window_FR` / `door_dside_f` from
+   the web build's merge pass, and the cruiser kept `Roof light bar_0`. So doors, mirrors and the
+   light bar come off for free and the Mustang sheds nothing; the build log says
+   *"parts none"* for it rather than staying quiet. A Blender re-split of the hero car was weighed
+   and **declined by the user**: `CarBuilder` rebinds paint by the material NAME `CarPrimaryColor`,
+   so a re-export that renames anything breaks the car in every screenshot. Memory:
+   `car-glbs-group-by-material`.
+
+**Measured before the hand-over, not assumed.** All five models' meshes are readable (18/18 Mustang,
+4/4 per Draco lot car, 13/13 cruiser - glTFast ends both its paths with `UploadMeshData(false)`;
+memory `gltfast-meshes-stay-readable`). A dent moved 4,500 of 34,598 verts with the furthest 0.89 m
+from the contact against a 0.9 m radius. Shedding and repair were exercised on all three part-bearing
+cars. And the full chain ran in Play on the Audi: smoke → fire → fuse → explosion → charred husk →
+20 s → repaired to `Circle`, not `Circle (dented)`, with the paint block cleared and the budget back
+to zero. **No Editor errors in any of it.** Frame cost is deliberately NOT claimed - that is U30b's,
+on the Player, and this is the row most likely to want a smaller `DeformCap`.
+
+**The one number to look at again** is `maxDeform`, 0.28 m per vertex for the life of the car. It is
+a look, and looks are the user's to judge; `DeformableBody` exposes it, the dent radius, the strength
+and the jitter as serialized fields.
 
 ### The U35a play-test also turned up two unrelated faults, 2026-08-16 - both fixed
 
@@ -2691,7 +2778,7 @@ pollute it. A sub-unit the user has played is **`built - user-confirmed, awaitin
 | --- | --- | --- | --- | --- |
 | U35 | The showcase additions - parent row | **planned 2026-08-16, list chosen** | | **The user's own idea and their framing:** *"סשן של 5 פיצ'רים מגניבים, לראות מה אני יכול עוד להוציא מ-Unity."* The list is now the eight rows below; this row is their parent and carries the rules above. ⚠ **The sequencing trap, and it is the same one U19b paid for:** a feature added after the perf baseline invalidates it, so the frame gets re-checked between the last landed sub-unit and the recording. Precedent for what a good row looks like is already in this tier and in the standing remark: real A\* pursuit against the web's five disconnected graph islands, Rigidbody wrecks against a 30-vehicle Rapier budget, `dspTime` against `audioElement.currentTime` |
 | U35a | Ragdolls - pedestrians and the player | **built - user-confirmed, awaiting U30b** | `6b856ab` | ✅ **USER-CONFIRMED 2026-08-16** - *"עובד טוב"*. Not `done` only because rule 3(a)'s frame measurement is on a Player that does not exist yet. **BUILT 2026-08-16. Its own section is above** - what is in it, the three faults building it found (Optimize Game Objects deletes the bones a ragdoll needs; `Interpolate` on a kinematic body drags every bone to the prefab pose; a kinematic body's PhysX pose is stale when it goes dynamic), the measurements, and the one hinge sign to look at in the play-test. `Build Ragdolls` writes 11 bodies / 10 joints / ~64 kg into six pedestrians and three player characters; `Settings → Gameplay → Ragdolls` default **on**; cap 4 with the oldest freezing; player thrown by a bike crash over 8 m/s or a fall over 5 m (the `K` debug key was removed the same day at the user's request - see the section), stand-up is a bone blend rather than a clip. ⚠ Perf debt for U30b: the six pedestrian FBX lost Optimize Game Objects, which is ~68 transforms per live body. **The original plan follows, unchanged, because every line of it survived contact:** **The argument:** the web's run-over is a canned Mixamo clip (`Hit_By_Car`, root motion harvested - memories `mixamo-pads-one-shot-clips`, `root-motion-on-a-scaled-child`) because Rapier on the main thread has no budget for a 15-body articulated rig per victim; PhysX does. **Mechanism:** the crowd prefabs are Humanoid, so Unity's **Ragdoll Wizard** (`GameObject → 3D Object → Ragdoll…`) builds the capsule/joint chain once per body type; at `RunOverSystem`'s hit, `RunOverReaction` disables the Animator, enables the rigidbodies and injects the car's velocity into the pelvis and the struck limb, then after N s the body settles and is recycled exactly as the clip's victims are today. **The player too:** thrown from the bike / a car door at speed, or a fall from a roof past a threshold, → ragdoll → `Getting_Up` (Mixamo, one more clip through the U29 importer) → control returns. **Off state:** a `Settings → Gameplay → Ragdolls` toggle, default **on** is the one exception argued for here - it replaces a reaction rather than adding a look, and it is the single most GTA thing on the list; if it does not read right the toggle restores the clip. **Perf budget:** a hard cap on simultaneous ragdolls (start at 4, oldest one freezes to a static pose), joints on `Solver Iterations` default, no ragdoll on the LOD-2 body (U16's `LODGroup` note applies - the ragdoll rig lives on ONE mesh). **Blender:** none. **Physics numbers are re-derived by feel (port rule 2)** - nothing to port anyway. Reuses: `RunOverSystem`, `RunOverReaction`, `Screams`, `Blood`, `CrashSensor` for the player's ejection |
-| U35b | Vehicle damage - deform, smoke, fire, parts that come off | todo | | **The argument:** the web's cars are kinematic and a crash is a number; U34 already made collisions cost a star and a thump. This makes them cost the car. **Mechanism, three layers, each independently switchable:** ① **vertex deformation** on the body mesh around the contact point (`CrashSensor.Impact` already carries the point, the closing speed and `HitVehicle` - U34) - a radius/strength curve, mesh readable at import, capped total deform so a car never turns inside-out; ② **health** per car → engine smoke (URP particles, pooled, ONE emitter per damaged car) at 50 %, fire at 20 %, and at 0 an explosion: radial impulse to everything within R, the U34 `LotCar` promotion path already handles static neighbours waking up, and the wanted level pays a star through the existing crime hooks; ③ **detachable parts - this is the Blender work:** split the Mustang's (then each car's) front/rear bumper, bonnet and doors into separate objects in Blender, re-export, and give each a `FixedJoint` with a `breakForce` - a hard hit sheds the bumper as its own rigidbody that despawns after 20 s. **Off state:** `Settings → Gameplay → Vehicle Damage` (Off / Visual / Full), default **Off**; Off touches no mesh and spawns no emitter. **Perf budget:** deform writes only the struck car's mesh and only on impact (never per frame); one particle system per damaged car, at most 3 live; detached parts are pooled and capped at 8. Texture/tri budget for the re-exported cars must not exceed today's - the split is topology, not detail. **Also on the list here:** the cop cruiser is a car built by the same `CarBuilder`, so it inherits all three for free, and traffic wrecks (`TrafficCar.Wrecked`) get smoke as a byproduct. **Careful:** the `preRotation` seam and every seat/rider scale (memory `every-seat-carries-a-rider-scale`) survive a re-export only if the object origins do not move in Blender - export from the same file, split in place |
+| U35b | Vehicle damage - deform, smoke, fire, parts that come off | **built - user-confirmed, awaiting U30b** | `bb51c29` | ✅ **USER-CONFIRMED 2026-08-16.** Not `done` only because rule 3(a)'s frame measurement is on a Player that does not exist yet. **BUILT 2026-08-16. Its own section is above** - the three layers, the switch, the fuse, and the three findings (the Mustang is eighteen SKINNED meshes whose vertices live in bind space; the contact normal points INTO the struck body, so the first dent bulged the nose outward by 0.136 m; the .glbs group by material, which is why layer ③ needed no Blender and why the Mustang alone sheds nothing). `Settings → Gameplay → Vehicle Damage` = Off / Visual / **Off by default**. Two additions the user asked for during the play-test, both landed: **a wrecked car cannot be entered** (`CarController.TryEnter` refuses, `EntryRefusal` says why on the same HUD line that offers the key - U28's socket) and **the explosion announces itself** through `MissionHud.ShowHint`, for the player's own car only. ⚠ Perf debt for U30b: up to 4 cars holding cloned meshes (~2.8 MB for a Tesla shell), 3 emitters, 8 shed parts - `DamageBudget` is the knob. **The original plan follows, unchanged where it survived contact:** **The argument:** the web's cars are kinematic and a crash is a number; U34 already made collisions cost a star and a thump. This makes them cost the car. **Mechanism, three layers, each independently switchable:** ① **vertex deformation** on the body mesh around the contact point (`CrashSensor.Impact` already carries the point, the closing speed and `HitVehicle` - U34) - a radius/strength curve, mesh readable at import, capped total deform so a car never turns inside-out; ② **health** per car → engine smoke (URP particles, pooled, ONE emitter per damaged car) at 50 %, fire at 20 %, and at 0 an explosion: radial impulse to everything within R, the U34 `LotCar` promotion path already handles static neighbours waking up, and the wanted level pays a star through the existing crime hooks; ③ **detachable parts - this is the Blender work:** split the Mustang's (then each car's) front/rear bumper, bonnet and doors into separate objects in Blender, re-export, and give each a `FixedJoint` with a `breakForce` - a hard hit sheds the bumper as its own rigidbody that despawns after 20 s. **Off state:** `Settings → Gameplay → Vehicle Damage` (Off / Visual / Full), default **Off**; Off touches no mesh and spawns no emitter. **Perf budget:** deform writes only the struck car's mesh and only on impact (never per frame); one particle system per damaged car, at most 3 live; detached parts are pooled and capped at 8. Texture/tri budget for the re-exported cars must not exceed today's - the split is topology, not detail. **Also on the list here:** the cop cruiser is a car built by the same `CarBuilder`, so it inherits all three for free, and traffic wrecks (`TrafficCar.Wrecked`) get smoke as a byproduct. **Careful:** the `preRotation` seam and every seat/rider scale (memory `every-seat-carries-a-rider-scale`) survive a re-export only if the object origins do not move in Blender - export from the same file, split in place |
 | U35c | Police helicopter at 3★ + GPS route on the map | todo | | **Two arguments in one unit, both riding on things that exist.** ① **The heli:** at three stars a police Huey (the U21 model, `HelicopterController`'s flight, a cop-coloured `CarPaint` twin) lifts off from the station, holds a hover slot above and behind you, and pins you with a **real `Spotlight`** - URP spot with a **cookie** and **shadows** - that tracks the player on the ground; the rotor sound already exists (`RotorSound`), so does the siren bus. Three.js in a browser does not do a moving shadowed spotlight over a city at frame rate; URP does it as one additional light. Reconcile through `PoliceSystem` like a fourth car (Returning mode when the star drops), and it never lands: no seat, `enterable=false`, no arrest of its own - it exists to make the third star feel like the third star. ② **The GPS line:** the objective on the minimap and the full map draws as a **route along the roads**, not a straight line - `RoutePlanner` + `RouteGraph` are the U19 A\* the cops already drive on, and the web build's traffic graph was five islands, so it *could not* have drawn this. Re-planned only when the player leaves the current path by > 15 m or the objective moves; drawn on `MapView` as a polyline (UI Toolkit `generateVisualContent`, one mesh). **Off state:** the heli is gated by star count and by `PoliceTuning.HeliStars` (0 = never, ships **3**); the GPS line is `Settings → Display → GPS Route` default **on** - it is HUD, it changes no visual judgement of the world. **Perf budget:** ONE extra shadow-casting light, at a 512 shadow map, only while the heli is airborne - measure it against the U30b baseline explicitly, it is the only new light in the port; the route replan is off the hot path (0.25 s cadence, same as the cops). **Blender:** none - unless a searchlight housing under the Huey's nose is wanted, which is a five-minute mesh. Reuses: `HelicopterController`, `Rotor`, `RotorSound`, `Siren`, `PoliceSystem`, `Heat`, `RoutePlanner`, `MapView`/`GameMap` |
 | U35d | Weather - rain, wet roads, lightning, and grip that answers | todo | | **The argument:** rain that changes how the car drives. Visuals alone the web could fake; a `WheelFrictionCurve` whose stiffness drops with wetness is a physics engine doing the work. **Mechanism:** a `Weather` component beside `DayNightCycle` on the same object, with a `Wetness` 0-1 that ramps in over ~30 s: **rain** = one URP particle system parented to the camera (pooled, ~600 drops, soft-particle off, no collision - the drops die at a fixed height), splashes as a second cheap emitter under the camera's ground point; **wet roads** = the road/pavement materials get their `_Smoothness` lerped up and `_BaseColor` darkened by `Wetness` via a `MaterialPropertyBlock` per district renderer (no material duplication - U15's texture memory lesson stands), which gives sky and neon reflections for free under URP; **lightning** = a 2-frame flash on the main light's intensity + a `Thunder` clip on the ambient bus with a distance delay; **grip** = every `CarWheel`'s forward/sideways stiffness × `(1 - 0.35 × Wetness)`, the bike more; ties into U33: rain darkens `SkyPalette`'s current stop by a fixed factor rather than adding a fourth palette. **Off state:** `Settings → Display → Weather` = Off / Rain / Random, default **Off**; Off never instantiates the emitter and writes no property block. **Perf budget - this is the row most likely to fail rule 3:** U33 already cut Bloom against a 20.7 ms frame; rain particles + darker sky must be measured on the Player, and the emitter has a `maxParticles` that is a tuning field, not a constant. If reflections on wet roads need a reflection probe or SSR, **they are cut** - the smoothness lerp alone reads as wet. **Blender:** none. **Note:** the sea (`SeaSurface`) and the ski get no rain treatment; the sea already moves. **Reuses:** `DayNightCycle`, `SkyPalette`, `Ambient`, `CarWheel`, `MotorcycleController` |
 | U35e | Stunt jumps + skid marks + a Cinemachine camera | todo | | **The argument:** WheelCollider slip is a measured quantity; the web's kinematic car has no slip to draw. And the camera: `FollowCamera.cs`'s own header says *"Cinemachine earns its place when the mission…"* - this is where it earns it, and the recording benefits from every shot after. **Mechanism:** ① **skid marks + tyre smoke** - `TrailRenderer` per wheel, emitting only when `WheelHit.sidewaysSlip`/`forwardSlip` cross a threshold, pooled and length-capped; a small smoke emitter per wheel on hard slip; drift = handbrake (a new key, `Shift` while driving, sideways stiffness on the rear halved while held). ② **stunt jumps** - **the Blender work: 3-4 ramps** in a Florentin register (a plank-and-scaffold ramp, a rubble ramp, a container-and-plate ramp), each < 2k tris, one 1024² atlas, placed by a `StuntJumpBuilder` menu item at hand-chosen spots off the road graph; a trigger volume at the lip fires the jump: `Time.timeScale → 0.3`, a **Cinemachine** orbital camera takes over for the airtime, and a clean landing (all four wheels down within N s, no wreck) pays the `Wallet` and stamps the jump found on the map. ③ **Cinemachine** proper - install `com.unity.cinemachine` 3.x, keep `FollowCamera` as the default (it is user-confirmed and fifteen lines), and add virtual cameras only for: jumps, the bust, mission-start reveals, and a **cinematic camera key** (`V`, GTA's) that cycles a few shots for the recording - which is what makes it *the* video unit. **Off state:** skids/smoke `Settings → Display → Tyre Effects` default **on** (it is a trail, it changes no approved screenshot); ramps are world objects, present or not by build; the `V` camera is a key. **Perf budget:** trails capped at 32 live segments per wheel and 4 cars, smoke emitters pooled; Cinemachine adds one Brain and costs nothing while a vcam is inactive. **Reuses:** `CarWheel`, `CarController`, `Wallet`, `MapPois`, `BustSequence`, `CampaignDirector` |
@@ -2913,6 +3000,19 @@ Dated one-liners. These are settled - do not re-litigate them without the user r
   `PlayerSettings` section and unused touch handling all STAY**: they cost nothing idle, and removing
   them would be effort spent making a retry harder. The user may still build to a device privately
   for the engine experience; that is not a unit and nothing waits on it.
+- **2026-08-16** (U35b) - **No Blender split of the Mustang, and a wreck has to say why it refuses.**
+  Two calls the user made while U35b was being built. ① The hero car's `.glb` groups by MATERIAL, so
+  layer ③ would have needed a Blender re-split to find a bumper - **declined**, because `CarBuilder`
+  rebinds paint by the material name `CarPrimaryColor` and a re-export that renames anything breaks
+  the car in every screenshot. The three lot cars and the cruiser shed the parts they already have as
+  nodes; the Mustang sheds nothing and the build log says so. The split stays available as its own
+  sub-unit if the video ever wants it. ② A car that has exploded **cannot be entered, and the player
+  is told** - *"אם הוא ינסה להכנס אליה הוא לא יוכל ויהיה כיתוב שהוא לא יכול להכנס למכונית כי היא
+  מפוצצת"*. It landed in U28's existing `IEnterable.EntryRefusal` socket rather than a new mechanism,
+  which is the same rule that put the locked Huey's line there: **one predicate feeds both the prompt
+  and the key**. ③ The player is put down beside the burning car rather than thrown from it - the U35a
+  decision that a car does not eject you was left standing, deliberately, rather than reversed by a
+  feature added afterwards.
 - **2026-08-16** (U35) - **The showcase list is chosen: eight additions, five scheduled, three
   backlog.** Proposed in one session, accepted whole by the user - *"בוא נוסיף את כל מה שאמרת
   לתוכנית. נממש את הדברים לאט לאט."* Scheduled, in order: **U35a** ragdolls · **U35b** vehicle damage ·
