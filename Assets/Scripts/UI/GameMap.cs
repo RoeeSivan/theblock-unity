@@ -46,8 +46,15 @@ namespace TheBlock.UI
 
         /// <summary>
         /// Collapsed minimap edge and its inset from the screen corner, in panel px — the web
-        /// build's `#map { width/height: 200px; bottom/left: 12px }` verbatim. The panel is
-        /// ConstantPixelSize, so a panel px IS a screen px and the two builds match 1:1.
+        /// build's `#map { width/height: 200px; bottom/left: 12px }` verbatim.
+        ///
+        /// <b>These are no longer screen px.</b> Until 2026-08-16 the panel was
+        /// <c>ConstantPixelSize</c> and a panel px WAS a screen px, chosen so the two builds matched
+        /// 1:1. The first macOS Player killed that: 1:1 fidelity to a 1200 px browser viewport means
+        /// a 200 px radar and 14 px labels on a display three times that wide, and the user could
+        /// not read the HUD. The panel is now <c>ScaleWithScreenSize</c> against a 1200×800
+        /// reference, so every number here is a RATIO of a 1200-wide screen and the whole UI grows
+        /// together. Matching the web pixel-for-pixel was porting fidelity, not design.
         /// </summary>
         private const float MiniSizePx = 200f;
         private const float MiniInsetPx = 12f;

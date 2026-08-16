@@ -118,7 +118,22 @@ namespace TheBlock.EditorTools
             var settings = ScriptableObject.CreateInstance<PanelSettings>();
             settings.name = "HudPanelSettings";
             settings.themeStyleSheet = theme;
-            settings.scaleMode = PanelScaleMode.ConstantPixelSize;
+
+            // ScaleWithScreenSize against the web build's 1200 px viewport, NOT ConstantPixelSize.
+            //
+            // It was ConstantPixelSize until 2026-08-16, so that a panel px was a screen px and the
+            // two builds matched 1:1. The first macOS Player ended that argument: every size in this
+            // UI is a number copied from CSS written for a 1200 px browser window, and on a display
+            // three times that wide a 14 px label is unreadable and the 200 px radar is a stamp.
+            // Matching the web pixel-for-pixel was porting fidelity; a HUD you can read is design.
+            //
+            // Match 0.5 rather than 0 (width): matching width alone over-scales on a wide screen,
+            // and a fullscreen Mac is wider than 3:2.
+            settings.scaleMode = PanelScaleMode.ScaleWithScreenSize;
+            settings.referenceResolution = new Vector2Int(1200, 800);
+            settings.screenMatchMode = PanelScreenMatchMode.MatchWidthOrHeight;
+            settings.match = 0.5f;
+
             AssetDatabase.CreateAsset(settings, PanelSettingsPath);
             AssetDatabase.SaveAssets();
             return settings;

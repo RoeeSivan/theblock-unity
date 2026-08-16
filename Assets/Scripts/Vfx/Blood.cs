@@ -324,8 +324,15 @@ namespace TheBlock.Vfx
         /// <summary>Soft round droplet with a real edge — a droplet is not smoke.</summary>
         private Texture2D DropTexture()
         {
-            const int size = 64;
-            var texture = new Texture2D(size, size, TextureFormat.RGBA32, true) { name = "Blood Drop" };
+            const int size = 128;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, true)
+            {
+                name = "Blood Drop",
+                // Clamp, not the Repeat default: the quad's UVs sit on the texture edge, and a
+                // repeating alpha wraps the soft rim back onto the opposite side as a hard seam.
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear,
+            };
             var pixels = new Color32[size * size];
             const float mid = size / 2f;
 
@@ -351,10 +358,21 @@ namespace TheBlock.Vfx
         /// </summary>
         private Texture2D SplatTexture()
         {
-            const int size = 256;
+            // 1024, up from 256 on 2026-08-16 after the first macOS Player was play-tested: the
+            // stain is a GROUND decal, so it is the one texture here a player stands over and reads
+            // at arm's length, and 256 px across a metre of pavement is visibly blocky at native
+            // resolution. The Editor's smaller Game view had been hiding it. Every blob below is
+            // expressed in units of `mid`, so the shape is resolution-independent — this is a
+            // sharper print of the same splat, not a different one. Cost: 4 MB + mips, once.
+            const int size = 1024;
             const float mid = size / 2f;
 
-            var texture = new Texture2D(size, size, TextureFormat.RGBA32, true) { name = "Blood Splat" };
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, true)
+            {
+                name = "Blood Splat",
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear,
+            };
             var alpha = new float[size * size];
 
             // Seeded and restored, so the splat is identical every session without disturbing the

@@ -192,13 +192,16 @@ remains is Tier 7 and the two systems deliberately not ported.**
   the swell swallows, and the ski is a long hull with a rider on it that the eye reads as planing
   across chop rather than bobbing in it. This is a judgment, not a measurement — if it ever looks
   wrong at a different sea state, `SeaSurface.Height` is already built and it is a one-line move.
-- **The radio was never ported, and it has no row anywhere. ⚠ REOPENED BY THE USER 2026-08-16** —
-  they asked for it to be investigated, and it was: it is buildable, the answer is a pure-C# MP3
-  decoder into an `AudioClip` PCM callback with a local-clip fallback, and the full finding is in
-  **Deferred**. Deferred by the user inside U27 as the
-  only system with a network dependency — recorded here because a deferral that lives in one unit's
-  prose is a system that quietly vanishes from the port. Twelve of the web's thirteen audio modules
-  shipped; this is the thirteenth.
+- **The radio was never ported, and it has no row anywhere. Investigated and then put ⏸ ON HOLD by
+  the user, 2026-08-16** — *"בינתיים נכניס את הסעיף הזה על hold. אולי נממש בהמשך."* It was
+  reopened, measured in the live Editor, and found **buildable**: Unity's own
+  `GetAudioClip(streamAudio)` is proven dead on a live stream (FMOD needs a size a stream never
+  has), and the answer is a pure-C# MP3 decoder into an `AudioClip` PCM callback with a local-clip
+  fallback. **The full measured finding — including the User-Agent trap that makes SomaFM look
+  offline — is in Deferred.** Held behind U30a and the video, not dropped. Deferred by the user
+  inside U27 as the only system with a network dependency — recorded here because a deferral that
+  lives in one unit's prose is a system that quietly vanishes from the port. Twelve of the web's
+  thirteen audio modules shipped; this is the thirteenth.
 - ~~**The dance's arrows are keyboard-only.**~~ **DROPPED BY THE USER, 2026-08-16** — *"חצי ריקוד —
   לא רלוונטי לדעתי יכול להוריד."* Not a regression (the original is keyboard-only too), and the port
   matches the game it is porting. **U31 was dropped the same day, so this has no trigger left at
@@ -2544,19 +2547,66 @@ would trigger it. A `wip` unit is work half-done; this is work deliberately not 
   built** — that impression needed correcting — it was a demo-risk call, and a submission recording
   makes that risk concrete rather than theoretical.
 
-  **Feasibility, checked rather than assumed:** `UnityWebRequestMultimedia.GetAudioClip` **will not**
-  carry an endless Icecast/SHOUTcast stream — it wants a finite download before it plays, and that is
-  the wall everyone hits first. The working shape is a **pure-C# MP3 decoder feeding a ring buffer
-  into an `AudioClip.Create` PCM read callback**. `NLayer` is MIT and is that decoder;
-  `RadioUnityStream` on GitHub is a working reference of exactly this architecture, but **its own
-  licence is personal/non-commercial and it is untested on macOS** — so take NLayer directly, not the
-  repo. Paid assets (AudioStreamIce, Radio PRO) exist and are **out**: no money, ever.
+  **⏸ ON HOLD BY THE USER, 2026-08-16, AFTER the feasibility was measured** — *"בינתיים נכניס את
+  הסעיף הזה על hold. אולי נממש בהמשך."* Not dropped and not scheduled. The measurements below were
+  taken in the live Editor before the hold, so a later pass starts from evidence rather than from
+  this paragraph's old guess. **Trigger to pick it up: U30a (the macOS build) and the video are
+  done and there is time left before 1 Oct 2026.** Never before them — a feature is not worth a day
+  taken from a build that has to exist.
 
-  **Recommendation: build what the web build already behaves like.** `radio.ts` ships a graceful
-  "unavailable" path, so: **local clips as the guaranteed content, live streams as an upgrade that
-  degrades to local on any failure.** Same five stations, same `[` `]` `\` keys, same driving-only
-  rule. The recording then demos a radio that works with the network unplugged — which is the whole
-  reason this was deferred in the first place.
+  **Feasibility, MEASURED 2026-08-16 (it was inferred before; now it is not).** Three findings, in
+  the order they bite:
+
+  1. **The streams are alive.** `curl` against `ice1/ice2/ice4.somafm.com` → `HTTP 200`,
+     `Server: Icecast 2.4.0-kh22-Soma1.7`, `Content-Type: audio/mpeg`, `icy-br: 128`.
+  2. **SomaFM rejects Unity's default User-Agent.** The first Editor attempt died in 0.9 s with
+     `result=ConnectionError err="Received no data in response" bytes=0` — identical to `curl`'s
+     exit 52 with no UA. `SetRequestHeader("User-Agent", "Mozilla/5.0 …")` fixes it. **Without this
+     line the next investigation concludes "the streams are blocked" and is wrong.**
+  3. **With that header the bytes flow and Unity still cannot play them — the wall is real.**
+     A 21-second poll of `UnityWebRequestMultimedia.GetAudioClip(url, AudioType.MPEG)` with
+     `streamAudio = true`: `bytes` climbed 344 816 → 584 307 (≈128 kbps, i.e. real time), `result`
+     stayed `InProgress`, `error` stayed `none`, and **`downloadHandler.audioClip` was `null` at
+     every single sample**. The console says why:
+     `Playback of audio clip not yet possible; headers are done, 489012/? (76.16%) bytes downloaded
+     but size is still not known` followed by `Cannot create FMOD::Sound instance for clip ""
+     (FMOD error: The HTTP request timed out.)`. **The `?` is the whole finding**: FMOD will not
+     start without a denominator, and a live stream has none. This is a loader policy, not a codec
+     limit — MP3 frames are independently decodable and endless input is fine for the format.
+
+  **The shape that works, and why each piece is there:** an HTTP reader that never waits for
+  `Content-Length` → **NLayer** (MIT, pure C#, on NuGet — v2.0.1 verified to exist) decoding frame
+  by frame → a **lock-free ring buffer** → `AudioClip.Create(..., stream: true)` with a
+  `PCMReaderCallback` → an `AudioSource` on the Radio bus. NLayer's virtue is not better decoding;
+  it is that **it never asks how big the file is**. `RadioUnityStream` on GitHub is a working
+  reference of this architecture but its licence is personal/non-commercial — take NLayer directly,
+  not the repo. Paid assets (AudioStreamIce, Radio PRO) are **out**: no money, ever.
+
+  **Half of it is already built and idle.** The `Radio` mixer group and its exposed `volRadio`
+  exist (U27), `GameAudio.Bus.Radio` is declared, `config.radio` — five stations, volumes,
+  `[` `]` `\`, the 8000 ms timeout — is **already in `theblock-config.json`**, and `GameAudio`
+  already polls `VehicleEnterExit.Mode`, so the driving-only rule costs nothing. Missing: a
+  `RadioSpec` in the config model (deliberately not declared — see `TheBlockConfig.Audio.cs`), the
+  stream reader, and a HUD panel in the `PowerUpChips` mould on the one shared `UIDocument`.
+
+  **Two free de-risks found in passing.** The response carried **no `icy-metaint`** because the
+  request never sent `Icy-MetaData: 1` — so the body is raw MP3 frames with nothing interleaved and
+  no de-muxing is needed (ask for it only if a "now playing" title is wanted). And the residual risk
+  is **sound quality, not existence**: the `PCMReaderCallback` runs on the audio thread, so a lock
+  there clicks, and an under-fed ring buffer drops out. The bad outcome is a radio that stutters.
+
+  **⚠ Key clash, and it is silent.** `DayNightCycle.ReadTestKeys` owns `[` `]` `\` — exactly the
+  radio's three keys — and carries a comment asserting *"nothing else in this project reads them"*.
+  Test Mode only, so a normal scene is clear, but that comment stops being true the day the radio
+  lands.
+
+  **Recommendation: build what the web build already behaves like, local-first.** `radio.ts` ships a
+  graceful "unavailable" path, so: **local clips as the guaranteed content, live streams as an
+  upgrade that degrades to local on any failure.** Same five stations, same keys, same driving-only
+  rule. The recording then demos a radio that works with the network unplugged. **The open content
+  question is licensing, not code:** the repo has no music it may ship except `rhythm-song.mp3`
+  (the dance's own track), so a local station means CC0/CC-BY tracks with attribution, or a
+  procedural station off `SfxSynth`, or no fallback at all and a panel that says "unavailable".
 
 - ~~**The dance's arrows are keyboard-only, and U31 has no keyboard.**~~ **DROPPED BY THE USER,
   2026-08-16** — *"חצי ריקוד — לא רלוונטי לדעתי יכול להוריד."* True in the original too, so it was
