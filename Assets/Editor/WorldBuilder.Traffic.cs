@@ -61,7 +61,27 @@ namespace TheBlock.EditorTools
         /// </summary>
         private const float DiscFaceEpsilon = 0.3f;
 
-        /// <summary>Emission multiplier on a lit lamp. The web build's 2.5, in URP terms.</summary>
+        /// <summary>
+        /// How far a lens bulges out of its rim, as a fraction of the lamp's radius. A real traffic
+        /// lens is convex, and here that is not decoration: a FLAT lamp has no projected area at a
+        /// grazing angle, which is exactly where a pedestrian standing at the kerb beside the pole
+        /// sees it from. 0.35 of 3.45 model units is ~6.9 cm at the pole's 0.057 world scale.
+        /// </summary>
+        private const float DomeBulgeFrac = 0.35f;
+
+        /// <summary>Fan segments around a lens. 14 is round enough at 40 cm across and costs 14 tris.</summary>
+        private const int DomeSegments = 14;
+
+        /// <summary>
+        /// Emission multiplier on a lit lamp. The web build's 2.5, in URP terms.
+        ///
+        /// <b>Everything above 1.0 is currently dead.</b> The project renders with no
+        /// post-processing at all — <c>m_RenderPostProcessing: 0</c> on every camera, no Volume in
+        /// <c>World.unity</c>, LDR colour grading — so the HDR buffer simply clamps on output and a
+        /// lit lamp reads as a flat saturated colour with no bloom halo. The number is kept because
+        /// it is the right one the day a bloom volume appears; U33 left bloom out deliberately for
+        /// its six-to-eight blur passes.
+        /// </summary>
         private const float LampEmission = 2.5f;
 
         /// <summary>
@@ -110,6 +130,77 @@ namespace TheBlock.EditorTools
                 $"{(system != null ? "car pool wired" : "NO CAR POOL")}");
 
             return (nodes, edges);
+        }
+
+        /// <summary>
+        /// Rewrites <c>LampDiscs.asset</c> and the six lamp materials, so a lens can be reshaped or
+        /// re-shaded without a world build.
+        ///
+        /// Every one of the 233 poles points at that one mesh, and nothing else about them changes
+        /// when the lens does — same renderer, same three submeshes, same six materials — so this is
+        /// the whole fix in a second, instead of a full <c>Build World</c> that re-places every pole
+        /// and carries the <c>navMeshData</c> trap with it.
+        ///
+        /// <b>It deliberately does not sweep.</b> <see cref="SweepTrafficFolder"/> deletes anything
+        /// in the generated folder this pass did not re-emit, which here would be the baked network
+        /// and all six lamp materials.
+        /// </summary>
+        [MenuItem("The Block/Rebuild Traffic Lamps", priority = 9)]
+        public static void RebuildTrafficLampsMenu()
+        {
+            var model = AssetDatabase.LoadAssetAtPath<GameObject>(TrafficLightModel);
+            if (model == null)
+            {
+                Debug.LogError($"Rebuild Traffic Lamps: no pole model at {TrafficLightModel}");
+                return;
+            }
+
+            var report = new Report();
+            var probe = new GameObject("LampProbe");
+            probe.SetActive(false);
+            try
+            {
+                var visual = (GameObject)PrefabUtility.InstantiatePrefab(model, probe.transform);
+                visual.transform.localPosition = Vector3.zero;
+                visual.transform.localRotation = Quaternion.identity;
+                visual.transform.localScale = Vector3.one;
+
+                var lamps = new List<Bounds>();
+                foreach (var renderer in visual.GetComponentsInChildren<MeshRenderer>(true))
+                {
+                    if (!renderer.name.StartsWith("lichtanimation", System.StringComparison.Ordinal)) continue;
+                    lamps.Add(renderer.bounds);
+                }
+
+                if (lamps.Count != 3)
+                {
+                    Debug.LogError(
+                        $"Rebuild Traffic Lamps: expected 3 lamp nodes in the model, found {lamps.Count}");
+                    return;
+                }
+
+                lamps.Sort((a, b) => b.center.y.CompareTo(a.center.y)); // top to bottom: red, amber, green
+
+                var generated = new HashSet<string>(System.StringComparer.Ordinal);
+                var faces = MeasureLampFaces(visual, lamps, report);
+                var mesh = BuildLampMesh(lamps, faces, generated, report);
+                // The six lamp materials are rewritten in place at the same paths, so the poles keep
+                // their references and a material-side fix (two-sided, emission) ships from here too.
+                BuildLampMaterials(generated, report);
+                AssetDatabase.SaveAssets();
+
+                foreach (var warning in report.Warnings) Debug.LogWarning(warning);
+                Debug.Log(
+                    $"Rebuild Traffic Lamps: {mesh.vertexCount} vertices, " +
+                    $"{mesh.triangles.Length / 3} triangles, {mesh.subMeshCount} submeshes\n" +
+                    string.Join("\n", report.Notes), mesh);
+            }
+            finally
+            {
+                // Nothing in the scene was touched, so the scene does not need marking dirty — and
+                // the probe must not survive to be saved into it.
+                UnityEngine.Object.DestroyImmediate(probe);
+            }
         }
 
         // --- the baked network --------------------------------------------------------------------
@@ -478,27 +569,14 @@ namespace TheBlock.EditorTools
             // German node names, which arrive mojibaked ("grün") through the glTF's UTF-8.
             lamps.Sort((a, b) => b.Box.center.y.CompareTo(a.Box.center.y));
 
-            // The face the quads have to clear. Measured off the housing itself rather than off the
-            // discs, because the discs sit behind the lens — see DiscFaceEpsilon. Taken while the
-            // probe is still unrotated and unscaled, so this is in model units like everything else
-            // in BuildLampMesh, and taken BEFORE the lamp nodes are destroyed.
-            float housingFrontZ = float.MinValue;
-            foreach (var renderer in visual.GetComponentsInChildren<MeshRenderer>(true))
-            {
-                if (renderer.name.StartsWith("lichtanimation", System.StringComparison.Ordinal)) continue;
-                housingFrontZ = Mathf.Max(housingFrontZ, renderer.bounds.max.z);
-            }
+            // The two faces each lens has to clear, measured off the housing at that lamp's own
+            // height. Taken while the probe is still unrotated and unscaled, so this is in model
+            // units like everything else in BuildLampMesh, and taken BEFORE the lamp nodes are
+            // destroyed.
+            var boxes = lamps.Select(l => l.Box).ToList();
+            var faces = MeasureLampFaces(visual, boxes, report);
 
-            if (housingFrontZ <= float.MinValue * 0.5f)
-            {
-                // No housing to hide behind. Falling back to the discs' own face is what this used to
-                // do unconditionally, and it is right only in this case.
-                housingFrontZ = lamps.Count > 0 ? lamps.Max(l => l.Box.max.z) : 0f;
-                report.Warnings.Add(
-                    "traffic lights: no housing renderer found — lamp quads placed off the discs.");
-            }
-
-            var discs = BuildLampMesh(lamps.Select(l => l.Box).ToList(), housingFrontZ, generated, report);
+            var discs = BuildLampMesh(boxes, faces, generated, report);
             foreach (var lamp in lamps) UnityEngine.Object.DestroyImmediate(lamp.Renderer.gameObject);
 
             var housing = BuildHousingMaterial(visual, generated, report);
@@ -542,13 +620,23 @@ namespace TheBlock.EditorTools
         }
 
         /// <summary>
-        /// Three quads, three submeshes, one mesh — in MODEL units, so the whole thing scales with
-        /// the pole. Each quad is sized from its own lamp's box and placed on the plane
-        /// <paramref name="housingFrontZ"/>, the front of the shell, so it is the outermost thing at
-        /// that height and nothing of the model's own can draw over it.
+        /// Six domed lenses, three submeshes, one mesh — in MODEL units, so the whole thing scales
+        /// with the pole. Each lens takes its X, Y and radius from its own lamp's box, and its Z
+        /// plane from <see cref="MeasureLampFaces"/>, so it is the outermost thing at that height
+        /// and nothing of the model's own can draw over it.
+        ///
+        /// <b>Two lenses per lamp, front AND rear, in the SAME submesh.</b> A pole is aimed at the
+        /// cars on its own approach, and the player on foot stands at the kerb beside it or looks at
+        /// it across the junction — both outside the head's forward hemisphere, where a single
+        /// front-facing lens is backface-culled and hidden behind the opaque shell. A real traffic
+        /// light is blank behind; this one is not, and that is the deliberate trade. Sharing the
+        /// submesh keeps the whole thing at three materials and one draw call per state.
+        ///
+        /// <b>And they are domes, not flat discs.</b> A flat lens has no projected area at a grazing
+        /// angle, which is exactly the angle a pedestrian beside the pole reads it from.
         /// </summary>
         private static Mesh BuildLampMesh(
-            List<Bounds> lamps, float housingFrontZ, HashSet<string> generated, Report report)
+            List<Bounds> lamps, List<LampFaces> faces, HashSet<string> generated, Report report)
         {
             var mesh = new Mesh { name = "LampDiscs", subMeshCount = Mathf.Max(1, lamps.Count) };
             var vertices = new List<Vector3>();
@@ -560,27 +648,16 @@ namespace TheBlock.EditorTools
             {
                 var box = lamps[i];
                 float radius = Mathf.Max(box.size.x, box.size.y) * 0.5f * 0.9f;
+                var centre = new Vector2(box.center.x, box.center.y);
+                var triangles = new List<int>();
 
-                // The quad keeps its own lamp's X and Y — that is what puts red above amber above
-                // green — but every one of them shares the shell's front plane for Z. Taking Z from
-                // the lamp box instead is what buried them.
-                float z = housingFrontZ + DiscFaceEpsilon;
-                var centre = new Vector3(box.center.x, box.center.y, z);
-                int start = vertices.Count;
+                AddLensCap(vertices, normals, uvs, triangles,
+                    centre, radius, faces[i].Front + DiscFaceEpsilon, outwards: 1f);
+                AddLensCap(vertices, normals, uvs, triangles,
+                    centre, radius, faces[i].Rear - DiscFaceEpsilon, outwards: -1f);
 
-                vertices.Add(centre + new Vector3(-radius, -radius, 0f));
-                vertices.Add(centre + new Vector3(radius, -radius, 0f));
-                vertices.Add(centre + new Vector3(-radius, radius, 0f));
-                vertices.Add(centre + new Vector3(radius, radius, 0f));
-                for (int v = 0; v < 4; v++) normals.Add(Vector3.forward);
-                uvs.Add(new Vector2(0f, 0f));
-                uvs.Add(new Vector2(1f, 0f));
-                uvs.Add(new Vector2(0f, 1f));
-                uvs.Add(new Vector2(1f, 1f));
-
-                // Wound for a +Z-facing quad in a left-handed frame; the wrong order here is an
-                // invisible lamp, not an error.
-                submeshes.Add(new[] { start, start + 2, start + 1, start + 2, start + 3, start + 1 });
+                EnforceWinding(vertices, normals, triangles, i, report);
+                submeshes.Add(triangles.ToArray());
             }
 
             mesh.SetVertices(vertices);
@@ -601,7 +678,8 @@ namespace TheBlock.EditorTools
                 return mesh;
             }
 
-            // Rewritten in place so the poles built last time keep pointing at the same asset.
+            // Rewritten in place so the poles built last time keep pointing at the same asset — and
+            // so the whole fix can ship by rewriting one mesh, without re-placing 233 poles.
             existing.Clear();
             existing.subMeshCount = mesh.subMeshCount;
             existing.SetVertices(vertices);
@@ -612,6 +690,190 @@ namespace TheBlock.EditorTools
             EditorUtility.SetDirty(existing);
             UnityEngine.Object.DestroyImmediate(mesh);
             return existing;
+        }
+
+        /// <summary>
+        /// One convex lens: a triangle fan bulging <see cref="DomeBulgeFrac"/> of its radius out of
+        /// the plane <paramref name="rimZ"/>, along <paramref name="outwards"/> (+1 front, −1 rear).
+        /// Appends to the caller's buffers so both caps of a lamp land in one submesh.
+        /// </summary>
+        private static void AddLensCap(
+            List<Vector3> vertices, List<Vector3> normals, List<Vector2> uvs, List<int> triangles,
+            Vector2 centre, float radius, float rimZ, float outwards)
+        {
+            float bulge = radius * DomeBulgeFrac;
+            float apexZ = rimZ + bulge * outwards;
+
+            // The sphere this cap is a slice of: a cap of radius r and depth d belongs to a sphere of
+            // radius (r² + d²) / 2d. Normals taken off its centre are what make the lens shade round
+            // instead of flat, which is the whole point of not being a quad any more.
+            float sphereRadius = (radius * radius + bulge * bulge) / (2f * bulge);
+            var sphereCentre = new Vector3(centre.x, centre.y, apexZ - sphereRadius * outwards);
+
+            int apex = vertices.Count;
+            vertices.Add(new Vector3(centre.x, centre.y, apexZ));
+            normals.Add(new Vector3(0f, 0f, outwards));
+            uvs.Add(new Vector2(0.5f, 0.5f));
+
+            for (int s = 0; s < DomeSegments; s++)
+            {
+                float angle = s * Mathf.PI * 2f / DomeSegments;
+                float cos = Mathf.Cos(angle), sin = Mathf.Sin(angle);
+                var rim = new Vector3(centre.x + cos * radius, centre.y + sin * radius, rimZ);
+                vertices.Add(rim);
+                normals.Add((rim - sphereCentre).normalized);
+                uvs.Add(new Vector2(0.5f + cos * 0.5f, 0.5f + sin * 0.5f));
+            }
+
+            // <b>A +Z-facing triangle is COUNTER-clockwise in world XY.</b> Clockwise is the rule in
+            // SCREEN space, and a camera looking at a +Z surface faces −Z, which puts its right at
+            // world −X and mirrors the winding on the way. Worked through on the quad this replaced:
+            // its order (v0, v2, v1) = (−1,−1), (−1,1), (1,−1) is clockwise in world XY, lands
+            // counter-clockwise on screen, and is therefore a BACK face from +Z.
+            //
+            // Which means U17's lamp quads faced −Z — away from the lens — from the day they were
+            // written. They were never visible from the road; the grey lamps were not a grazing-angle
+            // problem at all. Position was measured twice and facing was never measured once.
+            for (int s = 0; s < DomeSegments; s++)
+            {
+                int a = apex + 1 + s;
+                int b = apex + 1 + (s + 1) % DomeSegments;
+                triangles.Add(apex);
+                triangles.Add(outwards > 0f ? a : b);
+                triangles.Add(outwards > 0f ? b : a);
+            }
+        }
+
+        /// <summary>
+        /// Measures every triangle's facing against its own vertex normal and flips the ones that
+        /// disagree.
+        ///
+        /// <b>Winding is measured here, never reasoned about.</b> The lamp quads faced −Z from U17
+        /// until 2026-08-16, and the first dome build (17:58 that day) was inside-out too — decoded
+        /// off the asset: front cap stored normal (0,0,+1), geometric normal (…,−0.94). Each time the
+        /// argument in the comment was confident and wrong, and the symptom — grey from the front,
+        /// colour from the side, where the far half of an inverted dome's rim happens to face you —
+        /// was read as a position bug twice. Unity's front face is <c>Cross(b − a, c − a)</c>
+        /// (the Mesh docs' own quad: <c>(0,2,1)</c> with normals <c>−forward</c>), so a triangle
+        /// whose cross points against its stored normal is a back face, and the fix is a swap.
+        /// </summary>
+        private static void EnforceWinding(
+            List<Vector3> vertices, List<Vector3> normals, List<int> triangles, int lamp, Report report)
+        {
+            int flipped = 0;
+            for (int t = 0; t + 2 < triangles.Count; t += 3)
+            {
+                int ia = triangles[t], ib = triangles[t + 1], ic = triangles[t + 2];
+                var a = vertices[ia];
+                var geometric = Vector3.Cross(vertices[ib] - a, vertices[ic] - a);
+                var stored = normals[ia] + normals[ib] + normals[ic];
+                if (Vector3.Dot(geometric, stored) >= 0f) continue;
+
+                triangles[t + 1] = ic;
+                triangles[t + 2] = ib;
+                flipped++;
+            }
+
+            if (flipped > 0)
+                report.Warnings.Add(
+                    $"traffic lights: lamp {lamp} had {flipped} triangle(s) wound against their normals — " +
+                    "flipped at build. AddLensCap's winding order is wrong again; the mesh is right anyway.");
+        }
+
+        /// <summary>The housing's front and rear face at one lamp's own height, in model units.</summary>
+        private readonly struct LampFaces
+        {
+            public readonly float Front;
+            public readonly float Rear;
+
+            public LampFaces(float front, float rear)
+            {
+                Front = front;
+                Rear = rear;
+            }
+        }
+
+        /// <summary>Below this many housing vertices in a lamp's window, the sample is not trusted.</summary>
+        private const int MinFaceSamples = 8;
+
+        /// <summary>
+        /// Where each lens has to sit, front and back, measured off the housing's own vertices inside
+        /// that lamp's X/Y window.
+        ///
+        /// <b>A whole-model min/max is the wrong datum for the back.</b> The front is safe either way
+        /// — the visor lip is the frontmost thing on the model — but the entire pole is ONE mesh, so
+        /// a global <c>bounds.min.z</c> is the back of the MAST. Measured: the model's global z runs
+        /// −2.98…9.67, while inside a lamp's own window it runs <b>5.83…9.67</b>. The head is 3.84
+        /// units deep (22 cm); −2.98 is the mast, 0.68 m further back, and a rear lens placed there
+        /// would hang in mid-air behind the pole. Sampling the vertices around each lamp gives the
+        /// shell at that lamp's own height, and behind the lamps there is nothing else to clear —
+        /// the bracket sits in the seams BETWEEN the three heads, not behind them.
+        ///
+        /// The probe is unrotated and unscaled at the origin when this runs, so these are model units
+        /// like everything else in <see cref="BuildLampMesh"/>, and it must run BEFORE the lamp nodes
+        /// are destroyed.
+        /// </summary>
+        private static List<LampFaces> MeasureLampFaces(
+            GameObject visual, List<Bounds> lamps, Report report)
+        {
+            var housing = new List<(Matrix4x4 ToProbe, Vector3[] Verts)>();
+            float globalFront = float.MinValue, globalRear = float.MaxValue;
+
+            foreach (var renderer in visual.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                if (renderer.name.StartsWith("lichtanimation", System.StringComparison.Ordinal)) continue;
+                globalFront = Mathf.Max(globalFront, renderer.bounds.max.z);
+                globalRear = Mathf.Min(globalRear, renderer.bounds.min.z);
+
+                if (!renderer.TryGetComponent<MeshFilter>(out var filter)) continue;
+                if (filter.sharedMesh == null) continue;
+                housing.Add((renderer.transform.localToWorldMatrix, filter.sharedMesh.vertices));
+            }
+
+            if (housing.Count == 0)
+                report.Warnings.Add(
+                    "traffic lights: no housing geometry found — the lenses are placed off the lamp " +
+                    "discs themselves, which is right only when there is no shell to clear.");
+
+            var faces = new List<LampFaces>(lamps.Count);
+            for (int i = 0; i < lamps.Count; i++)
+            {
+                var box = lamps[i];
+                float radius = Mathf.Max(box.size.x, box.size.y) * 0.5f * 0.9f;
+                float front = float.MinValue, rear = float.MaxValue;
+                int hits = 0;
+
+                foreach (var (toProbe, verts) in housing)
+                {
+                    foreach (var local in verts)
+                    {
+                        var v = toProbe.MultiplyPoint3x4(local);
+                        if (Mathf.Abs(v.x - box.center.x) > radius) continue;
+                        if (Mathf.Abs(v.y - box.center.y) > radius) continue;
+                        front = Mathf.Max(front, v.z);
+                        rear = Mathf.Min(rear, v.z);
+                        hits++;
+                    }
+                }
+
+                if (hits < MinFaceSamples)
+                {
+                    if (housing.Count > 0)
+                        report.Warnings.Add(
+                            $"traffic lights: lamp {i} caught only {hits} housing vertices in its own " +
+                            "window — its lenses fall back to the whole model's bounds");
+                    front = housing.Count > 0 ? globalFront : box.max.z;
+                    rear = housing.Count > 0 ? globalRear : box.min.z;
+                }
+
+                faces.Add(new LampFaces(front, rear));
+            }
+
+            report.Notes.Add(
+                "traffic lights: lens planes in model units — " +
+                string.Join(", ", faces.Select((f, i) => $"lamp{i} rear {f.Rear:0.00} / front {f.Front:0.00}")));
+
+            return faces;
         }
 
         /// <summary>Six shared materials, in the order red on/off, amber on/off, green on/off.</summary>
@@ -655,6 +917,10 @@ namespace TheBlock.EditorTools
             material.SetColor("_BaseColor", on ? color.linear : new Color(0.1f, 0.1f, 0.1f, 1f).linear);
             material.SetFloat("_Smoothness", 0.4f);
             material.SetFloat("_Metallic", 0f);
+
+            // Two-sided. A lens is twelve triangles, so this costs nothing — and it means a lamp can
+            // never again be hidden by its own winding, whatever EnforceWinding did or did not catch.
+            material.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Off);
 
             // Emission is what makes a lit lamp read as lit rather than as a coloured sticker — and
             // it is also what a future bloom pass would pick up. Off gets no emission at all rather
