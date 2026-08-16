@@ -98,6 +98,14 @@ namespace TheBlock.Core
 
             /// <summary><c>src/minigame/rhythm/rhythm.config.ts</c> — M2, the beach dance.</summary>
             [JsonProperty("rhythmConfig")] public RhythmSpec Rhythm;
+
+            /// <summary>
+            /// <c>src/audio/scream.config.ts</c> — U27's run-over voices. The eighth source, and
+            /// the first one that is not a world or a mission: the two engine/ambient blocks it
+            /// belongs beside were already inside <c>config.ts</c>, but the scream pool has always
+            /// lived next to the code that plays it.
+            /// </summary>
+            [JsonProperty("screamConfig")] public ScreamSpec Scream;
         }
 
         /// <summary>Mirrors the top level of <c>config.ts</c>. Only the ported sections are declared.</summary>
@@ -120,6 +128,12 @@ namespace TheBlock.Core
             public PlayerSpec Player;
             public VehicleSpec Vehicle;
             public TrafficSpec Traffic;
+
+            /// <summary>The three engine loops and their throttle curves. See TheBlockConfig.Audio.cs.</summary>
+            public EngineAudioSpec EngineAudio;
+
+            /// <summary>The two ambient beds, their crossfade geometry and the spot sounds.</summary>
+            public AmbientAudioSpec AmbientAudio;
 
             /// <summary>
             /// The street haze. Its colour is identical to <see cref="Background"/> in

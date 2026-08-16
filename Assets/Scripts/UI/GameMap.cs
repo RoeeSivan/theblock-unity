@@ -44,18 +44,24 @@ namespace TheBlock.UI
         /// </summary>
         private const float RedrawSec = 1f / 12f;
 
-        /// <summary>Collapsed minimap edge, in panel px.</summary>
-        private const float MiniSizePx = 220f;
+        /// <summary>
+        /// Collapsed minimap edge and its inset from the screen corner, in panel px — the web
+        /// build's `#map { width/height: 200px; bottom/left: 12px }` verbatim. The panel is
+        /// ConstantPixelSize, so a panel px IS a screen px and the two builds match 1:1.
+        /// </summary>
+        private const float MiniSizePx = 200f;
+        private const float MiniInsetPx = 12f;
 
         [SerializeField] private MapCamera mapCamera;
         [SerializeField] private PlayerController player;
         [SerializeField] private VehicleEnterExit vehicles;
 
-        [Tooltip("Show the always-on minimap in the bottom-left corner. OFF by the user's call, " +
-                 "2026-08-16: M opens the full map, and nothing sits over the world the rest of the " +
-                 "time. This is the Settings → Display 'Radar' toggle U26 already owes, arriving " +
-                 "early as a serialized field — U26 gives it a menu, it does not build it again.")]
-        [SerializeField] private bool showMinimap;
+        [Tooltip("Show the always-on minimap in the bottom-left corner. ON — the web build has it, " +
+                 "and the port matches it (turned off 2026-08-16, restored the same day by the user: " +
+                 "the radar belongs on screen). This doubles as the Settings → Display 'Radar' " +
+                 "toggle U26 already owes, arriving early as a serialized field — U26 gives it a " +
+                 "menu, it does not build the mechanism again.")]
+        [SerializeField] private bool showMinimap = true;
 
         private TheBlockConfig.Root _config;
         private VisualElement _backdrop;
@@ -98,11 +104,12 @@ namespace TheBlock.UI
             _panel.style.position = Position.Absolute;
             _panel.style.borderTopWidth = _panel.style.borderBottomWidth = 2f;
             _panel.style.borderLeftWidth = _panel.style.borderRightWidth = 2f;
-            var rim = new Color(1f, 1f, 1f, 0.65f);
+            // The web's `#map` rim and backing: 2px rgba(255,255,255,0.25) over rgba(0,0,0,0.35).
+            // The backing shows only in the corners the rounded rim cuts off the render texture.
+            var rim = new Color(1f, 1f, 1f, 0.25f);
             _panel.style.borderTopColor = _panel.style.borderBottomColor = rim;
             _panel.style.borderLeftColor = _panel.style.borderRightColor = rim;
-            _panel.style.borderTopLeftRadius = _panel.style.borderTopRightRadius = 8f;
-            _panel.style.borderBottomLeftRadius = _panel.style.borderBottomRightRadius = 8f;
+            _panel.style.backgroundColor = new Color(0f, 0f, 0f, 0.35f);
             _panel.style.overflow = Overflow.Hidden;
             _panel.RegisterCallback<ClickEvent>(_ => SetExpanded(!_expanded));
             root.Add(_panel);
@@ -140,6 +147,11 @@ namespace TheBlock.UI
             // map's RenderTexture bound to it, and the camera pass behind that is the actual cost.
             _panel.style.display = next || showMinimap ? DisplayStyle.Flex : DisplayStyle.None;
 
+            // The web build rounds the open map harder than the corner widget: 10px against 6px.
+            var radius = next ? 10f : 6f;
+            _panel.style.borderTopLeftRadius = _panel.style.borderTopRightRadius = radius;
+            _panel.style.borderBottomLeftRadius = _panel.style.borderBottomRightRadius = radius;
+
             if (next)
             {
                 // Sized every LateUpdate against the live panel size; just switch anchoring here.
@@ -148,8 +160,8 @@ namespace TheBlock.UI
             }
             else
             {
-                _panel.style.left = 16f;
-                _panel.style.bottom = 16f;
+                _panel.style.left = MiniInsetPx;
+                _panel.style.bottom = MiniInsetPx;
                 _panel.style.top = StyleKeyword.Auto;
                 _panel.style.right = StyleKeyword.Auto;
                 _panel.style.width = MiniSizePx;

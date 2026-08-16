@@ -19035,7 +19035,7 @@ MonoBehaviour:
   mapCamera: {fileID: 1306221590}
   player: {fileID: 0}
   vehicles: {fileID: 0}
-  showMinimap: 0
+  showMinimap: 1
 --- !u!114 &167873113
 MonoBehaviour:
   m_ObjectHideFlags: 0
