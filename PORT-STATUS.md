@@ -64,7 +64,8 @@ all seven are fixed, none of the fixes has been played.** The block below is wha
 each was actually caused by. U20–U24 stay `wip` until the second pass confirms them.
 
 Everything the fixes touched is rebuilt and saved in `World.unity`: **Build Mission Vehicles**,
-**Build World**, **Build Campaign**, in that order. Nothing else needs re-running.
+**Build World**, **Build Campaign**, in that order. Nothing else needs re-running. Committed as
+`8089e30`.
 
 ### What to play, in this order
 
