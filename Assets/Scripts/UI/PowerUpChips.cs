@@ -103,7 +103,7 @@ namespace TheBlock.UI
             chip.style.display = DisplayStyle.None;
             Round(chip, 6f);
 
-            var glyph = new Label($"{item.Hotkey} {item.Emoji}");
+            var glyph = new Label(Glyphs.Opaque($"{item.Hotkey} {item.Emoji}"));
             glyph.style.fontSize = 15f;
             glyph.style.color = Color.white;
             chip.Add(glyph);

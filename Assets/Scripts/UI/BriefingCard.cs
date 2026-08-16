@@ -111,7 +111,7 @@ namespace TheBlock.UI
                 // The copy is drawn as written, emoji and all — U28's fallback font. The card is where
                 // most of the campaign's copy is read, so this was the most visible version of the
                 // blank-box problem and is now the clearest proof the font landed.
-                var label = new Label(lines[i]);
+                var label = new Label(Glyphs.Opaque(lines[i]));
                 label.style.fontSize = i == 0 ? 26f : 19f;
                 label.style.color = i == 0 ? Color.white : new Color(0.87f, 0.9f, 0.94f);
                 label.style.unityFontStyleAndWeight = i == 0 ? FontStyle.Bold : FontStyle.Normal;

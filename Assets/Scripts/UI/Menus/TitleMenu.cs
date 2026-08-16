@@ -138,7 +138,9 @@ namespace TheBlock.UI.Menus
 
                 if (i <= unlocked)
                 {
-                    row.text = $"{i + 1}.  {Prefix(mission)}{title}";
+                    // Opaque, because a row's ink is peach (or near-black once picked) and it would
+                    // otherwise tint the mission's own 🍕 / 🕺 / 🚁 / 🛟 with it.
+                    row.text = Glyphs.Opaque($"{i + 1}.  {Prefix(mission)}{title}");
                     MenuStyle.Paint(row, primary: true);
                 }
                 else

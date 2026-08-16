@@ -65,6 +65,10 @@ namespace TheBlock.EditorTools
             // same reason everything is: the card has to cover it.
             hud.AddComponent<PowerUpChips>();
 
+            // The km/h readout and the sprint bar — the last two surfaces of hud.ts that nothing had
+            // built. The bar deliberately takes the slot U28b's fuel gauge will share.
+            hud.AddComponent<PlayerMeters>();
+
             hud.AddComponent<BriefingCard>();
 
             var so = new SerializedObject(map);

@@ -98,7 +98,10 @@ namespace TheBlock.UI.Menus
             line.style.alignItems = Align.Center;
             button.Add(line);
 
-            var emoji = new Label($"{item.Hotkey}  {item.Emoji}");
+            // The row's ink is peach when affordable and half-transparent white when not, and both
+            // would land on the item's picture. Opaque keeps the hotkey digit in the row's colour
+            // and the emoji in its own.
+            var emoji = new Label(Glyphs.Opaque($"{item.Hotkey}  {item.Emoji}"));
             emoji.style.fontSize = 20f;
             emoji.style.width = 74f;
             emoji.style.unityTextAlign = TextAnchor.MiddleLeft;
@@ -154,7 +157,8 @@ namespace TheBlock.UI.Menus
         private void Paint()
         {
             var cash = Balance != null ? Balance() : 0;
-            if (_balanceLabel != null) _balanceLabel.text = $"💵 ${cash}";
+            // Heading ink is white at alpha 0.75, which would draw a 💵 three-quarters faded.
+            if (_balanceLabel != null) _balanceLabel.text = Glyphs.Opaque($"💵 ${cash}");
 
             foreach (var row in _rows)
             {

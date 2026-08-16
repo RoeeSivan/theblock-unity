@@ -189,10 +189,11 @@ namespace TheBlock.UI
         {
             if (label == null) return;
 
-            // U28 gave the panel an emoji-capable fallback font (EmojiFontBuilder), so the copy is
-            // drawn as written. Until then this ran through `Glyphs.Strip`, at the point of DRAWING
-            // rather than of loading — which is exactly what made restoring the emoji a deletion.
-            var drawn = text;
+            // U28 gave the panel an emoji-capable fallback font, so the copy is drawn as written —
+            // but a colour-emoji glyph takes the label's colour as a tint, and these labels are
+            // deliberately muted. `Glyphs.Opaque` resets just the pictographic runs. Still at the
+            // point of DRAWING rather than of loading, which is what keeps the data clean.
+            var drawn = Glyphs.Opaque(text);
             if (string.IsNullOrEmpty(drawn))
             {
                 label.style.display = DisplayStyle.None;

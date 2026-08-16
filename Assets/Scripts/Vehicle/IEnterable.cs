@@ -57,6 +57,16 @@ namespace TheBlock.Vehicles
         /// </summary>
         float ForwardSpeed { get; }
 
+        /// <summary>
+        /// Unsigned speed for the HUD readout, in km/h.
+        ///
+        /// On the interface so <see cref="UI.PlayerMeters"/> can ask whatever is being driven without
+        /// four branches — and because it is NOT just <c>|ForwardSpeed| × 3.6</c> for all of them: a
+        /// helicopter travels sideways and backwards perfectly happily, so it answers with its full
+        /// velocity magnitude. All four already implemented this before it was declared here.
+        /// </summary>
+        float SpeedKmh { get; }
+
         /// <summary>True while somebody is driving it.</summary>
         bool Driven { get; set; }
 

@@ -255,7 +255,9 @@ namespace TheBlock.UI
             if (!Claim(rect)) return;
 
             var label = NextLabel(ref used);
-            label.text = text;
+            // The pins ⛽ 🚓 🏪 sit in a muted label colour, which a colour-emoji glyph takes as a
+            // tint. Opaque resets the picture and leaves the name muted.
+            label.text = Glyphs.Opaque(text);
             label.style.left = rect.x;
             label.style.top = rect.y;
             label.style.width = rect.width;
@@ -278,7 +280,9 @@ namespace TheBlock.UI
             if (!Claim(rect)) return;
 
             var label = NextLabel(ref used);
-            label.text = text;
+            // The pins ⛽ 🚓 🏪 sit in a muted label colour, which a colour-emoji glyph takes as a
+            // tint. Opaque resets the picture and leaves the name muted.
+            label.text = Glyphs.Opaque(text);
             label.style.left = rect.x;
             label.style.top = rect.y;
             label.style.width = StyleKeyword.Auto;
