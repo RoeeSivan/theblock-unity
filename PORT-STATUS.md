@@ -107,6 +107,11 @@ unclear, re-test before inheriting.
 > vanished", and a real hole in the world's seaward edge - both fixed and both in their own section
 > below.
 >
+> ⚠ **ONE U35a FOLLOW-UP IS BUILT AND NOT YET PLAYED (2026-08-16): coming off the bike now dismounts,
+> and standing up remounts.** The throw never left the vehicle, so the bike stayed `Driven` with its
+> rider parented to the seat and nothing ever put the player back on. Section below - **play-test that
+> before U35c**, per the rule two paragraphs down.
+>
 > ⚠ **THE BATCH PLAY-TEST IS OFF - the user reversed it, 2026-08-16, later the same day again:**
 > *"ברור, אנחנו צריכים לבדוק אחרי כל פיצ'ר כן."* **Every U35 sub-unit is play-tested by the user at
 > its own boundary**, exactly as `CLAUDE.md`'s "autonomous units, one checkpoint each" always said -
@@ -394,6 +399,48 @@ regenerates is a rig with a countdown on it.
    something over 5 m.
 4. **The switch.** Pause → Settings → **Gameplay → Ragdolls → Off**, then run someone over again:
    U18's clip should come back exactly as it was.
+
+### U35a follow-up, 2026-08-16 - coming off the bike was only half a state change
+
+The user played it and found the half that was missing: *"כרגע ההתנהגות הזאת לא מוגדרת וזה נראה
+מוזר"* - after the bike throws you, nothing puts you back. **The fix is that a throw now DISMOUNTS and
+a stand-up REMOUNTS**, so a crash is an interruption of the ride rather than the end of it.
+
+**What "undefined" actually was.** `PlayerRagdoll.Launch` switched off the `PlayerController` and left
+everything else exactly as it was, so for the whole ragdoll and for good afterwards:
+
+- `VehicleEnterExit.Mode` stayed `Driving` and `bike.Driven` stayed `true` - **the keyboard was still
+  driving the bike** while its rider lay in the road.
+- The player's root was **still parented to the seat**, so the body was dragged along by the bike it
+  had just come off, and the stand-up's world-space `Teleport` fought that parent every frame.
+- Standing back up therefore re-enabled `PlayerController` *inside* a vehicle: two controllers reading
+  WASD, and a player wearing the seat anchor's 1.1× rider scale. Only pressing `E` could unpick it.
+
+**The four changes:**
+
+- `PlayerRagdoll.Dismount` - `LeaveVehicleNow()` on the frame of the throw, then the rider is put back
+  at the SEAT pose it captured first. Left alone, `LeaveVehicleNow` stands you beside the bike at road
+  level, which is right for stepping off and wrong for being thrown: the ragdoll would start a metre
+  down and a metre sideways of where the rider was.
+- `PlayerRagdoll.Remount` - stands the bike up at the spot the body settled, on the heading the fall
+  began with, and boards it. **The bike comes to the rider**, because the alternative has no answer for
+  a bike that ended up in the canal or fifty metres down the street, and both are normal outcomes of a
+  crash hard enough to fire this.
+- `VehicleEnterExit.Board(IEnterable)` - public, extracted from `TryEnter`'s tail, so the remount is
+  the *ordinary* door-less mount and not a second way of getting onto a bike. It also fixes a real bug
+  of its own: the OnFoot branch now refuses `E` while `PlayerRagdoll.Down`, which until now would
+  happily board a vehicle from a proximity test taken at the spot the fall STARTED.
+- `MotorcycleController.Teleport` - declared rather than inherited from `IEnterable`, for the reason
+  `CarController` declares its own. The generic one stops the rigidbody; a bike also holds a steer
+  angle on the front `WheelCollider` and a visual lean on `leanPivot`, so a bike that went down
+  mid-corner was set upright by the transform write and leaned straight back over on the next render
+  tick. `Respawn` is now this plus a spawn pose, which is all it ever was - and `FallGuard`'s bike
+  rescue gets the same fix for free.
+
+**Not yet play-tested.** The recovery is: crash → thrown → settle (≤4 s) → lie 0.9 s → the bike stands
+up under you and you are riding again 0.35 s later. The one thing to watch is the heading: the bike
+keeps the yaw the crash began with, so a head-on into a wall stands you back up facing that wall.
+That is one line in `PlayerRagdoll.Remount` if it reads badly.
 
 ### Everything else that is open, audited 2026-08-16
 

@@ -48,6 +48,9 @@ namespace TheBlock.Vehicles
         [Tooltip("Where 'Press E to enter' is drawn. Optional: without it E still works, silently.")]
         [SerializeField] private MissionHud hud;
 
+        [Tooltip("U35a's ragdoll, so E is ignored while the player is on the tarmac. Optional.")]
+        [SerializeField] private PlayerRagdoll ragdoll;
+
         [Header("Exit placement - Unity-side, not in config.ts")]
         [Tooltip("How far above the vehicle the ground probe starts. Must clear the roof.")]
         [SerializeField] private float exitProbeHeight = 5f;
@@ -137,6 +140,7 @@ namespace TheBlock.Vehicles
             if (cars == null) cars = FindAnyObjectByType<CarSpawner>();
             if (traffic == null) traffic = FindAnyObjectByType<TrafficSystem>();
             if (hud == null) hud = FindAnyObjectByType<MissionHud>();
+            if (ragdoll == null) ragdoll = FindAnyObjectByType<PlayerRagdoll>();
 
             if (player == null)
             {
@@ -189,6 +193,12 @@ namespace TheBlock.Vehicles
             switch (mode)
             {
                 case GameMode.OnFoot:
+                    // Down and being simulated is on-foot as far as this machine is concerned, and it
+                    // must not be: the player's root transform is parked where the fall STARTED while
+                    // the body slides somewhere else entirely, so a proximity test here answers about
+                    // a place nobody is standing. Boarding from it would parent a corpse to a seat.
+                    if (ragdoll != null && ragdoll.Down) break;
+
                     // Every frame, not only on the frame E is pressed. A stopped car within reach
                     // is frozen for `hijack.holdSec` so it waits while you walk over - otherwise its
                     // light goes green mid-approach and the car you were heading for drives off.
@@ -287,7 +297,24 @@ namespace TheBlock.Vehicles
             if (vehicle == null) vehicle = PromoteFiller();
             if (vehicle == null) vehicle = Hijack(stopped);
 
-            if (vehicle == null || !vehicle.TryEnter()) return;
+            Board(vehicle);
+        }
+
+        /// <summary>
+        /// Gets the player onto a vehicle the CALLER has chosen, skipping the proximity search - the
+        /// mirror of <see cref="LeaveVehicleNow"/>, and everything <see cref="TryEnter"/> does once it
+        /// has decided what you are getting into.
+        ///
+        /// U35a's remount is what needs it: a rider thrown off the bike stands up with their own bike
+        /// laid at their feet, and the one thing that must not choose what they get back onto is
+        /// whatever else happens to be parked inside <c>enterRadius</c> - which on the lot is a
+        /// Mustang eight metres away.
+        /// </summary>
+        /// <returns>False if the mode is wrong or the vehicle refused.</returns>
+        public bool Board(IEnterable vehicle)
+        {
+            if (vehicle == null || mode != GameMode.OnFoot) return false;
+            if (!vehicle.TryEnter()) return false;
 
             ActiveVehicle = vehicle;
             mode = GameMode.Entering;
@@ -318,6 +345,7 @@ namespace TheBlock.Vehicles
             }
 
             followCamera?.Follow(vehicle, snap: false);
+            return true;
         }
 
         /// <summary>

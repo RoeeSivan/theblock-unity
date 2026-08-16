@@ -432,13 +432,31 @@ namespace TheBlock.Vehicles
                 _spawnCaptured = true;
             }
 
+            Teleport(_spawnPosition + Vector3.up * 0.1f, _spawnRotation);
+        }
+
+        /// <summary>
+        /// Puts the bike down somewhere else, upright and stopped.
+        ///
+        /// Declared here rather than inherited from <see cref="IEnterable.Teleport"/> for the reason
+        /// <see cref="CarController"/> declares its own: the generic version stops the RIGIDBODY, and
+        /// a bike carries three more pieces of pose that nothing generic can know about. The front
+        /// <c>WheelCollider</c> holds its last steer angle, and <see cref="leanPivot"/> holds the
+        /// visual lean - so a bike that went down mid-corner is set upright by the transform write
+        /// and then leans straight back over on the next render tick, wheel still cranked.
+        ///
+        /// <see cref="Respawn"/> is now this plus a spawn pose, which is all it ever was.
+        /// </summary>
+        public void Teleport(Vector3 position, Quaternion rotation)
+        {
             if (_body != null)
             {
                 _body.linearVelocity = Vector3.zero;
                 _body.angularVelocity = Vector3.zero;
             }
 
-            transform.SetPositionAndRotation(_spawnPosition + Vector3.up * 0.1f, _spawnRotation);
+            transform.SetPositionAndRotation(position, rotation);
+            Physics.SyncTransforms();
 
             _steerAngle = 0f;
             _lean = 0f;

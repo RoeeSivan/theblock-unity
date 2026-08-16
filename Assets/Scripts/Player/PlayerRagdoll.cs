@@ -23,6 +23,20 @@ namespace TheBlock.Player
     /// police are driving towards you. <b>The seam for the clip is left open</b>: if the FBX ever
     /// lands, it plays here and the blend becomes its cross-fade.
     ///
+    /// <b>Coming off the bike is a round trip, and both halves are this file's job.</b> The throw
+    /// DISMOUNTS - <see cref="VehicleEnterExit.LeaveVehicleNow"/>, before the body is handed to PhysX -
+    /// and the stand-up puts the rider back on. Without the dismount the rider is still parented to
+    /// the seat of a bike that is still <c>Driven</c>, so the keyboard drives it away with a corpse
+    /// hanging off the transform and both controllers reading WASD at once; without the remount the
+    /// unit ends with the player standing in the road beside a bike they have to walk back to. Neither
+    /// is a state anyone chose, which is what "undefined" meant.
+    ///
+    /// <b>The bike comes to the rider, not the rider to the bike.</b> It is set upright at the spot the
+    /// body settled, keeping the heading the fall began with. The alternative - walk the player back to
+    /// wherever the bike slid - has no answer for a bike that ended up in the canal, on its side under
+    /// a truck, or fifty metres down the street, and every one of those is a normal outcome of a crash
+    /// hard enough to fire this.
+    ///
     /// <b>The camera is handed a stable anchor, and the root transform never chases the hips.</b> That
     /// is the one design decision in this file worth reading twice. The obvious implementation - move
     /// the player object to the pelvis every frame so everything that follows the player still works -
@@ -79,6 +93,11 @@ namespace TheBlock.Player
                  "start of it, not the end.")]
         [SerializeField] private float blendSeconds = 0.35f;
 
+        [Tooltip("Metres above the recovered ground the bike is stood back up. Its own R-key respawn " +
+                 "uses 0.1 for the same reason: the pivot is at the road surface, and dropping a " +
+                 "WheelCollider exactly onto the tarmac starts it interpenetrating.")]
+        [SerializeField] private float remountLift = 0.1f;
+
         [Header("Wiring")]
         [SerializeField] private PlayerController player;
         [SerializeField] private CharacterBody body;
@@ -104,6 +123,8 @@ namespace TheBlock.Player
         private bool _airborne;
         private Vector3 _pending;           // a launch asked for from inside a physics callback
         private bool _hasPending;
+        private MotorcycleController _pendingBike;  // what that launch is being thrown off
+        private MotorcycleController _remount;      // and what to put them back on, once they are up
 
         /// <summary>True from the throw until the player is standing again and back in control.</summary>
         public bool Down => _phase != Phase.None;
@@ -174,7 +195,16 @@ namespace TheBlock.Player
             if (_hasPending)
             {
                 _hasPending = false;
+                var bike = _pendingBike;
+                _pendingBike = null;
+
+                // Off the bike first, thrown second, and the remount is only armed if BOTH took. A
+                // Launch that refuses - no rig, ragdolls switched off mid-frame - leaves a rider
+                // standing beside their bike, which is survivable; arming the remount anyway would
+                // put them back on a bike at the end of the next ROOFTOP fall.
+                var dismounted = Dismount(bike);
                 Launch(_pending);
+                _remount = dismounted && Down ? bike : null;
             }
 
             switch (_phase)
@@ -242,7 +272,35 @@ namespace TheBlock.Player
 
             var travel = bike.GetTransform().forward * bike.ForwardSpeed;
             _pending = travel * ejectShare + Vector3.up * ejectLift;
+            _pendingBike = bike;
             _hasPending = true;
+        }
+
+        /// <summary>
+        /// Step off the bike before the body is handed to PhysX, and leave the rider standing exactly
+        /// where they were SITTING.
+        ///
+        /// The second half is why this is not one call. <see cref="VehicleEnterExit.LeaveVehicleNow"/>
+        /// puts the rider down beside the bike at road level, because that is what stepping off means
+        /// - but nobody stepped off, they were thrown, and starting the ragdoll a metre to the left and
+        /// a metre down reads as the rider teleporting before they fly. So the seat pose is taken first
+        /// and written back through <see cref="PlayerController.Teleport"/>, which owns the
+        /// CharacterController guard that a bare position write would skip.
+        /// </summary>
+        /// <returns>False if there was nothing to get off.</returns>
+        private bool Dismount(MotorcycleController bike)
+        {
+            if (bike == null || player == null) return false;
+            if (vehicles == null || vehicles.Mode != GameMode.Driving) return false;
+
+            // The rider IS the seat right now - parented to it, at its origin - so this is the seat's
+            // world pose without having to reach through the bike for the anchor.
+            var seat = player.transform.position;
+            var yaw = player.transform.eulerAngles.y;
+
+            vehicles.LeaveVehicleNow();
+            player.Teleport(seat, yaw);
+            return true;
         }
 
         /// <summary>
@@ -358,12 +416,44 @@ namespace TheBlock.Player
 
             player.enabled = true;
             if (_controller != null) _controller.enabled = true;
-            player.Teleport(new Vector3(at.x, groundY, at.z), player.transform.eulerAngles.y);
 
-            if (followCamera != null) followCamera.FollowPlayer(snap: false);
+            var stand = new Vector3(at.x, groundY, at.z);
+            player.Teleport(stand, player.transform.eulerAngles.y);
+
+            // The camera is only handed back to the player when they are STAYING there. Remount points
+            // it at the bike itself, and doing both would swing it twice in one frame.
+            if (!Remount(stand) && followCamera != null) followCamera.FollowPlayer(snap: false);
 
             _phase = Phase.Standing;
             _blend = 0f;
+        }
+
+        /// <summary>
+        /// Pick the bike up and get back on it - the other half of <see cref="Dismount"/>, and what
+        /// makes a crash an interruption rather than the end of the ride.
+        ///
+        /// The heading is the one the fall STARTED with, which is the same yaw the player was just
+        /// stood up on. Reading it off the bike instead would be reading a yaw off a body lying on its
+        /// side, where <c>eulerAngles.y</c> is whatever is left after the roll has eaten the rest of
+        /// the rotation - the same trap as taking a heading off a face-down pelvis.
+        ///
+        /// The mount itself is <see cref="VehicleEnterExit.Board"/>, so the rider gets the ordinary
+        /// door-less mount: seated on the next frame, driving 0.35 s later, with the pose blend
+        /// running into the riding pose rather than into a stand. Nothing here is a second code path
+        /// for getting onto a bike.
+        /// </summary>
+        /// <returns>False when there is no bike to go back to, which is every fall.</returns>
+        private bool Remount(Vector3 stand)
+        {
+            var bike = _remount;
+            _remount = null;
+
+            if (bike == null || vehicles == null || player == null) return false;
+
+            bike.Teleport(stand + Vector3.up * remountLift,
+                Quaternion.Euler(0f, player.transform.eulerAngles.y, 0f));
+
+            return vehicles.Board(bike);
         }
 
         /// <summary>Every bone's local rotation as physics left it - what the blend starts from.</summary>
