@@ -212,10 +212,15 @@ namespace TheBlock.Missions
             var wanted = Quaternion.LookRotation(new Vector3(step.x, 0f, step.z).normalized, Vector3.up);
             runner.rotation = Quaternion.RotateTowards(runner.rotation, wanted, 480f * dt);
 
-            // The crowd's own blend tree, driven straight: a slower jog is a slower stride, which is
-            // what the web gets by scaling its mixer's delta.
+            // He is on Joe's sprint now, not the crowd's walk, and its stride is already retimed to
+            // `run.baseSpeed` by ThiefBuilder. So the parameter only has to answer "is he running",
+            // measured against his SLOW speed rather than his base one: at 1.2 m/s and above he is
+            // fleeing and gets the whole clip, and only a genuine stop settles him back to idle.
+            // Normalising by baseSpeed instead — which is what the crowd tree wanted — would blend
+            // 60% idle into his eased approach and leave him wading up the beach.
             if (runnerAnimator != null)
-                runnerAnimator.SetFloat(SpeedParameter, speed / Mathf.Max(0.01f, _spec.Run.BaseSpeed));
+                runnerAnimator.SetFloat(
+                    SpeedParameter, Mathf.Clamp01(speed / Mathf.Max(0.01f, _spec.Run.SlowSpeed)));
         }
 
         private void Advance(float speed, float dt)

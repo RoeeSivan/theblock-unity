@@ -33,6 +33,13 @@ namespace TheBlock.EditorTools
         private const string JoeRideClip = "Joe_Ride";
         private const string JoePath = "Assets/Models/Characters/Joe_Driving.fbx";
 
+        // The run. Joe's own clips — Humanoid, so they retarget onto Peter with nothing imported.
+        private const string RunControllerPath = "Assets/Animation/ThiefRun.controller";
+        private const string JoeIdlePath = "Assets/Models/Characters/Joe.fbx";
+        private const string JoeIdleClip = "Joe_Idle";
+        private const string JoeSprintPath = "Assets/Models/Characters/Joe_Sprint.fbx";
+        private const string JoeSprintClip = "Joe_Sprint";
+
         public static ChaseThief Build(
             GameObject root, TheBlockConfig.ChaseSpec spec, System.Text.StringBuilder log)
         {
@@ -45,7 +52,7 @@ namespace TheBlock.EditorTools
             var thief = holder.AddComponent<ChaseThief>();
 
             var ski = BuildSki(holder.transform, spec, log);
-            var (runner, animator) = BuildRunner(holder.transform, log);
+            var (runner, animator) = BuildRunner(holder.transform, spec, log);
 
             thief.SetBodies(ski, runner, animator);
             EditorUtility.SetDirty(thief);
@@ -192,11 +199,21 @@ namespace TheBlock.EditorTools
         // ── the running body ──────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// The beach jog. Peter again, on the crowd's OWN locomotion blend tree — the same graph
-        /// every pedestrian walks on, driven by hand at a jog rather than by <c>Pedestrian.Tick</c>.
-        /// The web needs a dedicated run GLB here because its crowd characters have no such graph.
+        /// The beach run. Peter again — but on <b>Joe's sprint</b>, not on the crowd's tree.
+        ///
+        /// He shipped on the crowd's locomotion graph, which is the right instinct and the wrong
+        /// graph: every motion in it is <c>Sophie_Walk</c>, because a pedestrian has never had
+        /// anywhere to be. So a man fleeing a jetski chase strolled up the beach. Joe's clips are
+        /// Humanoid, so <c>Joe_Sprint</c> retargets onto Peter for nothing — no import, no LFS.
+        ///
+        /// <b>The stride is matched to his ground speed, and that is the whole trick.</b>
+        /// <c>Joe_Sprint</c> carries 5.58 m/s of root motion and the thief flees at
+        /// <c>run.baseSpeed</c> (3 m/s), so playing it at 1.0 would skate his feet by 2.6 m/s.
+        /// The sprint child's <c>timeScale</c> is that ratio, computed here rather than typed, which
+        /// is the same thing the crowd's own tree does with its three walk entries.
         /// </summary>
-        private static (Transform, Animator) BuildRunner(Transform parent, System.Text.StringBuilder log)
+        private static (Transform, Animator) BuildRunner(
+            Transform parent, TheBlockConfig.ChaseSpec spec, System.Text.StringBuilder log)
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(ThiefPrefab);
             if (prefab == null)
@@ -212,10 +229,77 @@ namespace TheBlock.EditorTools
             if (instance.TryGetComponent<TheBlock.Npc.Pedestrian>(out var pedestrian)) pedestrian.enabled = false;
 
             var animator = instance.GetComponentInChildren<Animator>(true);
-            if (animator != null) animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            if (animator == null)
+            {
+                log.AppendLine("  ⚠ thief runner: no Animator on the prefab");
+                return (instance.transform, null);
+            }
 
-            log.AppendLine("  thief runner: Peter on the crowd's locomotion tree (no extra import)");
+            animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+
+            // ChaseThief writes his position every frame; root motion on top would fight it.
+            animator.applyRootMotion = false;
+
+            var controller = BuildRunController(spec, log);
+            if (controller != null) animator.runtimeAnimatorController = controller;
+
             return (instance.transform, animator);
         }
+
+        /// <summary>
+        /// Idle → sprint on one float, rebuilt every time so a retuned <c>run.baseSpeed</c> lands in
+        /// the stride instead of drifting away from it.
+        /// </summary>
+        private static AnimatorController BuildRunController(
+            TheBlockConfig.ChaseSpec spec, System.Text.StringBuilder log)
+        {
+            var idle = Clip(JoeIdlePath, JoeIdleClip);
+            var sprint = Clip(JoeSprintPath, JoeSprintClip);
+            if (idle == null || sprint == null)
+            {
+                log.AppendLine($"  ⚠ thief runner: idle={idle != null} sprint={sprint != null} — " +
+                               "left on the crowd's walk tree");
+                return null;
+            }
+
+            AssetDatabase.DeleteAsset(RunControllerPath);
+            var controller = AnimatorController.CreateAnimatorControllerAtPath(RunControllerPath);
+            controller.AddParameter("Speed", AnimatorControllerParameterType.Float);
+
+            var tree = new BlendTree
+            {
+                name = "Gait",
+                blendParameter = "Speed",
+                blendType = BlendTreeType.Simple1D,
+                useAutomaticThresholds = false,
+            };
+            AssetDatabase.AddObjectToAsset(tree, controller);
+
+            tree.AddChild(idle, 0f);
+            tree.AddChild(sprint, 1f);
+
+            // The clip's own root motion is the only honest source for "how fast does this look".
+            var clipSpeed = sprint.averageSpeed.magnitude;
+            var stride = clipSpeed > 0.01f ? spec.Run.BaseSpeed / clipSpeed : 1f;
+
+            var children = tree.children;
+            children[1].timeScale = stride;
+            tree.children = children;
+
+            var state = controller.layers[0].stateMachine.AddState("Run");
+            state.motion = tree;
+            state.writeDefaultValues = false;
+            controller.layers[0].stateMachine.defaultState = state;
+
+            EditorUtility.SetDirty(controller);
+            AssetDatabase.SaveAssets();
+
+            log.AppendLine($"  thief runner: Joe_Sprint retargeted onto Peter, clip {clipSpeed:0.00} m/s " +
+                           $"× {stride:0.000} = {spec.Run.BaseSpeed:0.00} m/s — stride matches the ground");
+            return controller;
+        }
+
+        private static AnimationClip Clip(string path, string name) =>
+            AssetDatabase.LoadAllAssetsAtPath(path).OfType<AnimationClip>().FirstOrDefault(c => c.name == name);
     }
 }
