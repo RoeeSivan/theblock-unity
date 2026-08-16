@@ -2,6 +2,7 @@ using TheBlock.Core;
 using TheBlock.World;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 
 namespace TheBlock.Vehicles
 {
@@ -110,10 +111,11 @@ namespace TheBlock.Vehicles
                 var keyboard = Keyboard.current;
                 if (keyboard != null)
                 {
-                    if (keyboard.wKey.isPressed) throttle += 1f;
-                    if (keyboard.sKey.isPressed) throttle -= 1f;
-                    if (keyboard.dKey.isPressed) steerInput += 1f;
-                    if (keyboard.aKey.isPressed) steerInput -= 1f;
+                    // Arrows as well as WASD, like every other thing the player steers here.
+                    throttle = Held(keyboard.wKey, keyboard.upArrowKey) -
+                               Held(keyboard.sKey, keyboard.downArrowKey);
+                    steerInput = Held(keyboard.dKey, keyboard.rightArrowKey) -
+                                 Held(keyboard.aKey, keyboard.leftArrowKey);
                     braking = keyboard.spaceKey.isPressed;
                 }
             }
@@ -166,6 +168,9 @@ namespace TheBlock.Vehicles
             _visual.localRotation =
                 Quaternion.AngleAxis(-lean * Mathf.Rad2Deg, Vector3.forward) * _visualRest;
         }
+
+        private static float Held(KeyControl primary, KeyControl alternate) =>
+            primary.isPressed || alternate.isPressed ? 1f : 0f;
 
         // --- IChaseTarget ------------------------------------------------------------------------
 

@@ -1,6 +1,7 @@
 using TheBlock.Core;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 
 namespace TheBlock.Vehicles
 {
@@ -25,7 +26,17 @@ namespace TheBlock.Vehicles
     /// measured in Blender, so the Huey fits between buildings and sets down on its skids. A
     /// collider that included the disc would refuse to enter most of Florentin.
     ///
-    /// Controls: W/S fly · A/D turn · Space climb · Shift descend · R respawn · E out.
+    /// <b>Yaw is an angular VELOCITY, written every step, and that is not a style choice.</b> The
+    /// craft used to compose <c>MoveRotation</c> onto the body only while the stick was off centre,
+    /// which left nothing at all in charge of rotation the rest of the time — so any yaw a contact
+    /// imparted simply stayed. Measured: a 3 rad/s knock still reads <b>1.82 rad/s after ten
+    /// seconds</b> under PhysX's default 0.05 angular damping, and <c>MoveRotation</c> composed on
+    /// top does not clear it. With <c>_planar</c> pushed along a nose that is turning on its own,
+    /// that is the spin the play-test found — and it is a spiral rather than a pirouette because
+    /// held throttle keeps thrusting along the rotating forward.
+    ///
+    /// Controls: W/S or ↑/↓ fly · A/D or ←/→ turn · Space climb · Shift descend · R respawn · E out.
+    /// Both key sets, because the car, the bike and walking all take both.
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
     public class HelicopterController : MonoBehaviour, IEnterable
@@ -47,6 +58,12 @@ namespace TheBlock.Vehicles
         [SerializeField] private Vector3 boom = new(0f, 6f, -16f);
         [SerializeField] private float lookYOffset = 2f;
         [SerializeField] private float followLerp = 0.08f;
+
+        /// <summary>
+        /// How fast an unflown craft's yaw bleeds off, in rad/s². Not a config number — the config
+        /// has no such term, because the web's craft is kinematic and cannot be spun at all.
+        /// </summary>
+        private const float YawSettle = 6f;
 
         private Vector3 _spawnPosition;
         private Quaternion _spawnRotation;
@@ -94,6 +111,12 @@ namespace TheBlock.Vehicles
                 body.useGravity = true;
                 _planar = Vector3.zero;
                 _vertical = 0f;
+
+                // A parked craft must not spin either. The default 0.05 angular damping keeps 61%
+                // of a knock ten seconds later, so a Huey that landed hard would still be turning
+                // on its pad when the player walked back to it. X and Z are frozen: this is yaw.
+                body.angularVelocity =
+                    Vector3.MoveTowards(body.angularVelocity, Vector3.zero, YawSettle * dt);
                 return;
             }
 
@@ -106,18 +129,22 @@ namespace TheBlock.Vehicles
 
             if (keyboard != null)
             {
-                if (keyboard.wKey.isPressed) throttle += 1f;
-                if (keyboard.sKey.isPressed) throttle -= 1f;
-                if (keyboard.dKey.isPressed) steer += 1f;
-                if (keyboard.aKey.isPressed) steer -= 1f;
+                throttle = Held(keyboard.wKey, keyboard.upArrowKey) -
+                           Held(keyboard.sKey, keyboard.downArrowKey);
+                steer = Held(keyboard.dKey, keyboard.rightArrowKey) -
+                        Held(keyboard.aKey, keyboard.leftArrowKey);
                 if (keyboard.spaceKey.isPressed) collective += 1f;
                 if (keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed) collective -= 1f;
             }
 
             // Yaw works while hovering, which is the one thing a helicopter does that a car cannot.
-            if (Mathf.Abs(steer) > 0.01f)
-                body.MoveRotation(body.rotation *
-                                  Quaternion.Euler(0f, steer * yawRate * Mathf.Rad2Deg * dt, 0f));
+            //
+            // Written as a velocity EVERY step, including the zero. That is what makes the stick
+            // authoritative: a centred stick now means "not turning" rather than "not asking", so a
+            // clipped parapet cannot leave the craft rotating. `yawRate` is rad/s in the config,
+            // which is exactly what `angularVelocity` wants — the old Rad2Deg × dt was there only
+            // to build a per-step Euler delta.
+            body.angularVelocity = new Vector3(0f, steer * yawRate, 0f);
 
             // Horizontal: accelerate along the nose, or coast down when the stick is centred.
             if (Mathf.Abs(throttle) > 0.01f) _planar += transform.forward * (throttle * accel * dt);
@@ -147,7 +174,13 @@ namespace TheBlock.Vehicles
             var v = body.linearVelocity;
             _planar = new Vector3(v.x, 0f, v.z);
             _vertical = v.y;
+
+            // Deliberately NOT the same deal for rotation. A wall winning the contact is what stops
+            // the craft; a wall winning the yaw is the spin. FixedUpdate re-asserts the stick.
         }
+
+        private static float Held(KeyControl primary, KeyControl alternate) =>
+            primary.isPressed || alternate.isPressed ? 1f : 0f;
 
         // --- IChaseTarget ------------------------------------------------------------------------
 

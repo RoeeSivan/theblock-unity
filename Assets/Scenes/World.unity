@@ -228394,7 +228394,7 @@ MonoBehaviour:
   bust: {fileID: 1127657413}
   vehicles: {fileID: 776202321}
   interior: {fileID: 1919606581}
-  debugStartMission: 1
+  debugStartMission: 2
   verbose: 0
 --- !u!114 &2005359058
 MonoBehaviour:
