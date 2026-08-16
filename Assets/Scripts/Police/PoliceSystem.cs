@@ -159,6 +159,12 @@ namespace TheBlock.Police
             if (officer == null) return;
 
             officer.name = $"{cop.name} Officer";
+
+            // Before BindSeat, because the setter writes the agent's stopping distance and BindSeat
+            // is what switches the agent off — an assignment either side of that is the same, but
+            // "configure, then place" is the order every other Configure call in this file uses.
+            officer.Standoff = _tuning.OfficerStandoff;
+
             officer.BindSeat(seat);
             cop.Officer = officer;
         }

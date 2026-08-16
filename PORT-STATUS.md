@@ -83,10 +83,15 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-> **NEXT ACTION: finish U19e.** The foot arrest is user-confirmed working (2026-08-16). Two faults
-> are left: she walks INTO the player instead of stopping beside them (not written), and she sat
-> 21.4 cm through the cruiser's roof (fixed in code, **needs `The Block → Build Police Car` and a
-> look**). Both are spelled out in the U19e block.
+> **NEXT ACTION: play-test U19d, the blue-light run — the last `wip` in the ledger.** It needs no new
+> work: it was written, it compiles, and it has simply never been driven. Confirm it or reopen it.
+> Drive, earn a star, and watch how fast the first cruiser arrives; the thing on trial is the
+> `ResponseSpeed` 29 / `ResponseGrip` 11 run that applies only past `BandFar` with no line of sight,
+> and a cop that swings into the oncoming side rather than queueing at a red.
+>
+> **After U19d, Tier 7 IS the remaining port** — U30 (macOS build + perf pass), U31 (iOS/iPad),
+> U32 (multiplayer, deferred by decision to last). Every unit U0–U29 plus U33 and U34 is `done` and
+> user-confirmed.
 >
 > *Ledger audited 2026-08-16: the U28b and U33 scene-rig debts are closed, a duplicated section and
 > four malformed table rows are fixed, and the open-work census below is complete as of that date.*
@@ -112,21 +117,33 @@ police prefabs carried both units' changes at once — only U28b's own hunks wer
 rode in with U19e's scene commit exactly as planned. `The Block → Build Gas Station` still rebuilds
 the whole rig in one click if it is ever lost.
 
-**U19e IS WIP AND IT IS THE NEXT ACTION — the officer who drives the cruiser and gets out to arrest
-you on foot.** The user's own design, built in a session that stopped mid-debug to commit. It runs:
-three officers sit in three cruisers, one gets out at 18 m and runs at you. The first play-test found
-exactly two faults and its block below has the mechanism, the measurements and both:
+**U19e IS DONE AND USER-CONFIRMED (2026-08-16)** — *"U19e נבדק וגם גמור."* The officer who drives the
+cruiser and gets out to arrest you on foot: three officers sit in three cruisers, one gets out at
+18 m and runs at you. **All three faults the play-tests found are closed**, and the block below keeps
+the mechanism and the measurements because every one of them was a lesson:
 
 1. ~~**No bust when she catches you.**~~ **FIXED AND USER-CONFIRMED 2026-08-16** — *"המעצר הרגלי
    עובד טוב."* A logic inversion in `PoliceSystem.FootArrest` had put the grab test on a path that
    never runs during a chase; `Step` is called before the decision now, and the arrest fires.
-2. **She walks into the player rather than stopping beside them.** NOT fixed. The fix is decided and
-   written out in the block: a ~1.1 m standoff point instead of the player's exact position, a
-   matching `agent.stoppingDistance`, and facing the player inside the grab radius. Add it as
-   `PoliceTuning.OfficerStandoff`.
-3. **She sits 21.4 cm through the cruiser's roof.** Found in the same play-test, from outside the
-   car. **Fixed in code, NOT yet rebuilt or seen** — the fix is one number and the rebuild was
-   blocked, see the block below.
+2. ~~**She walks into the player rather than stopping beside them.**~~ **FIXED AND USER-CONFIRMED
+   2026-08-16.** `PoliceTuning.OfficerStandoff` = 1.1 m.
+   **The cause is that the player is invisible to the navigation system**: a `CharacterController`
+   is neither a `NavMeshAgent` nor a carve, so nothing knows a body is standing there and a
+   destination set to their exact position is an instruction to occupy them. Implemented as a
+   **pulled-back destination rather than `agent.stoppingDistance` alone**, because one mechanism has
+   to serve both movement paths — `CopOfficer.Walk` is a hand-rolled straight line with no agent in
+   it, and the spawn car park, where a foot chase is most likely to start, has no NavMesh within
+   10 m. `stoppingDistance` is set to a QUARTER of the standoff, not to a match: the destination is
+   already the standoff point, so matching them would halt her at two standoffs — outside her own
+   1.6 m grab radius, i.e. the arrest silently never firing again. The quarter is a dead band so she
+   does not re-solve for a point she is standing on every 0.25 s and shuffle. Two traps handled:
+   the pull-back is **clamped to her own distance** or, once she is nearer than 1.1 m, the
+   destination lands behind her and she retreats to arm's length every time you close in — a grab
+   radius that pushes its own target out of itself; and both paths aim her along her travel, which
+   is right running and wrong on arrival, so `FaceWhenClose` turns her to you inside 1.5 standoffs.
+3. ~~**She sits 21.4 cm through the cruiser's roof.**~~ **FIXED AND USER-CONFIRMED 2026-08-16** —
+   *"שוטר בתוך מכונית נראה טוב."* It took TWO numbers, not the one the first fix assumed: the rider
+   scale, and then the seat's X, because **a rider scale is not only a height**. See the block below.
 
 **How to test it, which is not obvious:** there is no on-foot crime in this game — `CrimeWatch` gates
 every crime on `Driving` — so a wanted level while on foot is only reachable through the debug key.
@@ -136,23 +153,33 @@ one star, and wait ~20–30 s for the cruiser to drive over from the station.
 
 ### Everything else that is open, audited 2026-08-16
 
-Behind U19e and none of it blocking. This list was re-derived from the whole ledger in one pass, so
-it is the census — if something is not here or in **Deferred**, it is not open.
+This list was re-derived from the whole ledger in one pass, so it is the census — if something is not
+here or in **Deferred**, it is not open. **As of 2026-08-16 it is one `wip` play-test and Tier 7.**
 
 - ~~**U29 — the character roster.**~~ **DONE AND USER-CONFIRMED 2026-08-16** — *"looking good"*.
   Joe, Jody and David; the swap reaches the player and the stage dancer, and the character screen
   finally has the three-light rig the web build always had. Its own section is below.
+- ~~**U19e — the officer.**~~ **DONE AND USER-CONFIRMED 2026-08-16** — *"U19e נבדק וגם גמור."*
+  Arrest, standoff and seat all closed.
 - **U19d — the police blue-light run.** `wip`: written, compiles, **never play-tested**. It needs no
-  new work, only a play-test that either confirms it or reopens it.
-- **The jetski floats on the sea's MEAN level**, not on the swell — the exact fault U24b fixed for
-  the buoys. `SeaSurface` is built and sitting there; the ski just never got moved onto it. Nobody
-  has reported it looking wrong, which is why it is still here.
+  new work, only a play-test that either confirms it or reopens it. **This is the only open unit
+  below Tier 7.**
+- ~~**The jetski floats on the sea's MEAN level**, not on the swell.~~ **CLOSED BY THE USER,
+  2026-08-16** — *"ה-jetski גם נראה טוב אתה יכול לסמן את זה כגמור."* Looked at on the water and
+  judged fine, so the buoys' `SeaSurface` fix is deliberately NOT extended to the ski. The reason it
+  reads right where the buoys read wrong is size: a buoy is a small floating object whose whole body
+  the swell swallows, and the ski is a long hull with a rider on it that the eye reads as planing
+  across chop rather than bobbing in it. This is a judgment, not a measurement — if it ever looks
+  wrong at a different sea state, `SeaSurface.Height` is already built and it is a one-line move.
 - **The radio was never ported, and it has no row anywhere.** Deferred by the user inside U27 as the
   only system with a network dependency — recorded here because a deferral that lives in one unit's
   prose is a system that quietly vanishes from the port. Twelve of the web's thirteen audio modules
   shipped; this is the thirteenth.
-- **The dance's arrows are keyboard-only.** True in the original too, so it is not a regression —
-  but four tappable lanes are ~20 lines and **U31 has no keyboard**, so the iPad row inherits this.
+- ~~**The dance's arrows are keyboard-only.**~~ **DROPPED BY THE USER, 2026-08-16** — *"חצי ריקוד —
+  לא רלוונטי לדעתי יכול להוריד."* Not a regression (the original is keyboard-only too), and the port
+  matches the game it is porting. **If U31 ever ships to a real iPad, the mission is unplayable there
+  and this comes back** — it is ~20 lines of tappable lanes on the existing panel. Recorded as a
+  decision rather than deleted, so it cannot be rediscovered as a bug.
 - **Tier 7 is untouched**: U30 (macOS build + perf pass, which owns every entry in Deferred),
   U31 (iOS/iPad), U32 (multiplayer, deferred by decision to last).
 
@@ -188,7 +215,7 @@ Play from **`Assets/Scenes/Boot.unity`** → bar → title → `Mission Select`.
 dim and inert; `Continue` resumes at the furthest mission reached. On the profile that played these
 through, `theblock.unlocked` is **3**, so every row is live.
 
-### U19e, 2026-08-16 — the officer gets out of the car — WIP, TWO FAULTS OPEN
+### U19e, 2026-08-16 — the officer gets out of the car — DONE, user-confirmed
 
 The user's own design, and it is the first thing in this port that is neither a port nor a
 workaround-removal: *"the character I bought for free should be the one driving the police car, and
@@ -270,10 +297,34 @@ It goes on the SEAT and not on her prefab **on purpose**: she is within 4 cm of 
 size on foot is right, and this is a cabin too small for her rather than a body too big for the
 world. Scaling the prefab would shrink the officer who chases you on foot to fix a car she sits in.
 
-⚠ **NOT REBUILT AND NOT SEEN.** `The Block → Build Police Car` could not be run: a parallel session
-was mid-unit on U29 and `VehicleEnterExit.cs` did not compile. **The one step this needs is that
-menu item**, once the project compiles — the cruisers are `Instantiate`d from `PoliceCar.prefab` at
-`Start`, so rebuilding the prefab is the whole fix and **no `World.unity` change is involved**.
+**Then the scale moved her sideways, and THAT is the lesson of this row — a rider scale is not only
+a height.** Rebuilt at 0.833 and looked at, she was under the roof and jammed against the driver's
+door. The seat is the clip's ORIGIN, so the body reaches the cushion by *travelling* from a point
+beside the car — and a uniform scale on the anchor shortens that trip on **every axis**, not the
+vertical one people are thinking about when they set it.
+
+| | scale 1 | × 0.833 |
+| --- | --- | --- |
+| trip from anchor to hips | `(+1.93, +0.79, −0.02)` | `(+1.608, +0.658, −0.017)` |
+| hips, car-local x | **−0.38** — mid-way across the driver's half | **−0.702** — 0.34 m off a wall at −1.04 |
+| hips, car-local y | 0.79 | **0.661**, measured |
+
+**The vertical axis is what proves it.** 0.79 × 0.833 = 0.658 against 0.661 measured — the model is
+right, so it is right on the lateral axis too, and nobody had to see the car a second time to know
+by how much. The seat moves out by exactly what the scale took: `−0.38 − 0.833 × 1.93 = −1.988`,
+which is `PoliceCarBuilder`'s `X` now. The anchor is still 1.99 m from the body centre against a
+1.045 m half-width, so it clears the flank — and that matters past the pose, because
+`CopOfficer.Deploy` stands her up at this same point when she gets out.
+
+**Generalised: any rider scale in this project is also a lateral and longitudinal move**, for every
+seat whose anchor is an animation origin rather than a cushion — which is all of them
+(`driver-seat-is-clip-origin`). The config's own scales (Mustang 0.95, Audi 0.97, Tesla 0.82) carry
+the same displacement, and they were authored with it, so nothing there needs revisiting; what does
+is any scale changed by hand from here on.
+
+*Both numbers landed by `The Block → Build Police Car`; the cruisers are `Instantiate`d from
+`PoliceCar.prefab` at `Start`, so rebuilding the prefab was the whole fix and no `World.unity`
+change was involved.*
 
 **The two faults the play-test found, both mine, and the next action.**
 
@@ -2308,7 +2359,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | U19c | Pursuit — traffic yields, and the bust | done | `6fea7db` | **Second report: "police cars are not getting to me because they were blocked by other cars", and it was structural.** A `TrafficCar` is a **kinematic** Rigidbody, so to the cop's 1400 kg dynamic body it is a wall, not a car to squeeze past — it wedged, reversed, retried. The web build cannot hit this and its own config says why: its cops are kinematic character controllers that collide-and-slide around stopped cars, so shoving is free there and impossible here. **So traffic gets out of the way instead** — a car inside a pursuing cop's corridor eases 2 m outward and caps at 6 m/s, and NEVER stops, because a stopped car in the lane is the wall this removes. It rides on the lane-offset term the sampler already takes. Measured (isolated at `timeScale = 0.02`, because a static synthetic pursuer falls behind a 12 m/s car between two MCP calls and the first attempt read 0 for exactly that): ease-in **0 → 2.000 m**, speed **12.0 → 6.00**, clean ease-out. **The bust has two outcomes, the user's call:** in a vehicle you and it are impounded at the station; on foot you are cuffed where you stand. Money either way, which needed `Assets/Scripts/Game/Wallet.cs` — the port of `game/wallet.ts` onto `PlayerPrefs` — because `FinesOwed` was a tally nothing ever spent. `Charge` returns **what it actually took**, so a $100 fine against $40 costs $40 and the rest becomes debt: being broke is not a free pass. Measured: on-foot bust moved the player **0.04 m**, cash **$500 → $400**, cops all sent home, 0 errors. `WantedHud` gained a `$` readout and a BUSTED line that names which outcome happened. **U20 inherits `Heat.SuppressCrash`, `BustSequence.Busted` and `Wallet.Add`, all built and wired to nothing** |
 
 | U19d | Pursuit — urgency on the run in | **wip** | | **Written, compiles clean, NOT play-tested** — the user's call (*"I'll check it in the morning"*). Asked for: *"the police should arrive a bit faster, so the user feels more urgency."* The constraint was neither top speed nor the star: the cop asked for 20.5 and delivered **13.7 m/s** because `CornerSpeed` bound it, and a red-light queue cost one cruiser **12 s in a single junction**. So (1) a **blue-light run** — `ResponseSpeed` 29 and `ResponseGrip` 11 apply only past `BandFar` with NO line of sight, so the chase you can still win is untouched; (2) **a cop does not queue** — blocked 1.5 s while asking to move, it swings 3.5 m into the oncoming side for 3 s, time-boxed, and this one applies during a chase as well, per the user's *"cops do not listen to traffic lights, they just get to their target"*; it does not touch the final approach; (3) `copYieldShift` **2.0 → 3.0 m**, because 2.0 left five centimetres between a 2.09 m cruiser and a 1.8 m car and the measurement showed exactly that. ⚠ New seam `CarController.SpeedLimitOverride`, whose only caller is `CopDriver` — needed because `config.vehicle.maxSpeed` is 20 for every car and `ApplyDrive` cuts the torque there, which means `PoliceTuning.MaxSpeed`'s "20.5, a 2.5% edge over the player" **was never reachable**. ⚠ `copYieldShift` had to be fixed in the SCENE as well as in code — the same trap as U19b's cooldowns |
-| U19e | The officer who drives the cruiser, and arrests you on foot | **wip** | `a269a6b` | **The user's own design, not a port** — *"the character I bought for free should drive the police car, and on the capture she gets out and chases us."* Built, compiles, runs; **two faults from the first play-test, one fixed-but-untested and one not written — both spelled out in RESUME HERE and in the U19e block.** One body in two places: seated she is a child of `CarController.DriverAnchor` with agent, capsule and Animator OFF and a kinematic body so the car carries her; deployed she is unparented at that same anchor. **The anchor is the exit animation** — it is where `Joe_EnterCar`'s ORIGIN goes, so sitting is that clip held at normalized 1 and standing is the same clip at 0, measured to put her hips at car-local (−0.38, 0.79, 0.08) inside a cabin of x ∈ [−1.04, 1.04]. `PoliceCarBuilder` states the CrownVic's seat port-side (the web has no cop car in `config.vehicle.driver.seats`); `CopOfficerBuilder` writes 7 URP/Lit materials, the controller and the prefab. **She is Humanoid with her own valid avatar, so Joe's clips retarget for nothing**, `Joe_Sprint` retimed 5.58 → 6.2 m/s. **On foot she is the arrest; in a vehicle the cruiser still is** — nobody on legs catches a car — and `OfficerChase` turns it all off. The NavMesh is a pursuit surface here and only here, with a straight-line fallback because the spawn car park has no mesh within 10 m. **The 459 MB Asset Store `.tga` set is OUT of the repo**: `Assets/Models/Characters/Officer/` is a 24 MB slim twin (2.3 MB FBX + 1024² PNGs) and `Assets/Police_officer/` stays gitignored and unreferenced. ⚠ **A culled Animator never writes the pose** — the whole sit was a silent no-op until `AlwaysAnimate`; memory `culled-animator-skips-pose-write` |
+| U19e | The officer who drives the cruiser, and arrests you on foot | **wip** | `a269a6b` | **The user's own design, not a port** — *"the character I bought for free should drive the police car, and on the capture she gets out and chases us."* **Two of its three faults are user-confirmed fixed — the foot arrest and the seat; the third, the standoff, is WRITTEN AND NEVER PLAY-TESTED and is all that is left. See RESUME HERE.** ⚠ **The seat took two numbers, and the second is the row's real lesson: a rider scale is not only a height.** `RiderScale = 0.833` put her under the roof and hard against the driver's door, because the anchor is the entry clip's ORIGIN and a uniform scale shortens the whole trip to the cushion — the hips went from car-local x −0.38 to −0.702 against a cabin wall at −1.04. Confirmed on the axis measured twice (y 0.79 → 0.661 vs 0.79 × 0.833 = 0.658), so the lateral figure needed no second look, and the seat's `X` moves −2.31 → **−1.988** to pay it back. ⚠ **The standoff is a pulled-back destination, not `agent.stoppingDistance`** — `Walk` is a hand-rolled straight line with no agent in it and the spawn car park has no mesh — and the stopping distance is a QUARTER of the standoff, because matching them would halt her at two standoffs, outside her own 1.6 m grab radius. One body in two places: seated she is a child of `CarController.DriverAnchor` with agent, capsule and Animator OFF and a kinematic body so the car carries her; deployed she is unparented at that same anchor. **The anchor is the exit animation** — it is where `Joe_EnterCar`'s ORIGIN goes, so sitting is that clip held at normalized 1 and standing is the same clip at 0, measured to put her hips at car-local (−0.38, 0.79, 0.08) inside a cabin of x ∈ [−1.04, 1.04]. `PoliceCarBuilder` states the CrownVic's seat port-side (the web has no cop car in `config.vehicle.driver.seats`); `CopOfficerBuilder` writes 7 URP/Lit materials, the controller and the prefab. **She is Humanoid with her own valid avatar, so Joe's clips retarget for nothing**, `Joe_Sprint` retimed 5.58 → 6.2 m/s. **On foot she is the arrest; in a vehicle the cruiser still is** — nobody on legs catches a car — and `OfficerChase` turns it all off. The NavMesh is a pursuit surface here and only here, with a straight-line fallback because the spawn car park has no mesh within 10 m. **The 459 MB Asset Store `.tga` set is OUT of the repo**: `Assets/Models/Characters/Officer/` is a 24 MB slim twin (2.3 MB FBX + 1024² PNGs) and `Assets/Police_officer/` stays gitignored and unreferenced. ⚠ **A culled Animator never writes the pose** — the whole sit was a silent no-op until `AlwaysAnimate`; memory `culled-animator-skips-pose-write` |
 
 ### Tier 5 — Missions
 | id | unit | state | commit | notes |
@@ -2341,6 +2392,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
 | U33 | Day/night cycle | done | `4ec2978` | **User-confirmed 2026-08-16** (*"i like the lighting… feature good"*). **The first thing in this repo that is not a port of anything** — the web build's sky is one constant `config.background` and its sun never moves. It therefore ships behind **Settings → Display → Time of Day**, default **Fixed**, and Fixed is not "close to" the old look: `DayNightCycle.RestoreBuilt` replays the scene as WorldBuilder left it, `renderPostProcessing` goes false so URP schedules **no post pass at all**, and ambient stays `Skybox`. Off costs 0 ms and every screenshot approved in U11–U27 still reproduces. **One light does the sun AND the moon** — URP's main light is the brightest directional and a second would demote to an additional light with no shadows, so it swings a full 360° (`pitch = (hour − 6) × 15`) and mirrors to the far side of the sky below the horizon; intensity ramps to 0 across ±2° of the crossing so the 180° flip is invisible. **Ambient is `Trilight`, never `DynamicGI.UpdateEnvironment`** — three lerped colours instead of a 1–3 ms skybox re-convolution — and that fixes a dead line from U13 as a side effect: `Interior` wrote `ambientLight`, which `AmbientMode.Skybox` ignores, so the pizzeria's warm ambient had never once rendered. **Night is CHEAPER than day**: below the horizon `shadows = None` drops the four 2048² cascades. Grading is Tonemapping·ColorAdjustments·WhiteBalance only — **Bloom was cut on cost**, 6–8 blur passes against a 20.7 ms frame. `SkyPalette` is 13 stops, **static and code-only on purpose** (a `[SerializeField]` palette is dead the moment the scene saves it). `Assets/Scripts/World/{DayNightCycle,SkyPalette}.cs`, built into the scene by **The Block → Build Day-Night** (`Assets/Editor/DayNightBuilder.cs`), which also has a **(Test Mode)** twin: cycle forced on, a full day in 2 min, `[` `]` step an hour, `\` holds the clock, and a corner banner so it cannot be left on silently. ⚠ **`Interior`'s per-Enter `RenderSettings` snapshot was DELETED** — it was U26's Radar/`display` bug again, two owners of one field. Day length **2880 s = 48 min**, GTA V's pace, the user's call. ⚠ **The scene rig is not in this unit's commit — it landed in `a269a6b` and the debt is closed** (verified 2026-08-16: `DayNightCycle` is on the `Directional Light` in the committed scene); `World.unity` was carrying U28's unsaved work at the time, so the rig rode in with the next scene commit. The menu item rebuilds it in one click if it is ever lost |
+| U34 | Collisions have consequences | **done — user-confirmed 2026-08-16** | `9bd360c` | ✅ *"לגבי ריסוק מחדש אתה יכול לסמן את זה כגמור זה מתנהג כמו שצריך."* **The unit exists because of one discovery: `CrashSensor` had been attached to NOTHING since U19** — no prefab, no scene object, no `AddComponent` anywhere — so `CrimeWatch.OnCrashed` and the crash thump were both subscribed to an event that could not fire, and every collision in this game had been silent and free for fourteen units. It was found by grepping the `.meta` guid rather than the class name, which is the only search that distinguishes "referenced" from "merely compiled"; memory `static-event-with-no-publisher`. The fix is `CrashSensor.Ensure(gameObject)` from `CarController.Bind` and `MotorcycleController.Bind` — **not a prefab field, on purpose**, because `Build Drivable Cars` regenerates those prefabs and that is the likeliest story of how it was lost to begin with. **Three things followed from having impacts at all.** ① **A wall and a car are different crimes.** `PoliceTuning.VehicleCrashCrimeSpeed = 2.5f` (9 km/h) against the wall's `CrashCrimeSpeed = 6f` (22 km/h): ramming a car is a hit-and-run with a victim, scraping a bollard is geometry being forgiven, and the web build could not tell them apart at all. The test is `Impact.HitVehicle`, read off the **collider's own hierarchy** and never off `Impact.Other` — a parked filler is a static collider with no Rigidbody and arrives indistinguishable from a wall, and a traffic car promoted inside the same callback has no body yet either. ⚠ **A cruiser is excluded and that is a feedback loop, not politeness**: cops crowd you and touch you constantly, so a low bar against police contact mints a crime every cooldown, which spawns another cop and resets the give-up clock — a pursuit that cannot end because it is happening. Hitting one hard is still a crime, judged by the wall's line. ② **`TrafficCar` retuned** — `wreckSpeed` 6→3 (6 m/s is faster than most of a queue ever moves, so every collision inside a jam was a car hitting a wall), `wreckMomentumShare` 0.55→0.9 (PhysX has already spent most of the energy on the contact by the time this runs, so a share under ~0.8 reads as hitting a parked skip), `wreckMaxSpeed` 14→20, and the hard-coded 0.25 spin became `wreckSpin = 0.45`. ③ **`LotCar` takes a hit** — U13 gave 101 parked fillers a box collider and nothing else, making them immovable walls in the one place you are most likely to be driving badly. **A static collider still receives collision callbacks**, which is what lets a filler stay static until the frame it is struck and only then take a Rigidbody, so the usual dynamic count is zero and the worst case is a handful. The push direction comes from the CONTACT POINT, never from `Collision.impulse` or `relativeVelocity` — both carry a sign that depends on which body the callback fired on, and "away from where I was struck" cannot be backwards. Centre of mass drops into the sills or a car-sized box goes over on its roof at the first kerb. `Wrecked` bars promotion, per `TrafficSystem.NearestStopped`'s rule: promoting a wreck would swap a shunted, spinning car for a pristine one standing neatly in its stall |
 
 ---
 
@@ -2372,10 +2424,12 @@ would trigger it. A `wip` unit is work half-done; this is work deliberately not 
   radio module and decide whether the streams are even reachable offline — if they are not, the
   honest port is a local playlist, and that is a design call, not a task.
 
-- **The dance's arrows are keyboard-only, and U31 has no keyboard.** True in the original too, so it
-  is not a regression — the user asked at U22's play-test whether clicking works and it does not, in
-  either build. Four tappable lanes are ~20 lines on the existing UI Toolkit panel. **Trigger:**
-  U31. On iPad this is not polish — it is the mission being unplayable.
+- ~~**The dance's arrows are keyboard-only, and U31 has no keyboard.**~~ **DROPPED BY THE USER,
+  2026-08-16** — *"חצי ריקוד — לא רלוונטי לדעתי יכול להוריד."* True in the original too, so it was
+  never a regression, and the desktop target this port ships to has a keyboard. Four tappable lanes
+  are still ~20 lines on the existing UI Toolkit panel if it is ever wanted. **The only trigger left
+  is U31 actually shipping to a device**: on iPad this is not polish, it is M2 being unplayable, and
+  that is the one thing the row should still say out loud.
 
 - **Foliage collides.** `noCollidePatterns` matches node or material names and a merged district has
   neither, so each district takes 2–4 whole-mesh colliders with the palms inside them — the same

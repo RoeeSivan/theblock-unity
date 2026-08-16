@@ -182,14 +182,30 @@ namespace TheBlock.EditorTools
         /// <see cref="RiderScale"/> for how the number was chosen.
         ///
         /// <c>CarBuilder</c> feeds <c>Raw</c> through <see cref="Convert.ModelOffset"/>, which flips
-        /// Z alone, so <c>x = -2.31</c> stays on Unity's left — the driver's side, as in the web.
+        /// Z alone, so a negative <c>x</c> stays on Unity's left — the driver's side, as in the web.
+        ///
+        /// <b><c>x</c> is no longer the Avenger's −2.31, and the reason is that a rider scale is not
+        /// only a height.</b> The seat is the clip's ORIGIN, so the body arrives at the cushion by
+        /// travelling from here — and a uniform scale on the anchor shortens that travel on every
+        /// axis, not just the vertical one. At scale 1 the trip was <c>(+1.93, +0.79, −0.02)</c> and
+        /// the hips landed at car-local <c>(−0.38, 0.79, 0.08)</c>, mid-way across the driver's half.
+        /// <see cref="RiderScale"/> multiplies that trip by 0.833, which is confirmed on the axis that
+        /// was measured twice — 0.79 → <b>0.661</b>, against 0.79 × 0.833 = 0.658 — and therefore
+        /// also true on the lateral one: <b>1.93 → 1.608</b>, putting the hips at <b>−0.702</b>, a
+        /// third of a metre further to port and hard against a cabin wall at −1.04. The play-test saw
+        /// exactly that.
+        ///
+        /// So the seat moves out by the 0.322 m the scale took: <c>−0.38 − 0.833 × 1.93 = −1.988</c>
+        /// lands the hips back where they were. The anchor is still 1.99 m from the body centre and
+        /// the cruiser's half-width is 1.045, so it clears the flank — which matters beyond the pose,
+        /// because <c>CopOfficer.Deploy</c> stands her up at this same point when she gets out.
         /// </summary>
         private static Dictionary<string, TheBlockConfig.SeatSpec> OfficerSeat() =>
             new(System.StringComparer.Ordinal)
             {
                 [ModelUrl] = new TheBlockConfig.SeatSpec
                 {
-                    X = -2.31f,
+                    X = -1.988f,
                     Y = -0.84f,
                     Z = -0.1f,
                     Yaw = -1.501f,

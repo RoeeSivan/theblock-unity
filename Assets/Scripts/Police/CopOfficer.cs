@@ -78,8 +78,35 @@ namespace TheBlock.Police
         private float _reacquireAt;
         private Vector3 _lastPosition;
         private float _planarSpeed;
+        private float _standoff = 1.1f;
 
         public Mode State => _mode;
+
+        /// <summary>
+        /// Metres she stops SHORT of the player, pushed in from <see cref="PoliceTuning.OfficerStandoff"/>
+        /// at pool fill.
+        ///
+        /// <b>The player is not an obstacle to a NavMeshAgent</b> — a `CharacterController` is neither
+        /// an agent nor a carve, so nothing in the navigation system knows it is standing there, and a
+        /// destination set to the player's exact position is an instruction to occupy them. The first
+        /// play-test saw exactly that: she ran up and kept going, into and through.
+        ///
+        /// The stopping distance is a QUARTER of it, not a match, because the destination is already
+        /// the standoff point — see <see cref="StandoffPoint"/>. Setting both to the same number would
+        /// stop her at two standoffs, outside her own grab radius, which is the arrest never firing
+        /// again by a different route. What the quarter buys is a dead band: without one the agent
+        /// re-solves for a point it is already standing on every <see cref="repathInterval"/> and
+        /// shuffles in place.
+        /// </summary>
+        public float Standoff
+        {
+            get => _standoff;
+            set
+            {
+                _standoff = Mathf.Max(0f, value);
+                if (agent != null) agent.stoppingDistance = _standoff * 0.25f;
+            }
+        }
 
         /// <summary>True while she is out of the car and therefore the thing that arrests you.</summary>
         public bool Deployed => _mode != Mode.Seated;
@@ -193,7 +220,11 @@ namespace TheBlock.Police
         {
             if (_mode == Mode.Seated) return;
 
-            var destination = _mode == Mode.Returning && _seat != null ? _seat.position : target;
+            // Returning walks to the door and has its own arrival test; chasing walks to a point
+            // short of the player, never to the player.
+            var destination = _mode == Mode.Returning && _seat != null
+                ? _seat.position
+                : StandoffPoint(target);
 
             if (_mode == Mode.Returning && _seat != null &&
                 Planar(transform.position, _seat.position) <= reseatRadius)
@@ -210,8 +241,59 @@ namespace TheBlock.Police
             _planarSpeed = dt > 0f ? Planar(transform.position, _lastPosition) / dt : 0f;
             _lastPosition = transform.position;
 
+            if (_mode == Mode.Chasing) FaceWhenClose(target, dt);
+
             if (animator != null)
                 animator.SetFloat(SpeedId, Mathf.Clamp01(_planarSpeed / Mathf.Max(0.01f, runSpeed)));
+        }
+
+        /// <summary>
+        /// The point <see cref="Standoff"/> metres short of <paramref name="target"/>, on the line
+        /// back towards her.
+        ///
+        /// It is done here rather than by <c>agent.stoppingDistance</c> alone because ONE mechanism
+        /// has to serve both paths: <see cref="Walk"/> is a hand-rolled straight line with no agent
+        /// in it at all, and the spawn car park — where a chase on foot is most likely to start — has
+        /// no NavMesh within 10 m. A brake that only exists on the agent would let her walk through
+        /// the player on precisely the ground the fallback covers.
+        ///
+        /// <b>The clamp is what stops her backing away.</b> Once she is nearer than the standoff the
+        /// pull-back would otherwise put the destination BEHIND her, and she would retreat to arm's
+        /// length every time the player closed in — a grab radius that pushes its own target out of
+        /// itself. Clamped to her own distance, the point becomes where she is standing and she
+        /// simply holds.
+        /// </summary>
+        private Vector3 StandoffPoint(Vector3 target)
+        {
+            var back = transform.position - target;
+            back.y = 0f;
+
+            float distance = back.magnitude;
+            if (distance <= 0.01f) return target;
+
+            return target + back * (Mathf.Min(_standoff, distance) / distance);
+        }
+
+        /// <summary>
+        /// Turns her to the person she is arresting once she has stopped in front of them.
+        ///
+        /// Both movement paths aim her along her own travel, which is right while she is running and
+        /// wrong the moment she arrives: a standoff means she stops a stride away, and whatever
+        /// heading the last step left her on is the one she keeps. The band is deliberately wider
+        /// than the standoff itself so the turn starts as she settles rather than snapping after it,
+        /// and it is inside the agent's stopping distance, so this is not fighting the agent for the
+        /// rotation — by here it has already given up steering.
+        /// </summary>
+        private void FaceWhenClose(Vector3 target, float dt)
+        {
+            var look = target - transform.position;
+            look.y = 0f;
+
+            if (look.sqrMagnitude < 0.01f) return;
+            if (look.magnitude > _standoff * 1.5f) return;
+
+            transform.rotation = Quaternion.RotateTowards(
+                transform.rotation, Quaternion.LookRotation(look, Vector3.up), 480f * dt);
         }
 
         /// <summary>Planar metres between her and a point — the arrest test's input.</summary>
