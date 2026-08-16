@@ -42,10 +42,10 @@ namespace TheBlock.Missions
         [SerializeField] private Interior interior;
 
         [Header("Debug")]
-        [Tooltip("Jump the cursor to this mission index on Play instead of resuming the save. " +
-                 "−1 resumes. This is the port of the web build's ?mission= URL flag, and like it, " +
-                 "it runs the REAL entry path — it selects the step, it does not fake completing " +
-                 "the ones before it.")]
+        [Tooltip("Jump the cursor to this mission index on Play instead of starting at the first. " +
+                 "−1 starts at mission 1. This is the port of the web build's ?mission= URL flag, " +
+                 "and like it, it runs the REAL entry path — it selects the step, it does not fake " +
+                 "completing the ones before it.")]
         [SerializeField] private int debugStartMission = -1;
 
         [Tooltip("Log every status edge, payout and cursor move. Off for a normal play-test.")]
@@ -115,9 +115,19 @@ namespace TheBlock.Missions
 
             director?.BuildSteps(_snapshot);
 
-            // Resume where the save left off. The unlock index is the FURTHEST mission reached, and
-            // pointing the cursor at it is what "Continue" means with no title screen to press it on.
-            var start = debugStartMission >= 0 ? debugStartMission : Progress.UnlockedIndex;
+            // THE CAMPAIGN ALWAYS OPENS ON MISSION 1, which is the web build's behaviour and not a
+            // simplification of it: `createCampaign` sets `idx = 0` on every load and NOTHING there
+            // reads the unlock index — `?mission=` is the only thing that moves the opening cursor.
+            //
+            // U20 shipped a resume instead ("Continue, with no title screen to press it on"), and
+            // the play-test found what that actually feels like: a finished save opens on the FINAL
+            // mission's objective — "Get to the jetski · chase the thief" over a fresh $0 wallet —
+            // with no way back to the pizza run short of wiping PlayerPrefs. A Continue needs a menu
+            // offering it, which is U26's; without one, every Play is a New Game.
+            //
+            // `Progress.UnlockedIndex` is still recorded below on every cursor move. It is what
+            // U26's Mission Select will read, and it is monotonic for exactly that reason.
+            var start = debugStartMission >= 0 ? debugStartMission : 0;
             campaign?.Select(start);
             _lastSavedIndex = campaign != null ? campaign.Index : 0;
 

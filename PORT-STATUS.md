@@ -59,13 +59,14 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-**Next action: PLAY-TEST TIER 5 AGAIN — the first play-test happened and returned seven reports,
-all seven are fixed, none of the fixes has been played.** The block below is what changed and what
+**Next action: PLAY-TEST TIER 5 AGAIN — the first play-test happened and returned eight reports,
+all eight are fixed, none of the fixes has been played.** The block below is what changed and what
 each was actually caused by. U20–U24 stay `wip` until the second pass confirms them.
 
 Everything the fixes touched is rebuilt and saved in `World.unity`: **Build Mission Vehicles**,
 **Build World**, **Build Campaign**, in that order. Nothing else needs re-running. Committed as
-`8089e30`.
+`8089e30` and `a0f7f0e`. **The save is wiped**: Play opens on mission 1 with $0 and every mission
+pays again.
 
 ### What to play, in this order
 
@@ -83,11 +84,12 @@ The save was deliberately wiped, so Play starts a fresh campaign at mission 1 wi
 
 `F` retries any failed mission from anywhere. `M` opens the map. `R` respawns a vehicle.
 
-### Play-test round 1, 2026-08-16 — seven reports, seven causes, all fixed
+### Play-test round 1, 2026-08-16 — eight reports, eight causes, all fixed
 
 Reported in one pass over the campaign. **Not one of them was the mission logic** — five were a
-frame or a rotation being composed wrongly and two were a resource being shared or missing. Each is
-written with what it actually was, because in every case the symptom named a different thing.
+frame or a rotation being composed wrongly, two were a resource being shared or missing, and one was
+a cursor. Each is written with what it actually was, because in every case the symptom named a
+different thing.
 
 1. **No "E to enter" anywhere.** There was no prompt SOURCE, only mission prompts. `MissionHud`'s
    prompt line is now an **arbitrated, immediate-mode channel** — claim it every frame you want it,
@@ -126,6 +128,18 @@ written with what it actually was, because in every case the symptom named a dif
 enter" for a key that refuses. `IEnterable.EntryRefusal` is the reason-or-null a vehicle gives, so
 the prompt and the action come from one place — the helicopter's line is the web's own
 ("Win the dance to earn the keys"); the jetski's is written to match, because the web has none.
+
+**8. Play opened on "Get to the jetski · chase the thief" instead of the pizza run.** Reported as
+copy; it was the cursor. The save read `unlocked = 3`, `paid = pizza,dance,heli,jetski` — a
+finished campaign — and U20's `CampaignRunner` **resumed the furthest mission reached**. Checked
+against the original before changing it: `createCampaign` sets `idx = 0` on every load and
+**nothing in the web reads `unlockedIndex` at all** — `?mission=` is the only thing that moves the
+opening cursor. So the resume was invented here, and what it feels like is a finished save opening
+on the finale's objective over a fresh $0 wallet with no way back. **Every Play is a New Game now**,
+which is web parity; `Progress.UnlockedIndex` is still recorded on every cursor move because it is
+what U26's Mission Select will read. The stale save was wiped with it (progress, payouts, cash —
+the character and the seen hints kept), so the four missions pay again. Verified in Play: cursor 0,
+`pizza`, objective **"Drive to the pizzeria"**.
 
 **Left alone deliberately, worth a look while playing M4:** the jetski's rider seat comes from
 `config.vehicle.jetski.rider.seat` at `y −0.31` against a hull centred on its origin, and its
