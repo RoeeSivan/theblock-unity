@@ -25,6 +25,19 @@ namespace TheBlock.UI
         public MapPoiKind Kind = MapPoiKind.Marker;
 
         /// <summary>
+        /// An emoji drawn INSTEAD of the coloured dot — 🍕 for the pizzeria, ⛽ for the pumps.
+        ///
+        /// Standing places take one; mission pins deliberately do not. Every fixed landmark and
+        /// every objective used to be the same green <see cref="MapPoiKind.Marker"/> dot, so during
+        /// a mission the map showed a row of identical circles and the one that mattered was
+        /// indistinguishable from the police station. Giving the permanent places a picture leaves
+        /// the plain dot meaning exactly one thing: go here.
+        ///
+        /// Empty (the default) means draw the dot, so nothing that does not opt in changes.
+        /// </summary>
+        public string Icon;
+
+        /// <summary>
         /// Something to track, for a pin that moves.
         ///
         /// <see cref="Position"/> is a snapshot, which is right for a building and useless for a

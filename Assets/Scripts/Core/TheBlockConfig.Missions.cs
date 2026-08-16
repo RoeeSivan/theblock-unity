@@ -279,7 +279,10 @@ namespace TheBlock.Core
             /// <summary>Stable key — matches the mission's own id. Never shown to players.</summary>
             public string Id;
 
-            /// <summary>Map glyph. The port has no emoji font until U25; the map draws a dot.</summary>
+            /// <summary>
+            /// Map glyph, drawn in place of the objective's dot. Idle until the emoji font landed in
+            /// U28 — this comment used to say the map draws a dot instead, and it does not any more.
+            /// </summary>
             public string Emoji;
 
             /// <summary>"Go here next" line, on the HUD and on the previous step's handoff card.</summary>

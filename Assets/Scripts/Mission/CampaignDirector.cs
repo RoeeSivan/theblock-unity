@@ -43,6 +43,15 @@ namespace TheBlock.Missions
         private class Step
         {
             public string Objective;
+
+            /// <summary>
+            /// The step's map glyph — 🍕 🕺 🚁 🛟, straight out of <c>campaign.config.ts</c>. The web
+            /// draws it in place of the objective dot, and until now the port dropped it on the
+            /// floor: every landmark and the one place you actually had to go were the same green
+            /// circle, which is unreadable exactly when it matters.
+            /// </summary>
+            public string Emoji;
+
             public Vector3 Position;
             public Transform Follow;
         }
@@ -78,7 +87,12 @@ namespace TheBlock.Missions
             {
                 if (text?.Id == null) continue;
                 if (!coords.TryGetValue(text.Id, out var at)) continue;
-                _steps[text.Id] = new Step { Objective = text.Objective, Position = at };
+                _steps[text.Id] = new Step
+                {
+                    Objective = text.Objective,
+                    Emoji = text.Emoji,
+                    Position = at,
+                };
             }
         }
 
@@ -123,6 +137,7 @@ namespace TheBlock.Missions
                 Position = step.Position,
                 Follow = step.Follow,
                 Kind = MapPoiKind.Marker,
+                Icon = step.Emoji,
             });
         }
 

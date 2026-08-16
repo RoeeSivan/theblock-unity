@@ -30,6 +30,7 @@ namespace TheBlock.UI
         private readonly Dictionary<MapPoiKind, Color> _poiColors;
 
         private readonly List<Label> _labelPool = new();
+        private readonly List<Label> _iconPool = new();
 
         private Vector2 _center;
         private float _orthoSize = 1f;
@@ -133,6 +134,13 @@ namespace TheBlock.UI
             foreach (var poi in MapRegistry.Pois)
             {
                 if (poi.Kind == MapPoiKind.Cop) continue;
+
+                // A pin with an emoji is drawn as a label instead — Painter2D has no text, so the
+                // picture and the dot cannot be the same primitive, and drawing both stacks a green
+                // circle under every landmark. See MapPoi.Icon for why the landmarks stopped being
+                // circles at all.
+                if (!string.IsNullOrEmpty(poi.Icon)) continue;
+
                 DrawPoi(p, poi, 4f);
             }
 
@@ -190,14 +198,25 @@ namespace TheBlock.UI
         private void RefreshLabels()
         {
             var used = 0;
+            var icons = 0;
             _claimed.Clear();
+
+            // The web scales label text with the canvas; 740px is where scale = 1.
+            var size = Mathf.Min(resolvedStyle.width, resolvedStyle.height);
+            var scale = Mathf.Clamp(size / 740f, 0.8f, 1.4f);
+
+            // Emoji pins, drawn on the minimap as well as the full map and never collision-tested —
+            // the web's rule verbatim (`drawPois`, map.ts). An icon stands in for the DOT, so a
+            // place dropped because a label got to those pixels first is a missing landmark, not a
+            // missing name.
+            foreach (var poi in MapRegistry.Pois)
+            {
+                if (string.IsNullOrEmpty(poi.Icon)) continue;
+                PlaceIcon(ref icons, poi.Icon, ToPanel(poi.At.x, poi.At.z), scale);
+            }
 
             if (_expanded)
             {
-                // The web scales label text with the canvas; 740px is where scale = 1.
-                var size = Mathf.Min(resolvedStyle.width, resolvedStyle.height);
-                var scale = Mathf.Clamp(size / 740f, 0.8f, 1.4f);
-
                 foreach (var d in MapRegistry.Districts)
                 {
                     var a = ToPanel(d.Bounds.min.x, d.Bounds.min.z);
@@ -209,7 +228,10 @@ namespace TheBlock.UI
 
                 foreach (var poi in MapRegistry.Pois)
                 {
-                    if (poi.Minor) continue;
+                    // An emoji pin carries no name — the web `continue`s before its label, and the
+                    // picture says what the word would. It also keeps the icon out of the guard's
+                    // way, so a landmark never costs a district its pill.
+                    if (poi.Minor || !string.IsNullOrEmpty(poi.Icon)) continue;
                     var at = ToPanel(poi.At.x, poi.At.z);
                     PlaceName(ref used, poi.Name, at, scale);
                 }
@@ -217,26 +239,56 @@ namespace TheBlock.UI
 
             for (var i = used; i < _labelPool.Count; i++)
                 _labelPool[i].style.display = DisplayStyle.None;
+            for (var i = icons; i < _iconPool.Count; i++)
+                _iconPool[i].style.display = DisplayStyle.None;
         }
 
         /// <summary>A pin with no name draws its dot and nothing else.</summary>
         private static bool Nameless(string text) => string.IsNullOrEmpty(text);
 
-        private Label NextLabel(ref int used)
+        private Label NextLabel(ref int used) => NextFrom(_labelPool, ref used);
+
+        private Label NextFrom(List<Label> pool, ref int used)
         {
-            if (used == _labelPool.Count)
+            if (used == pool.Count)
             {
                 var label = new Label();
                 label.pickingMode = PickingMode.Ignore;
                 label.style.position = Position.Absolute;
                 label.style.unityTextAlign = TextAnchor.MiddleCenter;
-                _labelPool.Add(label);
+                pool.Add(label);
                 Add(label);
             }
 
-            var next = _labelPool[used++];
+            var next = pool[used++];
             next.style.display = DisplayStyle.Flex;
             return next;
+        }
+
+        /// <summary>
+        /// The emoji pin itself, centred on the POI — the web's <c>fillText(p.emoji, sx, sy)</c>.
+        ///
+        /// Sized off the web's 20px full-map / 15px minimap, and the box is square and generous
+        /// because a colour-emoji glyph is a bitmap whose advance is wider than a letter's; a tight
+        /// box clips it. White, not the label colour: UI Toolkit multiplies the element's colour
+        /// into the glyph's own bitmap, so anything else tints the picture — the same trap
+        /// <see cref="Glyphs"/> exists for.
+        /// </summary>
+        private void PlaceIcon(ref int used, string icon, Vector2 at, float scale)
+        {
+            var fontPx = Mathf.Round((_expanded ? 20f : 15f) * (_expanded ? scale : 1f));
+            var box = fontPx * 1.6f;
+
+            var label = NextFrom(_iconPool, ref used);
+            label.text = icon;
+            label.style.left = at.x - box / 2f;
+            label.style.top = at.y - box / 2f;
+            label.style.width = box;
+            label.style.height = box;
+            label.style.fontSize = fontPx;
+            label.style.unityFontStyleAndWeight = FontStyle.Normal;
+            label.style.color = Color.white;
+            label.style.backgroundColor = Color.clear;
         }
 
         /// <summary>Black-on-white district pill hugging the box's top edge.</summary>

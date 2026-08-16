@@ -65,7 +65,12 @@ namespace TheBlock.UI
             // The names are literals, not `place.Name`: a PlaceSpec in config.ts has no name field —
             // the pin's label is typed into map-pois.ts. Reading the missing field back gave every
             // landmark a null label, which is a crash and not a blank pin.
-            void Place(TheBlockConfig.PlaceSpec place, string label, MapPoiKind kind)
+            // The emoji column is the web's, POI for POI (map-pois.ts): the three services that are
+            // otherwise indistinguishable green Marker dots get a picture, and the places that
+            // already read as themselves — the pizzeria's red dot, the parking lot, spawn — keep
+            // theirs. The pizzeria in particular must NOT be 🍕 here: that glyph is mission 1's
+            // objective marker, and two pizzas on one map is the confusion, not the fix.
+            void Place(TheBlockConfig.PlaceSpec place, string label, MapPoiKind kind, string icon = null)
             {
                 if (place == null) return;
                 MapRegistry.AddPoi(new MapPoi
@@ -73,13 +78,14 @@ namespace TheBlock.UI
                     Name = label,
                     Position = Convert.Pos(place.Position.Raw),
                     Kind = kind,
+                    Icon = icon,
                 });
             }
 
             Place(config.PizzaPlace, "The Block Pizza", MapPoiKind.Pizza);
-            Place(config.PoliceStation, "Police Station", MapPoiKind.Marker);
-            Place(config.GasStation, "Gas Station", MapPoiKind.Marker);
-            Place(config.SevenEleven, "7-Eleven", MapPoiKind.Marker);
+            Place(config.PoliceStation, "Police Station", MapPoiKind.Marker, "🚓");
+            Place(config.GasStation, "Gas Station", MapPoiKind.Marker, "⛽");
+            Place(config.SevenEleven, "7-Eleven", MapPoiKind.Marker, "🏪");
 
             // One pin for the whole lot — the web build found per-car POIs stacked unreadably. The
             // point is hand-authored in map-pois.ts, not derived from lotCars.bounds, so it is
