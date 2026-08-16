@@ -46,6 +46,14 @@ namespace TheBlock.Police
         public CopDriver Driver { get; private set; }
         public RoutePlanner Planner { get; private set; }
 
+        /// <summary>
+        /// The officer sitting in it, or null.
+        ///
+        /// Null is a supported state, not a broken one: without a built officer prefab every U19
+        /// behaviour stands exactly as it was and the cruiser makes the arrest itself.
+        /// </summary>
+        public CopOfficer Officer { get; set; }
+
         public Mode State { get; set; } = Mode.Idle;
 
         /// <summary>Which station bay this car belongs to, or −1 for one that spawned in the field.</summary>

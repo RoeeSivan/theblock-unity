@@ -40317,6 +40317,7 @@ GameObject:
   m_Component:
   - component: {fileID: 352017695}
   - component: {fileID: 352017696}
+  - component: {fileID: 352017697}
   m_Layer: 0
   m_Name: Game
   m_TagString: Untagged
@@ -40354,6 +40355,24 @@ MonoBehaviour:
   debugStock: 0
   player: {fileID: 1595764584}
   heat: {fileID: 1127657415}
+--- !u!114 &352017697
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 352017694}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f13b36eb569541168b264c82b03b84d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Vehicles.FuelSystem
+  debugStartFrac: -1
+  debugDrainScale: 1
+  vehicles: {fileID: 0}
+  station: {fileID: 0}
+  hud: {fileID: 0}
+  briefing: {fileID: 0}
 --- !u!1 &352174775
 GameObject:
   m_ObjectHideFlags: 0
@@ -100386,6 +100405,29 @@ Transform:
   - {fileID: 1711539864}
   m_Father: {fileID: 1092187131}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &881520944 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: -6689036041284674117, guid: cf6907093428a482c94b380f7f2f968a, type: 3}
+  m_PrefabInstance: {fileID: 2012917110}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &881520945
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 881520944}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3dd9a1eb3c38041ca90c9d7568d2a3cc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TheBlock.World.GasStation
+  pumps:
+  - {fileID: 2002635309}
+  - {fileID: 2051327318}
+  - {fileID: 1142570413}
+  pumpRadius: 6
+  stationRadius: 9
 --- !u!1 &882414163
 GameObject:
   m_ObjectHideFlags: 0
@@ -128336,6 +128378,12 @@ MonoBehaviour:
     ArrestHold: 1.5
     ArrestMaxSpeed: 6
     SpawnGrace: 2
+    OfficerChase: 1
+    OfficerDeployRadius: 18
+    OfficerSpeed: 6.2
+    OfficerGrabRadius: 1.6
+    OfficerGrabHold: 0.6
+    OfficerGiveUp: 60
     StuckWindow: 2
     StuckTravel: 1.5
     UnwedgeTime: 1.2
@@ -128375,6 +128423,7 @@ MonoBehaviour:
   heat: {fileID: 0}
   routeGraph: {fileID: 11400000, guid: af6b348fa186d437c9cab99489b704fe, type: 2}
   copPrefab: {fileID: 5510770247031886389, guid: 323b005fc3bdb4b018d75551f2b7648b, type: 3}
+  officerPrefab: {fileID: 2887766832760436593, guid: 6e77cfde56e6f484ba59cedf70616329, type: 3}
   player: {fileID: 0}
   vehicles: {fileID: 0}
   traffic: {fileID: 0}
@@ -130712,6 +130761,11 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -4870988311437724402, guid: a67cc1c091a5a4408ae853a5287da42f, type: 3}
+--- !u!4 &1142570413 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -6114804188538101257, guid: cf6907093428a482c94b380f7f2f968a, type: 3}
+  m_PrefabInstance: {fileID: 2012917110}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1142900221
 GameObject:
   m_ObjectHideFlags: 0
@@ -207175,6 +207229,7 @@ GameObject:
   - component: {fileID: 1805265606}
   - component: {fileID: 1805265605}
   - component: {fileID: 1805265604}
+  - component: {fileID: 1805265622}
   m_Layer: 0
   m_Name: HUD
   m_TagString: Untagged
@@ -207455,6 +207510,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1805265622
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1805265603}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c8e70a8fe0744fa9b4400f549eac701, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TheBlock.UI.FuelGauge
+  fuel: {fileID: 0}
 --- !u!1 &1805335590
 GameObject:
   m_ObjectHideFlags: 0
@@ -228897,6 +228965,11 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1358685692}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &2002635309 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2273370091442351521, guid: cf6907093428a482c94b380f7f2f968a, type: 3}
+  m_PrefabInstance: {fileID: 2012917110}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &2003064865
 GameObject:
   m_ObjectHideFlags: 0
@@ -230328,6 +230401,9 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: -6689036041284674117, guid: cf6907093428a482c94b380f7f2f968a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 881520945}
     - targetCorrespondingSourceObject: {fileID: -3504191331950944713, guid: cf6907093428a482c94b380f7f2f968a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 493512459}
@@ -234575,6 +234651,11 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2051278121}
   m_Mesh: {fileID: 4300000, guid: 8b3102c75b74045cdb6717020202cade, type: 2}
+--- !u!4 &2051327318 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2065742106794174024, guid: cf6907093428a482c94b380f7f2f968a, type: 3}
+  m_PrefabInstance: {fileID: 2012917110}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &2051878413
 GameObject:
   m_ObjectHideFlags: 0

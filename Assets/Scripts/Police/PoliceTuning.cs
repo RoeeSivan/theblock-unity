@@ -168,6 +168,32 @@ namespace TheBlock.Police
         [Tooltip("Seconds a freshly spawned cop cannot arrest, so a spawn-on-top is not an instant bust.")]
         public float SpawnGrace = 2f;
 
+        [Header("The officer on foot — U19e")]
+        [Tooltip("PORT ADDITION. Off, the cruiser arrests you itself at ArrestRadius, which is what " +
+                 "U19 shipped. On, a player ON FOOT is arrested by the officer who gets out of it; " +
+                 "a player in a vehicle is arrested by the car either way, because nobody on legs " +
+                 "catches a car.")]
+        public bool OfficerChase = true;
+
+        [Tooltip("DESIGN. Metres at which the cruiser stops and she gets out. Wider than the car's " +
+                 "own ArrestRadius on purpose: the last stretch is supposed to be the chase, not a " +
+                 "formality after one.")]
+        public float OfficerDeployRadius = 18f;
+
+        [Tooltip("DESIGN. Her speed, m/s. Between the player's jog (4.5) and sprint (7), so a fresh " +
+                 "sprint escapes and an exhausted one does not.")]
+        public float OfficerSpeed = 6.2f;
+
+        [Tooltip("DESIGN. Metres for the grab — arm's length, not a car's length.")]
+        public float OfficerGrabRadius = 1.6f;
+
+        [Tooltip("DESIGN. Seconds held inside that radius. Short: she has hold of you.")]
+        public float OfficerGrabHold = 0.6f;
+
+        [Tooltip("DESIGN. Metres of daylight at which she gives up, walks back and gets in. The " +
+                 "cruiser resumes the chase from there — the pursuit is not over, only her run is.")]
+        public float OfficerGiveUp = 60f;
+
         [Header("Anti-stuck")]
         [Tooltip("Seconds of travel measured before deciding a cop is wedged.")]
         public float StuckWindow = 2f;

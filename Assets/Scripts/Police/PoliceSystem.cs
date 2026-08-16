@@ -32,6 +32,10 @@ namespace TheBlock.Police
         [SerializeField] private Heat heat;
         [SerializeField] private RouteGraph routeGraph;
         [SerializeField] private GameObject copPrefab;
+
+        [Tooltip("U19e's officer. Left empty, the cruisers drive themselves and arrest you " +
+                 "themselves, exactly as U19 shipped.")]
+        [SerializeField] private GameObject officerPrefab;
         [SerializeField] private PlayerController player;
         [SerializeField] private VehicleEnterExit vehicles;
         [SerializeField] private TrafficSystem traffic;
@@ -118,6 +122,8 @@ namespace TheBlock.Police
                 if (!instance.TryGetComponent<TheBlock.Audio.Siren>(out _))
                     instance.AddComponent<TheBlock.Audio.Siren>();
 
+                Seat(cop);
+
                 cop.Bay = i < bayPositions.Length ? i : -1;
                 cop.State = CopCar.Mode.Idle;
                 cop.Car.Driven = false;
@@ -125,6 +131,36 @@ namespace TheBlock.Police
                 Park(cop);
                 _cops.Add(cop);
             }
+        }
+
+        /// <summary>
+        /// Puts an officer in one cruiser's driver seat, if there is a prefab and a seat to put her
+        /// in.
+        ///
+        /// <b>Both halves are optional and the failure is loud but not fatal.</b> No prefab means
+        /// U19's cruisers, which arrest by themselves; a prefab with no <c>DriverAnchor</c> on the
+        /// car means the seat was never built, which is a rebuild of the car away — and saying so
+        /// once at Start beats three invisible officers standing at the world origin.
+        /// </summary>
+        private void Seat(CopCar cop)
+        {
+            if (officerPrefab == null) return;
+
+            var seat = cop.Car != null ? cop.Car.DriverAnchor : null;
+            if (seat == null)
+            {
+                Debug.LogWarning(
+                    $"PoliceSystem: {cop.name} has no DriverAnchor — run The Block → Build Police Car. " +
+                    "No officer will get out of it.", cop);
+                return;
+            }
+
+            var officer = Instantiate(officerPrefab, seat).GetComponent<CopOfficer>();
+            if (officer == null) return;
+
+            officer.name = $"{cop.name} Officer";
+            officer.BindSeat(seat);
+            cop.Officer = officer;
         }
 
         private void Update()
@@ -425,6 +461,11 @@ namespace TheBlock.Police
             cop.ArrestHold = 0f;
             UI.MapRegistry.RemovePoi(cop.name);
 
+            // Straight back into the seat, never a walk. This is the bust, a lost star or a wrecked
+            // cruiser: the street has to be clear NOW, and a cruiser about to be parked in its bay
+            // 900 m away cannot wait for its driver to jog there.
+            if (cop.Officer != null) cop.Officer.SeatNow();
+
             bool hasBay = cop.Bay >= 0 && cop.Bay < bayPositions.Length;
             if (immediate || !hasBay)
             {
@@ -456,6 +497,10 @@ namespace TheBlock.Police
                 cop.State = CopCar.Mode.Wrecked;
                 cop.WreckedAt = Time.time;
                 cop.Driver.Halt = true;
+
+                // A car in the sea takes its driver with it. Leaving her running about on the
+                // surface after her cruiser has gone under is not a mechanic anyone asked for.
+                if (cop.Officer != null) cop.Officer.SeatNow();
                 return;
             }
 
@@ -545,6 +590,10 @@ namespace TheBlock.Police
                 cop.State = CopCar.Mode.Wrecked;
                 cop.WreckedAt = Time.time;
                 cop.Driver.Halt = true;
+
+                // A car in the sea takes its driver with it. Leaving her running about on the
+                // surface after her cruiser has gone under is not a mechanic anyone asked for.
+                if (cop.Officer != null) cop.Officer.SeatNow();
                 return;
             }
 
@@ -627,6 +676,25 @@ namespace TheBlock.Police
             bool slow = Mathf.Abs(cop.Car.ForwardSpeed) <= _tuning.ArrestMaxSpeed && TargetSpeed() <= _tuning.ArrestMaxSpeed;
             bool grace = Time.time - cop.SpawnedAt < _tuning.SpawnGrace;
 
+            // ON FOOT, the officer is the arrest. IN A VEHICLE, the car is — she would never catch
+            // you, and a cruiser pulling up to a stopped getaway car is the arrest the web build has.
+            bool onFoot = vehicles == null || vehicles.Mode != GameMode.Driving;
+            if (_tuning.OfficerChase && cop.Officer != null && onFoot)
+            {
+                FootArrest(cop, target, distance, dt, grace);
+                return;
+            }
+
+            // Back in a car while she was out of hers: she walks back, and the cruiser takes the
+            // arrest over from exactly where U19 left it — but not until she is IN it. A cruiser
+            // that drives off leaving its own driver on the pavement is the version of this bug
+            // that looks fine right up until you watch the car.
+            if (cop.Officer != null && cop.Officer.Deployed)
+            {
+                cop.Officer.Recall();
+                if (PickUp(cop, target, dt)) return;
+            }
+
             if (close && slow && !grace)
             {
                 cop.State = CopCar.Mode.Arresting;
@@ -653,6 +721,83 @@ namespace TheBlock.Police
             // Bleeds at twice the rate: stepping out of range for a moment should cost more than it
             // gained, or a car rocking on the arrest boundary is never quite caught.
             cop.ArrestHold = Mathf.Max(0f, cop.ArrestHold - dt * 2f);
+        }
+
+        /// <summary>
+        /// The arrest a person makes: the cruiser stops short, the officer gets out, and the last
+        /// stretch is a foot race.
+        ///
+        /// <b>Why the car stops at all.</b> Two metres of pavement is not a chase, so the cruiser
+        /// gives up its own arrest radius and halts at <see cref="PoliceTuning.OfficerDeployRadius"/>
+        /// — far enough that the run is the interesting part, close enough that she is a threat
+        /// rather than a jogger in the distance. It waits there with its lights on until she is
+        /// back in, which is also what makes giving up legible: the cruiser is still parked where
+        /// you last saw it.
+        ///
+        /// <b>Why she can lose you.</b> She runs at 6.2 m/s against a 7 m/s sprint, so a player
+        /// with stamina left outruns her and a player without does not — and at 60 m she stops,
+        /// walks back and the CAR takes over again. The pursuit does not end; only her run does.
+        /// </summary>
+        private void FootArrest(CopCar cop, Vector3 target, float distance, float dt, bool grace)
+        {
+            var officer = cop.Officer;
+
+            if (!officer.Deployed)
+            {
+                bool close = distance <= _tuning.OfficerDeployRadius;
+                bool slow = Mathf.Abs(cop.Car.ForwardSpeed) <= _tuning.ArrestMaxSpeed;
+
+                if (!close || !slow || grace)
+                {
+                    if (cop.State != CopCar.Mode.Arresting) return;
+                    cop.State = CopCar.Mode.Chasing;
+                    cop.Driver.Halt = false;
+                    return;
+                }
+
+                cop.State = CopCar.Mode.Arresting;
+                cop.Driver.Halt = true;
+                cop.ArrestHold = 0f;
+                officer.Deploy();
+                return;
+            }
+
+            // She is out, so the car is parked for the duration — including while she walks back.
+            cop.State = CopCar.Mode.Arresting;
+            cop.Driver.Halt = true;
+
+            float reach = officer.DistanceTo(target);
+            if (reach > _tuning.OfficerGiveUp) officer.Recall();
+
+            // Step her FIRST, then decide. The order matters and the inverted version of this cost
+            // a play-test: an early return keyed on "is she still out" put the grab test on the one
+            // path that never runs during a chase, so she reached the player, stood there, and
+            // nothing happened.
+            if (!Step(cop, target, dt)) return;
+            if (officer.State != CopOfficer.Mode.Chasing) return;
+
+            // Same bleed as the car's own hold, and for the same reason: stepping out of arm's
+            // reach for a moment has to cost more than it gained.
+            if (reach <= _tuning.OfficerGrabRadius) cop.ArrestHold += dt;
+            else cop.ArrestHold = Mathf.Max(0f, cop.ArrestHold - dt * 2f);
+
+            if (cop.ArrestHold >= _tuning.OfficerGrabHold) Bust();
+        }
+
+        /// <summary>
+        /// Steps a deployed officer, and hands the car back to its driver the moment she is in it.
+        /// </summary>
+        /// <returns>True while she is still out, which is the only state that has an arrest in it.</returns>
+        private bool Step(CopCar cop, Vector3 target, float dt)
+        {
+            var officer = cop.Officer;
+            officer.Step(target, dt);
+            if (officer.Deployed) return true;
+
+            cop.State = CopCar.Mode.Chasing;
+            cop.Driver.Halt = false;
+            cop.ArrestHold = 0f;
+            return false;
         }
 
         private float TargetSpeed()

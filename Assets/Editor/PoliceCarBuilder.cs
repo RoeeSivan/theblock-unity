@@ -109,7 +109,7 @@ namespace TheBlock.EditorTools
                 return busy;
             }
 
-            var snapshot = TheBlockConfig.Load(reload: true);
+            TheBlockConfig.Load(reload: true);
             var spec = new TheBlockConfig.CarSpec
             {
                 Name = CarName,
@@ -128,11 +128,13 @@ namespace TheBlock.EditorTools
                 Door = null,
             };
 
+            var driver = new TheBlockConfig.DriverSpec { Seats = OfficerSeat() };
+
             var written = new HashSet<string>(System.StringComparer.Ordinal);
             var log = new StringBuilder();
 
             var prefab = CarBuilder.BuildFromSpec(
-                spec, snapshot?.Config?.Vehicle?.Driver, MaterialFolder, StandUpright, written, log);
+                spec, driver, MaterialFolder, StandUpright, written, log);
             VehicleMaterials.Sweep(MaterialFolder, written, log);
             AssetDatabase.SaveAssets();
 
@@ -150,6 +152,39 @@ namespace TheBlock.EditorTools
             Debug.Log(report, prefab);
             return report;
         }
+
+        /// <summary>
+        /// The officer's seat block, stated here for the same reason the rest of this spec is: the
+        /// web build has no cop car in <c>config.vehicle.cars</c>, so it has no seat for one either,
+        /// and adding one would mean editing a config in the other repo to describe something that
+        /// game does not have.
+        ///
+        /// <b>The numbers are the Avenger's, and that is a measurement rather than a shrug.</b> The
+        /// seat block is not the cushion — it is where the entry clip's ORIGIN goes, a person
+        /// standing beside the door at road level, and the clip's own hip travel carries the body
+        /// into the car from there (memory <c>driver-seat-is-clip-origin</c>). Three of the web's
+        /// four cars share <c>(-2.31, -0.84, -0.1)</c> because that is a saloon's door, not a
+        /// particular saloon's door; the CrownVic measures 2.09 × 1.67 × 5.65 m against the
+        /// Mustang's 1.95 × 1.40 × 4.72, so it is the widest of them and 2.31 m from the body centre
+        /// still clears its flank. <c>y</c> cancels the body centre exactly — the anchor stands on
+        /// the road — and the scale stays at 1 because the officer is 1.89 m native against Joe's
+        /// 1.81 and a 4% difference in a seated pose is nothing to correct for.
+        ///
+        /// <c>CarBuilder</c> feeds <c>Raw</c> through <see cref="Convert.ModelOffset"/>, which flips
+        /// Z alone, so <c>x = -2.31</c> stays on Unity's left — the driver's side, as in the web.
+        /// </summary>
+        private static Dictionary<string, TheBlockConfig.SeatSpec> OfficerSeat() =>
+            new(System.StringComparer.Ordinal)
+            {
+                [ModelUrl] = new TheBlockConfig.SeatSpec
+                {
+                    X = -2.31f,
+                    Y = -0.84f,
+                    Z = -0.1f,
+                    Yaw = -1.501f,
+                    Scale = 1f,
+                },
+            };
 
         /// <summary>
         /// Clears <c>CarController.enterable</c> on the built prefab.

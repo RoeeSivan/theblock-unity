@@ -151,8 +151,14 @@ namespace TheBlock.EditorTools
 
             system.ConfigureStation(bays, Convert.Yaw(0f), custody);
 
+            // U19e's officer is OPTIONAL wiring: missing, every cruiser drives itself and arrests
+            // you itself, which is exactly what U19 shipped. So a missing prefab is a report line,
+            // not a warning — the police still work without her.
+            var officer = AssetDatabase.LoadAssetAtPath<GameObject>(CopOfficerBuilder.PrefabPath);
+
             var serialized = new SerializedObject(system);
             serialized.FindProperty("copPrefab").objectReferenceValue = prefab;
+            serialized.FindProperty("officerPrefab").objectReferenceValue = officer;
             serialized.FindProperty("routeGraph").objectReferenceValue = graph;
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
@@ -163,7 +169,10 @@ namespace TheBlock.EditorTools
                 : "custody point is not near any street";
 
             report.Placed.Add(
-                $"Police {bays.Length} bay(s) at the station, pool of cruisers wired, {custodyNote}");
+                $"Police {bays.Length} bay(s) at the station, pool of cruisers wired, {custodyNote}, " +
+                (officer == null
+                    ? "NO officer prefab — the cruisers arrest you themselves"
+                    : "an officer in every driver's seat"));
         }
 
         /// <summary>Clearance above the probed ground when a car is placed, metres.</summary>

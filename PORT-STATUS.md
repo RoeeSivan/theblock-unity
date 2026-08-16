@@ -90,11 +90,28 @@ click** — the `GasStation` with its three pump anchors, `FuelSystem` on `Game`
 `Place_GasStation`, that is why, and that is the fix. The same is true of `ControlsGuide`'s `N` mute
 row and everything else that session owns: **only U28b's own hunks were staged.**
 
-**Next action: U29 — the character roster.** Nothing from U28b blocks it. Still open behind it and
-also non-blocking: U19d (the police blue-light run) is written, compiles and has **never been
-play-tested**; and the jetski still floats on the sea's MEAN level rather than on the swell, which is
-the exact fault U24b fixed for the buoys — `SeaSurface` is built and sitting there if the ski ever
-looks like it is cutting through crests.
+**U19e IS WIP AND IT IS THE NEXT ACTION — the officer who drives the cruiser and gets out to arrest
+you on foot.** The user's own design, built in a session that stopped mid-debug to commit. It runs:
+three officers sit in three cruisers, one gets out at 18 m and runs at you. The first play-test found
+exactly two faults and its block below has the mechanism, the measurements and both:
+
+1. **No bust when she catches you.** A logic inversion in `PoliceSystem.FootArrest` put the grab test
+   on a path that never runs during a chase. **Fixed in code, and NEVER TESTED — that is step one.**
+2. **She walks into the player rather than stopping beside them.** NOT fixed. The fix is decided and
+   written out in the block: a ~1.1 m standoff point instead of the player's exact position, a
+   matching `agent.stoppingDistance`, and facing the player inside the grab radius. Add it as
+   `PoliceTuning.OfficerStandoff`.
+
+**How to test it, which is not obvious:** there is no on-foot crime in this game — `CrimeWatch` gates
+every crime on `Driving` — so a wanted level while on foot is only reachable through the debug key.
+Drive out of the spawn car park (it has **no NavMesh within 10 m**, so she falls back to running in
+straight lines there and it is the wrong place to judge her), get out on a street, press **`P`** for
+one star, and wait ~20–30 s for the cruiser to drive over from the station.
+
+Behind it and non-blocking: **U29 — the character roster**, which nothing blocks; U19d (the police
+blue-light run) is written, compiles and has **never been play-tested**; and the jetski still floats
+on the sea's MEAN level rather than on the swell, which is the exact fault U24b fixed for the buoys —
+`SeaSurface` is built and sitting there if the ski ever looks like it is cutting through crests.
 
 ### Testing the economy — `Continue`, never `New Game`
 
@@ -135,6 +152,77 @@ the same job through the same entry path and also puts the player at the mission
 Play from **`Assets/Scenes/Boot.unity`** → bar → title → `Mission Select`. A row above the unlock is
 dim and inert; `Continue` resumes at the furthest mission reached. On the profile that played these
 through, `theblock.unlocked` is **3**, so every row is live.
+
+### U19e, 2026-08-16 — the officer gets out of the car — WIP, TWO FAULTS OPEN
+
+The user's own design, and it is the first thing in this port that is neither a port nor a
+workaround-removal: *"the character I bought for free should be the one driving the police car, and
+on the capture she gets out and chases us on foot."* Everything below is built, compiles and runs;
+the first play-test found two faults and the session stopped there to commit.
+
+**The mechanism, and why almost nothing new had to exist.**
+
+- **She is one body in two places.** Seated, she is a child of the cruiser's `DriverAnchor` with her
+  `NavMeshAgent`, capsule and `Animator` all switched off — a held pose on a skinned mesh costs
+  nothing, and her Rigidbody is kinematic so the car carries her. Deployed, she is unparented at that
+  same anchor and becomes an agent. No second prefab, no swap.
+- **The anchor is why the exit needs no animation.** `DriverAnchor` is where the entry clip's ORIGIN
+  goes — a person standing beside the door at road level — and the clip's own hip travel does the
+  sitting (memory `driver-seat-is-clip-origin`). So sitting is `Joe_EnterCar` held at normalized time
+  **1**, standing up is the same clip at **0**, and the transform never moves between them. Measured
+  on the built prefab: hips at car-local **(−0.38, 0.79, 0.08)** against a cabin of x ∈ [−1.04, 1.04]
+  — in the driver's seat, head at 1.48 m under a 1.67 m roof.
+- **The cruiser had no seat until now.** `config.vehicle.driver.seats` is keyed by `modelUrl` and the
+  web build has no cop car in it at all, so `PoliceCarBuilder` states one port-side, exactly as it
+  states the rest of that car: the Avenger's `(−2.31, −0.84, −0.1)`, which is a saloon's door rather
+  than a particular saloon's.
+- **Two clips, both borrowed.** She is Humanoid with her own valid avatar, so Joe's clips retarget
+  onto her for nothing — the same trick U16b used to put `Joe_Sprint` on Peter. `Joe_Sprint` is
+  retimed 5.58 → 6.2 m/s by the builder, as `ThiefBuilder` retimes it for the thief.
+- **The NavMesh is a pursuit surface here and only here.** U16b deleted agents from the crowd for
+  good reasons that do not apply to three officers who have to corner a building after somebody
+  running away. It is measured as patchy: the station has mesh 2.2 m away, but **the player's own
+  spawn car park has none within 10 m**, so `CopOfficer.Walk` is a straight-line fallback with
+  `CrowdGround` under it that takes the agent back the moment a polygon appears.
+- **The split is on foot vs in a vehicle**, and it is not a preference: nobody on legs catches a car.
+  On foot the officer is the arrest; driving, the cruiser is, exactly as U19 shipped. `OfficerChase`
+  turns the whole thing off.
+
+**The asset problem, and how it was taken out of LFS.** The free Asset Store officer is 459 MB of
+2048² `.tga` and `*.tga` is LFS-tracked, against a free 1 GiB shared with the original repo — which
+is why `.gitignore` has held `Assets/Police_officer/` since U19b. Nothing points at that folder now:
+`sips` wrote 1024² PNG twins and the 2.3 MB FBX was copied out, so
+**`Assets/Models/Characters/Officer/` is 24 MB and committed**. The 459 MB original stays ignored and
+can be deleted whenever the user wants.
+
+⚠ **THE ONE WORTH REMEMBERING: a culled Animator never writes the pose.** `SeatNow` poses her with
+`Play("Sit", 0, 1f)` + `Update(0f)` and is first called from `FillPool`, where all three cruisers are
+parked at the station **off-camera**. Under the FBX's default `CullUpdateTransforms` the state
+machine runs and the bones are never written, so the sit silently did nothing: hips read car-local
+**−2.30**, standing beside the door. `Rebind()`, a second `Update`, a non-zero delta — none of them
+change it; `AlwaysAnimate` fixes it on the same call. It is asserted both on the prefab and in
+`CopOfficer` because it is exactly the field a later hand-edit resets. **The offline check cannot
+catch this**: `AnimationMode.SampleAnimationClip` in a preview scene writes the pose correctly, which
+is how the seat was verified as right hours before it was found to be wrong in Play. Memory file
+`culled-animator-skips-pose-write`.
+
+**The two faults the play-test found, both mine, and the next action.**
+
+1. **No bust when she reaches you — a plain logic inversion, already fixed in code, NEVER TESTED.**
+   `PoliceSystem.FootArrest` called a helper that returns "is she still out" and returned early on
+   it — which is true on every frame of a chase, so the grab test was on a path that never runs. The
+   helper is now `Step`, it is called before the decision rather than as it, and the grab follows.
+2. **She walks INTO the player instead of stopping beside them — NOT FIXED.** Her destination is the
+   player's exact position and a `NavMeshAgent` writes a transform rather than pushing a body, so
+   nothing separates them (`kinematic-bodies-ignore-static-colliders` again). **The fix, decided and
+   not yet written:** aim at a standoff point `target + (her − target).normalized × ~1.1 m` while
+   chasing, raise `agent.stoppingDistance` to match, and face the player once inside the grab radius
+   — her radius 0.32 plus the player's capsule is ~0.72 m, so 1.1 m is shoulder to shoulder and the
+   1.6 m grab still fires. Add it as `PoliceTuning.OfficerStandoff`.
+
+**The scene commit that was owed since U28b lands here too**, on the user's call once fuel was
+confirmed closed: `World.unity`'s 81 added lines are U28b's `GasStation`, `FuelSystem` and
+`FuelGauge` plus this unit's one `officerPrefab` reference. Nothing in U19e is user-confirmed.
 
 ### U28 round 2, 2026-08-16 — what the play-test found
 
@@ -2048,6 +2136,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | U19c | Pursuit — traffic yields, and the bust | done | `6fea7db` | **Second report: "police cars are not getting to me because they were blocked by other cars", and it was structural.** A `TrafficCar` is a **kinematic** Rigidbody, so to the cop's 1400 kg dynamic body it is a wall, not a car to squeeze past — it wedged, reversed, retried. The web build cannot hit this and its own config says why: its cops are kinematic character controllers that collide-and-slide around stopped cars, so shoving is free there and impossible here. **So traffic gets out of the way instead** — a car inside a pursuing cop's corridor eases 2 m outward and caps at 6 m/s, and NEVER stops, because a stopped car in the lane is the wall this removes. It rides on the lane-offset term the sampler already takes. Measured (isolated at `timeScale = 0.02`, because a static synthetic pursuer falls behind a 12 m/s car between two MCP calls and the first attempt read 0 for exactly that): ease-in **0 → 2.000 m**, speed **12.0 → 6.00**, clean ease-out. **The bust has two outcomes, the user's call:** in a vehicle you and it are impounded at the station; on foot you are cuffed where you stand. Money either way, which needed `Assets/Scripts/Game/Wallet.cs` — the port of `game/wallet.ts` onto `PlayerPrefs` — because `FinesOwed` was a tally nothing ever spent. `Charge` returns **what it actually took**, so a $100 fine against $40 costs $40 and the rest becomes debt: being broke is not a free pass. Measured: on-foot bust moved the player **0.04 m**, cash **$500 → $400**, cops all sent home, 0 errors. `WantedHud` gained a `$` readout and a BUSTED line that names which outcome happened. **U20 inherits `Heat.SuppressCrash`, `BustSequence.Busted` and `Wallet.Add`, all built and wired to nothing** |
 
 | U19d | Pursuit — urgency on the run in | **wip** | | **Written, compiles clean, NOT play-tested** — the user's call (*"I'll check it in the morning"*). Asked for: *"the police should arrive a bit faster, so the user feels more urgency."* The constraint was neither top speed nor the star: the cop asked for 20.5 and delivered **13.7 m/s** because `CornerSpeed` bound it, and a red-light queue cost one cruiser **12 s in a single junction**. So (1) a **blue-light run** — `ResponseSpeed` 29 and `ResponseGrip` 11 apply only past `BandFar` with NO line of sight, so the chase you can still win is untouched; (2) **a cop does not queue** — blocked 1.5 s while asking to move, it swings 3.5 m into the oncoming side for 3 s, time-boxed, and this one applies during a chase as well, per the user's *"cops do not listen to traffic lights, they just get to their target"*; it does not touch the final approach; (3) `copYieldShift` **2.0 → 3.0 m**, because 2.0 left five centimetres between a 2.09 m cruiser and a 1.8 m car and the measurement showed exactly that. ⚠ New seam `CarController.SpeedLimitOverride`, whose only caller is `CopDriver` — needed because `config.vehicle.maxSpeed` is 20 for every car and `ApplyDrive` cuts the torque there, which means `PoliceTuning.MaxSpeed`'s "20.5, a 2.5% edge over the player" **was never reachable**. ⚠ `copYieldShift` had to be fixed in the SCENE as well as in code — the same trap as U19b's cooldowns |
+| U19e | The officer who drives the cruiser, and arrests you on foot | **wip** | | **The user's own design, not a port** — *"the character I bought for free should drive the police car, and on the capture she gets out and chases us."* Built, compiles, runs; **two faults from the first play-test, one fixed-but-untested and one not written — both spelled out in RESUME HERE and in the U19e block.** One body in two places: seated she is a child of `CarController.DriverAnchor` with agent, capsule and Animator OFF and a kinematic body so the car carries her; deployed she is unparented at that same anchor. **The anchor is the exit animation** — it is where `Joe_EnterCar`'s ORIGIN goes, so sitting is that clip held at normalized 1 and standing is the same clip at 0, measured to put her hips at car-local (−0.38, 0.79, 0.08) inside a cabin of x ∈ [−1.04, 1.04]. `PoliceCarBuilder` states the CrownVic's seat port-side (the web has no cop car in `config.vehicle.driver.seats`); `CopOfficerBuilder` writes 7 URP/Lit materials, the controller and the prefab. **She is Humanoid with her own valid avatar, so Joe's clips retarget for nothing**, `Joe_Sprint` retimed 5.58 → 6.2 m/s. **On foot she is the arrest; in a vehicle the cruiser still is** — nobody on legs catches a car — and `OfficerChase` turns it all off. The NavMesh is a pursuit surface here and only here, with a straight-line fallback because the spawn car park has no mesh within 10 m. **The 459 MB Asset Store `.tga` set is OUT of the repo**: `Assets/Models/Characters/Officer/` is a 24 MB slim twin (2.3 MB FBX + 1024² PNGs) and `Assets/Police_officer/` stays gitignored and unreferenced. ⚠ **A culled Animator never writes the pose** — the whole sit was a silent no-op until `AlwaysAnimate`; memory `culled-animator-skips-pose-write` |
 
 ### Tier 5 — Missions
 | id | unit | state | commit | notes |
