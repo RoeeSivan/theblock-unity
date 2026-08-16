@@ -32,9 +32,11 @@ because its graph was five disconnected islands (U19); and the sirens are 3D sou
 rather than one wail at a constant gain, because the web build has no `AudioListener` in it at all
 (U27); and the loading bar reads `AsyncOperation.progress` instead of the hand-counted milestones
 the web had to fake, while the character preview is a second camera into a RenderTexture rather than
-the second WebGL context that "did not hold on an iPad" (U26); and the day/night cycle is the first
-thing this port ADDS rather than ports, and it ships switched off so every approved screenshot still
-reproduces (U33). U25's last owing, an emoji-capable font, landed with U28 and that row is closed.
+the second WebGL context that "did not hold on an iPad" (U26); and the day/night cycle turns a
+dev-only URL flag into a player-facing setting, shipped switched off so every approved screenshot
+still reproduces (U33 — ⚠ this line used to claim day/night was the first thing the port ADDS rather
+than ports; the original has one at `enabled: false`, see the row). U25's last owing, an
+emoji-capable font, landed with U28 and that row is closed.
 
 **U29 is the rule paying a dividend on a unit built four months earlier, and that is a shape worth
 recognising.** The web build's roster has to reach FIVE bodies, and its own comment says why: four
@@ -87,13 +89,22 @@ unclear, re-test before inheriting.
 > plus U33 and U34 are all `done` and all user-confirmed, as of 2026-08-16. The whole remaining port
 > is shipping it.
 >
-> **NEXT ACTION: U30 — the macOS build + perf pass.** It is the first unit in this project that is not
-> a feature, and it owns every entry in **Deferred**: the ~800 ms hitches, foliage colliders, the
-> traffic light that does not seem to change beside its own pole. **Start with a build that runs**,
-> because nothing in this port has ever left the Editor — a Player is a different renderer path, a
-> different memory ceiling and a different input stack, and it is the first place any of that is
-> testable. Then measure before tuning: U15 is the standing warning that the obvious answer here
-> (streaming, LODs) can be the wrong one, and that the fault was a format nobody had ever set.
+> **⚠ THE PROJECT PIVOTED, 2026-08-16. The Unity build is what gets submitted, and it has a deadline:
+> 1 Oct 2026.** See `CLAUDE.md` §1 and the **Submission** § below. This is not a change of plan, it is
+> a change of what "done" means — the graded artifacts are a video, a repo, a kanban board and a zip,
+> and only one of them is the game.
+>
+> **NEXT ACTION: U30a — the macOS build.** U30 was split into a/b/c today because a build is a
+> correctness job, a perf pass is a measurement job, and stripping debug keys is a shipping job.
+> **Start with a build that runs**, because nothing in this port has ever left the Editor — a Player
+> is a different renderer path, a different memory ceiling and a different input stack, and it is the
+> first place any of that is testable. **Then** measure, on the Player: U15 is the standing warning
+> that the obvious answer (streaming, LODs) can be the wrong one, and that the fault was a format
+> nobody had ever set.
+>
+> **The run to the deadline, in order:** U30a → U30b (perf baseline) → **U35** (the user's five
+> Unity showcase features) → re-measure the frame → record the video → U30c (strip the debug keys,
+> LAST, because they are how the recording reaches every feature).
 >
 > **Tier 7 is TWO units now: U30 and U32.** U31 (iOS/iPad) is **dropped by the user, 2026-08-16** —
 > *"זה לא רלוונטי להגשה."* The iOS module stays installed and unused; nothing is to be ripped out.
@@ -181,7 +192,10 @@ remains is Tier 7 and the two systems deliberately not ported.**
   the swell swallows, and the ski is a long hull with a rider on it that the eye reads as planing
   across chop rather than bobbing in it. This is a judgment, not a measurement — if it ever looks
   wrong at a different sea state, `SeaSurface.Height` is already built and it is a one-line move.
-- **The radio was never ported, and it has no row anywhere.** Deferred by the user inside U27 as the
+- **The radio was never ported, and it has no row anywhere. ⚠ REOPENED BY THE USER 2026-08-16** —
+  they asked for it to be investigated, and it was: it is buildable, the answer is a pure-C# MP3
+  decoder into an `AudioClip` PCM callback with a local-clip fallback, and the full finding is in
+  **Deferred**. Deferred by the user inside U27 as the
   only system with a network dependency — recorded here because a deferral that lives in one unit's
   prose is a system that quietly vanishes from the port. Twelve of the web's thirteen audio modules
   shipped; this is the thirteenth.
@@ -191,11 +205,63 @@ remains is Tier 7 and the two systems deliberately not ported.**
   all** — it would come back only if a device build ever happens privately, where M2 is unplayable
   without it — it is ~20 lines of tappable lanes on the existing panel. Recorded as a
   decision rather than deleted, so it cannot be rediscovered as a bug.
-- **Tier 7 is untouched, and it is now the whole job — and it is two units, not three**: U30 (macOS
-  build + perf pass, which owns every entry in Deferred) and U32 (multiplayer, deferred by decision
-  to last). ~~U31 (iOS/iPad)~~ is **dropped by the user, 2026-08-16** — see its row and the decisions
-  log. **Nothing in Tiers 0–6 or Tier 8 is open** — that sentence has never been true before
-  2026-08-16.
+- **Tier 7 is untouched, and it is now the whole job**: **U30a** (the macOS build), **U30b** (the
+  perf pass on the Player, which owns every entry in Deferred), **U30c** (ship hardening, after the
+  video) and U32 (multiplayer, deferred by decision to last). ~~U31 (iOS/iPad)~~ is **dropped by the
+  user, 2026-08-16** — see its row and the decisions log. **Nothing in Tiers 0–6 or Tier 8 is
+  open** — that sentence has never been true before 2026-08-16.
+- **The submission itself is now work, and it is not in any tier.** See the § below — the graded
+  artifacts are a video, a repo, a kanban board and a zip, and only one of them is the game.
+
+### Submission — 1 Oct 2026, and only one of its four artifacts is the game
+
+**Added 2026-08-16, on the pivot** (see `CLAUDE.md` §1). Source: `Final project-From Idea To Reality
+- App Using AI - 2026.pdf`. **A requirement recorded only in a conversation is a requirement that
+vanishes — that is what this ledger exists to stop, so it lives here.**
+
+| # | Required | State, 2026-08-16 |
+| --- | --- | --- |
+| 1 | Private GitHub repo, **instructor invited**, committed + pushed throughout | ⚠ repo is pushed and current; **the invite is unverified** |
+| 2 | Trello / kanban board, used as discussed, **final screenshot** | ⚠ **must be brought up to date with the port** — see below |
+| 3 | 5-min video: idea + one-liner | ✗ |
+| 4 | …the list of major features implemented | ✗ |
+| 5 | …**a diagram of the APIs / tools / libraries + the flow**, what is called when | ✗ — **and Unity's is a different diagram, not the web one relabelled** |
+| 6 | …a recording of the whole project running, all features, good resolution | ✗ — needs U30a |
+| 7 | Video on Google Drive, anyone-with-link | ✗ |
+| 8 | Moodle: a PDF holding video link + repo link + kanban screenshot | ✗ |
+| 9 | Moodle: source as `finalproject.zip` | ✅ **solved — 898 KB** |
+
+**Measured, so nobody re-derives it:**
+
+- **LFS is NOT a blocker.** 150 objects / **1.30 GiB**, and `git lfs push --dry-run origin main`
+  reports **nothing missing** — it is all already on the remote. The "1 GiB free tier" worry that has
+  been in `CLAUDE.md` since U0 never materialised for storage. **What remains is BANDWIDTH**: 1 GiB
+  per month, per account, shared with `Finalproject`. One clone by the instructor pulls ~1.3 GiB and
+  can exhaust the month for **both** repos.
+- **The zip is solved and it is not the obvious answer.** A whole-tree zip is 1.66 GiB across 1,262
+  tracked files — no Moodle takes that. But `Assets/Scripts` + `Assets/Editor` + `ProjectSettings` +
+  `Packages` + `tools` + the two `.md` files is **898 KB / 427 files**, and that IS the source: the
+  2.2 GB in `Assets/Models` is third-party art. Measured 2026-08-16.
+- `theblock-unity` is 101 commits over 2026-08-12→16; `Finalproject` is 110 from 2026-04-17. **The
+  user's call: invite the instructor to both.** The four-day history is not hidden, it is the second
+  half of a pivot whose first half is in the other repo.
+
+**The kanban board is a real task, not a formality.** Requirement #2 is graded on the board *showing
+activity*, and right now the board reflects the three.js phase. The port's 34 units are the activity
+of the last week and none of them are on it. It also has to be screenshotted at the end, so it is
+work with a deadline attached to it twice.
+
+**The diagram (#5) is its own piece of work and the web build's diagram will not do.** Unity's
+inventory is URP · glTFast · Draco · Splines · AI Navigation · Input System · UI Toolkit ·
+TextCore emoji `FontAsset` · AudioMixer · PlayerPrefs — plus the arrow this project should be
+proudest of, which has no counterpart in the original: the **offline pipeline**, `config.ts` →
+`export-config.mjs` → `theblock-config.json` → `WorldBuilder` → baked `ScriptableObject`s (traffic
+graph, route graph, roof spots, NavMesh). Runtime casts no rays for any of it.
+
+**Order, and the one sequencing trap:** U30a (build) → U30b (perf baseline) → **Tier 8 showcase
+features** → re-check the frame → record → U30c (strip the debug keys). **U30c is last on purpose**:
+`P`, `T`, `C`, `debugStock` and Mission Select are how a five-minute recording reaches every feature
+in the game. Strip them before recording and the video cannot be made.
 
 ### Testing the economy — `Continue`, never `New Game`
 
@@ -2414,14 +2480,23 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 ### Tier 7 — Ship
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
-| U30 | macOS build + perf pass | todo | | watch texture memory — it killed web mobile |
+| U30a | macOS build — the game leaves the Editor | todo | | **Split out 2026-08-16, and the split is the point: a build is a correctness job, a perf pass is a measurement job, and stripping debug keys is a shipping job. Three checkpoints, not one.** Build Profiles → macOS → Apple Silicon → a `.app`. **Nothing in this port has ever run outside the Editor**, so this is the first moment anything Player-only can surface — stripping, shader variants, a different memory ceiling, a different input stack. Two risks already checked and CLEARED: build scenes are set (`Boot` 0, `World` 1), and **zero scripts under `Assets/Scripts` reference `UnityEditor`** (the whole world-building toolchain lives in `Assets/Editor`, which a Player build excludes by construction). `/[Bb]uild/` is already gitignored, so output cannot bloat the repo. **The one open choice is the scripting backend**: Mono is the current default (`scriptingBackend` is empty in `ProjectSettings.asset`) — fast builds, but `Contents/Resources/Data/Managed/Assembly-CSharp.dll` is readable by anyone with ILSpy; IL2CPP is AOT, faster at runtime, slower to build, and much harder to read. **Done when the `.app` launches from Finder with Unity closed and one full mission completes inside it.** |
+| U30b | Perf pass — on the Player, not the Editor | todo | | **Order settled by the user 2026-08-16: build first, then profile.** The reason is specific — the top suspect for the ~800 ms hitches is **synchronous shader-variant compilation, which exists only in the Editor**; a Player prebuilds its variants. Profiling first risks spending the budget on a ghost the build deletes for free. Same for the green blocks, diagnosed as Metal under memory pressure: the Editor holds a second copy of half the project, so "is there memory pressure" is not answerable from inside it. **Start with the one measurement that transfers either way: 1,513 ms at t≈6.1 s and four hitches inside the first 15 s**, which is world + crowd load — code structure, not renderer path. Needs a **Development Build** so the Profiler can attach; `FrameWatchdog` is `#if UNITY_EDITOR` and correctly does not ship, so the Player pass uses the Profiler instead. This unit owns every entry in **Deferred**. Old row's note, still true: watch texture memory — it killed web mobile |
+| U30c | Ship hardening — debug keys and shipping defaults | todo | | **LAST, and deliberately after the submission video is recorded**, because the debug keys are how the video reaches every feature in five minutes. What comes out or gets gated: `CrimeWatch.debugStarKey` (`P`, currently `true` and serialized in the scene, i.e. **it ships today**), U17's `T`, U16's `C`, `PowerUps.debugStock`, `CampaignRunner.debugStartMission` (−1 today, so inert but present). One judgement call, not a deletion: `Wallet.startingBalance` is **500** here against the web's **0** — it was set so there was something to lose before U20 paid anything, and it is rewritten by every `Build Store` / `Build World` run, so "fix it in the scene" is not a fix |
 | U31 | iOS / iPad | **dropped — the user's call, 2026-08-16** | | *"ipad אנחנו כנראה נראה מזה… זה לא רלוונטי להגשה."* **Out of the port's scope, not failed and not deferred.** `CLAUDE.md` always called iPad "a wanted bonus, never a constraint on design", and this is that sentence being cashed: the port ships to macOS. **The user may still try a build personally, for the engine experience** — that is a private experiment, not a unit, and nothing in this ledger waits on it. **What this closes elsewhere:** the dance's tappable arrows (Deferred) lose their only remaining trigger, and every "U31 inherits this" note in the ledger is now inert. **What it does NOT license:** ripping out iOS support. The module is installed, `PlayerSettings` has an iOS section, and touch input costs nothing while unused — deleting any of it would be work spent to make a future retry harder. Old row: free 7-day Xcode provisioning; $99 only for distribution |
 | U32 | Multiplayer | todo | | DEFERRED by decision — revisit only here |
 
 ### Tier 8 — Additions (not ports)
+
+**This tier is the submission video's central argument.** The video has to answer *"why pivot engines
+at all"*, and a faithful port answers it badly — "the same game, again" is not a reason. Tier 8 is
+the reason: things the web build could not have. Which is why U35 below is scheduled INSIDE the
+submission run rather than after it.
+
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
-| U33 | Day/night cycle | done | `4ec2978` | **User-confirmed 2026-08-16** (*"i like the lighting… feature good"*). **The first thing in this repo that is not a port of anything** — the web build's sky is one constant `config.background` and its sun never moves. It therefore ships behind **Settings → Display → Time of Day**, default **Fixed**, and Fixed is not "close to" the old look: `DayNightCycle.RestoreBuilt` replays the scene as WorldBuilder left it, `renderPostProcessing` goes false so URP schedules **no post pass at all**, and ambient stays `Skybox`. Off costs 0 ms and every screenshot approved in U11–U27 still reproduces. **One light does the sun AND the moon** — URP's main light is the brightest directional and a second would demote to an additional light with no shadows, so it swings a full 360° (`pitch = (hour − 6) × 15`) and mirrors to the far side of the sky below the horizon; intensity ramps to 0 across ±2° of the crossing so the 180° flip is invisible. **Ambient is `Trilight`, never `DynamicGI.UpdateEnvironment`** — three lerped colours instead of a 1–3 ms skybox re-convolution — and that fixes a dead line from U13 as a side effect: `Interior` wrote `ambientLight`, which `AmbientMode.Skybox` ignores, so the pizzeria's warm ambient had never once rendered. **Night is CHEAPER than day**: below the horizon `shadows = None` drops the four 2048² cascades. Grading is Tonemapping·ColorAdjustments·WhiteBalance only — **Bloom was cut on cost**, 6–8 blur passes against a 20.7 ms frame. `SkyPalette` is 13 stops, **static and code-only on purpose** (a `[SerializeField]` palette is dead the moment the scene saves it). `Assets/Scripts/World/{DayNightCycle,SkyPalette}.cs`, built into the scene by **The Block → Build Day-Night** (`Assets/Editor/DayNightBuilder.cs`), which also has a **(Test Mode)** twin: cycle forced on, a full day in 2 min, `[` `]` step an hour, `\` holds the clock, and a corner banner so it cannot be left on silently. ⚠ **`Interior`'s per-Enter `RenderSettings` snapshot was DELETED** — it was U26's Radar/`display` bug again, two owners of one field. Day length **2880 s = 48 min**, GTA V's pace, the user's call. ⚠ **The scene rig is not in this unit's commit — it landed in `a269a6b` and the debt is closed** (verified 2026-08-16: `DayNightCycle` is on the `Directional Light` in the committed scene); `World.unity` was carrying U28's unsaved work at the time, so the rig rode in with the next scene commit. The menu item rebuilds it in one click if it is ever lost |
+| U35 | Five Unity showcase features — the user's session | **todo — planned 2026-08-16** | | **The user's own idea and their framing:** *"סשן של 5 פיצ'רים מגניבים, לראות מה אני יכול עוד להוציא מ-Unity."* Nothing is chosen yet — this row exists so the session has somewhere to land and so it is scheduled rather than squeezed. **Slot: AFTER U30a and U30b, BEFORE the recording.** ⚠ **The sequencing trap, and it is the same one U19b paid for:** a feature added after the perf baseline invalidates it, so the frame gets re-checked between this unit and the recording — build → baseline → features → re-measure → record. **The selection rule that should govern the five:** each one has to be something the web build could not have done, not something it merely did not do — that is what makes it an argument instead of a feature list. Precedent for what that looks like is already in this tier and in the standing remark: real A\* pursuit against the web's five disconnected graph islands, Rigidbody wrecks against a 30-vehicle Rapier budget, `dspTime` against `audioElement.currentTime`. **Also live here:** U33's rule that an addition ships **switched off** and its off state replays the old behaviour rather than feeding neutral values through new code — five always-on additions would re-open every visual judgement made in U11–U27, days before a recording |
+| U33 | Day/night cycle | done | `4ec2978` | **User-confirmed 2026-08-16** (*"i like the lighting… feature good"*). ⚠ **CORRECTED 2026-08-16: this row used to open "the first thing in this repo that is not a port of anything", and that is FALSE.** The original has a day/night cycle — `src/world/day-night.ts` + `day-night-state.ts`, committed there 2026-06-17, 13 keyframe stops, a sun arc and a moon fill light — sitting at `enabled: false` in `config.ts`, frozen at noon. What is true is only the narrower claim: **in the SHIPPED web build the sun never moves.** So U33 ports a default-off feature and independently arrives at the same default. The sharpest evidence that nobody read the original before building it: that config's own comment reads *"GTA-like pace = 2880 (48 min/day)"* — **the exact number this unit landed on after the user asked for half speed, and recorded as the user's call.** The IMPLEMENTATION is genuinely independent and the mechanism notes below all stand; it is the provenance that was wrong. **Why the correction matters beyond tidiness: the submission video states which features were invented and which were ported, and this row was the source for that claim.** It ships behind **Settings → Display → Time of Day**, default **Fixed**, and Fixed is not "close to" the old look: `DayNightCycle.RestoreBuilt` replays the scene as WorldBuilder left it, `renderPostProcessing` goes false so URP schedules **no post pass at all**, and ambient stays `Skybox`. Off costs 0 ms and every screenshot approved in U11–U27 still reproduces. **One light does the sun AND the moon** — URP's main light is the brightest directional and a second would demote to an additional light with no shadows, so it swings a full 360° (`pitch = (hour − 6) × 15`) and mirrors to the far side of the sky below the horizon; intensity ramps to 0 across ±2° of the crossing so the 180° flip is invisible. **Ambient is `Trilight`, never `DynamicGI.UpdateEnvironment`** — three lerped colours instead of a 1–3 ms skybox re-convolution — and that fixes a dead line from U13 as a side effect: `Interior` wrote `ambientLight`, which `AmbientMode.Skybox` ignores, so the pizzeria's warm ambient had never once rendered. **Night is CHEAPER than day**: below the horizon `shadows = None` drops the four 2048² cascades. Grading is Tonemapping·ColorAdjustments·WhiteBalance only — **Bloom was cut on cost**, 6–8 blur passes against a 20.7 ms frame. `SkyPalette` is 13 stops, **static and code-only on purpose** (a `[SerializeField]` palette is dead the moment the scene saves it). `Assets/Scripts/World/{DayNightCycle,SkyPalette}.cs`, built into the scene by **The Block → Build Day-Night** (`Assets/Editor/DayNightBuilder.cs`), which also has a **(Test Mode)** twin: cycle forced on, a full day in 2 min, `[` `]` step an hour, `\` holds the clock, and a corner banner so it cannot be left on silently. ⚠ **`Interior`'s per-Enter `RenderSettings` snapshot was DELETED** — it was U26's Radar/`display` bug again, two owners of one field. Day length **2880 s = 48 min**, GTA V's pace, the user's call. ⚠ **The scene rig is not in this unit's commit — it landed in `a269a6b` and the debt is closed** (verified 2026-08-16: `DayNightCycle` is on the `Directional Light` in the committed scene); `World.unity` was carrying U28's unsaved work at the time, so the rig rode in with the next scene commit. The menu item rebuilds it in one click if it is ever lost |
 | U34 | Collisions have consequences | **done — user-confirmed 2026-08-16** | `9bd360c` | ✅ *"לגבי ריסוק מחדש אתה יכול לסמן את זה כגמור זה מתנהג כמו שצריך."* **The unit exists because of one discovery: `CrashSensor` had been attached to NOTHING since U19** — no prefab, no scene object, no `AddComponent` anywhere — so `CrimeWatch.OnCrashed` and the crash thump were both subscribed to an event that could not fire, and every collision in this game had been silent and free for fourteen units. It was found by grepping the `.meta` guid rather than the class name, which is the only search that distinguishes "referenced" from "merely compiled"; memory `static-event-with-no-publisher`. The fix is `CrashSensor.Ensure(gameObject)` from `CarController.Bind` and `MotorcycleController.Bind` — **not a prefab field, on purpose**, because `Build Drivable Cars` regenerates those prefabs and that is the likeliest story of how it was lost to begin with. **Three things followed from having impacts at all.** ① **A wall and a car are different crimes.** `PoliceTuning.VehicleCrashCrimeSpeed = 2.5f` (9 km/h) against the wall's `CrashCrimeSpeed = 6f` (22 km/h): ramming a car is a hit-and-run with a victim, scraping a bollard is geometry being forgiven, and the web build could not tell them apart at all. The test is `Impact.HitVehicle`, read off the **collider's own hierarchy** and never off `Impact.Other` — a parked filler is a static collider with no Rigidbody and arrives indistinguishable from a wall, and a traffic car promoted inside the same callback has no body yet either. ⚠ **A cruiser is excluded and that is a feedback loop, not politeness**: cops crowd you and touch you constantly, so a low bar against police contact mints a crime every cooldown, which spawns another cop and resets the give-up clock — a pursuit that cannot end because it is happening. Hitting one hard is still a crime, judged by the wall's line. ② **`TrafficCar` retuned** — `wreckSpeed` 6→3 (6 m/s is faster than most of a queue ever moves, so every collision inside a jam was a car hitting a wall), `wreckMomentumShare` 0.55→0.9 (PhysX has already spent most of the energy on the contact by the time this runs, so a share under ~0.8 reads as hitting a parked skip), `wreckMaxSpeed` 14→20, and the hard-coded 0.25 spin became `wreckSpin = 0.45`. ③ **`LotCar` takes a hit** — U13 gave 101 parked fillers a box collider and nothing else, making them immovable walls in the one place you are most likely to be driving badly. **A static collider still receives collision callbacks**, which is what lets a filler stay static until the frame it is struck and only then take a Rigidbody, so the usual dynamic count is zero and the worst case is a handful. The push direction comes from the CONTACT POINT, never from `Collision.impulse` or `relativeVelocity` — both carry a sign that depends on which body the callback fired on, and "away from where I was struck" cannot be backwards. Centre of mass drops into the sills or a car-sized box goes over on its roof at the first kerb. `Wrecked` bars promotion, per `TrafficSystem.NearestStopped`'s rule: promoting a wreck would swap a shunted, spinning car for a pristine one standing neatly in its stall |
 
 ---
@@ -2446,13 +2521,26 @@ with a vague note is the one failure mode this whole system exists to prevent.
 **Not** the decisions log: these are open, and picking one up needs no permission. Each says what
 would trigger it. A `wip` unit is work half-done; this is work deliberately not started.
 
-- **The radio is the one web system with no port and no row.** Deferred by the user during U27 as
-  the only system carrying a network dependency — twelve of the web's thirteen audio modules shipped
-  and this is the thirteenth. It is written down here because a deferral recorded only inside one
-  unit's prose is how a whole system quietly leaves a port. **Trigger:** the user asking for it, or
-  U30 deciding what "the full game" means for the shipping build. **First step:** read the web's
-  radio module and decide whether the streams are even reachable offline — if they are not, the
-  honest port is a local playlist, and that is a design call, not a task.
+- **The radio is the one web system with no port and no row — and the TRIGGER FIRED, 2026-08-16.**
+  The user asked for it directly: *"אני רוצה שכן נבדוק אם יש אופציה לממש את הרדיו."* It was deferred
+  during U27 as the only system carrying a network dependency; twelve of the web's thirteen audio
+  modules shipped and this is the thirteenth. **The deferral was never a claim that it cannot be
+  built** — that impression needed correcting — it was a demo-risk call, and a submission recording
+  makes that risk concrete rather than theoretical.
+
+  **Feasibility, checked rather than assumed:** `UnityWebRequestMultimedia.GetAudioClip` **will not**
+  carry an endless Icecast/SHOUTcast stream — it wants a finite download before it plays, and that is
+  the wall everyone hits first. The working shape is a **pure-C# MP3 decoder feeding a ring buffer
+  into an `AudioClip.Create` PCM read callback**. `NLayer` is MIT and is that decoder;
+  `RadioUnityStream` on GitHub is a working reference of exactly this architecture, but **its own
+  licence is personal/non-commercial and it is untested on macOS** — so take NLayer directly, not the
+  repo. Paid assets (AudioStreamIce, Radio PRO) exist and are **out**: no money, ever.
+
+  **Recommendation: build what the web build already behaves like.** `radio.ts` ships a graceful
+  "unavailable" path, so: **local clips as the guaranteed content, live streams as an upgrade that
+  degrades to local on any failure.** Same five stations, same `[` `]` `\` keys, same driving-only
+  rule. The recording then demos a radio that works with the network unplugged — which is the whole
+  reason this was deferred in the first place.
 
 - ~~**The dance's arrows are keyboard-only, and U31 has no keyboard.**~~ **DROPPED BY THE USER,
   2026-08-16** — *"חצי ריקוד — לא רלוונטי לדעתי יכול להוריד."* True in the original too, so it was
@@ -2563,6 +2651,15 @@ would trigger it. A `wip` unit is work half-done; this is work deliberately not 
 
 Dated one-liners. These are settled — do not re-litigate them without the user reopening.
 
+- **2026-08-16** — **THE PIVOT: the Unity build is the submission, and the port has a deadline.**
+  The user's framing: the project began in three.js and moved to Unity mid-way, to learn a second
+  engine and to use Unity's advantages. This **reverses** two things this ledger and `CLAUDE.md` had
+  said since 2026-08-12 — *"a side project with no deadline"* and *"the original's `main` stays
+  submittable"*. What changes: every gap against the web build is now a graded decision rather than a
+  nice-to-have, and the deliverable stops being only the game — a video, a repo, a kanban board and a
+  zip are the graded artifacts. What does NOT change: the original repo is still never touched beyond
+  `export-config.mjs`, and the instructor is invited to both repos so the pivot is presented rather
+  than hidden.
 - **2026-08-16** (U31) — **iPad is dropped from the port.** *"ipad אנחנו כנראה נראה מזה… זה לא
   רלוונטי להגשה."* The target is macOS, full stop. `CLAUDE.md` had always ranked iOS as "a wanted
   bonus, never a constraint on design", so this changes no design decision retroactively — it only
@@ -2570,8 +2667,11 @@ Dated one-liners. These are settled — do not re-litigate them without the user
   `PlayerSettings` section and unused touch handling all STAY**: they cost nothing idle, and removing
   them would be effort spent making a retry harder. The user may still build to a device privately
   for the engine experience; that is not a unit and nothing waits on it.
-- **2026-08-16** (U33) — **The port may now GAIN things, and a gain ships switched off.** A day/night
-  cycle is in no version of the web build. It is allowed in because "Unity-idiomatic, same game" was
+- **2026-08-16** (U33) — **The port may now GAIN things, and a gain ships switched off.** ⚠ **The
+  example was wrong and the rule is not** — this entry opened *"a day/night cycle is in no version of
+  the web build"*, and the web build has one at `enabled: false` (corrected 2026-08-16, see the U33
+  row). The rule stands on its own and U19e is now the cleaner example of it. It is allowed in
+  because "Unity-idiomatic, same game" was
   never a ban on additions — but an addition that is always on silently re-opens every visual
   judgement made in U11 through U27, because the screenshots the user approved stop reproducing. So
   the rule this unit sets for whatever comes next: **an addition defaults to off, and its off state is

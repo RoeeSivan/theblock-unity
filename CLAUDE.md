@@ -16,12 +16,30 @@ where.
 Tel Aviv. three.js + Rapier + Vite + TypeScript, 175 modules / ~26.8k LOC, 4-mission campaign,
 live on Vercel.
 
-This repo rebuilds it in **Unity 6** (6000.5.8f1, URP). Motivation is career breadth — engine
-experience — not a product need. It is a **side project with no deadline**.
+This repo rebuilds it in **Unity 6** (6000.5.8f1, URP).
 
-**The original ships and must keep shipping.** Its `main` stays submittable (course deadline
-1 Oct 2026). The only change ever made to that repo for this port is one additive script,
-`scripts/export-config.mjs`. Never refactor it, never "improve" it, never touch its runtime.
+> ### ⚠ THE PIVOT — 2026-08-16, and it reverses what this section used to say
+>
+> This file used to read *"motivation is career breadth, not a product need — a side project with no
+> deadline"*, and *"the original ships and must keep shipping; its `main` stays submittable"*.
+> **The user's own framing is now a pivot**: the project started in three.js, moved to Unity
+> mid-way — to learn a second engine and to use Unity's advantages — and **the Unity build is what
+> gets submitted**.
+>
+> Consequences, all live:
+>
+> - **The port has a deadline: 1 Oct 2026.** Resumability still matters; "no deadline" does not.
+> - **Every gap against the three.js build is now a graded decision**, defensible on camera, not a
+>   nice-to-have. The census of what is and is not ported lives in `PORT-STATUS.md`.
+> - **The deliverable is not only the game.** The course grades a **video**, a **repo**, a **kanban
+>   board** and a **zip**. A perfect game with no video scores nothing. Checklist in `PORT-STATUS.md`
+>   → *Submission*.
+> - The instructor is invited to **both** repos, so the pivot is presented as what it is rather than
+>   hidden.
+
+**The original repo is still not to be touched.** Its only change for this port remains one additive
+script, `scripts/export-config.mjs`. Never refactor it, never "improve" it, never touch its runtime —
+it is the spec, and it is the first half of the submission's story.
 
 ### Scope: the full game
 
