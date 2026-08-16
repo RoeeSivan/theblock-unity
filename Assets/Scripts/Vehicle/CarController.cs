@@ -112,8 +112,51 @@ namespace TheBlock.Vehicles
         /// </summary>
         public float SpeedLimitOverride { get; set; }
 
-        private float MaxForwardSpeed =>
-            SpeedLimitOverride > 0f ? Mathf.Max(SpeedLimitOverride, _spec.MaxSpeed) : _spec.MaxSpeed;
+        /// <summary>
+        /// True on a police cruiser, which is exempt from the ☕ boost below.
+        ///
+        /// <b>Serialized, and it only ever goes from false to true.</b> Both halves were paid for by
+        /// a measurement. The cruiser PREFAB carries no <c>CopDriver</c> — <c>PoliceSystem.FillPool</c>
+        /// adds <see cref="Police.CopCar"/> at runtime and its <c>[RequireComponent]</c> brings the
+        /// driver with it, which happens AFTER this component's <c>Awake</c> has already run. So a
+        /// flag cached once at bind time is false on every police car in the game, and the player's
+        /// power-up would have quietly made the pursuit 25% faster. <see cref="MarkAsPolice"/> is the
+        /// answer, called by the driver itself; the <c>TryGetComponent</c> in <see cref="Bind"/> is
+        /// the belt to its braces, correct by then and harmless before. And it is serialized because
+        /// a recompile mid-Play reloads the domain without re-running anyone's <c>Awake</c>, which
+        /// would hand the boost back to the police in the middle of a session.
+        /// </summary>
+        [SerializeField, HideInInspector] private bool boostExempt;
+
+        /// <summary>
+        /// Declares this car a police cruiser. Called by <see cref="Police.CopDriver"/> as it binds.
+        /// One direction only: nothing ever un-marks a car, so there is no ordering to get wrong.
+        /// </summary>
+        public void MarkAsPolice() => boostExempt = true;
+
+        /// <summary>
+        /// The forward ceiling: the config's cap, raised by a responding cop's override, then scaled
+        /// by whatever ☕ Nitro coffee is doing.
+        ///
+        /// <b>The cop exclusion is the point.</b> Every car in the game shares this component, cruisers
+        /// included, so a bare multiply here would hand the player's power-up to the police as well —
+        /// a +25% chase that gets FASTER the moment you drink to escape it. The boost is the player's,
+        /// so a cruiser opts out by identity, not by hoping <see cref="Driven"/> happens to be false.
+        ///
+        /// It MULTIPLIES rather than competing with <see cref="SpeedLimitOverride"/>: that seam is an
+        /// absolute floor for a responding cruiser, this is a factor on the result, and U28b's fuel
+        /// tank will be a second factor on the same product so a dry tank still limps at full boost.
+        /// </summary>
+        private float MaxForwardSpeed
+        {
+            get
+            {
+                var baseline = SpeedLimitOverride > 0f
+                    ? Mathf.Max(SpeedLimitOverride, _spec.MaxSpeed)
+                    : _spec.MaxSpeed;
+                return boostExempt ? baseline : baseline * Powerup.SpeedBoost.Factor;
+            }
+        }
 
         /// <summary>
         /// How long a <see cref="SetInput"/> call stays in force, seconds. Long enough to survive a
@@ -194,6 +237,7 @@ namespace TheBlock.Vehicles
         {
             _body = GetComponent<Rigidbody>();
             _body.centerOfMass = centerOfMass;
+            if (TryGetComponent<Police.CopDriver>(out _)) boostExempt = true;
 
             // Non-serialized, so a mid-Play recompile brings it back as 0 — which would read as
             // "an AI wrote input this instant" and lock out the keyboard for half a second.

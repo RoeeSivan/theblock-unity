@@ -72,21 +72,28 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-**TIER 5 IS CLOSED. THE CAMPAIGN IS PLAYABLE END TO END AND EVERY MISSION IS USER-CONFIRMED.**
-U20, U21, U22, U23 and U24 are all `done` as of 2026-08-16 — pizza, the dance, the rooftop rescue
-and the sea chase, plus the framework under them and the shell around them (U26). Four missions,
-$700 of payouts, a win card.
+**U28 IS WRITTEN, BUILT INTO THE SCENE AND MEASURED — AND IT HAS NOT BEEN PLAY-TESTED BY A HUMAN.**
+The money loop is closed: the 7-Eleven's doors open as you walk at them, the counter sells four
+power-ups, all four effects fire, and U25's emoji font landed with it. Every number in the block
+below was measured in Play; **nobody has looked at it.** That is the checkpoint.
 
-**Next action: U25's last owing — the emoji font.** It is the only `wip` left in Tiers 1–6 apart
-from U19d, and it is small: U26 paid the fade, so what remains is a font asset with glyph coverage
-for the POI pins (`⛽` `🚓` `🏪`) and the mission copy that `Glyphs.Strip` currently removes at draw
-time. Then Tier 7 opens with **U28 (economy + fuel + power-ups)**, which already has five baked but
-unwired sfx cues waiting for it — see U27's block.
+**Next action: play it.** Open `Assets/Scenes/World.unity`, Play, `Continue`. Drive or walk to the
+7-Eleven — the `🏪` pin on the map (`M`), north-east of the pizzeria at world `(−37, 0.22, −15)`.
+The doors should part as you get within 3.8 m and shut ~1.7 s after you step back. Walk to the till,
+`E`, buy something, then `1`–`4` anywhere in the city. The profile has **$700** banked and one of
+each item costs **$265**.
 
-**Also still open, and neither is blocking:** U19d (the police blue-light run) is written, compiles
-and has **never been play-tested**; and the jetski still floats on the sea's MEAN level rather than
-on the swell, which is the exact fault U24b fixed for the buoys — `SeaSurface` is built and sitting
-there if the ski ever looks like it is cutting through crests.
+**Look for four things a measurement cannot see:** whether the emoji actually DRAW (the shop rows,
+the map pins `⛽` `🚓` `🏪`, and Mission Select's `1.  🍕 The Block Pizza Run`); whether the doors
+read as automatic rather than as an animation; whether the clerk is standing in a sensible place;
+and whether the chips in the top right are legible where they are.
+
+**Also still open, and none of it blocking:** U28b is the other half of the old U28 row — fuel, the
+tank, limp mode and the pump — split out by the user's call on 2026-08-16 so the store could be one
+checkpoint. U19d (the police blue-light run) is written, compiles and has **never been
+play-tested**. And the jetski still floats on the sea's MEAN level rather than on the swell, which is
+the exact fault U24b fixed for the buoys — `SeaSurface` is built and sitting there if the ski ever
+looks like it is cutting through crests.
 
 ### How to reach any mission — Mission Select, not the debug field
 
@@ -98,6 +105,111 @@ the same job through the same entry path and also puts the player at the mission
 Play from **`Assets/Scenes/Boot.unity`** → bar → title → `Mission Select`. A row above the unlock is
 dim and inert; `Continue` resumes at the furthest mission reached. On the profile that played these
 through, `theblock.unlocked` is **3**, so every row is live.
+
+### U28, 2026-08-16 — the money has somewhere to go — WRITTEN AND MEASURED, NOT PLAY-TESTED
+
+The game has earned money since U19 gave the bust something to take, and had nothing to spend it on.
+This is the other half: a shop you walk into through automatic doors, a clerk behind the till, four
+power-ups, and the HUD strip that shows what you are carrying. **Fuel is NOT here** — the user split
+it out to `U28b` so the store could be one checkpoint. **U25's emoji font is here**, because the shop
+is the most icon-dependent screen in the game and shipping it through `Glyphs.Strip` would have meant
+four rows with no icons.
+
+**The finding that shaped the whole unit: `seven-eleven-lot.glb` ships its own markers.** 95 nodes,
+and the interesting ones — `se_door_trigger`, `se_cashier_stand`, `se_register`, ten `pu_slot_*`,
+the two door leaves — each hold the same number `config.sevenEleven` holds, and glTFast already
+converted the hierarchy on import. So `SevenEleven` binds transforms and the builder REPORTS the
+node-versus-config delta instead of converting anything. That matters more here than anywhere else
+in the project, because every one of these coordinates is MODEL-LOCAL — the handedness rule people
+get wrong — and a silent mirror would put the counter on the wrong side of a symmetrical room, where
+it looks fine. **Measured: 12 marker nodes, worst delta 0.0 cm.**
+
+**The handedness chain is now confirmed by arithmetic AND by measurement, and they agree exactly.**
+glTFast negates X on a node's local position and passes Y and Z through. Carried through the place's
+own +90° yaw and its `Convert.Pos` origin, `se_cashier_stand` should land at `(−33.70, 0.23, −20.62)`
+— computed by hand from the three.js side — and the clerk was placed at **`(−33.70, 0.23, −20.62)`**.
+The clerk's facing is derived twice, from `se_register` and from `config.yaw + clerk.yaw`, and the
+two **disagree by 0°**.
+
+⚠ **`Convert.ModelOffset` is the WRONG conversion for a placed prop, and reaching for it is the
+trap.** That rule (pass X, negate Z) governs offsets in a model whose facing has been corrected by
+`Convert.ModelFacing`, which `BuildPlace` never applies. The sales floor is the only part of the
+store with no node to read, so it is the only part converted by hand — and it is a min/max rectangle,
+so **negating X swaps min and max**. `WorldBuilder.Store.FloorRect` re-sorts after converting.
+
+⚠ **The door leaves swap sides on import, and the config's sign would drive them into each other.**
+`SevenEleven_DoorL` is at glTF-local x −0.63 and arrives in Unity at **+0.63** — on the right. So the
+parting direction is MEASURED from the two leaves' imported positions (slide each away from the door
+centre) rather than taken from `config.door.slide.x`. Self-correcting under any handedness, and the
+symptom it avoids — a door that shuts harder as you approach — would have read as a physics bug.
+**Measured: gap 1.260 m closed → 3.540 m open, each leaf travelling 1.140 m, Z shift −0.090 m,
+back to 1.262 m after the hold.**
+
+⚠ **THE ONE THAT MATTERS MOST: the cop exclusion never latched, and only a measurement found it.**
+☕ Nitro coffee multiplies the forward speed clamp, and every car in the game shares `CarController`
+— cruisers included. So the boost was written with a `_isCop` flag cached in `Bind`, and the flag was
+**false on every police car in the game**: `PoliceCar.prefab` carries no `CopDriver`, because
+`PoliceSystem.FillPool` adds `CopCar` at runtime and its `[RequireComponent]` brings the driver with
+it, *after* `CarController.Awake` has already run. Drinking coffee to escape a pursuit would have
+made the pursuit 25% faster. The fix is `CarController.MarkAsPolice()`, called by `CopDriver` as it
+binds, and the flag is **serialized** — a mid-Play recompile reloads the domain without re-running
+anyone's `Awake` and would have handed the boost back to the police mid-session.
+**Measured after the fix: 3 cruisers exempt at 20.00 m/s, player car at 25.00 = 20 × 1.25.**
+
+⚠ **`Heat.Frozen` already had an owner, so 📱 got its own flag.** `CrimeWatch` assigns
+`heat.Frozen = interior.Inside` on EVERY frame; a second writer would have been overwritten within
+one frame, and the burner phone would have done nothing anywhere except inside the pizzeria.
+`Heat.Immune` is 📱's line, and `Bump()` refuses on either. The clear is an EVENT at ignition and the
+immunity is the state — doing the clear inside the per-frame push would make the 90 s window
+unloseable.
+
+**Measured in Play, so do not re-derive:**
+
+- **The purchase arithmetic is the config's, exactly.** One of each = **$265** against a $700
+  lifetime income, through the same `OnBuy` the shop rows call. Balance $700 → $435.
+- **All four effects fire and all four clear.** ☕ boost 1 → 1.25 → 1; 🥤 `InfiniteStamina` true →
+  false; 📱 cleared 2 stars, then `Bump()` while immune left stars at **0**; 🎒 armed, consumed once,
+  refused the second time.
+- **A mashed key eats nothing.** Re-activating a running item returns false with stock unchanged;
+  activating an empty slot returns false with stock unchanged.
+- **Stock persists, timers do not** — one `PlayerPrefs` int per id under `theblock.powerups.<id>`,
+  and no clock is ever written.
+- **The predicates hold.** `se_cashier_stand` and `se_register` are inside and at the counter;
+  `se_door_trigger` and `se_entry_outside` are at the entrance and NOT inside (the threshold sits
+  outside the floor rect, so the chime fires as you step through); 30 m away, neither.
+- **The five dead sfx cues are alive.** StoreChime 1.100 s, Purchase 0.300 s, PowerUp 0.430 s,
+  PowerDown 0.470 s, Deny 0.090 s — baked on first play, as U27 designed.
+- 0 errors in the console across the whole session.
+
+**U25 is closed: the emoji font works, and `GlyphRenderMode.COLOR` is why.** NotoColorEmoji (OFL,
+10.6 MB) is a CBDT/CBLC **bitmap** font — its glyphs are little PNGs, not outlines, so every SDF mode
+has nothing to trace and rasterises empty. COLOR asks FreeType for the bitmap and gives the atlas an
+RGBA texture. **Measured: 11/11 probe glyphs present, 1024² RGBA32 atlas.** The chain is font file →
+dynamic `FontAsset` → `HudTextSettings` (a `PanelTextSettings`, in BOTH `fallbackFontAssets` and
+`emojiFallbackTextAssets`) → `HudPanelSettings.textSettings`. **Not `TMP_Settings`** — that is uGUI's
+and setting it does nothing for UI Toolkit. `Glyphs.cs` is deleted and its three call sites draw the
+copy as written.
+
+⚠ **`Assets/StreamingAssets/theblock-config.json` had been hand-edited and nobody recorded it.**
+Every source hash matched, yet the shipped snapshot had ASCII hyphens where `campaign.config.ts` has
+em-dashes. The file is gitignored, so there is no history to blame. Regenerating restored the
+faithful dump; the em-dashes now reach the HUD, and Unity's default font has U+2014.
+
+**The exporter grew its ninth source.** `powerup.config.ts` is a sibling module, not a section of
+`config.ts`, so it was simply not in the payload. One entry appended to `SOURCES` in
+`scripts/export-config.mjs` — **the only file the original repo ever accepts a change to** — and
+appended rather than slotted in, so every key already in the snapshot keeps its position and a re-run
+diffs clean.
+
+**The Wallet did NOT move.** `WorldBuilder.Police`'s comment invites U28 to take it off the Police
+group, and it stays where it is: moving a component that owns persisted state, in a unit that already
+touches a dozen files, buys tidiness and risks a save. Every consumer resolves it with
+`FindAnyObjectByType`, so where it sits has never mattered.
+
+**New menu item: The Block → Build Store.** A full Build World would re-instantiate nine districts,
+the roads, the traffic graph and the NavMesh bake to change two components. The store is the only
+thing in this unit that lives in the scene, so it got a door of its own. `Build World` still calls
+the same two methods.
 
 ### U26, 2026-08-16 — the game has a shell — DONE, user-confirmed
 
@@ -1814,10 +1926,11 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 ### Tier 6 — Shell
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
-| U25 | HUD + in-game UI (UI Toolkit) | **wip — one thing left: the emoji font** | `dd6fbb8` (the fade) | This row was only ever two owings, and U26 paid one of them. **DONE: the fade** behind U13's interior teleport — `Assets/Scripts/UI/Menus/ScreenFade.cs`, on the shared document, unscaled. It COVERS rather than brackets (black up in the same frame as the teleport, then fades off) because `fade.ts`'s `await to(true)` has nowhere to go here: `Interior.Enter`/`Leave` flip `inside` and move the capsule in one statement and `DeliveryMission` reads `interior.Inside` on the next line. Nothing is lost — the move is instantaneous either way and UI Toolkit composites after the scene, so the first frame of the destination is already black. **NOT DONE: the emoji-capable font.** `Glyphs.Strip` is still the stop-gap, so the map draws dots instead of `⛽`/`🚓`/`🏪` and Mission Select reads `1.  The Block Pizza Run`. Plan: Noto Color Emoji (OFL) as a fallback `FontAsset` on `HudPanelSettings`' theme; if Unity 6's TextCore will not rasterise CBDT/COLR, fall back to monochrome **Noto Emoji** — a grey 🍕 beats a blank box — and only then delete `Glyphs.cs`. Everything else the row wanted was already built by U14/U19/U20 on the one panel |
+| U25 | HUD + in-game UI (UI Toolkit) | **done — the font landed with U28, 2026-08-16** | `dd6fbb8` (the fade) | **CLOSED BY U28.** `EmojiFontBuilder` builds NotoColorEmoji (OFL) as a dynamic `FontAsset` at `GlyphRenderMode.COLOR` — the render mode is the whole question, because CBDT/CBLC glyphs are bitmaps and every SDF mode rasterises them empty. It goes in a `PanelTextSettings` (`Assets/UI/HudTextSettings.asset`), in both `fallbackFontAssets` and `emojiFallbackTextAssets`, assigned to `HudPanelSettings.textSettings`. **Not `TMP_Settings`** — that is uGUI's and does nothing here. Measured 11/11 probe glyphs into a 1024² RGBA32 atlas. `Glyphs.cs` deleted, its three call sites now draw the copy as written. The original row said: | This row was only ever two owings, and U26 paid one of them. **DONE: the fade** behind U13's interior teleport — `Assets/Scripts/UI/Menus/ScreenFade.cs`, on the shared document, unscaled. It COVERS rather than brackets (black up in the same frame as the teleport, then fades off) because `fade.ts`'s `await to(true)` has nowhere to go here: `Interior.Enter`/`Leave` flip `inside` and move the capsule in one statement and `DeliveryMission` reads `interior.Inside` on the next line. Nothing is lost — the move is instantaneous either way and UI Toolkit composites after the scene, so the first frame of the destination is already black. **NOT DONE: the emoji-capable font.** `Glyphs.Strip` is still the stop-gap, so the map draws dots instead of `⛽`/`🚓`/`🏪` and Mission Select reads `1.  The Block Pizza Run`. Plan: Noto Color Emoji (OFL) as a fallback `FontAsset` on `HudPanelSettings`' theme; if Unity 6's TextCore will not rasterise CBDT/COLR, fall back to monochrome **Noto Emoji** — a grey 🍕 beats a blank box — and only then delete `Glyphs.cs`. Everything else the row wanted was already built by U14/U19/U20 on the one panel |
 | U26 | Menus — title, character select, briefing, controls, pause | done | `dd6fbb8` | **User-confirmed 2026-08-16** (*"works"*, after the radar toggle was fixed; *"all other buttons work good"*). A Boot scene whose bar reads `AsyncOperation.progress` (the number `loading-screen.ts` wished for and faked with hand-counted milestones), then a title screen on the HUD document over the frozen city — New Game · Continue · Character · Mission Select · Settings · How to Play — plus `Esc` → Resume/Settings/How to Play/Quit to Title. Built by **The Block → Build Menus**; `Boot` is build index 0, `World` is 1. **⚠ THE UNIT'S REAL LESSON: `Time.timeScale = 0` does not stop `Update`.** The web pauses by skipping one `stepSim` call; here fourteen scripts poll `Keyboard.current` every frame and kept firing behind the overlay, so `Core.Pause.Frozen` is a guard line in each of them. **The dance is unpausable by rule** — `Conductor` runs on `dspTime`, which no freeze touches. Three faults found only by measuring: UI Toolkit takes `Color` as LINEAR (the scrim rendered as a pale haze, the buttons peach); a percentage `max-width` against an indefinite parent collapsed every button to 162 px; and hiding the HUD by `display` **clobbered the Radar toggle**, which writes `display` on the same element — it hides with `visibility` now. `SessionReset` exists because `[RuntimeInitializeOnLoadMethod]` fires once per Play session, not per scene load, and Quit to Title is this port's first scene load. Deliberately absent: no Multiplayer button (U32), Mission Select teleports rather than mounts, Settings is one row, roster is Joe alone (U29 adds two entries and two rigs) |
 | U27 | Audio — sfx, engine, ambient, sirens | done | `bf0bdd9` | **User-confirmed 2026-08-16** (*"sound - mark it as done"*). Twelve of the web's thirteen audio modules, ~1.2 MB of clips, one `AudioMixer` (7 buses / 7 exposed params / 4 snapshots) built by a REFLECTION tool because Unity ships no public API for authoring one. The 20 synth cues of `sfx.ts` are **baked to `AudioClip`s once** instead of rebuilding an oscillator graph per press, with PolyBLEP on saw/square because Web Audio's oscillators are band-limited by spec and a naive one would alias audibly. The rotor is a literal port through **`OnAudioFilterRead`** — the three rates move by different factors (chop 2.43×, hum 1.71×, whine 2.17×) so one `pitch` knob cannot reproduce it. Sirens are **3D, on the cars**, capped at the nearest 3: the web's one-shot wail exists only because that build has no `AudioListener` at all. **Caught, and it is the important one: an `AudioMixerGroup` costs one DSP buffer, and it moved the dance's music 21.3 ms off its own beatmap** (§ below). Also caught: the engine WAVs' 7–18 ms decoder tail, which Unity has no `loopEnd` to ignore. **Radio deferred** by the user — the only system with a network dependency |
-| U28 | Economy + fuel + power-ups | todo | | |
+| U28 | Economy — the 7-Eleven + power-ups | **wip — written and measured, NOT play-tested** | | Fuel was split out to **U28b** by the user, 2026-08-16, so the store could be one checkpoint. Everything else is built and in the scene: `SevenEleven` (automatic bi-parting doors, sales floor, counter), a clerk from a crowd prefab, `ShopMenu`, `PowerUps` + `SpeedBoost`, `PowerUpChips`, and the four effects at their own call sites. **The store's geometry is READ OFF THE MODEL, not converted** — the glb ships a marker node for every point the config states, and 12 of them check out to 0.0 cm. **Caught by measurement, not by reading: the ☕ boost applied to police cars** — `PoliceCar.prefab` has no `CopDriver` (it arrives at runtime with `CopCar`, after `CarController.Awake`), so the cop exclusion never latched and drinking coffee to escape would have sped up the chase. `MarkAsPolice()` + a serialized flag. **Also: the door leaves swap sides on import**, so the parting direction is measured, never taken from `config.door.slide.x`'s sign. `Heat` gained `Immune` because `CrimeWatch` already writes `Frozen` every frame. Wallet deliberately left on the Police group. New menu item **The Block → Build Store** |
+| U28b | Fuel — tank, limp mode, the pump | todo | | Split off U28, 2026-08-16. `vehicle/fuel.ts` + `fuel.config.ts` + `refuel.ts` + `world/gas-station.ts`. Tank per car and bike (never the heli or ski — `Vehicle.fuel` is optional for exactly that reason), distance-based burn so a tank means RANGE, limp at 0.25× that eases in over 1.5 s and NEVER strands you, hold-to-refuel on the Paz forecourt, the bar and the two hints. **Two cues are already baked and waiting**: `FuelTick`, `FuelDone`. **The speed hook already exists** — `SpeedBoost.Factor` multiplies the same clamp, so the tank's factor multiplies too and a dry tank still limps at full boost. `fuelConfig` still needs adding to `export-config.mjs`'s `SOURCES`, the way `powerup.config.ts` was. Put the refuel row back in `ControlsGuide` when it is true |
 | U29 | Character roster | todo | | |
 
 ### Tier 7 — Ship

@@ -251,7 +251,11 @@ namespace TheBlock.Vehicles
             // selector on one key, which is the arcade convention the web build had.
             var braking = throttle < 0f && speed > 0.5f || throttle > 0f && speed < -0.5f;
 
-            var atForwardLimit = speed >= _spec.MaxSpeed;
+            // ☕ Nitro coffee scales the forward ceiling only. Reverse is untouched: the item says
+            // "+25% top speed on any ride", and nobody buys a power-up to back out of a driveway
+            // faster. The bike has no police variant, so unlike CarController there is nothing to
+            // exclude here.
+            var atForwardLimit = speed >= _spec.MaxSpeed * Powerup.SpeedBoost.Factor;
             var atReverseLimit = -speed >= _spec.ReverseMaxSpeed;
             var capped = throttle > 0f && atForwardLimit || throttle < 0f && atReverseLimit;
 

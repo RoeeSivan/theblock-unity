@@ -11,9 +11,10 @@ namespace TheBlock.UI.Menus
     /// exactly why it is its own component and not a sub-panel of either.
     ///
     /// <b>Two rows of the web's list are deliberately missing.</b> The radio keys (<c>[</c>,
-    /// <c>]</c>, <c>\</c>) describe a system U27 deferred, and the gas-pump refuel is U28's. A
+    /// <c>]</c>, <c>\</c>) describe a system U27 deferred, and the gas-pump refuel is U28b's. A
     /// controls screen that lists a key which does nothing is worse than one that is short: it is
     /// the one screen a stuck player reads, and it has to be true. Both come back with their units.
+    /// U28 added the shop and the power-up hotkeys on exactly that rule, the moment they were true.
     /// </summary>
     public class ControlsGuide : MenuPanel
     {
@@ -33,6 +34,8 @@ namespace TheBlock.UI.Menus
             ("T", "Talk / start a job"),
             ("F", "Deliver / action"),
             ("F", "Retry a failed mission"),
+            ("E", "Shop at the 7-Eleven counter"),
+            ("1 – 4", "Use a power-up"),
         };
 
         private static readonly (string keys, string what)[] Driving =

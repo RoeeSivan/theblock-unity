@@ -124,7 +124,10 @@ namespace TheBlock.Vehicles
             if (braking) _speed = Mathf.MoveTowards(_speed, 0f, brakeDecel * dt);
             else if (Mathf.Abs(throttle) > 0.01f) _speed += throttle * accel * dt;
             else _speed = Mathf.MoveTowards(_speed, 0f, waterFriction * dt);
-            _speed = Mathf.Clamp(_speed, -reverseMaxSpeed, maxSpeed);
+            // ☕ raises the forward ceiling and nothing else. NOTE this clamp is also what the M4
+            // chase is balanced against — the thief's lead is tuned to a 18 m/s ski — so a boosted
+            // run at the chase is a real 25% edge, which is exactly what the item is sold as.
+            _speed = Mathf.Clamp(_speed, -reverseMaxSpeed, maxSpeed * Powerup.SpeedBoost.Factor);
 
             // Steering centres itself slowly, which is most of the drifty feel.
             if (Mathf.Abs(steerInput) > 0.01f)

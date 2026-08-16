@@ -33,6 +33,7 @@ namespace TheBlock.UI.Menus
         [SerializeField] private ControlsGuide guide;
         [SerializeField] private SettingsPanel settings;
         [SerializeField] private CharacterPanel character;
+        [SerializeField] private ShopMenu shop;
 
         [Header("Scene — found automatically when left empty")]
         [SerializeField] private MissionLaunch launch;
@@ -41,6 +42,8 @@ namespace TheBlock.UI.Menus
         [SerializeField] private VehicleEnterExit vehicles;
         [SerializeField] private BriefingCard card;
         [SerializeField] private Wallet wallet;
+        [SerializeField] private TheBlock.Powerup.PowerUps powerups;
+        [SerializeField] private TheBlock.World.SevenEleven store;
 
         [Header("Flow")]
         [Tooltip("Skip the title screen and drop straight into free roam at mission 1. For a " +
@@ -58,6 +61,7 @@ namespace TheBlock.UI.Menus
             if (guide == null) guide = GetComponent<ControlsGuide>();
             if (settings == null) settings = GetComponent<SettingsPanel>();
             if (character == null) character = GetComponent<CharacterPanel>();
+            if (shop == null) shop = GetComponent<ShopMenu>();
             if (launch == null) launch = GetComponent<MissionLaunch>();
 
             if (runner == null) runner = FindAnyObjectByType<CampaignRunner>();
@@ -65,6 +69,8 @@ namespace TheBlock.UI.Menus
             if (vehicles == null) vehicles = FindAnyObjectByType<VehicleEnterExit>();
             if (card == null) card = FindAnyObjectByType<BriefingCard>();
             if (wallet == null) wallet = FindAnyObjectByType<Wallet>();
+            if (powerups == null) powerups = FindAnyObjectByType<TheBlock.Powerup.PowerUps>();
+            if (store == null) store = FindAnyObjectByType<TheBlock.World.SevenEleven>();
 
             Wire();
         }
@@ -88,6 +94,57 @@ namespace TheBlock.UI.Menus
                 pause.OnHowToPlay = () => Swap(pause, () => guide?.Open(BackToPause));
                 pause.OnQuit = QuitToTitle;
             }
+
+            if (shop != null)
+            {
+                shop.Balance = () => wallet != null ? wallet.Balance : 0;
+                shop.Count = id => powerups != null ? powerups.Count(id) : 0;
+                shop.OnBuy = Buy;
+                shop.OnClose = CloseShop;
+            }
+        }
+
+        // ── the 7-Eleven ──────────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// The only thing in the game that SPENDS cash, so the charge lives here beside the wallet
+        /// rather than inside the overlay — the same placement <c>main.ts</c> gives it.
+        ///
+        /// Charge first, then stock. <see cref="Wallet.Charge"/> returns what it actually took, and
+        /// the balance was checked a line earlier, so a partial take is impossible; taking the money
+        /// before handing over the goods is simply the order that cannot leave you holding an item
+        /// you did not pay for.
+        /// </summary>
+        private bool Buy(string id)
+        {
+            if (wallet == null || powerups == null) return false;
+
+            var price = PriceOf(id);
+            if (price <= 0 || wallet.Balance < price) return false;
+
+            wallet.Charge(price);
+            powerups.Add(id);
+            return true;
+        }
+
+        private int PriceOf(string id)
+        {
+            foreach (var item in TheBlockConfig.Load()?.PowerUps?.Items
+                                 ?? new System.Collections.Generic.List<TheBlockConfig.PowerUpSpec>())
+                if (item != null && item.Id == id) return item.Price;
+            return 0;
+        }
+
+        private void OpenShop()
+        {
+            Pause.Set(true);
+            shop?.Open();
+        }
+
+        private void CloseShop()
+        {
+            shop?.Hide();
+            Pause.Set(false);
         }
 
         private void Start()
@@ -122,7 +179,20 @@ namespace TheBlock.UI.Menus
             SetGameplayHudVisible(!menuUp);
 
             var keyboard = Keyboard.current;
-            if (keyboard == null || !keyboard.escapeKey.wasPressedThisFrame) return;
+            if (keyboard == null) return;
+
+            // E at the 7-Eleven counter. Handled here rather than in SevenEleven for the reason every
+            // other decision in this file is: the panels are dumb, and opening one means taking the
+            // freeze, which is this component's job. The predicate is the store's own, so the prompt
+            // MissionHud draws and the action taken here can never disagree.
+            if (!Pause.Frozen && keyboard.eKey.wasPressedThisFrame &&
+                store != null && store.CanShop() && shop != null && !shop.IsOpen)
+            {
+                OpenShop();
+                return;
+            }
+
+            if (!keyboard.escapeKey.wasPressedThisFrame) return;
 
             // Order matters, and it is the web's (main.ts): the deepest thing on screen goes first,
             // then the map, then the pause toggle. Esc is the only key in the game that means "back"
@@ -130,6 +200,7 @@ namespace TheBlock.UI.Menus
             if (guide != null && guide.IsOpen) { guide.Close(); return; }
             if (settings != null && settings.IsOpen) { settings.Close(); return; }
             if (character != null && character.IsOpen) { character.Close(); return; }
+            if (shop != null && shop.IsOpen) { CloseShop(); return; }
 
             // The title has nothing behind it to go back to. Esc there is not "resume", it is
             // "resume WHAT" — the campaign has not been told which mission to open on yet.
@@ -146,7 +217,8 @@ namespace TheBlock.UI.Menus
             (pause != null && pause.IsOpen) ||
             (guide != null && guide.IsOpen) ||
             (settings != null && settings.IsOpen) ||
-            (character != null && character.IsOpen);
+            (character != null && character.IsOpen) ||
+            (shop != null && shop.IsOpen);
 
         /// <summary>
         /// The web's <c>canPause()</c>, minus its multiplayer clause. Free play only: on foot or
@@ -173,8 +245,9 @@ namespace TheBlock.UI.Menus
         // ── the title's choices ───────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Everything the web's New Game branch resets, in its order: unlocks, cash, and the
-        /// per-mission paid flags. Power-ups are the fourth on that list and are U28's.
+        /// Everything the web's New Game branch resets, in its order: unlocks, cash, the per-mission
+        /// paid flags, and the bag — which had to go too, because it was bought with cash that no
+        /// longer exists.
         ///
         /// <b>The freeze lifts BEFORE the run begins</b>, and that is not cosmetic ordering: the
         /// intro card is dismissed with SPACE, and the space key is one of the things
@@ -186,6 +259,7 @@ namespace TheBlock.UI.Menus
             Progress.Reset();
             wallet?.Reset();
             Payouts.Reset();
+            powerups?.Reset();
             launch?.Launch(0, fresh: true);
         }
 
@@ -224,8 +298,8 @@ namespace TheBlock.UI.Menus
         /// </summary>
         private static readonly string[] MenuElements =
         {
-            "title-menu", "pause-menu", "controls-guide", "settings", "character", "fade",
-            "briefing", "feedback-flash",
+            "title-menu", "pause-menu", "controls-guide", "settings", "character", "shop-menu",
+            "fade", "briefing", "feedback-flash",
         };
 
         private bool _hudHidden;

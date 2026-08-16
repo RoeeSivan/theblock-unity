@@ -189,9 +189,10 @@ namespace TheBlock.UI
         {
             if (label == null) return;
 
-            // Emoji come out until U25 ships a font that has any — see Glyphs. Stripped HERE, at the
-            // point of drawing, so the copy itself is never edited and restoring them is a deletion.
-            var drawn = Glyphs.Strip(text);
+            // U28 gave the panel an emoji-capable fallback font (EmojiFontBuilder), so the copy is
+            // drawn as written. Until then this ran through `Glyphs.Strip`, at the point of DRAWING
+            // rather than of loading — which is exactly what made restoring the emoji a deletion.
+            var drawn = text;
             if (string.IsNullOrEmpty(drawn))
             {
                 label.style.display = DisplayStyle.None;

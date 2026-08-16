@@ -95,11 +95,16 @@ namespace TheBlock.EditorTools
             Replace<ControlsGuide>(hud);
             var settings = Replace<SettingsPanel>(hud);
             var character = Replace<CharacterPanel>(hud);
+
+            // U28's counter. A panel like any other, so Esc layers over it and the freeze is the same
+            // freeze — the only thing that differs is that E rather than a menu button opens it.
+            Replace<ShopMenu>(hud);
+
             Replace<MissionLaunch>(hud);
             Replace<ScreenFade>(hud);
 
-            // GameFlow last: its Awake caches the five panels above, and a component added after it
-            // would be found as null on the frame the title screen first tries to open.
+            // GameFlow last: its Awake caches the panels above, and a component added after it would
+            // be found as null on the frame the title screen first tries to open.
             Replace<GameFlow>(hud);
 
             var characterSerialized = new SerializedObject(character);

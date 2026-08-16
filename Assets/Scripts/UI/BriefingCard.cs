@@ -108,10 +108,10 @@ namespace TheBlock.UI
 
             for (var i = 0; i < lines.Count; i++)
             {
-                // Emoji stripped at the point of drawing — see Glyphs, and U25 for the font that
-                // ends it. The card is where most of the campaign's copy is read, so a line of blank
-                // boxes here would be the most visible version of the problem.
-                var label = new Label(Glyphs.Strip(lines[i]));
+                // The copy is drawn as written, emoji and all — U28's fallback font. The card is where
+                // most of the campaign's copy is read, so this was the most visible version of the
+                // blank-box problem and is now the clearest proof the font landed.
+                var label = new Label(lines[i]);
                 label.style.fontSize = i == 0 ? 26f : 19f;
                 label.style.color = i == 0 ? Color.white : new Color(0.87f, 0.9f, 0.94f);
                 label.style.unityFontStyleAndWeight = i == 0 ? FontStyle.Bold : FontStyle.Normal;

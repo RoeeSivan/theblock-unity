@@ -138,9 +138,7 @@ namespace TheBlock.UI.Menus
 
                 if (i <= unlocked)
                 {
-                    // Emoji stripped at the point of drawing, like every other surface in the port —
-                    // see Glyphs, and the font that ends it.
-                    row.text = Glyphs.Strip($"{i + 1}.  {Prefix(mission)}{title}");
+                    row.text = $"{i + 1}.  {Prefix(mission)}{title}";
                     MenuStyle.Paint(row, primary: true);
                 }
                 else

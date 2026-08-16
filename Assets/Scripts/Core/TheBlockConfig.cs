@@ -75,6 +75,8 @@ namespace TheBlock.Core
             [JsonProperty("$campaignSourceSha256")] public string CampaignSourceSha256;
             [JsonProperty("$rhythmSource")] public string RhythmSource;
             [JsonProperty("$rhythmSourceSha256")] public string RhythmSourceSha256;
+            [JsonProperty("$powerUpSource")] public string PowerUpSource;
+            [JsonProperty("$powerUpSourceSha256")] public string PowerUpSourceSha256;
             [JsonProperty("$handedness")] public string Handedness;
             [JsonProperty("config")] public Root Config;
 
@@ -106,6 +108,16 @@ namespace TheBlock.Core
             /// lived next to the code that plays it.
             /// </summary>
             [JsonProperty("screamConfig")] public ScreamSpec Scream;
+
+            /// <summary>
+            /// <c>src/powerup/powerup.config.ts</c> — U28's 7-Eleven catalogue, and the ninth source.
+            ///
+            /// It is a sibling module rather than a section of <c>config.ts</c>, so it was simply not
+            /// in the payload until U28 added it to the exporter's <c>SOURCES</c>. Appended at the
+            /// end of that list on purpose: every key already in the snapshot keeps its position, so
+            /// a re-run diffs clean.
+            /// </summary>
+            [JsonProperty("powerUpConfig")] public PowerUpCatalogSpec PowerUps;
         }
 
         /// <summary>Mirrors the top level of <c>config.ts</c>. Only the ported sections are declared.</summary>
@@ -121,7 +133,12 @@ namespace TheBlock.Core
             public PlaceSpec PizzaPlace;
             public PlaceSpec GasStation;
             public PlaceSpec PoliceStation;
-            public PlaceSpec SevenEleven;
+            /// <summary>
+            /// The power-up shop. A <see cref="StoreSpec"/> rather than a bare
+            /// <see cref="PlaceSpec"/> since U28 — it is still placed as an ordinary static prop,
+            /// and it also carries a sales floor, two sliding doors and a shopkeeper.
+            /// </summary>
+            public StoreSpec SevenEleven;
             public LotCarsSpec LotCars;
             public InteriorSpec Interior;
             public CameraSpec Camera;

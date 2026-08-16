@@ -60,6 +60,11 @@ namespace TheBlock.EditorTools
             // its own Start. The card is added last so it covers everything — and it calls
             // BringToFront on open as well, because a Start order is not a contract.
             hud.AddComponent<MissionHud>();
+
+            // U28's power-up strip, under the cash readout WantedHud draws. Before the card for the
+            // same reason everything is: the card has to cover it.
+            hud.AddComponent<PowerUpChips>();
+
             hud.AddComponent<BriefingCard>();
 
             var so = new SerializedObject(map);

@@ -233,11 +233,13 @@ namespace TheBlock.EditorTools
             if (options.Places)
             {
                 var places = NewGroup("Places", root.transform);
-                BuildPlace(places, snapshot.Config.SevenEleven, "Seven Eleven", options, report);
+                var store = BuildPlace(places, snapshot.Config.SevenEleven, "Seven Eleven", options, report);
                 BuildPlace(places, snapshot.Config.PizzaPlace, "Pizza Place", options, report);
                 BuildPlace(places, snapshot.Config.GasStation, "Gas Station", options, report);
                 BuildPlace(places, snapshot.Config.PoliceStation, "Police Station", options, report);
                 BuildInterior(places, snapshot.Config.Interior, snapshot.Config.Player, options, report);
+                BuildStore(store, snapshot.Config.SevenEleven, report);
+                EnsureEconomy(root.transform, report);
                 BuildLotCars(places, snapshot.Config.LotCars, options, report);
             }
 
@@ -615,13 +617,17 @@ namespace TheBlock.EditorTools
             report.Placed.Add($"{instance.name} @ {Fmt(instance.transform.position)}");
         }
 
-        private static void BuildPlace(
+        /// <summary>
+        /// Places one static prop. Returns the instance so a caller that needs to reach INTO the
+        /// model can — U28's store binds five of its own nodes off the result.
+        /// </summary>
+        private static GameObject BuildPlace(
             Transform parent, TheBlockConfig.PlaceSpec place, string label, Options options, Report report)
         {
-            if (place == null) return;
+            if (place == null) return null;
 
             var instance = Instantiate(place.Url, label, parent, report, out var substitute);
-            if (instance == null) return;
+            if (instance == null) return null;
 
             instance.name = $"Place_{Sanitize(label)}";
             instance.transform.position =
@@ -651,6 +657,8 @@ namespace TheBlock.EditorTools
 
             report.Placed.Add(
                 $"{instance.name} @ {Fmt(instance.transform.position)} yaw {instance.transform.eulerAngles.y:0.#}°");
+
+            return instance;
         }
 
         /// <summary>

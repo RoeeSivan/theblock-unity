@@ -95,6 +95,14 @@ namespace TheBlock.Player
         /// <summary>Sprint budget in [0,1], for the U25 HUD.</summary>
         public float StaminaFraction => _spec == null ? 1f : _stamina / _spec.Stamina.Max;
 
+        /// <summary>
+        /// 🥤 Energy drink: sprint burns nothing. U28's, written by <see cref="Powerup.PowerUps"/>.
+        ///
+        /// Not persisted and not serialized — it is pushed every frame from the live timer, so a
+        /// recompile mid-Play cannot strand the player permanently tireless.
+        /// </summary>
+        public bool InfiniteStamina { get; set; }
+
         /// <summary>True while stamina is spent and sprint is locked out.</summary>
         public bool Exhausted => _exhausted;
 
@@ -319,12 +327,18 @@ namespace TheBlock.Player
         private void UpdateStamina(bool sprinting, bool jogging, float dt)
         {
             var stamina = _spec.Stamina;
-            if (sprinting)
+
+            // 🥤 does not top the bar up — it stops the drain. The difference shows the moment it
+            // runs out: you carry on from whatever you had left rather than falling off a full bar,
+            // and a sprint already in progress simply stops being free.
+            if (sprinting && !InfiniteStamina)
             {
                 _stamina = Mathf.Max(0f, _stamina - stamina.DrainPerSec * dt);
                 if (_stamina <= 0f) _exhausted = true;
                 return;
             }
+
+            if (sprinting) return;
 
             var regen = jogging ? stamina.JogRegenPerSec : stamina.RegenPerSec;
             _stamina = Mathf.Min(stamina.Max, _stamina + regen * dt);

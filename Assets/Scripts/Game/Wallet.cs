@@ -17,9 +17,12 @@ namespace TheBlock.Game
     {
         private const string Key = "theblock.cash";
 
-        [Tooltip("Balance for a save that has never been written. The web build starts at 0 and its " +
-                 "missions pay in; this is serialized so the bust can be play-tested before U20 " +
-                 "exists to earn anything.")]
+        [Tooltip("Balance for a save that has never been written. 0, the web build's own opening " +
+                 "balance — the campaign's $700 is the only income there is, and the 7-Eleven's " +
+                 "prices are a share of exactly that number. U19 set it to 500 so a bust could be " +
+                 "tested before anything could be earned; U28 gave it something to be true about. " +
+                 "NOTE the scene stores its own copy, so changing this default alone changes " +
+                 "nothing for a save that already exists — reach it through New Game.")]
         [SerializeField] private int startingBalance;
 
         [Tooltip("Wipes the stored balance back to startingBalance on Play. Debug — leave off.")]

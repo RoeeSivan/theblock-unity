@@ -36,6 +36,7 @@ namespace TheBlock.Missions
         [SerializeField] private MissionHud hud;
         [SerializeField] private BriefingCard card;
         [SerializeField] private Wallet wallet;
+        [SerializeField] private TheBlock.Powerup.PowerUps powerups;
         [SerializeField] private Heat heat;
         [SerializeField] private BustSequence bust;
         [SerializeField] private VehicleEnterExit vehicles;
@@ -95,6 +96,7 @@ namespace TheBlock.Missions
             if (hud == null) hud = FindAnyObjectByType<MissionHud>();
             if (card == null) card = FindAnyObjectByType<BriefingCard>();
             if (wallet == null) wallet = FindAnyObjectByType<Wallet>();
+            if (powerups == null) powerups = FindAnyObjectByType<TheBlock.Powerup.PowerUps>();
             if (heat == null) heat = FindAnyObjectByType<Heat>();
             if (bust == null) bust = FindAnyObjectByType<BustSequence>();
             if (vehicles == null) vehicles = FindAnyObjectByType<VehicleEnterExit>();
@@ -323,9 +325,20 @@ namespace TheBlock.Missions
                 }
 
                 Payouts.Mark(edge.Id);
-                wallet?.Add(text.Reward);
-                var payLine = $"{text.Done}  (+${text.Reward})";
-                if (verbose) Debug.Log($"[campaign] '{edge.Id}' paid ${text.Reward} → ${wallet?.Balance}");
+
+                // 🎒 Thermal bag doubles this payout and is spent by it. Consumed HERE and nowhere
+                // else, which is what makes it impossible to burn on a run that failed or on a
+                // replay of a cleared step: both of those returned above, before this line. The bag
+                // is the only item that can pay for itself, and only from mission 2 on — $75 against
+                // a +$120..+$300 — so the pull is to save it for the finale.
+                var doubled = powerups != null && powerups.ConsumeDoublePay();
+                var reward = doubled ? text.Reward * 2 : text.Reward;
+
+                wallet?.Add(reward);
+                var payLine = doubled
+                    ? $"{text.Done}  (+${reward} — 🎒 double pay)"
+                    : $"{text.Done}  (+${reward})";
+                if (verbose) Debug.Log($"[campaign] '{edge.Id}' paid ${reward}{(doubled ? " (doubled)" : "")} → ${wallet?.Balance}");
 
                 _pending = campaign.IsComplete
                     ? WinCard(payLine)

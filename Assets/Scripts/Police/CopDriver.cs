@@ -90,6 +90,12 @@ namespace TheBlock.Police
             _tuning = tuning;
             _car = GetComponent<CarController>();
             _stuckFrom = transform.position;
+
+            // U28: the ☕ boost is the PLAYER's. This component is added at runtime, after the car's
+            // own Awake has already run, so the car cannot work out on its own that it is a cruiser —
+            // and a police force that speeds up when you drink coffee to escape it is the opposite of
+            // what the item is sold as.
+            if (_car != null) _car.MarkAsPolice();
         }
 
         /// <summary>Throws the current route away. The planner refills it.</summary>

@@ -103,6 +103,22 @@ namespace TheBlock.Police
         public bool SuppressCrash { get; set; }
 
         /// <summary>
+        /// 📱 Burner phone: no crime raises a star for as long as it runs. U28's, and
+        /// <see cref="Powerup.PowerUps"/> is its only writer.
+        ///
+        /// <b>Deliberately a second flag rather than a reuse of <see cref="Frozen"/>.</b>
+        /// <see cref="CrimeWatch"/> assigns <c>Frozen = interior.Inside</c> on EVERY frame, so a
+        /// second owner would be overwritten within one frame and the power-up would do nothing
+        /// anywhere except inside the pizzeria — a bug that reads as "the item is broken" and traces
+        /// to neither file on its own. One flag, one owner.
+        ///
+        /// It gates gain only, not the pursuit: the phone CLEARS heat at ignition
+        /// (<see cref="Clear"/>), and cops stand down off a zero star count by themselves. That is
+        /// the web build's split too — <c>heatImmune()</c> guards the bump and nothing else.
+        /// </summary>
+        public bool Immune { get; set; }
+
+        /// <summary>
         /// One crime, one star, one more police car. The only way heat ever goes up.
         ///
         /// It re-arms the give-up cap even at maximum stars, so staying on a rampage keeps the heat
@@ -110,7 +126,7 @@ namespace TheBlock.Police
         /// </summary>
         public void Bump()
         {
-            if (Frozen) return;
+            if (Frozen || Immune) return;
 
             sinceCrime = 0f;
             noContact = 0f;
