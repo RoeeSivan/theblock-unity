@@ -65,10 +65,6 @@ namespace TheBlock.UI.Menus
 
             overlay.Add(MenuStyle.Wordmark("The Block", 64f));
 
-            var tagline = MenuStyle.Body("Florentin, Tel Aviv");
-            tagline.style.marginBottom = 18f;
-            overlay.Add(tagline);
-
             // ── root ──────────────────────────────────────────────────────────────────────────
             _root = MenuStyle.Column("title-root");
             overlay.Add(_root);
