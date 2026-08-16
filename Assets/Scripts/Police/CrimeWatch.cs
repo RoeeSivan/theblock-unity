@@ -122,7 +122,10 @@ namespace TheBlock.Police
         /// <b>The last filter is new, and it is what a counter forces.</b> Heat is whole stars again,
         /// so a crash is worth one star or nothing at all and "how hard did I hit that" has to become
         /// a threshold rather than a multiplier. <see cref="PoliceTuning.CrashCrimeSpeed"/> is that
-        /// line, set where a wall at about 22 km/h is a crime and a kerb hop is not.
+        /// line, set where a wall at about 22 km/h is a crime and a kerb hop is not — and
+        /// <see cref="PoliceTuning.VehicleCrashCrimeSpeed"/> is the far lower one an impact against
+        /// another car is judged by, because that is a hit-and-run and the wall figure exists to
+        /// forgive geometry, not victims.
         /// </summary>
         private void OnCrashed(CrashSensor.Impact impact)
         {
@@ -144,7 +147,15 @@ namespace TheBlock.Police
                 return;
             }
 
-            if (impact.ClosingSpeed < heat.Tuning.CrashCrimeSpeed)
+            // Two lines, not one: what you hit decides which. A wall wants the high bar that made
+            // scrapes free; another CAR is a hit-and-run and is a crime at little more than walking
+            // pace. `HitVehicle` is read off the collider rather than off `Other`, because a parked
+            // filler has no Rigidbody to be.
+            float line = impact.HitVehicle
+                ? heat.Tuning.VehicleCrashCrimeSpeed
+                : heat.Tuning.CrashCrimeSpeed;
+
+            if (impact.ClosingSpeed < line)
             {
                 Judged?.Invoke(impact, false);
                 return;

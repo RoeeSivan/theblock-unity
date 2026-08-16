@@ -269,6 +269,11 @@ namespace TheBlock.Vehicles
             _body.centerOfMass = centerOfMass;
             if (TryGetComponent<Police.CopDriver>(out _)) boostExempt = true;
 
+            // Every car in the game reports its own impacts — that is what CrimeWatch and the crash
+            // thump were both written against, and neither had ever received one, because the
+            // component was on no prefab at all. See CrashSensor's own comment.
+            CrashSensor.Ensure(gameObject);
+
             // The belt to FuelTank.Configure's braces: the tank pushes itself onto us as it
             // attaches, and this catches the one case the push cannot — a reload that brought the
             // component back but not the reference. Correct by then, harmless before.

@@ -23,6 +23,16 @@ namespace TheBlock.Vehicles
     /// <b>OnCollisionEnter only, never Stay.</b> A scrape is a long sequence of Stay callbacks and a
     /// handful of Enters; listening to Enter alone is most of the immunity before a single number is
     /// tuned.
+    ///
+    /// <b>Attached at runtime, by the vehicle itself.</b> <see cref="CarController.Bind"/> and
+    /// <see cref="MotorcycleController.Bind"/> both call <see cref="Ensure"/>. This class shipped in
+    /// U19 and sat on NOTHING — no prefab, no scene object, no <c>AddComponent</c> anywhere — so
+    /// both listeners were subscribed to an event that could never fire: a crash was worth no heat
+    /// and made no sound, for every unit since. A prefab field would have been dropped again the
+    /// next time <c>The Block → Build Drivable Cars</c> regenerated them, which is the likeliest
+    /// story of how it was lost in the first place. Adding it from the controller's own bind is the
+    /// same answer <c>PoliceSystem.FillPool</c> uses for <c>CopCar</c>, and it cannot be regenerated
+    /// away.
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
     public class CrashSensor : MonoBehaviour
@@ -42,15 +52,28 @@ namespace TheBlock.Vehicles
             /// <summary>What was hit, for weighting. Null when it was the static world.</summary>
             public readonly Rigidbody Other;
 
+            /// <summary>
+            /// Was the thing hit another VEHICLE — a traffic car, a parked filler, a cruiser, a
+            /// drivable car or a bike?
+            ///
+            /// <see cref="Other"/> cannot answer this and never could: a parked lot filler is a
+            /// static collider with no Rigidbody at all, so it arrives here indistinguishable from a
+            /// wall, and a traffic car promoted to a wreck inside this very callback has no body yet
+            /// either. The answer is taken from the COLLIDER's own hierarchy instead, which is true
+            /// in both cases.
+            /// </summary>
+            public readonly bool HitVehicle;
+
             public readonly Vector3 Point;
             public readonly Vector3 Normal;
 
-            public Impact(CrashSensor sensor, float closing, float impulse, Rigidbody other, Vector3 point, Vector3 normal)
+            public Impact(CrashSensor sensor, float closing, float impulse, Rigidbody other, bool hitVehicle, Vector3 point, Vector3 normal)
             {
                 Sensor = sensor;
                 ClosingSpeed = closing;
                 ImpulseOverMass = impulse;
                 Other = other;
+                HitVehicle = hitVehicle;
                 Point = point;
                 Normal = normal;
             }
@@ -83,6 +106,20 @@ namespace TheBlock.Vehicles
             _pedestrianLayer = LayerMask.NameToLayer(pedestrianLayer);
         }
 
+        /// <summary>
+        /// Gives <paramref name="vehicle"/> a sensor if it has not got one. Idempotent, and safe to
+        /// call again after a mid-Play recompile.
+        ///
+        /// <c>TryGetComponent</c> rather than <c>GetComponent() ?? AddComponent()</c>: a missing
+        /// component comes back as Unity's fake-null, which is not null to <c>??</c>, so the
+        /// coalescing form silently hands back a dead reference and adds nothing.
+        /// </summary>
+        public static void Ensure(GameObject vehicle)
+        {
+            if (vehicle == null) return;
+            if (!vehicle.TryGetComponent<CrashSensor>(out _)) vehicle.AddComponent<CrashSensor>();
+        }
+
         private void OnCollisionEnter(Collision collision)
         {
             if (_body == null) _body = GetComponent<Rigidbody>();
@@ -109,7 +146,36 @@ namespace TheBlock.Vehicles
 
             float mass = _body != null && _body.mass > 0f ? _body.mass : 1f;
             Crashed?.Invoke(new Impact(
-                this, best, collision.impulse.magnitude / mass, collision.rigidbody, contact.point, contact.normal));
+                this, best, collision.impulse.magnitude / mass, collision.rigidbody,
+                IsVehicle(collision.collider), contact.point, contact.normal));
+        }
+
+        /// <summary>
+        /// Does this collider belong to a vehicle?
+        ///
+        /// Walked from the collider UPWARDS, because every kind of vehicle in this game puts its
+        /// script somewhere different: a drivable car and a traffic car carry theirs on the same
+        /// object as the collider, a parked filler carries <see cref="World.LotCar"/> on the root of
+        /// a scaled model, and a bike's collider sits under its body. It is only ever run on the
+        /// frames a vehicle actually strikes something, which is not a rate worth caching for.
+        /// </summary>
+        private static bool IsVehicle(Collider other)
+        {
+            if (other == null) return false;
+
+            var probe = other.attachedRigidbody != null ? other.attachedRigidbody.transform : other.transform;
+
+            // A CRUISER is not a civilian vehicle, and the exclusion is not politeness — it is the
+            // feedback loop U19 already paid for once. Cops crowd you and touch you constantly, so a
+            // low bar against police contact mints a crime every cooldown, which spawns another cop
+            // and resets the give-up clock: a pursuit that can never end because it is happening.
+            // Ramming one hard is still a crime; it is judged by the wall's line, like a wall.
+            var car = probe.GetComponentInParent<CarController>();
+            if (car != null) return !car.IsPolice;
+
+            return probe.GetComponentInParent<MotorcycleController>() != null
+                   || probe.GetComponentInParent<Traffic.TrafficCar>() != null
+                   || probe.GetComponentInParent<World.LotCar>() != null;
         }
 
         /// <summary>

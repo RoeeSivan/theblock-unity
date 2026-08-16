@@ -193,6 +193,10 @@ namespace TheBlock.Vehicles
             _body = GetComponent<Rigidbody>();
             _body.centerOfMass = centerOfMass;
 
+            // Same as CarController.Bind: the bike reports its own impacts, or riding one is immune
+            // to the police and silent on contact.
+            CrashSensor.Ensure(gameObject);
+
             var snapshot = TheBlockConfig.Load();
             if (snapshot?.Config?.Vehicle == null)
             {

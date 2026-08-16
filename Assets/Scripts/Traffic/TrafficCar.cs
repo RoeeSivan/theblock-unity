@@ -66,17 +66,26 @@ namespace TheBlock.Traffic
         [Tooltip("Off makes a traffic car an immovable wall for good — the web build's contract.")]
         [SerializeField] private bool wreckOnImpact = true;
 
-        [Tooltip("Relative speed, m/s, below which a bump is just a bump. Kerb-speed nudges must not wreck.")]
-        [SerializeField] private float wreckSpeed = 6f;
+        [Tooltip("Relative speed, m/s, below which a bump is just a bump. 3 is about 11 km/h — a " +
+                 "shunt you meant. It was 6, and 6 is faster than most of a queue ever moves, so " +
+                 "every collision inside a jam was a car hitting a wall.")]
+        [SerializeField] private float wreckSpeed = 3f;
 
         [Tooltip("Mass once it is a real body. A saloon, not a skip.")]
         [SerializeField] private float wreckMass = 1400f;
 
-        [Tooltip("Fraction of the impact speed the wreck leaves with. 1 would be a perfectly elastic hit.")]
-        [SerializeField] private float wreckMomentumShare = 0.55f;
+        [Tooltip("Fraction of the impact speed the wreck leaves with. 1 would be a perfectly " +
+                 "elastic hit. High on purpose: PhysX has already spent most of the energy on the " +
+                 "contact by the time this runs, so a share under about 0.8 reads as hitting a " +
+                 "parked skip.")]
+        [SerializeField] private float wreckMomentumShare = 0.9f;
 
         [Tooltip("Ceiling on that, m/s, so nothing is ever launched across the city.")]
-        [SerializeField] private float wreckMaxSpeed = 14f;
+        [SerializeField] private float wreckMaxSpeed = 20f;
+
+        [Tooltip("How hard an off-centre hit slews the car round, rad/s per m/s per metre of " +
+                 "offset. This is most of what makes a shunt read as a crash rather than a shove.")]
+        [SerializeField] private float wreckSpin = 0.45f;
 
         // --- sim state, owned by TrafficSystem -------------------------------------------------
 
@@ -323,7 +332,7 @@ namespace TheBlock.Traffic
             // A little spin, scaled by how far off-centre the hit was, so a clipped wing slews the
             // car round instead of shunting it squarely down the road.
             float offCentre = Vector3.Dot(contact.point - transform.position, transform.right);
-            _body.angularVelocity = new Vector3(0f, -offCentre * speed * 0.25f, 0f);
+            _body.angularVelocity = new Vector3(0f, -offCentre * speed * wreckSpin, 0f);
 
             Speed = 0f;
             InCorner = false;

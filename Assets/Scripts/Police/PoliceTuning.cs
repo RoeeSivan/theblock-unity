@@ -34,6 +34,13 @@ namespace TheBlock.Police
                  "scrape free now that a crash is worth a whole star or nothing at all.")]
         public float CrashCrimeSpeed = 6f;
 
+        [Tooltip("The same line for an impact against ANOTHER VEHICLE — a traffic car, a parked " +
+                 "filler, a cruiser — and deliberately much lower than the wall figure. Ramming a " +
+                 "car is a hit-and-run with a victim and a witness; scraping a bollard is not, and " +
+                 "the web build could not tell the two apart at all. 2.5 m/s is 9 km/h: a real " +
+                 "shunt, not a parking nudge.")]
+        public float VehicleCrashCrimeSpeed = 2.5f;
+
         [Tooltip("DESIGN. crime.crashCooldown. Seconds before another impact can be a crime, so " +
                  "grinding a wall is not a star every frame.")]
         public float CrashCooldown = 3f;
@@ -183,6 +190,13 @@ namespace TheBlock.Police
         [Tooltip("DESIGN. Her speed, m/s. Between the player's jog (4.5) and sprint (7), so a fresh " +
                  "sprint escapes and an exhausted one does not.")]
         public float OfficerSpeed = 6.2f;
+
+        [Tooltip("DESIGN. Metres she stops SHORT of the player. A NavMeshAgent has no idea the " +
+                 "player is standing there — a CharacterController neither agents nor carves — so " +
+                 "without this her destination IS the player and she walks into and through them. " +
+                 "Must stay well inside OfficerGrabRadius or she stands outside her own reach and " +
+                 "the arrest never fires.")]
+        public float OfficerStandoff = 1.1f;
 
         [Tooltip("DESIGN. Metres for the grab — arm's length, not a car's length.")]
         public float OfficerGrabRadius = 1.6f;
