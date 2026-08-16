@@ -59,10 +59,67 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-**Next action: play-test U19d (the urgency pass), then start U20.** U19d is written, compiles clean
-and is NOT play-tested — the user's call, to be checked in the morning. If it reads right, U19d is
-done and U20 (mission framework, campaign director, persistence) is next: first row of Tier 5,
-nothing above it open, read `mission/` and `game/campaign-setup.ts` / `progress.ts` in the original.
+**Next action: PLAY-TEST TIER 5 — all four missions, in order, plus U19d.** Nothing is being built
+until that happens. U20, U21, U22, U23 and U24 are all **built, measured and committed**, and all
+five are `wip` rather than `done` for one reason only: the user has not played them yet. That was
+the explicit arrangement (2026-08-16, *"תבנה את כל המשימות כבר ומחר נבצע תיקונים במידה ויהיה"* —
+build them all, we fix in the morning).
+
+### What to play, in this order
+
+The save was deliberately wiped, so Play starts a fresh campaign at mission 1 with $0.
+
+| # | do this | expect |
+| --- | --- | --- |
+| 1 | Drive to the pizzeria (objective line points at it), `E` at the door, walk to the counter, **`T`** | Briefing card + Hazel's voiceover → out to the street → 5 customers with green pins |
+| 2 | Ride to each, **`F`** within 6 m | A thank-you line, the beacon pops, `Deliveries n/5`, 4-minute clock. Done → +$80 and a handoff card |
+| 3 | Go to the beach (Remy at Unity ≈ `414, −239`), **`T`** within 4.5 m | Instructions card → 3·2·1 → the song, arrows scrolling right-to-left into the ring. **← ↓ ↑ →** to hit |
+| 4 | Win it (≥50% accuracy) | Result card, +$120, and the Huey unlocks |
+| 5 | Walk to the Huey (≈ `428, −228`), `E`, then **`F`** | 4 survivors on rooftops, orange pins. `W/S` fly · `A/D` turn · `Space` up · `Shift` down. Descend within 10 m of each |
+| 6 | All four → +$200. Then swim out to the jetski (≈ `442, −246`, past the shore wall), `E`, **`F`** | 9 buoys, the thief flees, gates tick up. He beaches; get off and walk within 2.5 m |
+| 7 | Catch him | +$300, the win card with the total, campaign complete |
+
+`F` retries any failed mission from anywhere. `M` opens the map. `R` respawns a vehicle.
+
+### What I could not verify, and what to watch
+
+- **Nothing has been played by a human.** Every claim in the rows below is an MCP measurement:
+  positions, radii, counts, clocks, status edges. Measurement catches geometry and logic; it cannot
+  tell you whether the dance is fun, whether the Huey feels heavy, or whether four minutes is enough
+  for five deliveries. Those are the questions the play-test exists to answer.
+- **The dance is the one to judge hardest.** Its clock is provably right (0.02 ms of drift) but the
+  *feel* — note density, whether the ring reads at speed, whether 2.2 s of travel is enough warning —
+  is untested and is exactly the kind of thing a rhythm game lives or dies on.
+- **The heli's flight model has never been flown.** It is a Rigidbody with velocity written in; it
+  has been proven to rest on a roof, not to be pleasant to land.
+- **U19d is still un-play-tested** and its note is below. ⚠ Its two files were swept into commit
+  `51e8037` by a `git add -A` rather than committed on their own — the work is not lost, the commit
+  message just does not mention it.
+- **Arrows are keyboard only.** The user asked whether clicking works: it does not, in this port or
+  the original. Four tappable lanes would be ~20 lines and matter for U31's iPad.
+
+### Three things deliberately not built, so they are decisions and not oversights
+
+- **The pizza-box stack on the counter.** Set dressing with no mechanic — the pizzas you carry are a
+  HUD count and no version of this game picks a box up. The raw asset is 23 MB for a 30 cm prop (a
+  14.7 MB normal map alone) and the shipped 417 KB copy needs Draco, which this project has no
+  importer for.
+- **The cashier is Elizabeth and the thief is Peter**, rather than the web's three dedicated Mixamo
+  downloads (~155 MB). Both are already-imported crowd characters, and Peter is the one the delivery
+  run does not use as a customer. Swapping either is a one-line change in its builder.
+- **`GameMode.Transition`.** It exists in the web to freeze input behind a fade; the port has no fade
+  yet and U25 owns it. A label nothing switches on is a dead branch.
+
+### The rebuild order gained four steps
+
+**Import Dance Clips** (once, then never again — it deletes its own sources), **Build Mission
+Vehicles**, **Bake Roof Spots** (needs Build World to have run — it reads the placed city), and
+**Build Campaign** (last: it collects every mission and wires the lot). **Reset Campaign** is the
+New Game button until U26 has a menu.
+
+---
+
+### U19d, 2026-08-15 — "I want the police to arrive a bit faster" — WRITTEN, NOT PLAY-TESTED
 
 ### U19d, 2026-08-15 — "I want the police to arrive a bit faster" — WRITTEN, NOT PLAY-TESTED
 
@@ -1299,11 +1356,12 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 ### Tier 5 — Missions
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
-| U20 | Mission framework + campaign director + persistence | todo | | |
-| U21 | M1 pizza delivery | todo | | Owns the interior's mission mechanics, left open at U13 by the user: the counter hand-off, what the exit pad means while carrying pizzas, whether leaving starts the shift. Expect to change `Interior.cs`, not build beside it |
-| U22 | M2 rhythm / dance minigame | todo | | |
-| U23 | Helicopter + M3 rooftop rescue | todo | | |
-| U24 | Jetski + M4 chase | todo | | |
+| U20 | Mission framework + campaign director + persistence | **wip — built + measured, awaiting the play-test** | `51e8037` | **`MissionBehaviour` is an abstract MonoBehaviour, not an interface**, because `[SerializeField]` on an interface stores nothing in Unity and the campaign holds a hand-ordered serialized list. `Campaign`/`CampaignDirector`/`MissionFeedback`/`CampaignRunner` port `campaign.ts`, `campaign-director.ts`, `mission-feedback.ts` and main.ts's mission block; ONE reactor over status edges owns teardown, payout and cards, which is what makes "a bust and a clock time-out are the same edge" structural rather than a convention. `Progress`/`Payouts`/`Onboarding` on PlayerPrefs — **payouts MUST persist**: the web shipped that set in memory beside a persisted wallet and every mission paid again after a reload. `Beacon` ports `marker.ts` with shared meshes and per-colour cached materials. `MissionHud` + `BriefingCard` on the EXISTING UIDocument per the U25 row. **The three hooks U19c left dangling are wired**: `Heat.SuppressCrash`, `BustSequence.Busted` (its first-ever firing), `Wallet.Add`. Exporter extended from 2 sources to 7, table-driven; `config` and `npcConfig` come out byte-identical. **Caught: `BriefingCard` built in Start raced `CampaignRunner`'s Start and built a SECOND overlay — an undismissable dark panel over the screen with the real card behind it. Both Awake now, and guarded. And Unity's default font has no emoji, so every objective line drew blank boxes — `Glyphs.Strip` removes them at the point of DRAWING, so the copy is untouched and U25's font deletes one file.** Measured: $0→$80 paid exactly once and still marked paid after a Play restart; teardown left 0 POIs on BOTH the complete and the fail edge |
+| U21 | M1 pizza delivery | **wip — built + measured, awaiting the play-test** | `51e8037` | **A delivery target IS a crowd prefab never bound to a seed**, so it stands and idles for free — no second character pipeline, and it is invisible to `RunOverSystem` (which only reads `CrowdSpawner.Crowd`), so a customer cannot be run over and the shift cannot be made unwinnable. The web loads five more FBX at boot for these. **Owns the interior's mission mechanics, which U13 left open**: the cashier behind the counter, `T` to start, briefing + voiceover, then out to the street. `Interior` gained `NearCounter`/`AtExitPad`/`LeaveNow`. Measured: 5 targets on the pavement at y 0.12–0.16 (not the plate at −0.05), the five faces in config order, a forced clock fail froze the HUD at 0:00 and retried to a fresh 240 s with no briefing replay |
+| U22 | M2 rhythm / dance minigame | **wip — built + measured, awaiting the play-test** | `90d24c6` | **The clock is `AudioSettings.dspTime`, and that is the biggest feel win in Tier 5.** The web reads `audioElement.currentTime`: main thread, quantised to the decode buffer, jittering against the frame. Against 50 ms judgment windows on a project with a 42 ms frame and ~800 ms stalls in Deferred, that is scoring the frame rate instead of the player. **Measured drift: 0.02 ms** over a full run; `PlayScheduled` anchors the start to a named dsp instant because `Play()` begins somewhere inside the next buffer. **450 MB → 34 MB**: nine Mixamo with-skin FBX imported for their clips only, then DELETED — the same move the web's `anim-clip.py --strip-mesh` makes, and necessary because LFS is already at GitHub's 1 GiB free tier. One controller drives Joe and Remy (Humanoid clips are avatar-relative); default `Dance_Stand` so a giver just stands; Win/Fail terminal, every other one-shot self-returns on exit time. The dancer is an `IChaseTarget`, so U9's camera swap frames it with no dance-specific camera code. **Caught: the `copy-avatar-needs-same-bone-names` memory, verbatim — Copy From Other failed on `mixamorig7:Hips`, so each file Creates From This Model. And a handedness trap with no precedent: the web uses OPPOSITE Z signs for its two camera booms (player +2.5, dancer −5.0) because its player model is π-rotated in a holder and its dancer is a raw Mixamo body. `ModelOffset` is right for one and wrong for the other; applied here it put the camera in the dancer's face. The boom passes through RAW. A conversion belongs to a coordinate's PROVENANCE, not its shape.** Measured: 125 notes at 2.00/1.51/1.01 beats against the authored ramp, 0 repeats; boundaries exact at 49/51/130/140 ms; the 0.5 gate passes 100-good and fails 100-miss; the exit returns the player 3.00 m from Remy with camera and vehicle machine restored |
+| U23 | Helicopter + M3 rooftop rescue | **wip — built + measured, awaiting the play-test** | `f0388c5` | **A real Rigidbody, not the web's kinematic controller with gravity off forever.** Flown, gravity off and velocity written in, so the arcade hover is unchanged; vacated in the air, `useGravity` goes true and PhysX does the fall — the web's hand-written `fallGravity`/`fallMaxSpeed` become numbers to check against. A craft set down on a roof RESTS on it, which is what the mission needs from every roof in the city. Fuselage-only collider per the config's Blender measurement. **Roof spots are BAKED** (`WorldBuilder.Rescue` → `RoofSpots.asset`) the way U17 bakes the traffic graph: the runtime casts nothing and the result is inspectable before anyone flies. The cast takes the FIRST hit from 400 m up — the topmost surface, the opposite of both raycast memories — and rejects >30° slopes, which the web has no way to test for. **Caught: a global spot cap starved four districts of eight, so every rescue would have sent the player to the same corner. The quota is per district now.** Measured: Huey 5.40 × 4.70 × 12.49 m with skids at the pad height; 46 spots across all 8 districts, survivors 27–94 m up, closest pair 104.6 m, 4/4 on the topmost surface at Δ 0.00 m and 0° slope; pickup ignores a 15 m hover and takes at 8 m. **Never flown by a human** |
+| U24 | Jetski + M4 chase | **wip — built + measured, awaiting the play-test** | `f0388c5` | The finale: 9 buoy gates that pass on proximity and never fail you, only the clock loses it, and catching the beached thief on foot completes the campaign. **⚠ THE PLAN WAS WRONG ABOUT THE BUOYS, and this is the unit's real lesson.** It said Unity would delete the web's two avoidance mechanisms because a collider is a collider. Both skis are KINEMATIC — their motion is scripted onto a water plane, because U12 built the sea as a shader surface with no volume to be buoyant in — and **a kinematic body gets no collision response against a static one**, so all nine buoys would have been scenery you sail through. `BuoyField` is the web's own radial push-out, now shared by the player AND the thief: one mechanism where the web has two. A smaller win than claimed, and a real one. Measured: a step 0.30 m from a centre lands at 2.60 m. **The thief is Peter** — the one crowd character the delivery run does not use — instead of the web's two dedicated 52 MB downloads; his ski is a tinted clone with the material CLONED first, or both skis go dark red. **Caught: `yield return card.ShowAndWait(lines)` deferred `Show()` by a frame, and anything touching the card in that window parked the mission forever with its entry latch set and no key able to retry. `ShowAndWait` returns a `WaitWhile` now and all four entry routines release their latch in a `finally`. And `ChaseThief` indexed the 3-point sand path with the 18-point route's cursor.** Measured: jetski at Unity x 442 against a shore at 430 so the player swims out as designed; both vehicles refuse `E` until the cursor reaches their step; 9 gates / 9 beacons / 9 pins / 0 on the land side; the beach hand-off swaps the bodies; the catch refuses at 6.0 m and takes at 1.5 m against a 2.5 m radius |
+| — | Minimap removed, by the user 2026-08-16 | done | `f0388c5` | *"remove the map from the left side… you will only see the map when pressing M."* `GameMap.showMinimap` is off; with the radar off and the map closed the whole second-camera pass is SKIPPED rather than rendered into a texture nobody sees. This is the Settings → Display radar toggle U26 already owed, arriving early as a serialized field and a `SetMinimapVisible` — U26 gives it a menu, it does not build it again |
 
 ### Tier 6 — Shell
 | id | unit | state | commit | notes |
