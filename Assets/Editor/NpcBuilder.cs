@@ -160,6 +160,17 @@ namespace TheBlock.EditorTools
                 var pedestrian = root.AddComponent<Pedestrian>();
                 pedestrian.Configure(animator, clipSpeed);
 
+                // npcConfig's `gender` reads to exactly one thing in the original — which pool this
+                // face screams from when a car hits it — and this is where it gets baked in. The six
+                // names in PeopleImporter.Names and the six in npcConfig.people are the same six, so
+                // the match is by name and a miss is worth saying out loud.
+                var person = npc.People?.FirstOrDefault(p => p != null && p.Name == name);
+                if (person == null)
+                    log.AppendLine($"{name,-11} note — no npcConfig.people entry, so it screams male");
+                pedestrian.SetVoice(person != null && person.Gender == "f"
+                    ? TheBlock.Audio.ScreamVoice.Female
+                    : TheBlock.Audio.ScreamVoice.Male);
+
                 var path = $"{PrefabFolder}/Ped_{name}.prefab";
                 PrefabUtility.SaveAsPrefabAsset(root, path);
 

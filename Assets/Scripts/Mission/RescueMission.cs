@@ -294,6 +294,10 @@ namespace TheBlock.Missions
                     _fading.Add(survivor.Beacon);
                 }
 
+                // The same two-note ding the pizza run uses — the web's `sfx.playDelivery()` on
+                // `rescue.rescueNear(...)`. One cue for "one of the set is done", whatever the set is.
+                TheBlock.Audio.GameAudio.Cue(TheBlock.Audio.SfxCue.Delivery);
+
                 if (verbose) Debug.Log($"[rescue] {_rescued}/{_chosen}");
 
                 if (_rescued < _chosen) continue;

@@ -128772,6 +128772,53 @@ Transform:
   m_Children: []
   m_Father: {fileID: 662315825}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1133555015
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1133555017}
+  - component: {fileID: 1133555016}
+  m_Layer: 0
+  m_Name: Ambient
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1133555016
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1133555015}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7801620ba7934fad91d59ec7e42ee38, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Audio.Ambient
+  library: {fileID: 11400000, guid: 22153fa39d9c6473994e2766bdd8f56f, type: 2}
+  output: {fileID: -5325168584906502641, guid: e48cef74196274be9a61d4d7d8d6d0ae, type: 2}
+  trim: 1
+--- !u!4 &1133555017
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1133555015}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1415134494}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1133810257
 GameObject:
   m_ObjectHideFlags: 0
@@ -140631,6 +140678,53 @@ Transform:
   - {fileID: 1159314877}
   m_Father: {fileID: 1581059787}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1235318403
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1235318405}
+  - component: {fileID: 1235318404}
+  m_Layer: 0
+  m_Name: Engine
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1235318404
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1235318403}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ea298c08fd05d4095b1a6cc2fc5d1ab1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Audio.EngineSound
+  library: {fileID: 11400000, guid: 22153fa39d9c6473994e2766bdd8f56f, type: 2}
+  output: {fileID: -224516253077609271, guid: e48cef74196274be9a61d4d7d8d6d0ae, type: 2}
+  source: {fileID: 0}
+--- !u!4 &1235318405
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1235318403}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1415134494}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1235457738
 GameObject:
   m_ObjectHideFlags: 0
@@ -147010,6 +147104,53 @@ MeshRenderer:
   m_CorrespondingSourceObject: {fileID: -1079939633413605452, guid: 55a70db4f5edb4f10be94bedc94085a4, type: 3}
   m_PrefabInstance: {fileID: 1008718061}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1285323198
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1285323200}
+  - component: {fileID: 1285323199}
+  m_Layer: 0
+  m_Name: Sfx
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1285323199
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1285323198}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 19ccc5ad0a299456a84f402f5723cdfa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Audio.Sfx
+  voices: 8
+  volume: 1
+  output: {fileID: -1262566050257108617, guid: e48cef74196274be9a61d4d7d8d6d0ae, type: 2}
+--- !u!4 &1285323200
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1285323198}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1415134494}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1285409987
 GameObject:
   m_ObjectHideFlags: 0
@@ -161665,6 +161806,71 @@ Transform:
   m_Children:
   - {fileID: 1156657453}
   m_Father: {fileID: 1679085386}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1415134492
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1415134494}
+  - component: {fileID: 1415134493}
+  m_Layer: 0
+  m_Name: GameAudio
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1415134493
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1415134492}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7df65c8753001455cb15672cd090a573, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Audio.GameAudio
+  mixer: {fileID: 24100000, guid: e48cef74196274be9a61d4d7d8d6d0ae, type: 2}
+  library: {fileID: 11400000, guid: 22153fa39d9c6473994e2766bdd8f56f, type: 2}
+  sirenClip: {fileID: 8300000, guid: e7d8a478cbf8247bdb5162cb88d363e5, type: 3}
+  sfx: {fileID: 1285323199}
+  ambient: {fileID: 1133555016}
+  screams: {fileID: 1589434962}
+  engine: {fileID: 1235318404}
+  rotor: {fileID: 1618870229}
+  listenerAnchor: {fileID: 0}
+  vehicles: {fileID: 0}
+  interior: {fileID: 0}
+  maxSirens: 3
+  snapshotBlend: 0.35
+  crashFloor: 3
+  crashFull: 12
+  crashCooldown: 0.3
+--- !u!4 &1415134494
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1415134492}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1285323200}
+  - {fileID: 1133555017}
+  - {fileID: 1589434963}
+  - {fileID: 1235318405}
+  - {fileID: 1618870231}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!23 &1415266681 stripped
 MeshRenderer:
@@ -181449,6 +181655,53 @@ Transform:
   - {fileID: 698373466}
   m_Father: {fileID: 1941469661}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1589434961
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1589434963}
+  - component: {fileID: 1589434962}
+  m_Layer: 0
+  m_Name: Screams
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1589434962
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1589434961}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5791da96619f1427db9f4dba27645b1e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Audio.Screams
+  library: {fileID: 11400000, guid: 22153fa39d9c6473994e2766bdd8f56f, type: 2}
+  output: {fileID: -1262566050257108617, guid: e48cef74196274be9a61d4d7d8d6d0ae, type: 2}
+  sfx: {fileID: 1285323199}
+--- !u!4 &1589434963
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1589434961}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1415134494}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1589663362
 GameObject:
   m_ObjectHideFlags: 0
@@ -184739,6 +184992,149 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1618663429}
   m_Mesh: {fileID: 8216298629630623197, guid: 5a4150f36b2aa4c5c825341afc022d84, type: 3}
+--- !u!1 &1618870228
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1618870231}
+  - component: {fileID: 1618870230}
+  - component: {fileID: 1618870229}
+  m_Layer: 0
+  m_Name: Rotor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1618870229
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1618870228}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 92fc98cd91d5842ce94e4d89bc726f58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Audio.RotorSound
+  output: {fileID: -224516253077609271, guid: e48cef74196274be9a61d4d7d8d6d0ae, type: 2}
+--- !u!82 &1618870230
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1618870228}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 0}
+  m_PlayOnAwake: 1
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+--- !u!4 &1618870231
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1618870228}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1415134494}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1618975900
 GameObject:
   m_ObjectHideFlags: 0
@@ -227998,7 +228394,7 @@ MonoBehaviour:
   bust: {fileID: 1127657413}
   vehicles: {fileID: 776202321}
   interior: {fileID: 1919606581}
-  debugStartMission: -1
+  debugStartMission: 1
   verbose: 0
 --- !u!114 &2005359058
 MonoBehaviour:
@@ -228088,28 +228484,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1d0211b6ccadf4ed3ab4272362b93dfc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Audio.Voice
-  clips:
-  - Key: briefing-1
-    Clip: {fileID: 8300000, guid: eb864348f2f9c48fd9450bcb64a57435, type: 3}
-  - Key: dance-intro
-    Clip: {fileID: 8300000, guid: a7ac7c8040a964555a0342a890f6a9b6, type: 3}
-  - Key: remy-cheer-1
-    Clip: {fileID: 8300000, guid: a3d072d7e2624486598a37521522216c, type: 3}
-  - Key: remy-cheer-2
-    Clip: {fileID: 8300000, guid: ee5801c952bc546c58b5e2017681f811, type: 3}
-  - Key: remy-cheer-3
-    Clip: {fileID: 8300000, guid: 60348aeabf5f04257aa9716174a38d92, type: 3}
-  - Key: thanks-chinese
-    Clip: {fileID: 8300000, guid: af01cb2d4f17247a0a4a213bc2032971, type: 3}
-  - Key: thanks-elizabeth
-    Clip: {fileID: 8300000, guid: d9f5d2f2ba4e045bc992bd89c1876eef, type: 3}
-  - Key: thanks-lewis
-    Clip: {fileID: 8300000, guid: 64584b06441c440448c89003c21a5a63, type: 3}
-  - Key: thanks-remy
-    Clip: {fileID: 8300000, guid: 724322a359958447da88e491992a5fd1, type: 3}
-  - Key: thanks-sophie
-    Clip: {fileID: 8300000, guid: 8b256c799ef16488b81c24f3cefd31f2, type: 3}
+  library: {fileID: 11400000, guid: 22153fa39d9c6473994e2766bdd8f56f, type: 2}
   source: {fileID: 0}
+  output: {fileID: 1853472741674740265, guid: e48cef74196274be9a61d4d7d8d6d0ae, type: 2}
   volume: 1
 --- !u!114 &2005359063
 MonoBehaviour:
@@ -228125,6 +228502,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Minigame.Rhythm.Conductor
   source: {fileID: 0}
   song: {fileID: 8300000, guid: 39547c12aa97e468483b37b5c4485ac2, type: 3}
+  output: {fileID: -4761796014230225252, guid: e48cef74196274be9a61d4d7d8d6d0ae, type: 2}
 --- !u!82 &2005359064
 AudioSource:
   m_ObjectHideFlags: 0
@@ -228242,6 +228620,7 @@ MonoBehaviour:
   voice: {fileID: 2005359062}
   conductor: {fileID: 2005359063}
   hudDocument: {fileID: 167873114}
+  map: {fileID: 0}
   dancer: {fileID: 465322397}
   giver: {fileID: 682524098}
   verbose: 0
@@ -250971,3 +251350,4 @@ SceneRoots:
   - {fileID: 682524097}
   - {fileID: 1628885780}
   - {fileID: 1131485849}
+  - {fileID: 1415134494}

@@ -61,6 +61,12 @@ namespace TheBlock.Police
             Running = true;
             Busted?.Invoke();
 
+            // The heavy "you're caught" sting. The sirens need no explicit cut here: clearing the
+            // stars sends every cop home, `Siren.Wanted` goes false with the mode, and the
+            // arbitration stops them on the same frame — which is the web's
+            // `pursuitAudio.setChaseActive(false)` arriving as a consequence rather than a call.
+            TheBlock.Audio.GameAudio.Cue(TheBlock.Audio.SfxCue.Busted);
+
             var driving = vehicles != null && vehicles.Mode == GameMode.Driving
                 ? vehicles.ActiveVehicle
                 : null;

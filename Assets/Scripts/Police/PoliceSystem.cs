@@ -109,6 +109,15 @@ namespace TheBlock.Police
                 var cop = instance.GetComponent<CopCar>();
                 if (cop == null) cop = instance.AddComponent<CopCar>();
                 cop.Configure(_tuning, routeGraph, _laneGap);
+
+                // U27's siren rides on the car itself, so it is a sound in the WORLD with real
+                // distance and direction — the thing the web could not have, because that build has
+                // no AudioListener and every sound in it plays at a constant gain. Added here rather
+                // than on the prefab because the pool is built at runtime and there is no prefab step
+                // to fill a field in. TryGetComponent, never `??` — see the memory file.
+                if (!instance.TryGetComponent<TheBlock.Audio.Siren>(out _))
+                    instance.AddComponent<TheBlock.Audio.Siren>();
+
                 cop.Bay = i < bayPositions.Length ? i : -1;
                 cop.State = CopCar.Mode.Idle;
                 cop.Car.Driven = false;
@@ -136,6 +145,17 @@ namespace TheBlock.Police
 
             foreach (var cop in _cops)
             {
+                // The siren, every frame, from the same State the driver reads — so it cannot say
+                // one thing while the car does another. A parked, returning or wrecked cruiser is
+                // silent; only a car actually coming for you sounds. Which of them are AUDIBLE is
+                // Siren.Arbitrate's call, not this one's: "the three nearest" is not a fact any
+                // single car knows.
+                if (cop.TryGetComponent<TheBlock.Audio.Siren>(out var siren))
+                {
+                    siren.Wanted = cop.State == CopCar.Mode.Chasing ||
+                                   cop.State == CopCar.Mode.Arresting;
+                }
+
                 if (cop.State == CopCar.Mode.Idle) continue;
 
                 if (cop.State == CopCar.Mode.Wrecked)

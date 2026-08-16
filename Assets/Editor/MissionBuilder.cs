@@ -361,29 +361,21 @@ namespace TheBlock.EditorTools
         }
 
         /// <summary>
-        /// Fills the voice bank from <c>Assets/Audio/Voice</c>, keyed on file name — which is what
-        /// the config's own web URLs resolve to, so nothing has to re-type a path the exporter is
-        /// already carrying. Returns how many clips landed.
+        /// Points the campaign's <see cref="Voice"/> at the project's one clip resolver, building it
+        /// if U27's Build Audio has never been run. Returns how many clips it holds.
+        ///
+        /// It used to own a private list of its own, filled from <c>Assets/Audio/Voice</c>. U27 gave
+        /// the project an <see cref="AudioLibrary"/> covering all five audio folders, and two
+        /// resolvers for the same question is how the two disagree later — so this now DELEGATES.
+        /// The mixer group is left alone here: Build Audio owns the routing, and a null group is the
+        /// master output, which is what this was before U27 anyway.
         /// </summary>
         private static int FillVoiceBank(Voice voice)
         {
-            var entries = new List<Voice.Entry>();
-            foreach (var guid in AssetDatabase.FindAssets("t:AudioClip", new[] { VoiceFolder }))
-            {
-                var path = AssetDatabase.GUIDToAssetPath(guid);
-                var clip = AssetDatabase.LoadAssetAtPath<AudioClip>(path);
-                if (clip == null) continue;
-                entries.Add(new Voice.Entry
-                {
-                    Key = System.IO.Path.GetFileNameWithoutExtension(path),
-                    Clip = clip,
-                });
-            }
-
-            entries.Sort((a, b) => string.CompareOrdinal(a.Key, b.Key));
-            voice.SetClips(entries);
+            var library = AudioBuilder.EnsureLibrary();
+            voice.Bind(library, null);
             EditorUtility.SetDirty(voice);
-            return entries.Count;
+            return library.Count;
         }
 
         private static T Component<T>(GameObject go, out T _) where T : Component

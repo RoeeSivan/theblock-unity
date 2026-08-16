@@ -7,10 +7,11 @@ namespace TheBlock.Audio
     /// Spoken lines — the port of <c>src/audio/voice.ts</c>. The briefings, the customers' thank-yous
     /// and Remy's dance hype.
     ///
-    /// <b>U27 owns audio, and this is not that unit.</b> It exists because the dance minigame's clock
-    /// IS its music and a briefing that reads in silence is a different scene from one that is read
-    /// to you — those were the user's call to pull forward. Engine, ambient, radio and the sfx pool
-    /// are all still U27's, and this is the seam they extend rather than replace.
+    /// <b>It arrived early, in U20/U22</b>, because the dance minigame's clock IS its music and a
+    /// briefing that reads in silence is a different scene from one that is read to you. U27 has now
+    /// built the rest around it and changed exactly one thing: the clips come from
+    /// <see cref="AudioLibrary"/> rather than from a list serialized into this component, so the
+    /// project has ONE resolver instead of this one plus whatever the other four folders grew.
     ///
     /// <b>Non-positional, one voice at a time.</b> A line is narration, not a sound in the world: it
     /// belongs at the same volume wherever the player is standing, and a second line starting while
@@ -23,25 +24,15 @@ namespace TheBlock.Audio
     /// </summary>
     public class Voice : MonoBehaviour
     {
-        [System.Serializable]
-        public struct Entry
-        {
-            [Tooltip("File name with no extension, e.g. 'thanks-remy'.")]
-            public string Key;
-
-            public AudioClip Clip;
-        }
-
-        [Tooltip("Filled by The Block → Build Campaign from Assets/Audio/Voice.")]
-        [SerializeField] private List<Entry> clips = new();
+        [Tooltip("The project's one clip resolver. Filled by The Block → Build Audio.")]
+        [SerializeField] private AudioLibrary library;
 
         [SerializeField] private AudioSource source;
 
+        [SerializeField] private UnityEngine.Audio.AudioMixerGroup output;
+
         [Range(0f, 1f)]
         [SerializeField] private float volume = 1f;
-
-        private readonly Dictionary<string, AudioClip> _byKey = new();
-        private bool _indexed;
 
         private void Awake()
         {
@@ -64,17 +55,7 @@ namespace TheBlock.Audio
                 source.spatialBlend = 0f; // 2D: narration, not a sound in the world
             }
 
-            Index();
-        }
-
-        private void Index()
-        {
-            if (_indexed) return;
-            _indexed = true;
-            _byKey.Clear();
-            foreach (var entry in clips)
-                if (!string.IsNullOrEmpty(entry.Key) && entry.Clip != null)
-                    _byKey[entry.Key] = entry.Clip;
+            source.outputAudioMixerGroup = output;
         }
 
         /// <summary>True while a line is being spoken.</summary>
@@ -88,9 +69,8 @@ namespace TheBlock.Audio
         public void Play(string url, float gain = 1f)
         {
             if (string.IsNullOrEmpty(url) || source == null) return;
-            Index();
 
-            var clip = Resolve(url);
+            var clip = library != null ? library.Resolve(url) : null;
             if (clip == null)
             {
                 Debug.LogWarning($"Voice: no clip for '{url}' — the line plays silently.");
@@ -120,21 +100,12 @@ namespace TheBlock.Audio
             if (source != null) source.Stop();
         }
 
-        private AudioClip Resolve(string url)
+        /// <summary>Editor-side wiring, used by The Block → Build Audio and Build Campaign.</summary>
+        public void Bind(AudioLibrary clips, UnityEngine.Audio.AudioMixerGroup group)
         {
-            var key = url;
-            var slash = key.LastIndexOf('/');
-            if (slash >= 0) key = key.Substring(slash + 1);
-            var dot = key.LastIndexOf('.');
-            if (dot >= 0) key = key.Substring(0, dot);
-            return _byKey.TryGetValue(key, out var clip) ? clip : null;
-        }
-
-        /// <summary>Editor-side wiring, used by The Block → Build Campaign.</summary>
-        public void SetClips(List<Entry> entries)
-        {
-            clips = entries ?? new List<Entry>();
-            _indexed = false;
+            library = clips;
+            output = group;
+            if (source != null) source.outputAudioMixerGroup = group;
         }
     }
 }

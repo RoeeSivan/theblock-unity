@@ -28,6 +28,9 @@ namespace TheBlock.Minigame.Rhythm
         [SerializeField] private AudioSource source;
         [SerializeField] private AudioClip song;
 
+        [Tooltip("The Music bus. Wired by The Block → Build Audio; null routes to the master output.")]
+        [SerializeField] private UnityEngine.Audio.AudioMixerGroup output;
+
         /// <summary>Where the beatmap's t=0 sits inside the track, in seconds.</summary>
         private float _offset;
 
@@ -69,6 +72,12 @@ namespace TheBlock.Minigame.Rhythm
             source.playOnAwake = false;
             source.loop = false;
             source.spatialBlend = 0f; // the soundtrack, not a speaker on the beach
+
+            // U27 routed the song onto its own bus. It changes nothing about the CLOCK — the anchor
+            // is still a dsp instant and the position is still dspTime − startDsp — but a mixer group
+            // is inserted into this source's output chain, so the drift measurement is worth
+            // repeating rather than assumed. It was 0.02 ms before.
+            source.outputAudioMixerGroup = output;
         }
 
         /// <summary>Rewinds and starts the track. <paramref name="offset"/> is the config's.</summary>
@@ -90,9 +99,39 @@ namespace TheBlock.Minigame.Rhythm
             // started. Play() begins somewhere inside the next audio buffer, so the anchor would be
             // off by up to a buffer's worth — which at 50 ms judgment windows is a real fraction of
             // a perfect. Scheduling names the instant, so the anchor is exact by construction.
-            _startDsp = AudioSettings.dspTime + 0.1;
-            source.PlayScheduled(_startDsp);
+            var start = AudioSettings.dspTime + 0.1;
+            source.PlayScheduled(start);
+
+            // …and then the anchor moves by the OUTPUT LATENCY, which is U27's doing and was caught
+            // by re-running U22's own drift measurement after the song was put on a mixer bus.
+            //
+            // U22 measured 0.02 ms of drift with this source wired straight to the default output.
+            // With an AudioMixerGroup in the chain the same measurement reads **21.3 ms**, dead
+            // stable — and 21.3 ms is not noise, it is exactly 1024 / 48000, one DSP buffer. The
+            // group is processed a buffer behind the source, so what reaches the speakers is a
+            // buffer later than the instant we scheduled. The clock was never wrong; the SOUND
+            // moved. Against a 50 ms Perfect window that is 43% of the window, biased one way, on
+            // every note — the kind of fault a play-test reports as "the timing feels off" and
+            // nobody traces to a routing change.
+            //
+            // So the beatmap's t=0 is placed where the music actually arrives. `Drift` goes back to
+            // ~0, which is the invariant U22 established and measured.
+            _startDsp = start + OutputLatency();
             _running = true;
+        }
+
+        /// <summary>
+        /// Seconds between a scheduled sample and it leaving the speakers, for THIS routing.
+        ///
+        /// Zero with no mixer group: a source on the default output is already accounted for by
+        /// <see cref="AudioSettings.dspTime"/>, which is what made U22's 0.02 ms possible.
+        /// </summary>
+        public double OutputLatency()
+        {
+            if (source == null || source.outputAudioMixerGroup == null) return 0.0;
+            var config = AudioSettings.GetConfiguration();
+            if (config.sampleRate <= 0 || config.dspBufferSize <= 0) return 0.0;
+            return config.dspBufferSize / (double)config.sampleRate;
         }
 
         public void Stop()
@@ -103,5 +142,12 @@ namespace TheBlock.Minigame.Rhythm
 
         /// <summary>Editor-side wiring, used by The Block → Build Campaign.</summary>
         public void SetSong(AudioClip clip) => song = clip;
+
+        /// <summary>Editor-side wiring, used by The Block → Build Audio.</summary>
+        public void SetOutput(UnityEngine.Audio.AudioMixerGroup group)
+        {
+            output = group;
+            if (source != null) source.outputAudioMixerGroup = group;
+        }
     }
 }

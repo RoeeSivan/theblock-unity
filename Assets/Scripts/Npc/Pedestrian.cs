@@ -55,6 +55,10 @@ namespace TheBlock.Npc
                  "NpcAnimatorBuilder.")]
         [SerializeField] private float walkClipSpeed = 1.35f;
 
+        [Tooltip("Which pool this face screams from when it is run over. Baked by NpcBuilder from " +
+                 "npcConfig.people[].gender — it is the only thing that field has ever read to.")]
+        [SerializeField] private TheBlock.Audio.ScreamVoice voice = TheBlock.Audio.ScreamVoice.Male;
+
         [Tooltip("The visual child. Its Animator is what gets the Speed parameter.")]
         [SerializeField] private Animator animator;
 
@@ -147,6 +151,9 @@ namespace TheBlock.Npc
         }
 
         /// <summary>Set by <c>NpcBuilder</c> at build time.</summary>
+        /// <summary>Editor-side wiring, used by <c>NpcBuilder</c>.</summary>
+        public void SetVoice(TheBlock.Audio.ScreamVoice pool) => voice = pool;
+
         public void Configure(Animator characterAnimator, float measuredWalkClipSpeed)
         {
             animator = characterAnimator;
@@ -475,6 +482,12 @@ namespace TheBlock.Npc
 
             _reaction = new RunOverReaction();
             _reaction.Begin(transform, flat, speedMs, groundY, clip.length, tuning, blood);
+
+            // The voice and the thud, on the impact frame, beside the blood — U27's debt to U18, and
+            // the seam that row named. It sits HERE rather than inside the reaction because this is
+            // the object that knows whose face this is; the reaction only knows a transform.
+            // Self-throttling: a bumper box downs everyone inside it in this one frame.
+            TheBlock.Audio.GameAudio.Scream(voice);
         }
 
         /// <summary>

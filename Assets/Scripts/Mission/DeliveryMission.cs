@@ -404,6 +404,10 @@ namespace TheBlock.Missions
                 _fading.Add(target.Beacon);
             }
 
+            // The ding first, then the line. They are two channels — Sfx and Voice — so they overlap
+            // rather than queue, and the web fires them in this order for the same reason: the ding
+            // is the confirmation that the press landed, and it must not wait on a customer talking.
+            TheBlock.Audio.GameAudio.Cue(TheBlock.Audio.SfxCue.Delivery);
             voice?.Play(target.ThankUrl); // this customer's own thank-you line
 
             if (_delivered >= _chosen)

@@ -28,8 +28,18 @@ districts' textures are extracted out of their .glbs so Unity's per-platform com
 them at all, which glTFast's sub-assets had silently skipped (U15); and a rammed traffic car becomes
 a real Rigidbody wreck, which thirty Rapier vehicles could never have afforded (U17); and the police
 route real A\* over the street graph instead of driving straight at you, which the web could not do
-because its graph was five disconnected islands (U19). Still queued: UI Toolkit instead of DOM
-overlays (U25).
+because its graph was five disconnected islands (U19); and the sirens are 3D sounds on the cars
+rather than one wail at a constant gain, because the web build has no `AudioListener` in it at all
+(U27). Still queued: UI Toolkit instead of DOM overlays (U25).
+
+**U27 also adds the sharpest instance yet of the rule's cost, and it is not a Unity feature failing
+— it is a Unity feature having a price nobody quoted.** Putting the dance's song on a mixer bus is
+plainly right: it is what a Music volume slider will attach to. It also inserted one DSP buffer of
+latency between the beatmap's anchor and the speakers, and moved every note 21.3 ms — 43% of a
+Perfect window — in one direction. Nothing was broken and nothing logged; the sound simply arrived
+late. It was found because U22 had written its drift number down and the number was re-measured
+after the change. **The lesson is the one U19 already paid for in a different currency: when a unit
+routes something through a new mechanism, re-run the measurement the old mechanism was accepted on.**
 
 **U19 is also the sharpest warning the rule carries, and it cost two extra rows.** "Unity can do
 this better" produced a genuinely better wanted meter — continuous, so a scrape costs less than a
@@ -59,14 +69,19 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-**Next action: PLAY-TEST TIER 5 AGAIN — the first play-test happened and returned nine reports,
-all nine are fixed, none of the fixes has been played.** The block below is what changed and what
-each was actually caused by. U20–U24 stay `wip` until the second pass confirms them.
+**Next action: PLAY-TEST TIER 5 AGAIN — the nine round-1 fixes are still unplayed.** U20–U24 stay
+`wip` until this pass confirms them.
 
-Everything the fixes touched is rebuilt and saved in `World.unity`: **Build Mission Vehicles**,
-**Build World**, **Build Campaign**, in that order. Nothing else needs re-running. Committed as
-`8089e30` and `b60a9a5`. **The save is wiped**: Play opens on mission 1 with $0 and every mission
-pays again.
+**U27 is DONE, user-confirmed 2026-08-16** (*"sound - mark it as done"*). The game has sound: engines,
+ambient beds, 3D sirens, the run-over screams, every mission sting, the rotor. Its block is below and
+what a future session needs from the top is only this — **an `AudioMixerGroup` costs one DSP buffer**,
+which moved the dance's music 21.3 ms off its own beatmap until `Conductor.OutputLatency()`
+compensated for it. Anything else that gets scored against `AudioSettings.dspTime` inherits that trap.
+
+Everything is rebuilt and saved in `World.unity`: **Build Mission Vehicles**, **Build World**,
+**Build Campaign**, then **Build Audio** and **Build Pedestrians** (U27 added the first and needed
+the second — the scream pool is baked onto each prefab). **The save is wiped**: Play opens on
+mission 1 with $0 and every mission pays again.
 
 ### What to play, in this order
 
@@ -84,10 +99,133 @@ The save was deliberately wiped, so Play starts a fresh campaign at mission 1 wi
 
 `F` retries any failed mission from anywhere. `M` opens the map. `R` respawns a vehicle.
 
+### What to LISTEN for, on top of that
+
+| when | expect |
+| --- | --- |
+| standing anywhere in the city | a street bed under everything; it crossfades to surf over the last 90 m before the shore |
+| every 5–13 s outdoors | a honk or a dog in town, gulls on the sand — and nothing at all indoors or during the dance |
+| any car / the bike / the jetski | an engine that pitches and swells with speed, and **no tick once a second** (that tick was 18 ms of decoder tail on the loop) |
+| the Huey | a rotor that spins UP rather than fading in — the chop, the hum and the whine all move at different rates |
+| a delivery, a survivor, a win, a fail | the web's own dings and stings, with the customers still talking over them |
+| **the dance** | judge the timing hardest. The song sits on a mixer bus now and that cost 21.3 ms until it was compensated. If a Perfect feels early or late, this is the first thing to suspect |
+| **a wanted star** | a siren you can hear coming from ~250 m away and *locate*. The biggest single change from the web build, and the one most likely to be too much rather than too little |
+| running someone over | a scream from a male or female pool with a body thud under it, at most two voices at once |
+| dismissing any card | a soft tick — the only UI click this port has until U26 |
+
+⚠ **Nobody has heard the balance.** Every level is the web's own number, but the web mixed against a
+browser's output, not Unity's. Report which BUS is wrong rather than which sound: `volMaster`,
+`volMusic`, `volVoice`, `volSfx`, `volEngine`, `volAmbient` are exposed on `Assets/Audio/GameMixer`,
+and one slider moving a whole family is the entire point of having built it.
+
 **The corner minimap is back on** (user, 2026-08-16, reversing the same day's removal) at the web
 build's own 200 px / 12 px inset, bottom-left. `M` still opens the full-world map over it. If the
 radar is not on screen, the scene's `HUD → GameMap → Show Minimap` is the switch — the field is
 serialized, so the scene wins over the C# default.
+
+### U27, 2026-08-16 — the game has sound — DONE, user-confirmed
+
+Twelve of the web's thirteen audio modules, ~1.2 MB of clips, and one mixer. The radio is deferred
+by the user's call: five live SomaFM streams are the only system in the unit with a network
+dependency, its own HUD panel, and failure modes nothing else here has.
+
+**What Unity actually gave us, and it is not the same answer four times:**
+
+- **The 20 synth cues are BAKED.** `sfx.ts` builds a fresh oscillator + gain graph on every single
+  key press because Web Audio offers no way to keep the result. `SfxSynth` renders each cue's PCM
+  once into an `AudioClip`; from then on it is a clip. Same envelope arithmetic, one allocation ever.
+  ⚠ The oscillators carry **PolyBLEP** on saw and square, and that is not a flourish: Web Audio's
+  `OscillatorNode` is band-limited *by specification*, so a naive 1046 Hz square here would fold
+  every harmonic above Nyquist back as inharmonic grit and the cue would be recognisably harsher
+  than the shipped game's — with nothing to trace it to.
+- **The rotor is a literal port, through `OnAudioFilterRead`.** The obvious Unity route — bake one
+  loop, drive `AudioSource.pitch` — provably cannot reproduce it: the three rates move by DIFFERENT
+  factors as the throttle opens (chop 7→17 Hz = 2.43×, hum 0.7→1.2 = 1.71×, whine 0.6→1.3 = 2.17×),
+  and one pitch knob collapses all three into one ratio. Unity's DSP callback *is* what Web Audio's
+  graph was, so the arithmetic is the same arithmetic. Allocation-free: **0 B of managed heap over
+  0.6 s of callbacks**, measured.
+- **Sirens are 3D and on the cars.** `pursuit-audio.ts` fires ONE wail on the chase edge and its own
+  comment says why — "a continuous loop was unbearable". It was unbearable *because* that build has
+  **no `AudioListener` at all**, so every sound in it plays at a constant gain however far away it
+  is. With a listener and rolloff the loop becomes the opposite: the thing that tells you the
+  response is coming and from where. U19 gave the police a 15–60 s drive from the station and called
+  it "a mechanic rather than a cost"; this is what makes that drive perceptible.
+- **The mixer replaces six `AudioContext`s and a gain multiply at every call site.** Seven buses,
+  seven exposed volume params, four snapshots. `ambientAudio.duck` is now the Ambient bus's volume in
+  a snapshot rather than a number multiplied in by hand at each ambient call — so it also catches a
+  one-shot already in the air, which the web's version cannot.
+- **And the counter-example, which is the more useful half: the engine loops.** The web pins
+  `source.loopEnd` to the original ogg duration because the WAVs carry a decoder overlap tail past
+  it. Unity's `AudioSource` **has no `loopEnd`**. The answer was not a Unity feature — it was
+  measuring the three files and trimming.
+
+**⚠ THE ONE THAT MATTERS MOST: an `AudioMixerGroup` costs one DSP buffer, and it moved the dance
+21.3 ms off its own beatmap.** U22 measured 0.02 ms of drift with `Conductor`'s source wired to the
+default output. Re-running that identical measurement after U27 put the song on the Music bus read
+**21.3 ms, dead stable** — and 21.3 ms is not noise, it is exactly `1024 / 48000`. The group is
+processed a buffer behind the source, so what reaches the speakers is a buffer later than the
+instant the beatmap was anchored to. **The clock was never wrong; the SOUND moved.** Against a 50 ms
+Perfect window that is 43% of the window, biased the same way on every note — the kind of fault a
+play-test reports as "the timing feels off" and nobody traces to a routing change. `Conductor.Play`
+now moves its anchor by `OutputLatency()` (the buffer, read from `AudioSettings.GetConfiguration`,
+and **0 when there is no group** — so a source on the bare output is untouched).
+**Re-measured: mean |drift| 0.014 ms, worst 0.023 ms over 2 s, with a voice line and six cues
+playing under the song.** That is U22's number back.
+
+**Measured in Play, so do not re-derive:**
+
+- **The loop seam was real on all three engines.** `car.wav` is 38912 samples / 0.882358 s against a
+  `loopEndSec` of 0.864943 → **18.4 ms of tail**, trimmed to 38144 = `round(0.864943 × 44100)`
+  exactly. Jetski 7.3 ms, motorcycle 8.9 ms. 18 ms on a 0.86 s loop is a tick *every cycle*, forever.
+- **All 20 cues bake clean.** Every clip's length is exactly its authored `start + duration` plus the
+  0.02 s tail; peaks 0.05–0.29, so nothing clips and nothing is silent.
+- **Beachness is exactly the web's.** 0 at 90 m inland → 0.250 / 0.500 / 0.750 at 67.5 / 45 / 22.5 m
+  → 1.000 at the shore and clamped seaward; the Z gate is full to 176 m and feathers to 0 by 220.
+  It runs in the WEB's frame on purpose — the player's position is converted BACK
+  (`Convert.Pos` is its own inverse) so an inequality against `shoreX = −430` cannot be silently
+  mirrored.
+- **The scream throttle behaves, and the web's own numbers are why.** Sixteen people downed in ONE
+  frame — U18's own measurement — start **one** voice, not sixteen and not two, because `minGapSec`
+  0.18 catches the burst before `maxConcurrent` does. Two overlap at a 0.213 s gap; a third while
+  both are busy is refused; never the same clip twice in a row.
+- **The siren cap picks the nearest.** Five sirens all wanting to sound → 3 sound, the 250 m and
+  300 m ones denied. A 3D siren at 21 m reads L 0.173 / R 0.139 rms against a 0.163 reference with
+  the source on top of the listener — i.e. essentially undiminished, which is what Linear rolloff
+  with `minDistance` 12 predicts.
+- 0 errors in the console across the whole session.
+
+**Gender comes from `npcConfig`, by name.** `PeopleImporter.Names` and `npcConfig.people[].name` are
+the same six, so `NpcBuilder` looks the person up and bakes the pool onto the prefab. Verified:
+Sophie F, Remy M, Elizabeth F, Chinese M, Peter M, Lewis M — the config, exactly.
+
+**Five cues are built and wired to nothing, on purpose:** fuel tick, fuel done, the store chime, the
+till, the power-up/down pair and the deny tick. They are ~30 lines of note data belonging to U28's
+economy, which has no call sites yet — so U28 does no audio work, and nothing dead is switched on
+(an unplayed cue is never even baked).
+
+**A sixth is built and can never fire, and that is the correct answer.** `SfxCue.Beat` is the
+metronome, and the web plays it only when `conductor.isFallback()` is true — i.e. when the MP3 failed
+to load and it is counting on the wall clock. This port has no fallback: a missing song is a build
+error, not a runtime state. The cue exists; the condition does not.
+
+**Three things a future session should not re-derive:**
+
+- **Unity ships no public API for AUTHORING an AudioMixer.** `AudioMixerController`,
+  `AudioMixerGroupController`, `AudioGroupParameterPath` and `ExposedAudioParameter` are all
+  `internal` to `UnityEditor.dll`. `AudioMixerBuilder` drives them by reflection, every call probed
+  against 6000.5.8f1 before it was written down. Two things were wrong on the first build and both
+  are only visible to a human opening the window: `SetValueForVolume` moves the EDITING target to
+  whatever it last wrote (so the mixer opened showing Rhythm, Ambient at −80 dB, which reads as a
+  broken build), and a mixer built through the API has an **empty view list** — `GetCurrentViewGroupList()`
+  threw, and Unity's own `SanitizeGroupViews()` does not repair an empty one, only a populated one.
+- **`GameAudio.Instance` re-finds itself.** A script recompile while the editor is in Play triggers a
+  domain reload: statics are wiped and `Awake` does not run again, so a plain static instance is null
+  for the rest of the session and every cue in the game silently stops. That happened here mid-build
+  — the entire mix went quiet with no error to explain it.
+- **Measuring audio through the MCP bridge has two traps.** `AudioSource.GetOutputData` returns
+  SILENCE for a source routed to a mixer group, so read `AudioListener.GetOutputData` instead; and
+  that is **per channel**, so a source panned hard to one side reads zero on channel 0 and looks
+  broken. Both cost real time here.
 
 ### Play-test round 1, 2026-08-16 — nine reports, nine causes, all fixed
 
@@ -203,12 +341,22 @@ term never did anything — the origin IS the waterline, which is what the code 
 - **`GameMode.Transition`.** It exists in the web to freeze input behind a fade; the port has no fade
   yet and U25 owns it. A label nothing switches on is a dead branch.
 
-### The rebuild order gained four steps
+### The rebuild order gained five steps
 
 **Import Dance Clips** (once, then never again — it deletes its own sources), **Build Mission
-Vehicles**, **Bake Roof Spots** (needs Build World to have run — it reads the placed city), and
-**Build Campaign** (last: it collects every mission and wires the lot). **Reset Campaign** is the
-New Game button until U26 has a menu.
+Vehicles**, **Bake Roof Spots** (needs Build World to have run — it reads the placed city),
+**Build Campaign** (it collects every mission and wires the lot), and now **Build Audio** — which
+goes LAST, because it binds the `Voice` and `Conductor` that Build Campaign puts in the scene, and
+running it before them leaves both on the default output. **Reset Campaign** is the New Game button
+until U26 has a menu.
+
+**Build Audio** is idempotent and safe to re-run: it creates the mixer only if it is missing (an
+existing one is validated instead, because volumes are exactly the thing someone tunes by hand),
+refills `AudioLibrary.asset` from every clip under `Assets/Audio`, and rebuilds the `GameAudio`
+object and its five children. It marks the scene dirty and does not save it.
+
+⚠ **Build Pedestrians must be re-run after any change to `npcConfig`'s genders** — the scream pool is
+baked onto each `Ped_*.prefab`, so a prefab built before U27 screams male whoever it is.
 
 ---
 
@@ -1461,7 +1609,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | --- | --- | --- | --- | --- |
 | U25 | HUD + in-game UI (UI Toolkit) | todo | | Panel scaffolding already exists from U14 (`HudBuilder`, `HudPanelSettings`) — extend it, do not build a second panel. Owes U14 two things: an emoji-capable font so POI pins can draw their `⛽`/`🚓`/`🏪` glyphs again, and the fade behind U13's interior teleport |
 | U26 | Menus — title, character select, briefing, controls, pause | todo | | **Settings → Display wants a Radar on/off toggle** (user, 2026-08-15) that hides U14's collapsed minimap while playing. `M` must still open the full map with the radar off — the toggle is about the always-on widget, not the map |
-| U27 | Audio — sfx, engine, ambient, radio | todo | | **Owes U18 two sounds**, and the seam is already there: the original fires a gender-specific scream from a male/female pool plus a synth body thud on the run-over's impact frame, which here is `RunOverReaction.Begin` beside `blood.Splash`. Its own settled calls are worth reading before rebuilding them — gender POOLS not per-character voices, `maxConcurrent: 2` + `minGapSec: 0.18` because plowing a pavement downs five people in one frame, and no spatial audio because the victim is always under the player's own bumper. `CharacterSpec` has no gender field in this port either |
+| U27 | Audio — sfx, engine, ambient, sirens | done | | **User-confirmed 2026-08-16** (*"sound - mark it as done"*). Twelve of the web's thirteen audio modules, ~1.2 MB of clips, one `AudioMixer` (7 buses / 7 exposed params / 4 snapshots) built by a REFLECTION tool because Unity ships no public API for authoring one. The 20 synth cues of `sfx.ts` are **baked to `AudioClip`s once** instead of rebuilding an oscillator graph per press, with PolyBLEP on saw/square because Web Audio's oscillators are band-limited by spec and a naive one would alias audibly. The rotor is a literal port through **`OnAudioFilterRead`** — the three rates move by different factors (chop 2.43×, hum 1.71×, whine 2.17×) so one `pitch` knob cannot reproduce it. Sirens are **3D, on the cars**, capped at the nearest 3: the web's one-shot wail exists only because that build has no `AudioListener` at all. **Caught, and it is the important one: an `AudioMixerGroup` costs one DSP buffer, and it moved the dance's music 21.3 ms off its own beatmap** (§ below). Also caught: the engine WAVs' 7–18 ms decoder tail, which Unity has no `loopEnd` to ignore. **Radio deferred** by the user — the only system with a network dependency |
 | U28 | Economy + fuel + power-ups | todo | | |
 | U29 | Character roster | todo | | |
 

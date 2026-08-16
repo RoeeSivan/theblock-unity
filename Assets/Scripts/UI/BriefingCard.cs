@@ -182,6 +182,10 @@ namespace TheBlock.UI
             if (!IsOpen) return;
             IsOpen = false;
             if (_overlay != null) _overlay.style.display = DisplayStyle.None;
+
+            // The only button this port has yet. U26's title, pause and character-select screens are
+            // where the web spends the other twenty playUiClick() calls.
+            TheBlock.Audio.GameAudio.Cue(TheBlock.Audio.SfxCue.UiClick);
         }
 
         /// <summary>A brief full-screen pulse: green on a win, red on a fail.</summary>
