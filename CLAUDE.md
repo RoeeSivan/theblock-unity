@@ -29,7 +29,11 @@ Not a slice, not a demo — **the whole game rebuilt in Unity**: all 4 missions,
 systems, the world, the shell. Sequenced as **32 numbered units** in `PORT-STATUS.md`, ordered by
 dependency. Multiplayer is deferred to the last unit (U32).
 
-Target: **macOS desktop** first. iPad/iOS is a wanted bonus, never a constraint on design.
+Target: **macOS desktop**, and as of 2026-08-16 that is the *only* target — **U31 (iPad/iOS) is
+dropped by the user**, who called it *"not relevant to the submission"*. It was always ranked a bonus
+and never a constraint on design, so nothing already built changes. Do not spend a line of work on
+touch input, screen sizes or thermal budgets, and equally **do not rip the iOS module out** — it is
+idle and free, and removing it only makes a private retry harder.
 
 Settled decisions (full list in `PORT-STATUS.md` → Decisions log):
 

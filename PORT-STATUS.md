@@ -95,9 +95,12 @@ unclear, re-test before inheriting.
 > testable. Then measure before tuning: U15 is the standing warning that the obvious answer here
 > (streaming, LODs) can be the wrong one, and that the fault was a format nobody had ever set.
 >
-> **What is deliberately NOT in the port and has no row:** the radio (U27, network dependency), and
-> the dance's tappable arrows (dropped 2026-08-16 — comes back only if U31 ships to a device). Both
-> are in **Deferred** with their triggers.
+> **Tier 7 is TWO units now: U30 and U32.** U31 (iOS/iPad) is **dropped by the user, 2026-08-16** —
+> *"זה לא רלוונטי להגשה."* The iOS module stays installed and unused; nothing is to be ripped out.
+>
+> **What is deliberately NOT in the port:** the radio (U27, network dependency) and the dance's
+> tappable arrows (dropped 2026-08-16 — and with U31 gone its last trigger went too). Both are in
+> **Deferred** with their triggers.
 >
 > *Ledger audited 2026-08-16: the U28b and U33 scene-rig debts are closed, a duplicated section and
 > four malformed table rows are fixed, and the open-work census below is complete as of that date.*
@@ -184,12 +187,15 @@ remains is Tier 7 and the two systems deliberately not ported.**
   shipped; this is the thirteenth.
 - ~~**The dance's arrows are keyboard-only.**~~ **DROPPED BY THE USER, 2026-08-16** — *"חצי ריקוד —
   לא רלוונטי לדעתי יכול להוריד."* Not a regression (the original is keyboard-only too), and the port
-  matches the game it is porting. **If U31 ever ships to a real iPad, the mission is unplayable there
-  and this comes back** — it is ~20 lines of tappable lanes on the existing panel. Recorded as a
+  matches the game it is porting. **U31 was dropped the same day, so this has no trigger left at
+  all** — it would come back only if a device build ever happens privately, where M2 is unplayable
+  without it — it is ~20 lines of tappable lanes on the existing panel. Recorded as a
   decision rather than deleted, so it cannot be rediscovered as a bug.
-- **Tier 7 is untouched, and it is now the whole job**: U30 (macOS build + perf pass, which owns
-  every entry in Deferred), U31 (iOS/iPad), U32 (multiplayer, deferred by decision to last).
-  **Nothing in Tiers 0–6 or Tier 8 is open** — that sentence has never been true before 2026-08-16.
+- **Tier 7 is untouched, and it is now the whole job — and it is two units, not three**: U30 (macOS
+  build + perf pass, which owns every entry in Deferred) and U32 (multiplayer, deferred by decision
+  to last). ~~U31 (iOS/iPad)~~ is **dropped by the user, 2026-08-16** — see its row and the decisions
+  log. **Nothing in Tiers 0–6 or Tier 8 is open** — that sentence has never been true before
+  2026-08-16.
 
 ### Testing the economy — `Continue`, never `New Game`
 
@@ -2409,7 +2415,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
 | U30 | macOS build + perf pass | todo | | watch texture memory — it killed web mobile |
-| U31 | iOS / iPad | todo | | free 7-day Xcode provisioning; $99 only for distribution |
+| U31 | iOS / iPad | **dropped — the user's call, 2026-08-16** | | *"ipad אנחנו כנראה נראה מזה… זה לא רלוונטי להגשה."* **Out of the port's scope, not failed and not deferred.** `CLAUDE.md` always called iPad "a wanted bonus, never a constraint on design", and this is that sentence being cashed: the port ships to macOS. **The user may still try a build personally, for the engine experience** — that is a private experiment, not a unit, and nothing in this ledger waits on it. **What this closes elsewhere:** the dance's tappable arrows (Deferred) lose their only remaining trigger, and every "U31 inherits this" note in the ledger is now inert. **What it does NOT license:** ripping out iOS support. The module is installed, `PlayerSettings` has an iOS section, and touch input costs nothing while unused — deleting any of it would be work spent to make a future retry harder. Old row: free 7-day Xcode provisioning; $99 only for distribution |
 | U32 | Multiplayer | todo | | DEFERRED by decision — revisit only here |
 
 ### Tier 8 — Additions (not ports)
@@ -2451,9 +2457,10 @@ would trigger it. A `wip` unit is work half-done; this is work deliberately not 
 - ~~**The dance's arrows are keyboard-only, and U31 has no keyboard.**~~ **DROPPED BY THE USER,
   2026-08-16** — *"חצי ריקוד — לא רלוונטי לדעתי יכול להוריד."* True in the original too, so it was
   never a regression, and the desktop target this port ships to has a keyboard. Four tappable lanes
-  are still ~20 lines on the existing UI Toolkit panel if it is ever wanted. **The only trigger left
-  is U31 actually shipping to a device**: on iPad this is not polish, it is M2 being unplayable, and
-  that is the one thing the row should still say out loud.
+  are still ~20 lines on the existing UI Toolkit panel if it is ever wanted. ~~**The only trigger
+  left is U31 actually shipping to a device.**~~ **U31 was dropped the same day, so this entry has no
+  trigger at all** — it survives only as the note that would matter if the user ever does try a
+  device build privately: on a tablet this is not polish, it is M2 being unplayable.
 
 - **Foliage collides.** `noCollidePatterns` matches node or material names and a merged district has
   neither, so each district takes 2–4 whole-mesh colliders with the palms inside them — the same
@@ -2556,6 +2563,13 @@ would trigger it. A `wip` unit is work half-done; this is work deliberately not 
 
 Dated one-liners. These are settled — do not re-litigate them without the user reopening.
 
+- **2026-08-16** (U31) — **iPad is dropped from the port.** *"ipad אנחנו כנראה נראה מזה… זה לא
+  רלוונטי להגשה."* The target is macOS, full stop. `CLAUDE.md` had always ranked iOS as "a wanted
+  bonus, never a constraint on design", so this changes no design decision retroactively — it only
+  stops future units from paying a tax for a platform nobody will run. **The iOS module, the
+  `PlayerSettings` section and unused touch handling all STAY**: they cost nothing idle, and removing
+  them would be effort spent making a retry harder. The user may still build to a device privately
+  for the engine experience; that is not a unit and nothing waits on it.
 - **2026-08-16** (U33) — **The port may now GAIN things, and a gain ships switched off.** A day/night
   cycle is in no version of the web build. It is allowed in because "Unity-idiomatic, same game" was
   never a ban on additions — but an addition that is always on silently re-opens every visual
@@ -2863,7 +2877,8 @@ Dated one-liners. These are settled — do not re-litigate them without the user
 - **2026-08-12** — **Autonomous units with a checkpoint each.** Build a unit fully, update this
   ledger, commit, report. User play-tests at unit boundaries.
 - **2026-08-12** — **Desktop (macOS) is the priority target**; iPad is a wanted bonus, never a
-  constraint on design.
+  constraint on design. **SUPERSEDED 2026-08-16: the bonus was declined and U31 is dropped** — macOS
+  is the only target. See the 2026-08-16 entry at the top.
 - **2026-08-12** — **No money spent, ever.** Unity Personal only. No Unity Cloud, no Unity AI
   (it bills credits), no Asset Store, no paid LFS.
 - **2026-08-12** — Transport for MCP is **HTTP Local**; the remote option requires a Coplay API key
