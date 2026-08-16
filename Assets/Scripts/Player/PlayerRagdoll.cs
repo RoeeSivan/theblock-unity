@@ -3,7 +3,6 @@ using TheBlock.Game;
 using TheBlock.Npc;
 using TheBlock.Vehicles;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace TheBlock.Player
 {
@@ -79,12 +78,6 @@ namespace TheBlock.Player
         [Tooltip("Seconds to blend the crumpled pose back into the animation. Control returns at the " +
                  "start of it, not the end.")]
         [SerializeField] private float blendSeconds = 0.35f;
-
-        [Header("Debug")]
-        [Tooltip("K throws the player on the spot, so the reaction can be judged without crashing a " +
-                 "bike first. U30c owns taking this out - it is also how the submission video reaches " +
-                 "this feature in five seconds.")]
-        [SerializeField] private bool debugRagdollKey = true;
 
         [Header("Wiring")]
         [SerializeField] private PlayerController player;
@@ -182,14 +175,6 @@ namespace TheBlock.Player
             {
                 _hasPending = false;
                 Launch(_pending);
-            }
-
-            // Gated on the same preference as the triggers, so "Ragdolls: Off" is off everywhere
-            // rather than off except for the one key that demonstrates the feature.
-            if (debugRagdollKey && Progress.RagdollsOn && !Pause.Frozen && !Down &&
-                Keyboard.current?.kKey.wasPressedThisFrame == true)
-            {
-                Launch(transform.forward * 2f + Vector3.up * 3f);
             }
 
             switch (_phase)
