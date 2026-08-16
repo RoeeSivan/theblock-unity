@@ -50,6 +50,11 @@ namespace TheBlock.Core
             SeaSurface.ResetCaches();
             DayNightCycle.ResetClock();
             FuelTank.ResetForSession();
+
+            // U35a. The same shape as FuelTank's: a static with no per-frame writer to heal it, and
+            // what it holds after a reload is a list of destroyed bodies which still read as
+            // non-null - so the cap would be spent on corpses from the previous world.
+            RagdollBudget.Clear();
         }
     }
 }

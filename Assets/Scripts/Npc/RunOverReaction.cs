@@ -19,7 +19,7 @@ namespace TheBlock.Npc
     /// <b>The phases hang off the clip's own length</b>, not off hand-picked durations, so re-trimming
     /// the FBX cannot desync them.
     /// </summary>
-    public sealed class RunOverReaction
+    public sealed class RunOverReaction : IRunOverReaction
     {
         /// <summary>Everything tunable, serialized once on <see cref="RunOverSystem"/>.</summary>
         [System.Serializable]
@@ -82,6 +82,12 @@ namespace TheBlock.Npc
 
         /// <summary>How long this reaction lasts in total - the stain's budget, and the cull check's.</summary>
         public float Duration => _fadeUntil;
+
+        /// <summary>
+        /// This reaction moves the pedestrian's own transform, so its root motion has to be harvested
+        /// onto it first. U35a's ragdoll is the one that does not - see <see cref="IRunOverReaction"/>.
+        /// </summary>
+        public bool DrivesTransform => true;
 
         public void Begin(
             Transform body, Vector3 throwDirection, float speedMs, float groundY, float clipLength,

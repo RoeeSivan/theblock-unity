@@ -118,6 +118,12 @@ namespace TheBlock.EditorTools
                 return nothing;
             }
 
+            // U35a's ragdoll rig lives inside the bodies this method has just rewritten, and it is
+            // rebuilt before anything is wired to them - a roster entry pointing at a prefab with no
+            // rig is a player who cannot be thrown off a bike. See NpcBuilder for the same call and
+            // the U34 lesson behind both.
+            log.AppendLine(RagdollBuilder.Build());
+
             RigRoster(entries, log);
             RigPlayer(entries, log);
             RigStageDancer(entries, log);

@@ -35,6 +35,7 @@ namespace TheBlock.UI.Menus
 
         private Button _radarButton;
         private Button _dayNightButton;
+        private Button _ragdollButton;
         private Button _soundButton;
         private System.Action _onBack;
 
@@ -76,6 +77,19 @@ namespace TheBlock.UI.Menus
             dayNightNote.style.marginBottom = 22f;
             overlay.Add(dayNightNote);
 
+            overlay.Add(MenuStyle.Heading("Gameplay"));
+
+            _ragdollButton = MenuStyle.Primary("Ragdolls", () => ApplyRagdolls(!Progress.RagdollsOn));
+            _ragdollButton.style.marginBottom = 12f;
+            overlay.Add(_ragdollButton);
+
+            var ragdollNote = MenuStyle.Body(
+                "Physics takes over a body that is hit by a vehicle. Off plays the animation the " +
+                "web build used instead.");
+            ragdollNote.style.maxWidth = 420f;
+            ragdollNote.style.marginBottom = 22f;
+            overlay.Add(ragdollNote);
+
             overlay.Add(MenuStyle.Heading("Audio"));
 
             _soundButton = MenuStyle.Primary("Sound", () => ApplySound(!Mute.SoundOn));
@@ -115,6 +129,20 @@ namespace TheBlock.UI.Menus
         }
 
         /// <summary>
+        /// Settings → Gameplay → Ragdolls (U35a).
+        ///
+        /// <b>No boot-time push, and nothing to apply.</b> Unlike the radar, which owns a live object
+        /// that has to be told, this preference is read at the moment a body is hit and nowhere else -
+        /// so the toggle is the storage AND the mechanism, and a body already mid-fall keeps whatever
+        /// it started as rather than half-swapping mechanism under the player's eyes.
+        /// </summary>
+        private void ApplyRagdolls(bool on)
+        {
+            Progress.RagdollsOn = on;
+            if (_ragdollButton != null) _ragdollButton.text = on ? "Ragdolls:  On" : "Ragdolls:  Off";
+        }
+
+        /// <summary>
         /// Settings → Audio → Sound.
         ///
         /// <b>No boot-time push from <c>Start</c>, and for the opposite reason to the day/night
@@ -137,6 +165,8 @@ namespace TheBlock.UI.Menus
                 _radarButton.text = Progress.RadarOn ? "Radar:  On" : "Radar:  Off";
             if (_dayNightButton != null)
                 _dayNightButton.text = Progress.DayNightOn ? "Time of Day:  Cycle" : "Time of Day:  Fixed";
+            if (_ragdollButton != null)
+                _ragdollButton.text = Progress.RagdollsOn ? "Ragdolls:  On" : "Ragdolls:  Off";
             if (_soundButton != null)
                 _soundButton.text = Mute.SoundOn ? "Sound:  On" : "Sound:  Muted";
             Show();

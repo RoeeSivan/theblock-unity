@@ -94,7 +94,11 @@ unclear, re-test before inheriting.
 > a change of what "done" means - the graded artifacts are a video, a repo, a kanban board and a zip,
 > and only one of them is the game.
 >
-> **NEXT ACTION: U35a - ragdolls.** ⚠ **REORDERED BY THE USER, 2026-08-16, later the same day:**
+> **NEXT ACTION: U35b - vehicle damage.** ⚠ **U35a IS BUILT AND AWAITS THE BATCH PLAY-TEST** - see its
+> section below. Nothing in it is open; it is not `done` because U35's rule says the five are
+> confirmed together, by the user, at the end.
+>
+> ⚠ **REORDERED BY THE USER, 2026-08-16, later the same day:**
 > *"אני קודם רוצה שנעשה את הפיצ'רים, ואז כבר אני בודק את כל הפיצ'רים בסוף."* The five showcase
 > additions are built FIRST, back to back, and the user play-tests them in ONE batch at the end -
 > not at each unit boundary. So each U35 sub-unit lands as **`built - awaiting the batch play-test`**
@@ -183,6 +187,74 @@ every crime on `Driving` - so a wanted level while on foot is only reachable thr
 Drive out of the spawn car park (it has **no NavMesh within 10 m**, so she falls back to running in
 straight lines there and it is the wrong place to judge her), get out on a street, press **`P`** for
 one star, and wait ~20-30 s for the cruiser to drive over from the station.
+
+### U35a, 2026-08-16 - ragdolls - BUILT, awaiting the batch play-test
+
+The web build's run-over is a canned Mixamo clip because Rapier on the main thread has no budget for
+a 15-body articulated rig per victim. PhysX does. **Both halves of the row are built: the crowd and
+the player.**
+
+**What is in it**
+
+- `Assets/Scripts/Npc/{Ragdoll,RagdollBudget,RagdollReaction,IRunOverReaction}.cs` and
+  `Assets/Scripts/Player/PlayerRagdoll.cs`; the rig itself is written by
+  `Assets/Editor/RagdollBuilder.cs` - **The Block → Build Ragdolls**.
+- **Eleven bodies, ten joints, ~64 kg**, on all six pedestrian faces and all three player characters.
+  Every dimension is MEASURED off the rig (a shell's length is the distance to the next bone) because
+  nine Mixamo uploads have nine different skeletons; only the masses are typed, because a person
+  weighs what a person weighs.
+- **Not the cop and not the thief** - neither can be run over, so neither pays for a rig.
+- `Settings → Gameplay → Ragdolls`, `Progress.RagdollsOn`, **default ON** - the one U35 addition that
+  ships switched on, argued in the row: it replaces a REACTION, not a look, so it cannot re-open a
+  visual judgement. Off is U18's clip, unchanged and still reachable, which is why
+  `IRunOverReaction` exists rather than the clip path being deleted.
+- **The cap is 4 and the oldest FREEZES**, keeping its pose and its own fade clock. Refusing the
+  fifth would have put two people struck by the same bumper into two different mechanisms side by
+  side.
+- Player triggers, the user's pair: **a bike crash over 8 m/s closing**, and **a fall over 5 m**. A
+  car does not eject you. `K` throws the player on the spot - a debug key, and U30c's to remove.
+- The stand-up is a **bone blend, not a clip**: control returns at the START of the 0.35 s blend. The
+  Mixamo `Getting Up` FBX is not in the project and the seam for it is left open.
+
+**Three faults were found by building it, and all three are the same shape - a physics system whose
+state is not the state the scene appears to be in.**
+
+1. **The crowd could not be rigged at all.** All six pedestrians failed with *"the avatar has no Hips
+   bone"* while the three player bodies rigged first time. `PeopleImporter` sets
+   **Optimize Game Objects ON** - U16b's own optimisation, whose comment said *"nothing hunts a
+   pedestrian's bones until U18"* - and that option deletes the bone GameObjects. **It is now OFF for
+   the six**, and `extraExposedTransformPaths` is NOT the way out: an exposed transform is an output
+   the Animator writes, while the SkinnedMeshRenderer is skinned from the internal skeleton, so
+   physics moving an exposed bone moves nothing anyone can see. ⚠ **This is a real perf debt and it
+   is U30b's**: ~68 transforms per live body against a crowd cap of 160. What bounds it is that
+   `CullCompletely` means an unseen pedestrian poses nothing, and the spawner already trickles.
+2. **Every pedestrian's skeleton was being dragged to the world origin, downed or not.** Measured: a
+   pedestrian standing at (10.8, 0, −159.4) with their hips transform reading (0, 0.83, 0). The cause
+   is `RigidbodyInterpolation.Interpolate` on a KINEMATIC body: interpolation writes PhysX → Transform
+   every frame, and PhysX's pose for a body no step has ever moved is the one saved in the prefab. The
+   bones are now built `None` and switched to `Interpolate` only while simulating.
+3. **A ragdoll appeared at the origin instead of where the victim stood.** `Physics.autoSyncTransforms`
+   is off, so a kinematic body driven by a script has told PhysX nothing; going dynamic hands the
+   solver the prefab's pose. Fixed with `Physics.SyncTransforms()` plus a per-bone pose write - and
+   the write has to come **after** the kinematic flip, because a write to a kinematic body is a move
+   target that going dynamic throws away. The first attempt had it in the other order and changed
+   nothing, which is the more useful half of the lesson.
+
+**Measured in the Editor, not assumed:** a victim hit at 14 m/s is thrown ~8 m and settles; the whole
+cycle (launch → settle → lie → fade → recover → back on their route, animator re-enabled, budget
+released) completes and the body is reusable. The player thrown by `Launch` travelled 4.25 m, stood
+back up at the new spot, and control and camera both came back. **No Editor errors in any of it.**
+Frame cost is deliberately NOT claimed here - that is U30b's, on the Player.
+
+**One thing to look at in the play-test:** the knee and elbow hinges are derived rather than
+hand-checked (a positive rotation about the character's right takes the shin backwards, and the
+elbows' axis is the cross of the arm with the character's forward, which mirrors itself). If a corpse
+folds a leg forwards, that sign is where it lives - `RagdollBuilder.Configure`.
+
+⚠ **`Assets/Prefabs/Npc/` is gitignored**, so the crowd's rigs are not in the repo - they are rebuilt
+by **Build Pedestrians**, which now calls **Build Ragdolls** at its tail. `Build Characters` does the
+same. That hook is the U34 lesson paid forward: a rig written into a prefab that a builder
+regenerates is a rig with a countdown on it.
 
 ### Everything else that is open, audited 2026-08-16
 
@@ -2562,7 +2634,7 @@ Until U30b measures them, a finished sub-unit's state is `built - awaiting the b
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
 | U35 | The showcase additions - parent row | **planned 2026-08-16, list chosen** | | **The user's own idea and their framing:** *"סשן של 5 פיצ'רים מגניבים, לראות מה אני יכול עוד להוציא מ-Unity."* The list is now the eight rows below; this row is their parent and carries the rules above. ⚠ **The sequencing trap, and it is the same one U19b paid for:** a feature added after the perf baseline invalidates it, so the frame gets re-checked between the last landed sub-unit and the recording. Precedent for what a good row looks like is already in this tier and in the standing remark: real A\* pursuit against the web's five disconnected graph islands, Rigidbody wrecks against a 30-vehicle Rapier budget, `dspTime` against `audioElement.currentTime` |
-| U35a | Ragdolls - pedestrians and the player | todo | | **The argument:** the web's run-over is a canned Mixamo clip (`Hit_By_Car`, root motion harvested - memories `mixamo-pads-one-shot-clips`, `root-motion-on-a-scaled-child`) because Rapier on the main thread has no budget for a 15-body articulated rig per victim; PhysX does. **Mechanism:** the crowd prefabs are Humanoid, so Unity's **Ragdoll Wizard** (`GameObject → 3D Object → Ragdoll…`) builds the capsule/joint chain once per body type; at `RunOverSystem`'s hit, `RunOverReaction` disables the Animator, enables the rigidbodies and injects the car's velocity into the pelvis and the struck limb, then after N s the body settles and is recycled exactly as the clip's victims are today. **The player too:** thrown from the bike / a car door at speed, or a fall from a roof past a threshold, → ragdoll → `Getting_Up` (Mixamo, one more clip through the U29 importer) → control returns. **Off state:** a `Settings → Gameplay → Ragdolls` toggle, default **on** is the one exception argued for here - it replaces a reaction rather than adding a look, and it is the single most GTA thing on the list; if it does not read right the toggle restores the clip. **Perf budget:** a hard cap on simultaneous ragdolls (start at 4, oldest one freezes to a static pose), joints on `Solver Iterations` default, no ragdoll on the LOD-2 body (U16's `LODGroup` note applies - the ragdoll rig lives on ONE mesh). **Blender:** none. **Physics numbers are re-derived by feel (port rule 2)** - nothing to port anyway. Reuses: `RunOverSystem`, `RunOverReaction`, `Screams`, `Blood`, `CrashSensor` for the player's ejection |
+| U35a | Ragdolls - pedestrians and the player | **built - awaiting the batch play-test** | | **BUILT 2026-08-16. Its own section is above** - what is in it, the three faults building it found (Optimize Game Objects deletes the bones a ragdoll needs; `Interpolate` on a kinematic body drags every bone to the prefab pose; a kinematic body's PhysX pose is stale when it goes dynamic), the measurements, and the one hinge sign to look at in the play-test. `Build Ragdolls` writes 11 bodies / 10 joints / ~64 kg into six pedestrians and three player characters; `Settings → Gameplay → Ragdolls` default **on**; cap 4 with the oldest freezing; player thrown by a bike crash over 8 m/s or a fall over 5 m, `K` to test, stand-up is a bone blend rather than a clip. ⚠ Perf debt for U30b: the six pedestrian FBX lost Optimize Game Objects, which is ~68 transforms per live body. **The original plan follows, unchanged, because every line of it survived contact:** **The argument:** the web's run-over is a canned Mixamo clip (`Hit_By_Car`, root motion harvested - memories `mixamo-pads-one-shot-clips`, `root-motion-on-a-scaled-child`) because Rapier on the main thread has no budget for a 15-body articulated rig per victim; PhysX does. **Mechanism:** the crowd prefabs are Humanoid, so Unity's **Ragdoll Wizard** (`GameObject → 3D Object → Ragdoll…`) builds the capsule/joint chain once per body type; at `RunOverSystem`'s hit, `RunOverReaction` disables the Animator, enables the rigidbodies and injects the car's velocity into the pelvis and the struck limb, then after N s the body settles and is recycled exactly as the clip's victims are today. **The player too:** thrown from the bike / a car door at speed, or a fall from a roof past a threshold, → ragdoll → `Getting_Up` (Mixamo, one more clip through the U29 importer) → control returns. **Off state:** a `Settings → Gameplay → Ragdolls` toggle, default **on** is the one exception argued for here - it replaces a reaction rather than adding a look, and it is the single most GTA thing on the list; if it does not read right the toggle restores the clip. **Perf budget:** a hard cap on simultaneous ragdolls (start at 4, oldest one freezes to a static pose), joints on `Solver Iterations` default, no ragdoll on the LOD-2 body (U16's `LODGroup` note applies - the ragdoll rig lives on ONE mesh). **Blender:** none. **Physics numbers are re-derived by feel (port rule 2)** - nothing to port anyway. Reuses: `RunOverSystem`, `RunOverReaction`, `Screams`, `Blood`, `CrashSensor` for the player's ejection |
 | U35b | Vehicle damage - deform, smoke, fire, parts that come off | todo | | **The argument:** the web's cars are kinematic and a crash is a number; U34 already made collisions cost a star and a thump. This makes them cost the car. **Mechanism, three layers, each independently switchable:** ① **vertex deformation** on the body mesh around the contact point (`CrashSensor.Impact` already carries the point, the closing speed and `HitVehicle` - U34) - a radius/strength curve, mesh readable at import, capped total deform so a car never turns inside-out; ② **health** per car → engine smoke (URP particles, pooled, ONE emitter per damaged car) at 50 %, fire at 20 %, and at 0 an explosion: radial impulse to everything within R, the U34 `LotCar` promotion path already handles static neighbours waking up, and the wanted level pays a star through the existing crime hooks; ③ **detachable parts - this is the Blender work:** split the Mustang's (then each car's) front/rear bumper, bonnet and doors into separate objects in Blender, re-export, and give each a `FixedJoint` with a `breakForce` - a hard hit sheds the bumper as its own rigidbody that despawns after 20 s. **Off state:** `Settings → Gameplay → Vehicle Damage` (Off / Visual / Full), default **Off**; Off touches no mesh and spawns no emitter. **Perf budget:** deform writes only the struck car's mesh and only on impact (never per frame); one particle system per damaged car, at most 3 live; detached parts are pooled and capped at 8. Texture/tri budget for the re-exported cars must not exceed today's - the split is topology, not detail. **Also on the list here:** the cop cruiser is a car built by the same `CarBuilder`, so it inherits all three for free, and traffic wrecks (`TrafficCar.Wrecked`) get smoke as a byproduct. **Careful:** the `preRotation` seam and every seat/rider scale (memory `every-seat-carries-a-rider-scale`) survive a re-export only if the object origins do not move in Blender - export from the same file, split in place |
 | U35c | Police helicopter at 3★ + GPS route on the map | todo | | **Two arguments in one unit, both riding on things that exist.** ① **The heli:** at three stars a police Huey (the U21 model, `HelicopterController`'s flight, a cop-coloured `CarPaint` twin) lifts off from the station, holds a hover slot above and behind you, and pins you with a **real `Spotlight`** - URP spot with a **cookie** and **shadows** - that tracks the player on the ground; the rotor sound already exists (`RotorSound`), so does the siren bus. Three.js in a browser does not do a moving shadowed spotlight over a city at frame rate; URP does it as one additional light. Reconcile through `PoliceSystem` like a fourth car (Returning mode when the star drops), and it never lands: no seat, `enterable=false`, no arrest of its own - it exists to make the third star feel like the third star. ② **The GPS line:** the objective on the minimap and the full map draws as a **route along the roads**, not a straight line - `RoutePlanner` + `RouteGraph` are the U19 A\* the cops already drive on, and the web build's traffic graph was five islands, so it *could not* have drawn this. Re-planned only when the player leaves the current path by > 15 m or the objective moves; drawn on `MapView` as a polyline (UI Toolkit `generateVisualContent`, one mesh). **Off state:** the heli is gated by star count and by `PoliceTuning.HeliStars` (0 = never, ships **3**); the GPS line is `Settings → Display → GPS Route` default **on** - it is HUD, it changes no visual judgement of the world. **Perf budget:** ONE extra shadow-casting light, at a 512 shadow map, only while the heli is airborne - measure it against the U30b baseline explicitly, it is the only new light in the port; the route replan is off the hot path (0.25 s cadence, same as the cops). **Blender:** none - unless a searchlight housing under the Huey's nose is wanted, which is a five-minute mesh. Reuses: `HelicopterController`, `Rotor`, `RotorSound`, `Siren`, `PoliceSystem`, `Heat`, `RoutePlanner`, `MapView`/`GameMap` |
 | U35d | Weather - rain, wet roads, lightning, and grip that answers | todo | | **The argument:** rain that changes how the car drives. Visuals alone the web could fake; a `WheelFrictionCurve` whose stiffness drops with wetness is a physics engine doing the work. **Mechanism:** a `Weather` component beside `DayNightCycle` on the same object, with a `Wetness` 0-1 that ramps in over ~30 s: **rain** = one URP particle system parented to the camera (pooled, ~600 drops, soft-particle off, no collision - the drops die at a fixed height), splashes as a second cheap emitter under the camera's ground point; **wet roads** = the road/pavement materials get their `_Smoothness` lerped up and `_BaseColor` darkened by `Wetness` via a `MaterialPropertyBlock` per district renderer (no material duplication - U15's texture memory lesson stands), which gives sky and neon reflections for free under URP; **lightning** = a 2-frame flash on the main light's intensity + a `Thunder` clip on the ambient bus with a distance delay; **grip** = every `CarWheel`'s forward/sideways stiffness × `(1 - 0.35 × Wetness)`, the bike more; ties into U33: rain darkens `SkyPalette`'s current stop by a fixed factor rather than adding a fourth palette. **Off state:** `Settings → Display → Weather` = Off / Rain / Random, default **Off**; Off never instantiates the emitter and writes no property block. **Perf budget - this is the row most likely to fail rule 3:** U33 already cut Bloom against a 20.7 ms frame; rain particles + darker sky must be measured on the Player, and the emitter has a `maxParticles` that is a tuning field, not a constant. If reflections on wet roads need a reflection probe or SSR, **they are cut** - the smoothness lerp alone reads as wet. **Blender:** none. **Note:** the sea (`SeaSurface`) and the ski get no rain treatment; the sea already moves. **Reuses:** `DayNightCycle`, `SkyPalette`, `Ambient`, `CarWheel`, `MotorcycleController` |

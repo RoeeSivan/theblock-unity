@@ -38,6 +38,21 @@ namespace TheBlock.Npc
 
         [SerializeField] private RunOverReaction.Tuning reaction = RunOverReaction.Tuning.Default;
 
+        [Header("U35a - ragdolls")]
+        [Tooltip("Used instead of the clip's tuning above whenever Settings → Gameplay → Ragdolls is " +
+                 "on and the victim's prefab has been through The Block → Build Ragdolls.")]
+        [SerializeField] private RagdollReaction.Tuning ragdoll = RagdollReaction.Tuning.Default;
+
+        [Tooltip("How high up the victim the bumper is taken to have struck, metres. It is where the " +
+                 "impulse is applied, so it is what decides whether the body is scooped over the " +
+                 "bonnet or swept out from under itself - a car's nose is about 0.6 m.")]
+        [SerializeField] private float bumperHeight = 0.6f;
+
+        [Tooltip("Most simultaneous ragdolls. Over this the oldest freezes in its pose, which is what " +
+                 "keeps a bumper through a queue at a zebra from being a stall. Pushed into " +
+                 "RagdollBudget, which is where it is actually read.")]
+        [SerializeField] private int ragdollCap = 4;
+
         [Header("Unity-only")]
         [Tooltip("Metres of height difference past which a vehicle and a person are simply not at the " +
                  "same place. The web build never needed this because its city is one storey.")]
@@ -61,6 +76,16 @@ namespace TheBlock.Npc
         public event System.Action<int> RanOver;
 
         private void Awake() => Bind();
+
+        /// <summary>
+        /// The cap is serialized here and lives in <see cref="RagdollBudget"/>, so it is pushed on
+        /// every enable rather than once: a static with an inspector field behind it drifts out of
+        /// date the moment anyone edits the field mid-Play, and this is the field the U30b measurement
+        /// will actually be taken against.
+        /// </summary>
+        private void OnEnable() => RagdollBudget.Cap = Mathf.Max(1, ragdollCap);
+
+        private void OnValidate() => RagdollBudget.Cap = Mathf.Max(1, ragdollCap);
 
         private void Bind()
         {
@@ -102,7 +127,13 @@ namespace TheBlock.Npc
                 if (Mathf.Abs(at.y - anchor.position.y) > sameStoreyBand) continue;
                 if (!TrafficGeometry.PointInBox(box, at.x, at.z, boxPad + person.BodyRadius + lead)) continue;
 
-                person.KnockDown(travel, speedMs, reaction, blood);
+                // Where the metal met them: their own position at bumper height, pulled back towards
+                // the vehicle so the impulse lands on the struck side rather than through the middle.
+                // Taken from the victim rather than from a contact point because there IS no contact -
+                // the box fires on the step BEFORE the capsule would have touched anything.
+                var hitPoint = at + Vector3.up * bumperHeight - travel * person.BodyRadius;
+
+                person.KnockDown(travel, speedMs, hitPoint, reaction, ragdoll, blood);
                 if (!person.Downed)
                 {
                     WarnNoClip();

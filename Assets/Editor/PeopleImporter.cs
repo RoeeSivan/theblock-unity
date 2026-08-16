@@ -32,10 +32,12 @@ namespace TheBlock.EditorTools
     ///    <c>Joe_Swim</c> arrangement, not the <c>Joe_EnterCar</c> one. It also matters mechanically:
     ///    with the root baked, <c>AnimationClip.averageSpeed</c> reads ~0 and the animator builder
     ///    has no cadence to calibrate against.
-    ///  - <b>Optimize Game Objects ON.</b> Joe has it off because gameplay hunts his bones (the
-    ///    driver anchor, the seat). Nothing hunts a pedestrian's bones until U18, and this collapses
-    ///    ~68 transforms per instance into the animator's internal skeleton - across a live crowd
-    ///    that is thousands of transforms that simply never exist.
+    ///  - <b>Optimize Game Objects OFF - reversed by U35a, and the old note called its own shot.</b>
+    ///    It used to be ON, with the reasoning "Joe has it off because gameplay hunts his bones (the
+    ///    driver anchor, the seat); nothing hunts a pedestrian's bones until U18". Ragdolls are what
+    ///    finally hunt them: eleven Rigidbodies need eleven bone TRANSFORMS, and Optimize Game
+    ///    Objects is precisely the option that deletes them. See the reversal at the setting itself
+    ///    for why exposing a few bones instead does not work.
     ///  - <b>Textures extracted, then bound by hand.</b> Unity does neither for a Mixamo FBX and the
     ///    character renders white; extraction is also the only way the textures get a
     ///    <c>TextureImporter</c> at all, which is what compresses them (the same fault U15 found
@@ -195,8 +197,26 @@ namespace TheBlock.EditorTools
             importer.useFileScale = true;
             importer.globalScale = 1f;
 
-            // Nothing in a street crowd reads a bone, so the whole transform hierarchy can go.
-            importer.optimizeGameObjects = true;
+            // ⚠ U35a REVERSED THIS, and the reversal is not a preference - it is forced.
+            //
+            // It used to read "nothing in a street crowd reads a bone, so the whole transform
+            // hierarchy can go", with optimizeGameObjects = true collapsing ~68 transforms per
+            // instance into the Animator's internal skeleton. A RAGDOLL is eleven Rigidbodies bolted
+            // to eleven bone transforms, and under Optimize Game Objects those transforms do not
+            // exist: the six pedestrians all failed RagdollBuilder with "the avatar has no Hips bone"
+            // while the three player bodies, which never had it on, rigged first time.
+            //
+            // extraExposedTransformPaths is NOT the way out, and it is worth writing down because it
+            // looks exactly like the feature for this: an exposed transform is an OUTPUT the Animator
+            // writes, while the SkinnedMeshRenderer is skinned from the internal skeleton it was not
+            // given. Physics moving an exposed bone would move nothing anyone can see.
+            //
+            // The cost is real and is U30b's to measure: ~68 transforms per live body, and the crowd
+            // holds up to 160. What keeps it affordable is that it is off-screen work that does not
+            // happen - NpcBuilder sets cullingMode = CullCompletely, so an unseen pedestrian poses
+            // nothing at all - plus the spawner's existing trickle, which is what bounds the extra
+            // Instantiate cost per frame.
+            importer.optimizeGameObjects = false;
             importer.extraExposedTransformPaths = System.Array.Empty<string>();
 
             importer.importBlendShapes = false;

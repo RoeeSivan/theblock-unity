@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TheBlock.Game;
 using TheBlock.Vfx;
 using UnityEngine;
 using UnityEngine.AI;
@@ -90,7 +91,8 @@ namespace TheBlock.Npc
         private Vector3 _lastPosition;
 
         // --- U18's run-over ---------------------------------------------------------------------
-        private RunOverReaction _reaction;
+        private IRunOverReaction _reaction;
+        private Ragdoll _ragdoll;
         private Blood _blood;
         private Vector3 _standingPosition;      // where this person was when the bumper arrived
         private Quaternion _standingRotation;
@@ -197,6 +199,7 @@ namespace TheBlock.Npc
             _logHit = false;
             SetOpacity(1f);
             if (_collider != null) _collider.enabled = true;
+            if (_ragdoll != null && _ragdoll.Active) _ragdoll.Rest();
 
             if (animator != null)
             {
@@ -430,25 +433,36 @@ namespace TheBlock.Npc
         /// Hit by a vehicle. <see cref="RunOverSystem"/> decides who and when; this puts the body into
         /// the reaction and takes it back out again.
         ///
-        /// <b>Root motion goes ON here and OFF in <see cref="Recover"/>, and this is the only place in
-        /// the project where it is on.</b> Every other clip a pedestrian plays is a locomotion cycle
-        /// whose travel is discarded because the script owns the position - but the knockback IS the
-        /// clip's travel, and reproducing it in code would be two clocks for one body.
+        /// <b>U35a made this a fork, and left the old branch fully alive.</b> With ragdolls on, PhysX
+        /// gets the body and the clip is never loaded; with them off - or on a body whose prefab has
+        /// never been through <c>RagdollBuilder</c> - it is U18's clip, unchanged, down to the
+        /// materials it fades. That is the off-switch rule: the off state IS the old behaviour, not a
+        /// neutral pass through new code.
+        ///
+        /// <b>Root motion goes ON here and OFF in <see cref="Recover"/>, and the clip path is the only
+        /// place in the project where it is on.</b> Every other clip a pedestrian plays is a
+        /// locomotion cycle whose travel is discarded because the script owns the position - but the
+        /// knockback IS the clip's travel, and reproducing it in code would be two clocks for one body.
         ///
         /// <b>The aim is derived from the clip, never from a constant.</b> The animation is authored
         /// as "hit from the side while crossing", so its travel leaves the body at roughly a right
         /// angle to where it was facing. Reading that angle off the clip's own root motion and
         /// subtracting it puts the authored throw along the vehicle's forward, whatever the clip does
         /// - and it means nobody has to decide whether the web build's −85.8° survives a change of
-        /// handedness.
+        /// handedness. <b>The ragdoll needs none of that</b>, and that is the point of it: it does not
+        /// have an authored direction to correct, so there is nothing to get wrong.
         /// </summary>
         public void KnockDown(
-            Vector3 throwDirection, float speedMs, in RunOverReaction.Tuning tuning, Blood blood)
+            Vector3 throwDirection, float speedMs, Vector3 hitPoint,
+            in RunOverReaction.Tuning tuning, in RagdollReaction.Tuning ragdollTuning, Blood blood)
         {
             if (!Live || Downed || animator == null) return;
 
-            var clip = HitClip();
-            if (clip == null) return;   // no clip, no reaction - RunOverSystem says so once, loudly
+            if (_ragdoll == null) TryGetComponent(out _ragdoll);
+            bool simulated = Progress.RagdollsOn && _ragdoll != null && _ragdoll.IsBuilt;
+
+            var clip = simulated ? null : HitClip();
+            if (!simulated && clip == null) return;   // no clip, no reaction - RunOverSystem says so, loudly
 
             _standingPosition = transform.position;
             _standingRotation = transform.rotation;
@@ -460,28 +474,38 @@ namespace TheBlock.Npc
             if (flat.sqrMagnitude < 1e-4f) flat = transform.forward;
             flat.Normalize();
 
-            float aim = Mathf.Atan2(flat.x, flat.z) * Mathf.Rad2Deg - ThrowYaw(clip);
-            transform.rotation = Quaternion.Euler(0f, aim, 0f);
-
             // A body flying through the air is not something the player's car should also be pushing,
             // and a corpse is not a wall to drive into.
             if (_collider == null) TryGetComponent(out _collider);
             if (_collider != null) _collider.enabled = false;
 
-            animator.applyRootMotion = true;
-
-            // The reaction runs on its own clock, so a culled animator would leave the pose frozen
-            // mid-flight while the body still travelled, landed and faded. Costly for a crowd, free
-            // for the two or three people actually under a car.
-            animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
-            animator.CrossFadeInFixedTime(HitState, 0.05f, 0, 0f);
-
             float groundY = transform.position.y;
             if (CrowdGround.TrySample(transform.position, ~0, 1.5f, 3f, out float sampled))
                 groundY = sampled;
 
-            _reaction = new RunOverReaction();
-            _reaction.Begin(transform, flat, speedMs, groundY, clip.length, tuning, blood);
+            if (simulated)
+            {
+                var ragdoll = new RagdollReaction();
+                ragdoll.Begin(_ragdoll, flat, speedMs, hitPoint, groundY, ragdollTuning, blood);
+                _reaction = ragdoll;
+            }
+            else
+            {
+                float aim = Mathf.Atan2(flat.x, flat.z) * Mathf.Rad2Deg - ThrowYaw(clip);
+                transform.rotation = Quaternion.Euler(0f, aim, 0f);
+
+                animator.applyRootMotion = true;
+
+                // The reaction runs on its own clock, so a culled animator would leave the pose frozen
+                // mid-flight while the body still travelled, landed and faded. Costly for a crowd,
+                // free for the two or three people actually under a car.
+                animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                animator.CrossFadeInFixedTime(HitState, 0.05f, 0, 0f);
+
+                var clipped = new RunOverReaction();
+                clipped.Begin(transform, flat, speedMs, groundY, clip.length, tuning, blood);
+                _reaction = clipped;
+            }
 
             // The voice and the thud, on the impact frame, beside the blood - U27's debt to U18, and
             // the seam that row named. It sits HERE rather than inside the reaction because this is
@@ -499,7 +523,11 @@ namespace TheBlock.Npc
         {
             if (!Downed) return;
 
-            HarvestRootMotion();
+            // Only the clip moves this transform. A ragdoll's bones are simulated in world space and
+            // the harvest would drag the whole rig by whatever the disabled Animator last left in the
+            // visual's localPosition.
+            if (_reaction.DrivesTransform) HarvestRootMotion();
+
             _reaction.Tick(dt, _blood);
             SetOpacity(_reaction.Opacity);
 
@@ -510,11 +538,15 @@ namespace TheBlock.Npc
             if (_logHit && _reaction.Done)
             {
                 _logHit = false;
-                var travel = transform.position - _standingPosition;
+
+                // Where the BODY ended up, which after a ragdoll is nowhere near this transform.
+                var rest = _reaction.DrivesTransform ? transform.position : _ragdoll.Position;
+                var travel = rest - _standingPosition;
                 travel.y = 0f;
                 Debug.Log(
                     $"Run-over: {name} at {_logSpeed * 3.6f:0.0} km/h → thrown {travel.magnitude:0.00} m " +
-                    $"(clip root motion + push), came to rest at y {transform.position.y:0.00}", this);
+                    $"({(_reaction.DrivesTransform ? "clip root motion + push" : "ragdoll")}), " +
+                    $"came to rest at y {rest.y:0.00}", this);
             }
 
             if (_reaction.Done) Recover();
@@ -569,6 +601,12 @@ namespace TheBlock.Npc
         {
             _reaction = null;
             _blood = null;
+
+            // Before the Animator is told anything: Rest hands the budget slot back and switches the
+            // Animator on, and the crossfade below has to be the last word on what this skeleton is
+            // doing. The other order leaves a body playing Locomotion for one frame and then having
+            // its pose overwritten by eleven kinematic bones still standing where they fell.
+            if (_ragdoll != null && _ragdoll.Active) _ragdoll.Rest();
 
             SetOpacity(1f);
 
