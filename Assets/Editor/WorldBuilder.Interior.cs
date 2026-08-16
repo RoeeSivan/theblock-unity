@@ -53,7 +53,9 @@ namespace TheBlock.EditorTools
             if (options.Colliders) AddColliders(instance, null, null, null, report);
 
             BuildInteriorLights(instance.transform, cfg, offset, report);
-            BuildCounterNpc(instance.transform, cfg, offset, report);
+
+            // The cashier hangs off the PLACES group, not off the room. See BuildCounterNpc.
+            BuildCounterNpc(parent, cfg, offset, report);
             BindInteriorComponent(instance, cfg, player, offset, report);
 
             report.Placed.Add($"{instance.name} @ {Fmt(instance.transform.position)}");
@@ -70,6 +72,13 @@ namespace TheBlock.EditorTools
         ///
         /// She stands, and that is free: a <c>Pedestrian</c> that is never bound to a seed never
         /// ticks, so its blend tree sits at Speed 0. Disabled outright here so nothing can wake her.
+        ///
+        /// <b><paramref name="parent"/> is the Places group and NOT the room</b>, which is the whole
+        /// reason it is a parameter. <c>pizza-interior.glb</c>'s root node carries a scale of
+        /// <c>(5, 0.025, 4)</c> — the room is a scaled box — and a character parented under it
+        /// inherits that: measured, she rendered 3.5 m wide and <b>2 cm tall</b>, a smear on the
+        /// floor that reads as "there is no cashier". A skinned body has to hang off something with
+        /// an honest scale. She is placed in world space either way, so nothing else changes.
         /// </summary>
         private static void BuildCounterNpc(
             Transform parent, TheBlockConfig.InteriorSpec cfg, Vector3 offset, Report report)

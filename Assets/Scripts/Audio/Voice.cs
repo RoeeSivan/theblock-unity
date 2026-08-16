@@ -45,9 +45,21 @@ namespace TheBlock.Audio
 
         private void Awake()
         {
-            if (source == null && !TryGetComponent(out source))
+            // A source of its OWN, on a child, and deliberately never TryGetComponent.
+            //
+            // Voice and Conductor both live on the Campaign object, and Conductor is
+            // [RequireComponent(typeof(AudioSource))] — so that object has exactly one AudioSource
+            // and both components used to grab it. Every line therefore played THROUGH the song:
+            // Play() calls Stop() first, so Remy's cheer silenced the dance's own soundtrack and the
+            // routine ran on in silence with the DSP clock still counting.
+            //
+            // One AudioSource is one voice, which is the right model for narration and the wrong one
+            // for narration-over-music. Two sources is the whole fix; nothing else is shared.
+            if (source == null)
             {
-                source = gameObject.AddComponent<AudioSource>();
+                var host = new GameObject("Voice Source");
+                host.transform.SetParent(transform, false);
+                source = host.AddComponent<AudioSource>();
                 source.playOnAwake = false;
                 source.spatialBlend = 0f; // 2D: narration, not a sound in the world
             }

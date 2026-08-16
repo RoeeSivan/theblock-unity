@@ -54,10 +54,20 @@ namespace TheBlock.Vehicles
 
         private TheBlockConfig.SeaSpec _sea;
         private Transform _visual;
+
+        /// <summary>
+        /// The Visual's built rotation — the Sketchfab Rx(−90) plus the model's facing flip.
+        ///
+        /// The lean is composed ON TOP of this rather than replacing it. Writing a bare
+        /// <c>Euler(0, y, roll)</c> threw the −90° away on the first FixedUpdate, which laid the
+        /// whole ski on its nose in the water, parked or not: the roll is a rotation of the CRAFT
+        /// and the base is a correction of the MODEL, and the two do not live in the same frame.
+        /// </summary>
+        private Quaternion _visualRest = Quaternion.identity;
+
         private float _speed;
         private float _steer;
         private float _bobT;
-        private float _hullHalfHeight;
 
         private Vector3 _spawnPosition;
         private Quaternion _spawnRotation;
@@ -76,6 +86,7 @@ namespace TheBlock.Vehicles
 
             _sea = TheBlockConfig.Load()?.Config?.Sea;
             _visual = transform.Find("Visual");
+            if (_visual != null) _visualRest = _visual.localRotation;
             CaptureSpawn();
         }
 
@@ -133,10 +144,14 @@ namespace TheBlock.Vehicles
 
             // Pinned to the water. `SeaGeometry` owns the waterline and its handedness — the sea is
             // Unity +X, which is the mirror of the web's −X, and this must never re-derive that.
+            //
+            // The ORIGIN is the waterline, which is why there is no hull-height term: the prefab is
+            // centred in Y (unlike the road vehicles, which sit on their contact patch), so a hull
+            // floats around y=0 with about 0.66 m of it wet. `floatY` is the nudge on top.
             _bobT += dt * bobFreq;
             var bobScale = 1f - Mathf.Min(1f, Mathf.Abs(_speed) / Mathf.Max(1f, maxSpeed * 0.4f));
             var level = _sea?.Level ?? 0f;
-            next.y = level + floatY + _hullHalfHeight + Mathf.Sin(_bobT) * bobAmp * bobScale;
+            next.y = level + floatY + Mathf.Sin(_bobT) * bobAmp * bobScale;
 
             body.MovePosition(next);
             body.MoveRotation(rotation);
@@ -145,7 +160,11 @@ namespace TheBlock.Vehicles
             if (_visual == null) return;
             var lean = Mathf.Clamp(_steer / Mathf.Max(0.01f, maxWheelAngle), -1f, 1f) *
                        leanMax * Mathf.Clamp01(Mathf.Abs(_speed) / Mathf.Max(1f, maxSpeed * 0.5f));
-            _visual.localRotation = Quaternion.Euler(0f, _visual.localEulerAngles.y, -lean * Mathf.Rad2Deg);
+
+            // PRE-multiplied: a roll about the craft's own forward, applied after the model
+            // correction rather than instead of it. See _visualRest.
+            _visual.localRotation =
+                Quaternion.AngleAxis(-lean * Mathf.Rad2Deg, Vector3.forward) * _visualRest;
         }
 
         // --- IChaseTarget ------------------------------------------------------------------------
@@ -178,6 +197,14 @@ namespace TheBlock.Vehicles
         /// <summary>Locked until the campaign reaches its step — the port of <c>jetskiUnlocked</c>.</summary>
         public System.Func<bool> Unlocked;
 
+        /// <summary>
+        /// The web has no line for this one — its jetski is simply silent when locked — so this is
+        /// written to match the helicopter's, which the web does have. Swimming out to a ski that
+        /// says nothing is the same dead-end the chopper's line exists to prevent.
+        /// </summary>
+        public string EntryRefusal =>
+            Unlocked == null || Unlocked() ? null : "Finish the rescue to earn the keys";
+
         public bool TryEnter()
         {
             if (Unlocked != null && !Unlocked()) return false;
@@ -204,10 +231,9 @@ namespace TheBlock.Vehicles
         private void OnDisable() => EnterableRegistry.Unregister(this);
 
         /// <summary>Editor-side wiring, used by <c>MissionVehicleBuilder</c>.</summary>
-        public void Configure(Transform seat, TheBlockConfig.JetskiSpec spec, Vector3 hullSize)
+        public void Configure(Transform seat, TheBlockConfig.JetskiSpec spec)
         {
             riderAnchor = seat;
-            _hullHalfHeight = hullSize.y * 0.5f;
 
             var h = spec.Handling;
             maxSpeed = h.MaxSpeed;

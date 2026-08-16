@@ -59,11 +59,12 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-**Next action: PLAY-TEST TIER 5 — all four missions, in order, plus U19d.** Nothing is being built
-until that happens. U20, U21, U22, U23 and U24 are all **built, measured and committed**, and all
-five are `wip` rather than `done` for one reason only: the user has not played them yet. That was
-the explicit arrangement (2026-08-16, *"תבנה את כל המשימות כבר ומחר נבצע תיקונים במידה ויהיה"* —
-build them all, we fix in the morning).
+**Next action: PLAY-TEST TIER 5 AGAIN — the first play-test happened and returned seven reports,
+all seven are fixed, none of the fixes has been played.** The block below is what changed and what
+each was actually caused by. U20–U24 stay `wip` until the second pass confirms them.
+
+Everything the fixes touched is rebuilt and saved in `World.unity`: **Build Mission Vehicles**,
+**Build World**, **Build Campaign**, in that order. Nothing else needs re-running.
 
 ### What to play, in this order
 
@@ -81,12 +82,62 @@ The save was deliberately wiped, so Play starts a fresh campaign at mission 1 wi
 
 `F` retries any failed mission from anywhere. `M` opens the map. `R` respawns a vehicle.
 
+### Play-test round 1, 2026-08-16 — seven reports, seven causes, all fixed
+
+Reported in one pass over the campaign. **Not one of them was the mission logic** — five were a
+frame or a rotation being composed wrongly and two were a resource being shared or missing. Each is
+written with what it actually was, because in every case the symptom named a different thing.
+
+1. **No "E to enter" anywhere.** There was no prompt SOURCE, only mission prompts. `MissionHud`'s
+   prompt line is now an **arbitrated, immediate-mode channel** — claim it every frame you want it,
+   highest priority wins, `LateUpdate` draws and forgets. Priorities are the web's own `if/else`
+   chain in `hud-driver.ts`: mission F/T (30) → vehicle E (20) → doorway E (10). `VehicleEnterExit`
+   claims it from **the same predicate `E` tests**, sharing the stopped-car it already holds.
+   ⚠ Consequence to know: a prompt that is not re-claimed every frame disappears. `SetPrompt(null)`
+   is now a no-op, and every existing caller was already per-frame.
+2. **The cashier.** She was built, placed and rendering — and **2 cm tall**. `pizza-interior.glb`'s
+   root carries a scale of `(5, 0.025, 4)`, and `BuildCounterNpc` parented her to it. She hangs off
+   the `Places` group now: measured 1.70 m, standing at `(−1000, 0, 996.4)`.
+3. **The pizzeria door said nothing.** `Interior` claims both its own prompts now — "Press E to go
+   inside" outside, "Press E to leave" on the mat. The exit line used to be drawn by
+   `DeliveryMission`, which meant the way OUT of the room only existed while that mission was the
+   one running.
+4. **Remy's cheers stopped the music.** `Voice` and `Conductor` are both components on `Campaign`,
+   `Conductor` is `[RequireComponent(typeof(AudioSource))]`, and `Voice` resolved its source with
+   `TryGetComponent` — **one AudioSource, measured**. So every cheer's `Stop()` killed the song
+   while the DSP clock counted on. `Voice` builds its own child source now. Verified in Play: song
+   at `t = 7.62 s`, drift `0.0 ms`, with a line played through it.
+5. **The white dancer.** `Joe.fbx`'s own materials are `Ch33_body` / `Ch33_hair` with no map. Its
+   importer remap named `Ch33_1001_Diffuse` / `Ch33_1002_Diffuse` — **the names of the target
+   materials, not of the FBX's slots**, so it matched nothing and did nothing, silently. The scene's
+   `Player_Joe` had been bound by hand, which is why only the dancer was white. Remapped on the
+   correct keys, so every future instantiation of Joe is textured.
+6. **The Huey flew tail-first.** `MissionVehicleBuilder` composed `RotFromRadians(modelYaw) *
+   Upright` and left out **`Convert.ModelFacing`**, which every other vehicle builder applies. A
+   bounding box cannot see this: the craft was the right size and the right way up with its nose at
+   −Z. Measured before: tail rotor `z +5.25`, cockpit `z −2.77`. After: `−5.25` and `+2.77`.
+7. **The jetski lay on its face.** Not the spawn — `JetskiController`'s lean wrote
+   `Euler(0, y, roll)` straight onto `Visual`, **throwing away the Sketchfab `Rx(−90)` on the first
+   FixedUpdate**, driven or not. The lean is composed on top of a captured rest rotation now. The
+   ski was ALSO backwards, by fault 6 (handlebars `z −1.10` → `+1.10`).
+
+**One thing found on the way and fixed with them:** a locked Huey would have offered "Press E to
+enter" for a key that refuses. `IEnterable.EntryRefusal` is the reason-or-null a vehicle gives, so
+the prompt and the action come from one place — the helicopter's line is the web's own
+("Win the dance to earn the keys"); the jetski's is written to match, because the web has none.
+
+**Left alone deliberately, worth a look while playing M4:** the jetski's rider seat comes from
+`config.vehicle.jetski.rider.seat` at `y −0.31` against a hull centred on its origin, and its
+`rider.scale` of 1.1 is not applied at all. Nobody has ridden it yet. If Joe sits inside the hull,
+that is where to start. `JetskiController` also no longer adds a hull-half-height to the waterline:
+that value was written into a non-serialized field at build time and was **0 at runtime**, so the
+term never did anything — the origin IS the waterline, which is what the code now says.
+
 ### What I could not verify, and what to watch
 
-- **Nothing has been played by a human.** Every claim in the rows below is an MCP measurement:
-  positions, radii, counts, clocks, status edges. Measurement catches geometry and logic; it cannot
-  tell you whether the dance is fun, whether the Huey feels heavy, or whether four minutes is enough
-  for five deliveries. Those are the questions the play-test exists to answer.
+- **The FEEL is still unplayed.** Round 1 answered the geometry questions and none of the others:
+  whether the dance is fun, whether the Huey feels heavy now that it points the right way, whether
+  four minutes is enough for five deliveries. Those are what round 2 is for.
 - **The dance is the one to judge hardest.** Its clock is provably right (0.02 ms of drift) but the
   *feel* — note density, whether the ring reads at speed, whether 2.2 s of travel is enough warning —
   is untested and is exactly the kind of thing a rhythm game lives or dies on.

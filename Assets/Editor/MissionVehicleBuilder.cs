@@ -181,7 +181,7 @@ namespace TheBlock.EditorTools
             seat.localPosition = Convert.ModelOffset(spec.Rider.Seat.Raw);
 
             var controller = root.AddComponent<JetskiController>();
-            controller.Configure(seat, spec, box.size);
+            controller.Configure(seat, spec);
 
             log.AppendLine($"  jetski hull capsule h{collider.height:F2} r{collider.radius:F2}, " +
                            $"seat {seat.localPosition:F2}");
@@ -236,8 +236,16 @@ namespace TheBlock.EditorTools
             instance.name = "Visual";
             visual = instance.transform;
 
-            // The Sketchfab correction, then the config's own facing flip on top of it.
-            visual.localRotation = Convert.RotFromRadians(modelYaw) * Upright;
+            // Three rotations, innermost first: stand the Sketchfab export up, turn its three.js
+            // front to Unity's +Z, then the config's own yaw on top.
+            //
+            // <b>ModelFacing was missing until 2026-08-16 and both craft flew tail-first.</b> Every
+            // other vehicle builder here composes `RotFromRadians(modelYaw) * ModelFacing`; this one
+            // composed `RotFromRadians(modelYaw) * Upright` and the omission is invisible in a
+            // bounding box — a Huey the right size and the right way up, with its nose at −Z.
+            // Measured in the built prefab: tail rotor at z +5.25 against a cockpit at z −2.77, and
+            // the ski's handlebars at −1.10 against its rear bar at +2.11. Both drive along +Z.
+            visual.localRotation = Convert.RotFromRadians(modelYaw) * Convert.ModelFacing * Upright;
             visual.localScale = Vector3.one * scale;
             return root;
         }

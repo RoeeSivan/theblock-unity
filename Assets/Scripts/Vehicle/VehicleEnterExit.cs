@@ -1,6 +1,7 @@
 using TheBlock.Core;
 using TheBlock.Player;
 using TheBlock.Traffic;
+using TheBlock.UI;
 using TheBlock.World;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -43,6 +44,9 @@ namespace TheBlock.Vehicles
 
         [Tooltip("The ambient traffic, for the carjack. Optional in the same way.")]
         [SerializeField] private TrafficSystem traffic;
+
+        [Tooltip("Where 'Press E to enter' is drawn. Optional: without it E still works, silently.")]
+        [SerializeField] private MissionHud hud;
 
         [Header("Exit placement — Unity-side, not in config.ts")]
         [Tooltip("How far above the vehicle the ground probe starts. Must clear the roof.")]
@@ -92,9 +96,16 @@ namespace TheBlock.Vehicles
         /// order — the vehicle wins, which is the web build's precedence too, and all three car
         /// sources outrank the door there for the same reason.
         /// </summary>
-        public bool HasVehicleInReach =>
+        public bool HasVehicleInReach => InReach(NearestStopped());
+
+        /// <summary>
+        /// The same test against a stopped car the caller has ALREADY found. Update has one in hand
+        /// every frame (it has to, to hold it), and asking the traffic system for it a second time
+        /// to draw a prompt is a sweep of the live pool for an answer we are holding.
+        /// </summary>
+        private bool InReach(TrafficCar stopped) =>
             _spec != null && mode == GameMode.OnFoot &&
-            (Nearest() != null || NearestFiller() != null || NearestStopped() != null);
+            (Nearest() != null || NearestFiller() != null || stopped != null);
 
         /// <summary>The vehicle being entered, driven or left, or null while on foot.</summary>
         public IEnterable ActiveVehicle
@@ -118,6 +129,7 @@ namespace TheBlock.Vehicles
                 playerAnimator = player.GetComponent<PlayerAnimator>();
             if (cars == null) cars = FindAnyObjectByType<CarSpawner>();
             if (traffic == null) traffic = FindAnyObjectByType<TrafficSystem>();
+            if (hud == null) hud = FindAnyObjectByType<MissionHud>();
 
             if (player == null)
             {
@@ -158,6 +170,14 @@ namespace TheBlock.Vehicles
                     // light goes green mid-approach and the car you were heading for drives off.
                     var stopped = NearestStopped();
                     if (stopped != null) traffic.Hold(stopped);
+
+                    // One predicate behind both the prompt and the action, which is the arrangement
+                    // the web build settled on after its cashier offered a key that did nothing.
+                    // A vehicle you can see the prompt for is one E will get you into — and one that
+                    // would refuse says WHY instead, in the same line, from its own EntryRefusal.
+                    var refusal = Nearest()?.EntryRefusal;
+                    if (refusal != null) hud?.SetPrompt(refusal, MissionHud.PromptVehicle);
+                    else if (InReach(stopped)) hud?.SetPrompt("Press E to enter", MissionHud.PromptVehicle);
 
                     if (pressedE) TryEnter(stopped);
                     break;

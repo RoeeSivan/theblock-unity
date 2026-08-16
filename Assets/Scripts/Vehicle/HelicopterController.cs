@@ -201,6 +201,10 @@ namespace TheBlock.Vehicles
         /// </summary>
         public System.Func<bool> Unlocked;
 
+        /// <summary>The web build's own line for standing at a chopper you have not earned.</summary>
+        public string EntryRefusal =>
+            Unlocked == null || Unlocked() ? null : "Win the dance to earn the keys";
+
         public bool TryEnter()
         {
             if (Unlocked != null && !Unlocked()) return false;

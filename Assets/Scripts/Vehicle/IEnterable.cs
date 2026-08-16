@@ -60,6 +60,18 @@ namespace TheBlock.Vehicles
         /// <summary>True while somebody is driving it.</summary>
         bool Driven { get; set; }
 
+        /// <summary>
+        /// Null when <see cref="TryEnter"/> would let you in; otherwise the reason it will not, in
+        /// the words the player should read.
+        ///
+        /// It exists so the PROMPT and the ACTION cannot disagree. Two of the four vehicles are
+        /// gated by the campaign, and without this the doorstep of a locked Huey offered
+        /// "Press E to enter" for a key that then did nothing — the exact failure the web build's
+        /// cashier had, and the reason every prompt in this port is drawn from the same predicate
+        /// its action tests.
+        /// </summary>
+        string EntryRefusal => null;
+
         /// <summary>Try to get in. True if successful, false if refused.</summary>
         bool TryEnter();
 

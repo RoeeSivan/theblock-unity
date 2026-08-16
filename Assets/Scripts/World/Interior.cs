@@ -1,5 +1,6 @@
 using TheBlock.Core;
 using TheBlock.Player;
+using TheBlock.UI;
 using TheBlock.Vehicles;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -29,6 +30,9 @@ namespace TheBlock.World
         [SerializeField] private PlayerController player;
         [SerializeField] private FollowCamera followCamera;
         [SerializeField] private VehicleEnterExit vehicles;
+
+        [Tooltip("Where the doorway's own prompts are drawn. Optional; without it E still works.")]
+        [SerializeField] private MissionHud hud;
 
         [Header("Doorway — written by WorldBuilder from config.interior")]
         [Tooltip("The circle on the street that takes you in. World space, already converted.")]
@@ -98,6 +102,7 @@ namespace TheBlock.World
             if (player == null) player = FindAnyObjectByType<PlayerController>();
             if (followCamera == null) followCamera = FindAnyObjectByType<FollowCamera>();
             if (vehicles == null) vehicles = FindAnyObjectByType<VehicleEnterExit>();
+            if (hud == null) hud = FindAnyObjectByType<MissionHud>();
 
             if (player == null)
             {
@@ -115,22 +120,23 @@ namespace TheBlock.World
             // room with no floor for it, and the enter/exit machine owns E while it is running.
             if (vehicles != null && vehicles.Mode != GameMode.OnFoot) return;
 
+            // E is shared with getting into a vehicle. A car parked on the pavement outside the
+            // pizzeria would otherwise win or lose the key at random, so the doorway defers: it only
+            // acts when the enter/exit machine found nothing to get into. The PROMPT defers on the
+            // same test, so what is offered and what E does can never disagree.
+            var here = player.transform.position;
+            var atDoor = !inside && WithinXZ(here, streetDoor, streetDoorRadius) &&
+                         (vehicles == null || !vehicles.HasVehicleInReach);
+            var atPad = inside && WithinXZ(here, exitPad, exitPadRadius);
+
+            if (atDoor) hud?.SetPrompt("Press E to go inside", MissionHud.PromptDoor);
+            else if (atPad) hud?.SetPrompt("Press E to leave", MissionHud.PromptDoor);
+
             var keyboard = Keyboard.current;
             if (keyboard == null || !keyboard.eKey.wasPressedThisFrame) return;
 
-            // E is shared with getting into a vehicle. A car parked on the pavement outside the
-            // pizzeria would otherwise win or lose the key at random, so the doorway defers: it only
-            // acts when the enter/exit machine found nothing to get into.
-            var here = player.transform.position;
-            if (!inside)
-            {
-                if (vehicles != null && vehicles.HasVehicleInReach) return;
-                if (WithinXZ(here, streetDoor, streetDoorRadius)) Enter();
-            }
-            else if (WithinXZ(here, exitPad, exitPadRadius))
-            {
-                Leave();
-            }
+            if (atDoor) Enter();
+            else if (atPad) Leave();
         }
 
         /// <summary>

@@ -23,6 +23,15 @@ namespace TheBlock.UI
     {
         private const float HintSeconds = 4f;
 
+        /// <summary>A mission's own F/T action — the most specific thing you can do here.</summary>
+        public const int PromptMission = 30;
+
+        /// <summary>E gets you into the vehicle you are standing next to.</summary>
+        public const int PromptVehicle = 20;
+
+        /// <summary>E gets you through the pizzeria door. Loses to a vehicle, as the E action does.</summary>
+        public const int PromptDoor = 10;
+
         private Label _objective;
         private Label _timer;
         private Label _counter;
@@ -31,6 +40,9 @@ namespace TheBlock.UI
 
         private float _hintLeft;
         private bool _urgent;
+
+        private string _promptText;
+        private int _promptPriority;
 
         /// <summary>
         /// Awake, and guarded, for the reason written out on <see cref="BriefingCard"/>: a HUD built
@@ -145,8 +157,24 @@ namespace TheBlock.UI
         /// <summary>The carried-pizzas readout, or any per-mission tally. Null hides it.</summary>
         public void SetCounter(string text) => SetText(_counter, text);
 
-        /// <summary>The contextual "Press E to …" line. Null hides it.</summary>
-        public void SetPrompt(string text) => SetText(_prompt, text);
+        /// <summary>
+        /// The contextual "Press E to …" line. <b>Immediate mode: claim it every frame you want it
+        /// shown, and stop claiming to hide it.</b> Null or empty is not a claim at all.
+        ///
+        /// It is arbitrated rather than last-writer-wins because three unrelated things now compete
+        /// for one line — a mission's F/T action, the vehicle you are standing beside, and the
+        /// pizzeria door — and with a latched setter the winner would be whichever component Unity
+        /// happened to call last that frame. The web build has the same three and resolves them in
+        /// one `if/else` chain in <c>hud-driver.ts</c>; the priorities here ARE that chain's order,
+        /// written where each claim is made instead of in a driver that has to know about all of them.
+        /// </summary>
+        public void SetPrompt(string text, int priority = PromptMission)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+            if (_promptText != null && priority <= _promptPriority) return;
+            _promptText = text;
+            _promptPriority = priority;
+        }
 
         /// <summary>Flashes a one-time nudge that fades itself out.</summary>
         public void ShowHint(string text)
@@ -188,6 +216,17 @@ namespace TheBlock.UI
             _hintLeft -= Time.unscaledDeltaTime;
             _hint.style.opacity = Mathf.Clamp01(_hintLeft);
             if (_hintLeft <= 0f) _hint.style.display = DisplayStyle.None;
+        }
+
+        /// <summary>
+        /// Draws whichever claim won this frame, then forgets it. LateUpdate, so every Update has
+        /// already had its say — that is the whole reason the arbitration can be order-independent.
+        /// </summary>
+        private void LateUpdate()
+        {
+            SetText(_prompt, _promptText);
+            _promptText = null;
+            _promptPriority = 0;
         }
     }
 }

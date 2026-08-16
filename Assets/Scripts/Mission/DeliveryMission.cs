@@ -346,14 +346,10 @@ namespace TheBlock.Missions
                 hud?.SetPrompt("Press T to start your shift");
                 if (keyboard != null && keyboard.tKey.wasPressedThisFrame) Enter();
             }
-            else if (interior.AtExitPad)
-            {
-                hud?.SetPrompt("Press E to leave");
-            }
-            else
-            {
-                hud?.SetPrompt(null);
-            }
+
+            // "Press E to leave" is NOT here any more: the exit mat belongs to the doorway, and
+            // Interior claims it itself. It used to be drawn from this tick, which meant the way out
+            // of the room was only offered while the delivery mission happened to be the one running.
         }
 
         /// <summary>

@@ -31,6 +31,26 @@ namespace TheBlock.EditorTools
         private const string JoePath = "Assets/Models/Characters/Joe.fbx";
         private const string RemyPrefab = "Assets/Prefabs/Npc/Ped_Remy.prefab";
 
+        /// <summary>
+        /// Joe's own FBX materials, and the textured URP ones that belong in their place.
+        ///
+        /// <b>Joe.fbx ships two white materials.</b> `Ch33_body` and `Ch33_hair` carry no map at
+        /// all — the diffuse textures were extracted beside them and bound by hand onto the scene's
+        /// `Player_Joe`, which is why he looks right and a freshly instantiated Joe does not. The
+        /// dancer WAS a fresh instantiation and rendered pure white.
+        ///
+        /// The importer's own remap is the tidier mechanism and it is set — but
+        /// <c>Joe.fbx.meta</c> is <b>gitignored</b> (the FBX is a 50 MB Mixamo download kept out of
+        /// LFS, and its meta follows it), so that setting is a local patch on one machine and cannot
+        /// be the fix. This can, because it is code. Both are harmless together: a slot the importer
+        /// already resolved does not match a key here.
+        /// </summary>
+        private static readonly (string Slot, string Material)[] JoeMaterials =
+        {
+            ("Ch33_body", "Assets/Models/Characters/Materials/Ch33_1001_Diffuse.mat"),
+            ("Ch33_hair", "Assets/Models/Characters/Materials/Ch33_1002_Diffuse.mat"),
+        };
+
         /// <summary>Remy's own standing idle, so the giver is not a man b-boying at nobody.</summary>
         private const string StandState = "Dance_Stand";
 
@@ -157,6 +177,7 @@ namespace TheBlock.EditorTools
             }
 
             animator.runtimeAnimatorController = controller;
+            BindJoeMaterials(visual.transform, log);
 
             var dancer = go.AddComponent<Dancer>();
 
@@ -187,6 +208,45 @@ namespace TheBlock.EditorTools
                 $"  stage dancer: Joe + {controller.name}, boom {boom} (raw — see the comment), " +
                 $"lookY {spec.World.Camera.LookY}, crossfade {spec.Dancer.CrossFadeSec}s");
             return dancer;
+        }
+
+        /// <summary>
+        /// Swaps Joe's white FBX materials for the textured ones. See <see cref="JoeMaterials"/> for
+        /// why this is code rather than an importer setting.
+        /// </summary>
+        private static void BindJoeMaterials(Transform root, System.Text.StringBuilder log)
+        {
+            var bound = 0;
+            var missing = 0;
+
+            foreach (var renderer in root.GetComponentsInChildren<Renderer>(true))
+            {
+                var materials = renderer.sharedMaterials;
+                var changed = false;
+
+                for (var i = 0; i < materials.Length; i++)
+                {
+                    if (materials[i] == null) continue;
+                    foreach (var (slot, path) in JoeMaterials)
+                    {
+                        if (materials[i].name != slot) continue;
+                        var replacement = AssetDatabase.LoadAssetAtPath<Material>(path);
+                        if (replacement == null) { missing++; continue; }
+                        materials[i] = replacement;
+                        changed = true;
+                        bound++;
+                    }
+                }
+
+                if (changed) renderer.sharedMaterials = materials;
+            }
+
+            if (missing > 0)
+                log.AppendLine($"  ⚠ dance: {missing} slot(s) had no textured material to bind — the " +
+                               "dancer renders white there.");
+            log.AppendLine(bound == 0
+                ? "  stage dancer materials: already textured (the importer remap is in place)"
+                : $"  stage dancer materials: {bound} slot(s) rebound off Joe.fbx's white defaults");
         }
 
         private static Animator BuildGiver(
