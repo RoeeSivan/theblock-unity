@@ -134,6 +134,23 @@ namespace TheBlock.Vehicles
         /// </summary>
         public void MarkAsPolice() => boostExempt = true;
 
+        /// <summary>True on a police cruiser. The one read <see cref="FuelSystem"/> needs.</summary>
+        public bool IsPolice => boostExempt;
+
+        /// <summary>
+        /// U28b's tank, or null on a car that has never been driven — and on every cruiser, which is
+        /// the point. Serialized for the same reason <see cref="boostExempt"/> is: a recompile
+        /// mid-Play reloads the domain without re-running Awake, and a tank that silently detached
+        /// would hand a dry car its full speed back in the middle of a limp home.
+        /// </summary>
+        [SerializeField, HideInInspector] private FuelTank fuelTank;
+
+        /// <summary>Called by <see cref="FuelTank.Configure"/> as the tank attaches itself.</summary>
+        public void AttachTank(FuelTank tank) => fuelTank = tank;
+
+        /// <summary>The tank's factor on both speed ceilings; 1 when there is no tank.</summary>
+        private float FuelFactor => fuelTank != null ? fuelTank.SpeedFactor : 1f;
+
         /// <summary>
         /// The forward ceiling: the config's cap, raised by a responding cop's override, then scaled
         /// by whatever ☕ Nitro coffee is doing.
@@ -145,7 +162,13 @@ namespace TheBlock.Vehicles
         ///
         /// It MULTIPLIES rather than competing with <see cref="SpeedLimitOverride"/>: that seam is an
         /// absolute floor for a responding cruiser, this is a factor on the result, and U28b's fuel
-        /// tank will be a second factor on the same product so a dry tank still limps at full boost.
+        /// tank is a second factor on the same product so a dry tank still limps at full boost.
+        ///
+        /// <b>Two exemptions, two mechanisms, and the difference is worth understanding before
+        /// touching either.</b> The BOOST is a global static that cannot tell one car from another,
+        /// so a cruiser has to opt out by identity — the flag above. FUEL is per-car state a cruiser
+        /// never receives at all, so it needs no exemption and no flag: <see cref="FuelFactor"/> is
+        /// 1 because there is no tank. A flag you do not have cannot be forgotten.
         /// </summary>
         private float MaxForwardSpeed
         {
@@ -154,9 +177,16 @@ namespace TheBlock.Vehicles
                 var baseline = SpeedLimitOverride > 0f
                     ? Mathf.Max(SpeedLimitOverride, _spec.MaxSpeed)
                     : _spec.MaxSpeed;
-                return boostExempt ? baseline : baseline * Powerup.SpeedBoost.Factor;
+                return baseline * (boostExempt ? 1f : Powerup.SpeedBoost.Factor) * FuelFactor;
             }
         }
+
+        /// <summary>
+        /// The reverse ceiling. <b>Fuel scales it; the boost does not</b> — ☕ says "+25% top speed
+        /// on any ride" and nobody buys a power-up to back out of a driveway faster, but an empty
+        /// tank is empty in both directions, which is how the web build clamps it too.
+        /// </summary>
+        private float MaxReverseSpeed => _spec.ReverseMaxSpeed * FuelFactor;
 
         /// <summary>
         /// How long a <see cref="SetInput"/> call stays in force, seconds. Long enough to survive a
@@ -239,6 +269,11 @@ namespace TheBlock.Vehicles
             _body.centerOfMass = centerOfMass;
             if (TryGetComponent<Police.CopDriver>(out _)) boostExempt = true;
 
+            // The belt to FuelTank.Configure's braces: the tank pushes itself onto us as it
+            // attaches, and this catches the one case the push cannot — a reload that brought the
+            // component back but not the reference. Correct by then, harmless before.
+            if (fuelTank == null) TryGetComponent(out fuelTank);
+
             // Non-serialized, so a mid-Play recompile brings it back as 0 — which would read as
             // "an AI wrote input this instant" and lock out the keyboard for half a second.
             _sinceInput = float.MaxValue;
@@ -319,12 +354,19 @@ namespace TheBlock.Vehicles
             var braking = throttle < 0f && speed > 0.5f || throttle > 0f && speed < -0.5f;
 
             var atForwardLimit = speed >= MaxForwardSpeed;
-            var atReverseLimit = -speed >= _spec.ReverseMaxSpeed;
+            var atReverseLimit = -speed >= MaxReverseSpeed;
             var capped = throttle > 0f && atForwardLimit || throttle < 0f && atReverseLimit;
 
             var motor = braking || capped ? 0f : throttle * motorTorque;
+
+            // `capped` gets the coast brake too, and U28b is what made that necessary. A
+            // WheelCollider has no rolling resistance and there is no aero at this scale, so cutting
+            // the motor alone leaves whatever overshoot the last step produced sitting there — the
+            // bike measured a 20 m/s cap holding at 22.6. It never mattered here because a boost
+            // only ever RAISES a ceiling. A dry tank COLLAPSES it, from 20 to 5 under a car already
+            // doing 20, and without this line the car coasts at 20 and the limp is invisible.
             var brake = braking ? brakeTorque
-                : Mathf.Approximately(throttle, 0f) ? coastBrake
+                : capped || Mathf.Approximately(throttle, 0f) ? coastBrake
                 : 0f;
 
             // Rear-wheel drive, like the car it is.

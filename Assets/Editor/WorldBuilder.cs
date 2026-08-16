@@ -235,11 +235,13 @@ namespace TheBlock.EditorTools
                 var places = NewGroup("Places", root.transform);
                 var store = BuildPlace(places, snapshot.Config.SevenEleven, "Seven Eleven", options, report);
                 BuildPlace(places, snapshot.Config.PizzaPlace, "Pizza Place", options, report);
-                BuildPlace(places, snapshot.Config.GasStation, "Gas Station", options, report);
+                var gas = BuildPlace(places, snapshot.Config.GasStation, "Gas Station", options, report);
                 BuildPlace(places, snapshot.Config.PoliceStation, "Police Station", options, report);
                 BuildInterior(places, snapshot.Config.Interior, snapshot.Config.Player, options, report);
                 BuildStore(store, snapshot.Config.SevenEleven, report);
                 EnsureEconomy(root.transform, report, snapshot.PowerUps);
+                BuildGasStation(gas, snapshot, report);
+                EnsureFuel(root.transform, report);
                 BuildLotCars(places, snapshot.Config.LotCars, options, report);
             }
 

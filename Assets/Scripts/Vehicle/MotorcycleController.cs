@@ -150,6 +150,33 @@ namespace TheBlock.Vehicles
         /// <summary>For the U25 HUD.</summary>
         public float SpeedKmh => Mathf.Abs(ForwardSpeed) * 3.6f;
 
+        /// <summary>
+        /// U28b's tank, or null until the bike has been ridden. Serialized for the reason
+        /// <c>CarController.fuelTank</c> is: a recompile mid-Play reloads the domain without
+        /// re-running Awake, and a tank that silently detached would hand a dry bike its full speed
+        /// back mid-limp.
+        /// </summary>
+        [SerializeField, HideInInspector] private FuelTank fuelTank;
+
+        /// <summary>Called by <see cref="FuelTank.Configure"/> as the tank attaches itself.</summary>
+        public void AttachTank(FuelTank tank) => fuelTank = tank;
+
+        private float FuelFactor => fuelTank != null ? fuelTank.SpeedFactor : 1f;
+
+        /// <summary>
+        /// ☕ Nitro coffee scales the forward ceiling, and so does U28b's tank — as FACTORS of one
+        /// product, so a boosted bike on a dry tank still limps. The bike has no police variant, so
+        /// unlike <c>CarController</c> there is nothing to exclude from the boost here.
+        /// </summary>
+        private float MaxForwardSpeed => _spec.MaxSpeed * Powerup.SpeedBoost.Factor * FuelFactor;
+
+        /// <summary>
+        /// Reverse. <b>Fuel scales it; the boost does not</b> — the item says "+25% top speed on any
+        /// ride", and nobody buys a power-up to back out of a driveway faster. An empty tank is
+        /// empty in both directions.
+        /// </summary>
+        private float MaxReverseSpeed => _spec.ReverseMaxSpeed * FuelFactor;
+
         private void Awake() => Bind();
 
         private void OnEnable() => EnterableRegistry.Register(this);
@@ -173,6 +200,9 @@ namespace TheBlock.Vehicles
                 enabled = false;
                 return;
             }
+
+            // The belt to FuelTank.Configure's braces — see CarController.Bind for the argument.
+            if (fuelTank == null) TryGetComponent(out fuelTank);
 
             _spec = snapshot.Config.Vehicle;
             _bikeSpec = _spec.Motorcycle;
@@ -251,12 +281,8 @@ namespace TheBlock.Vehicles
             // selector on one key, which is the arcade convention the web build had.
             var braking = throttle < 0f && speed > 0.5f || throttle > 0f && speed < -0.5f;
 
-            // ☕ Nitro coffee scales the forward ceiling only. Reverse is untouched: the item says
-            // "+25% top speed on any ride", and nobody buys a power-up to back out of a driveway
-            // faster. The bike has no police variant, so unlike CarController there is nothing to
-            // exclude here.
-            var atForwardLimit = speed >= _spec.MaxSpeed * Powerup.SpeedBoost.Factor;
-            var atReverseLimit = -speed >= _spec.ReverseMaxSpeed;
+            var atForwardLimit = speed >= MaxForwardSpeed;
+            var atReverseLimit = -speed >= MaxReverseSpeed;
             var capped = throttle > 0f && atForwardLimit || throttle < 0f && atReverseLimit;
 
             var motor = braking || capped ? 0f : throttle * motorTorque;

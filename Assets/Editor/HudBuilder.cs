@@ -16,6 +16,16 @@ namespace TheBlock.EditorTools
     /// UI Toolkit needs a <see cref="PanelSettings"/> asset with a theme; neither exists in a fresh
     /// URP project until the first .uxml is created by hand, so this creates both: a minimal .tss
     /// that imports Unity's default runtime theme, and a PanelSettings asset pointing at it.
+    ///
+    /// <b>⚠ THIS ITEM DELETES THE WHOLE MENU SHELL, and nothing else says so.</b> It destroys the
+    /// <c>HUD</c> GameObject before rebuilding it, and U26's <c>MenuBuilder</c> puts every menu
+    /// component on that same object — <c>TitleMenu</c>, <c>PauseMenu</c>, <c>ControlsGuide</c>,
+    /// <c>SettingsPanel</c>, <c>CharacterPanel</c>, <c>ShopMenu</c>, <c>MissionLaunch</c>,
+    /// <c>ScreenFade</c>, <c>GameFlow</c> — along with their serialized wiring to the preview rig
+    /// and the map. Running this on a built scene therefore ships a game that boots to nothing.
+    /// It is recoverable: run <b>The Block → Build Menus</b> straight after. Better still, do not
+    /// run it at all — every later unit that adds a HUD element also installs it idempotently from
+    /// its own menu item, exactly so this door can stay shut.
     /// </summary>
     public static class HudBuilder
     {
@@ -68,6 +78,11 @@ namespace TheBlock.EditorTools
             // The km/h readout and the sprint bar — the last two surfaces of hud.ts that nothing had
             // built. The bar deliberately takes the slot U28b's fuel gauge will share.
             hud.AddComponent<PlayerMeters>();
+
+            // U28b's fuel bar, which takes the sprint bar's slot — the two are mutually exclusive by
+            // mode. It is ALSO installed idempotently by The Block → Build Gas Station, and that is
+            // the door to use: see the warning on this class.
+            hud.AddComponent<FuelGauge>();
 
             hud.AddComponent<BriefingCard>();
 

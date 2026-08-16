@@ -20,10 +20,11 @@ namespace TheBlock.UI
     /// foot only and the readout is for whatever you are driving, so the two are never both saying
     /// something about you at once.
     ///
-    /// <b>The bar's slot is shared with U28b's fuel gauge on purpose.</b> `hud.css`'s comment is
-    /// explicit about it: the fuel bar takes the SAME position because it is driving-only and this is
-    /// on-foot-only, so "the bar above the radar is your meter" stays true in both modes. When U28b
-    /// lands, it fills this slot rather than finding a new one.
+    /// <b>The bar's slot is shared with <see cref="FuelGauge"/> on purpose.</b> `hud.css`'s comment
+    /// is explicit about it: the fuel bar takes the SAME position because it is driving-only and this
+    /// is on-foot-only, so "the bar above the radar is your meter" stays true in both modes. U28b
+    /// landed and filled this slot rather than finding a new one; the position itself is
+    /// <see cref="BarSlotBottomPx"/>, named here so the two cannot drift apart.
     ///
     /// <b>Hidden with <c>display</c>, never <c>visibility</c>.</b> <see cref="GameFlow"/> owns
     /// <c>visibility</c> for taking the whole gameplay HUD off behind a menu, and a second writer of
@@ -36,11 +37,20 @@ namespace TheBlock.UI
         /// Radar edge and inset, from <see cref="GameMap"/> — the web's `#map { 200px; 12px }`. The
         /// bar sits a hair above it and matches its width, so the two read as one corner cluster.
         /// </summary>
-        private const float RadarSizePx = 200f;
+        internal const float RadarSizePx = 200f;
 
-        private const float RadarInsetPx = 12f;
-        private const float BarGapPx = 8f;
-        private const float BarHeightPx = 8f;
+        internal const float RadarInsetPx = 12f;
+        internal const float BarGapPx = 8f;
+        internal const float BarHeightPx = 8f;
+
+        /// <summary>
+        /// The bottom edge of the shared bar slot — this bar, and <see cref="FuelGauge"/>'s.
+        ///
+        /// <b>Named rather than duplicated</b> because it is the one number the two components must
+        /// agree on and neither owns: they are mutually exclusive by mode, so a drift between them
+        /// would never show up as an overlap, only as the bar quietly moving when you got into a car.
+        /// </summary>
+        internal const float BarSlotBottomPx = RadarInsetPx + RadarSizePx + BarGapPx;
 
         /// <summary>Below this the bar goes red, matching `hud-driver.ts`'s own threshold.</summary>
         private const float LowFraction = 0.25f;
@@ -108,7 +118,7 @@ namespace TheBlock.UI
             _barTrack = new VisualElement { name = "stamina" };
             _barTrack.style.position = Position.Absolute;
             _barTrack.style.left = RadarInsetPx;
-            _barTrack.style.bottom = RadarInsetPx + RadarSizePx + BarGapPx;
+            _barTrack.style.bottom = BarSlotBottomPx;
             _barTrack.style.width = RadarSizePx;
             _barTrack.style.height = BarHeightPx;
             _barTrack.style.backgroundColor = MenuStyle.Ui(0f, 0f, 0f, 0.45f);

@@ -77,10 +77,24 @@ as you walk at them, the counter sells four power-ups, all four effects fire, an
 landed with it. Play-tested in three rounds — *"דלתות אוטומיות עובדות טוב"*, then the two faults
 those rounds found, then *"עובד טוב"*.
 
-**Next action: U28b — fuel.** The other half of the old U28 row. Its whole plan is in its row below;
-two of its sfx cues (`FuelTick`, `FuelDone`) are already baked and waiting, and the speed hook it
-needs already exists — `SpeedBoost.Factor` multiplies the same clamp the tank's factor will, so a dry
-tank still limps at full boost.
+**U28b IS DONE AND USER-CONFIRMED (2026-08-16).** The tank is real: distance-based burn, a limp mode
+at empty that never strands you, hold-`Space` refuelling at the Paz forecourt, and the fuel bar in
+the slot the sprint bar shares. *"looking good."*
+
+**Its scene rig is NOT in its own commit, and that is deliberate.** A parallel session was mid-unit
+on the police officer and the `N` mute key when this landed, so `World.unity` and the police prefabs
+carried both units' changes at once and sweeping them into this commit would have taken someone
+else's unfinished work with it. **`The Block → Build Gas Station` rebuilds the whole rig in one
+click** — the `GasStation` with its three pump anchors, `FuelSystem` on `Game`, and `FuelGauge` on
+`HUD` — and it rides in with the next scene commit. If a future session finds no `GasStation` on
+`Place_GasStation`, that is why, and that is the fix. The same is true of `ControlsGuide`'s `N` mute
+row and everything else that session owns: **only U28b's own hunks were staged.**
+
+**Next action: U29 — the character roster.** Nothing from U28b blocks it. Still open behind it and
+also non-blocking: U19d (the police blue-light run) is written, compiles and has **never been
+play-tested**; and the jetski still floats on the sea's MEAN level rather than on the swell, which is
+the exact fault U24b fixed for the buoys — `SeaSurface` is built and sitting there if the ski ever
+looks like it is cutting through crests.
 
 ### Testing the economy — `Continue`, never `New Game`
 
@@ -160,6 +174,73 @@ walk to the first job. It is deliberately the CHEAPEST item, so it buys exactly 
 campaign still pays for everything after it. Derived rather than hardcoded because it is not really a
 number, it is a relationship: "enough for one energy drink" survives a price change, a literal 40
 quietly stops being true.
+
+### U28b, 2026-08-16 — the tank
+
+A tank means **range**, not session time: 50 L at 5.2 L/km is **9.6 km**, and you start on half of
+it. At zero the car does not stop — the ceiling eases to a quarter over 1.5 s and wobbles ±15 % at
+3 Hz, so an empty tank is a limp home. Refuelling is **free**, in the web build and here; the two
+ways to lose money are still the shop and the bust.
+
+**The line the whole unit hung on was one the store unit could never have found.**
+`MotorcycleController` has carried a coast brake on `capped` since U10, with a measurement in its
+comment: a 20 m/s cap holding at 22.6, because a `WheelCollider` has no rolling resistance and there
+is no aero at this scale. `CarController` has never had it, and never needed it — **☕ only ever
+RAISES a ceiling, so the car was only ever asked to accelerate INTO its cap, never to fall to a new
+one.** Limp mode is the first thing in this project that collapses a ceiling under a car already at
+the old one, and without that line the car coasts at 20 m/s with the motor cut and the limp is
+invisible. It is the U19 lesson in a third currency: *when something gains a new direction of
+travel, re-run the measurement the old direction was accepted on.*
+
+**Measured in Play, all of it** (`FuelSystem → Debug Drain Scale` is what makes an 8-minute range
+testable in one session):
+
+| | measured | expected |
+| --- | --- | --- |
+| Burn at 20 m/s | 0.1140 L/s | 0.1140 |
+| Burn per 100 m | 0.5698 L | 0.5700 |
+| Limp ramp, cap | 0.99 → **0.25 at 1.5 s**, linear at 0.5/s | 1.5 s |
+| Ordinary top speed, **after** the brake line | **19.99 m/s** | 20.00 — unchanged |
+| Dry top speed, full throttle | **5.02 m/s** | 5.00 ± the sputter |
+| Dry + ☕ | exactly **1.25×** the dry cap | multiplies, does not win |
+| Cruiser ceiling while the player limps | 20.00 on all 3, **no tank on any** | untouched |
+| Fill from empty | 10.017 s, 20 ticks | 10.0 s, 20 |
+| Fuel bar vs sprint bar | never both `Flex`; bar at bottom 220 / left 34 / w 200 | the web's own numbers |
+
+**The pumps are measured, not read — and that is the opposite of U28.** `seven-eleven-lot.glb` ships
+purpose-built marker empties holding the config's own numbers, which is why the store binds nodes and
+checks them at 0.0 cm. `gas-station.glb` ships **none**: 119 nodes, every one geometry. So the three
+`gas pump*` meshes are render-mesh pivots, and the builder reports rather than trusts:
+`(313.085, −122.881)`, `(321.019, −122.881)`, `(329.040, −122.881)` — **7.83 / 0.44 / 8.15 m** from
+the station centre, each pivot within **0.24 m** of its own geometry. Matched by **prefix**, because
+the `_7` / `_11` / `_15` suffixes are glTF node indices and renumber on any re-export.
+
+**"Can Unity do this better?" — yes, and the shape of the answer is a union.** The web has one 9 m
+circle at the station origin because three.js had nothing to ask about the model. The outer two pumps
+sit at 7.8 and 8.2 m, i.e. **at the lip of that circle** — park 4 m off the pump line and you are
+outside it with the nozzle in front of you. But per-pump circles *alone* would be **stricter** across
+the forecourt's middle, so `AtPump` is the station circle **∪** three 6 m pump circles: a superset by
+construction, machine-checked at **576/576** over the disc with the point past the rim refused.
+
+**The first superset check reported 52/64 and the predicate was fine.** The samples were generated on
+the rim as `centre + (cos θ, sin θ)·9` and came back at squared distance `81.000160` against a
+threshold of `81` — `Mathf.Cos`/`Sin` rounding puts a point microscopically outside the very circle it
+was built on. A boundary sample is a coin toss; the check now sweeps the area. **And the run that
+"failed" printed no WARNING line at all**, which is why the report's header now carries the warning
+COUNT: there was no way to tell a silent list from an empty one by reading the log.
+
+**Found while wiring the gauge, and it is a live landmine for every future unit:**
+**`The Block → Build Map HUD` deletes the entire U26 menu shell.** It does `Find("HUD")` →
+`DestroyImmediate`, and `MenuBuilder` puts `TitleMenu`, `PauseMenu`, `ControlsGuide`, `SettingsPanel`,
+`CharacterPanel`, `ShopMenu`, `MissionLaunch`, `ScreenFade` and `GameFlow` on that same object.
+Recoverable with `Build Menus`, but nothing said so. Now documented on the class, and
+**`Build Gas Station` installs `FuelGauge` itself** so the door never has to be opened.
+
+Two other decisions worth keeping: the prompt folds `IsFull` into the shared predicate, which the web
+does **not** — over there a brimmed tank at a pump still offers "Hold SPACE" for a key that does
+nothing, and this project states three times that it will not have that. And the reminders are
+per-tank rather than through `Onboarding.FirstTime`, which is once-ever and would spend both hints on
+the first car of the first session.
 
 ### U28, 2026-08-16 — the money has somewhere to go
 
@@ -1985,7 +2066,7 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | U26 | Menus — title, character select, briefing, controls, pause | done | `dd6fbb8` | **User-confirmed 2026-08-16** (*"works"*, after the radar toggle was fixed; *"all other buttons work good"*). A Boot scene whose bar reads `AsyncOperation.progress` (the number `loading-screen.ts` wished for and faked with hand-counted milestones), then a title screen on the HUD document over the frozen city — New Game · Continue · Character · Mission Select · Settings · How to Play — plus `Esc` → Resume/Settings/How to Play/Quit to Title. Built by **The Block → Build Menus**; `Boot` is build index 0, `World` is 1. **⚠ THE UNIT'S REAL LESSON: `Time.timeScale = 0` does not stop `Update`.** The web pauses by skipping one `stepSim` call; here fourteen scripts poll `Keyboard.current` every frame and kept firing behind the overlay, so `Core.Pause.Frozen` is a guard line in each of them. **The dance is unpausable by rule** — `Conductor` runs on `dspTime`, which no freeze touches. Three faults found only by measuring: UI Toolkit takes `Color` as LINEAR (the scrim rendered as a pale haze, the buttons peach); a percentage `max-width` against an indefinite parent collapsed every button to 162 px; and hiding the HUD by `display` **clobbered the Radar toggle**, which writes `display` on the same element — it hides with `visibility` now. `SessionReset` exists because `[RuntimeInitializeOnLoadMethod]` fires once per Play session, not per scene load, and Quit to Title is this port's first scene load. Deliberately absent: no Multiplayer button (U32), Mission Select teleports rather than mounts, Settings is one row, roster is Joe alone (U29 adds two entries and two rigs) |
 | U27 | Audio — sfx, engine, ambient, sirens | done | `bf0bdd9` | **User-confirmed 2026-08-16** (*"sound - mark it as done"*). Twelve of the web's thirteen audio modules, ~1.2 MB of clips, one `AudioMixer` (7 buses / 7 exposed params / 4 snapshots) built by a REFLECTION tool because Unity ships no public API for authoring one. The 20 synth cues of `sfx.ts` are **baked to `AudioClip`s once** instead of rebuilding an oscillator graph per press, with PolyBLEP on saw/square because Web Audio's oscillators are band-limited by spec and a naive one would alias audibly. The rotor is a literal port through **`OnAudioFilterRead`** — the three rates move by different factors (chop 2.43×, hum 1.71×, whine 2.17×) so one `pitch` knob cannot reproduce it. Sirens are **3D, on the cars**, capped at the nearest 3: the web's one-shot wail exists only because that build has no `AudioListener` at all. **Caught, and it is the important one: an `AudioMixerGroup` costs one DSP buffer, and it moved the dance's music 21.3 ms off its own beatmap** (§ below). Also caught: the engine WAVs' 7–18 ms decoder tail, which Unity has no `loopEnd` to ignore. **Radio deferred** by the user — the only system with a network dependency |
 | U28 | Economy — the 7-Eleven + power-ups | **done — user-confirmed 2026-08-16** | `0044863` + `cd276a4` | Fuel was split out to **U28b** by the user, 2026-08-16, so the store could be one checkpoint. Everything else is built and in the scene: `SevenEleven` (automatic bi-parting doors, sales floor, counter), a clerk from a crowd prefab, `ShopMenu`, `PowerUps` + `SpeedBoost`, `PowerUpChips`, and the four effects at their own call sites. **The store's geometry is READ OFF THE MODEL, not converted** — the glb ships a marker node for every point the config states, and 12 of them check out to 0.0 cm. **Caught by measurement, not by reading: the ☕ boost applied to police cars** — `PoliceCar.prefab` has no `CopDriver` (it arrives at runtime with `CopCar`, after `CarController.Awake`), so the cop exclusion never latched and drinking coffee to escape would have sped up the chase. `MarkAsPolice()` + a serialized flag. **Also: the door leaves swap sides on import**, so the parting direction is measured, never taken from `config.door.slide.x`'s sign. `Heat` gained `Immune` because `CrimeWatch` already writes `Frozen` every frame. Wallet deliberately left on the Police group. New menu item **The Block → Build Store** |
-| U28b | Fuel — tank, limp mode, the pump | todo | | Split off U28, 2026-08-16. `vehicle/fuel.ts` + `fuel.config.ts` + `refuel.ts` + `world/gas-station.ts`. Tank per car and bike (never the heli or ski — `Vehicle.fuel` is optional for exactly that reason), distance-based burn so a tank means RANGE, limp at 0.25× that eases in over 1.5 s and NEVER strands you, hold-to-refuel on the Paz forecourt, the bar and the two hints. **Two cues are already baked and waiting**: `FuelTick`, `FuelDone`. **The speed hook already exists** — `SpeedBoost.Factor` multiplies the same clamp, so the tank's factor multiplies too and a dry tank still limps at full boost. `fuelConfig` still needs adding to `export-config.mjs`'s `SOURCES`, the way `powerup.config.ts` was. Put the refuel row back in `ControlsGuide` when it is true |
+| U28b | Fuel — tank, limp mode, the pump | **done — user-confirmed 2026-08-16** | | Built 2026-08-16. **The scene rig is not in this commit** — a parallel session shared the tree, so only U28b's own hunks were staged; `The Block → Build Gas Station` rebuilds it in one click. `fuelConfig` is the **tenth exporter source**, appended so the JSON diffed clean. `FuelTank` is a component the vehicle owns, and **being a component IS the exemption** — the heli, the ski and every cruiser are excluded by never receiving one, so there is no second flag to forget. Both ceilings take the factor (**fuel scales reverse, ☕ does not**), and they multiply: measured, dry+coffee is exactly 1.25× the dry cap. **The line the whole unit hung on: `CarController.ApplyDrive` had no coast brake on `capped`** — the bike's had one since U10 and the car never needed it, because a boost only ever RAISES a ceiling. Limp mode collapses it 20→5 under a car doing 20, and without the brake the car coasts at 20 and the limp is invisible. Measured before and after: ordinary top speed **19.99 m/s**, unchanged. **Per-pump trigger, and it is a UNION with the web's circle, not a replacement** — pumps alone would be STRICTER across the forecourt's middle. Machine-checked 576/576 over the 9 m disc. New menu item **The Block → Build Gas Station** (which also installs the HUD gauge, so the destructive `Build Map HUD` never has to be run). Old row, still the plan of record: Split off U28, 2026-08-16. `vehicle/fuel.ts` + `fuel.config.ts` + `refuel.ts` + `world/gas-station.ts`. Tank per car and bike (never the heli or ski — `Vehicle.fuel` is optional for exactly that reason), distance-based burn so a tank means RANGE, limp at 0.25× that eases in over 1.5 s and NEVER strands you, hold-to-refuel on the Paz forecourt, the bar and the two hints. **Two cues are already baked and waiting**: `FuelTick`, `FuelDone`. **The speed hook already exists** — `SpeedBoost.Factor` multiplies the same clamp, so the tank's factor multiplies too and a dry tank still limps at full boost. `fuelConfig` still needs adding to `export-config.mjs`'s `SOURCES`, the way `powerup.config.ts` was. Put the refuel row back in `ControlsGuide` when it is true |
 | U29 | Character roster | todo | | |
 
 ### Tier 7 — Ship

@@ -30,6 +30,12 @@ namespace TheBlock.Core
     ///
     /// <see cref="DayNightCycle"/> (U33) is the third that is not optional: its clock is a static, so
     /// Quit to Title at 22:00 would otherwise drop a New Game into the dark.
+    ///
+    /// <see cref="Vehicles.FuelTank"/> (U28b) is the fourth, and it shows the rule from the other
+    /// side. Its switch is a static with <b>no per-frame writer to heal it</b>, so a multiplayer
+    /// match that turned the economy off would carry that off into the next single-player game.
+    /// <c>Powerup.SpeedBoost</c> is deliberately absent from this list for exactly the opposite
+    /// reason: <c>PowerUps.PushEffects</c> rewrites it every tick, so it cannot stay wrong.
     /// </summary>
     public static class SessionReset
     {
@@ -43,6 +49,7 @@ namespace TheBlock.Core
             Beacon.ResetCaches();
             SeaSurface.ResetCaches();
             DayNightCycle.ResetClock();
+            FuelTank.ResetForSession();
         }
     }
 }

@@ -10,11 +10,11 @@ namespace TheBlock.UI.Menus
     /// One overlay, two entry points: the title screen and the pause menu both open it, which is
     /// exactly why it is its own component and not a sub-panel of either.
     ///
-    /// <b>Two rows of the web's list are deliberately missing.</b> The radio keys (<c>[</c>,
-    /// <c>]</c>, <c>\</c>) describe a system U27 deferred, and the gas-pump refuel is U28b's. A
-    /// controls screen that lists a key which does nothing is worse than one that is short: it is
-    /// the one screen a stuck player reads, and it has to be true. Both come back with their units.
-    /// U28 added the shop and the power-up hotkeys on exactly that rule, the moment they were true.
+    /// <b>One row of the web's list is deliberately missing.</b> The radio keys (<c>[</c>, <c>]</c>,
+    /// <c>\</c>) describe a system U27 deferred. A controls screen that lists a key which does
+    /// nothing is worse than one that is short: it is the one screen a stuck player reads, and it
+    /// has to be true. It comes back with its unit. U28 added the shop and the power-up hotkeys on
+    /// exactly that rule, and U28b's refuel row landed the same way, the moment it was true.
     /// </summary>
     public class ControlsGuide : MenuPanel
     {
@@ -42,6 +42,7 @@ namespace TheBlock.UI.Menus
         {
             ("W A S D", "Drive & steer"),
             ("Space", "Brake"),
+            ("Space", "Hold at a gas pump — refuel"),
             ("E", "Exit vehicle"),
             ("R", "Respawn / flip vehicle"),
             ("Space / Shift", "Helicopter up / down"),

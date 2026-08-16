@@ -77,6 +77,8 @@ namespace TheBlock.Core
             [JsonProperty("$rhythmSourceSha256")] public string RhythmSourceSha256;
             [JsonProperty("$powerUpSource")] public string PowerUpSource;
             [JsonProperty("$powerUpSourceSha256")] public string PowerUpSourceSha256;
+            [JsonProperty("$fuelSource")] public string FuelSource;
+            [JsonProperty("$fuelSourceSha256")] public string FuelSourceSha256;
             [JsonProperty("$handedness")] public string Handedness;
             [JsonProperty("config")] public Root Config;
 
@@ -118,6 +120,13 @@ namespace TheBlock.Core
             /// a re-run diffs clean.
             /// </summary>
             [JsonProperty("powerUpConfig")] public PowerUpCatalogSpec PowerUps;
+
+            /// <summary>
+            /// <c>src/vehicle/fuel.config.ts</c> — U28b's tank, limp mode and the pump. The tenth
+            /// source, appended after <see cref="PowerUps"/> on the same rule: every key already in
+            /// the snapshot keeps its position, so a re-run diffs clean.
+            /// </summary>
+            [JsonProperty("fuelConfig")] public FuelSpec Fuel;
         }
 
         /// <summary>Mirrors the top level of <c>config.ts</c>. Only the ported sections are declared.</summary>
