@@ -116,6 +116,13 @@ namespace TheBlock.Audio
                 source.playOnAwake = false;
                 source.spatialBlend = 0f; // 2D: a UI tick and a crash both belong at the mix, not in the world
                 source.outputAudioMixerGroup = output;
+
+                // U26 pauses the world's audio with `AudioListener.pause`, which silences every
+                // source in the game — including the click of the button you press to un-pause it.
+                // Unity's exception to that is per-source and this is the pool the UI click comes
+                // out of. The cost is that a cue already in the air keeps playing into the freeze,
+                // which for a 0.1 s tick is not a cost.
+                source.ignoreListenerPause = true;
                 _pool[i] = source;
             }
         }

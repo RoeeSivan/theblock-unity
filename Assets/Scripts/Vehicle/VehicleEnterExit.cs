@@ -154,6 +154,10 @@ namespace TheBlock.Vehicles
 
         private void Update()
         {
+            // Frozen: no E, and the door timer does not advance either — a pause taken mid-swing
+            // resumes where it left off rather than finishing behind the menu. See Core.Pause.
+            if (Core.Pause.Frozen) return;
+
             if (_spec == null) Bind();
             if (_spec == null) return;
 

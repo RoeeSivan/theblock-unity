@@ -268,6 +268,8 @@ namespace TheBlock.Missions
 
         private void Update()
         {
+            if (Core.Pause.Frozen) return; // no F, no T, and no clock behind a menu — see Core.Pause
+
             // Beacons keep animating through a pop even after the shift ends, so this runs
             // regardless of state — otherwise the last delivery's pin freezes mid-flourish.
             for (var i = _fading.Count - 1; i >= 0; i--)

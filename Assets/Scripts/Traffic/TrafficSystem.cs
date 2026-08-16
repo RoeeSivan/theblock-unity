@@ -337,6 +337,8 @@ namespace TheBlock.Traffic
 
         private void Update()
         {
+            if (Core.Pause.Frozen) return; // see Core.Pause
+
             // Debug only, exactly like U16's `C`: it answers "is the stutter the traffic?" without a
             // rebuild, and it goes once the unit is confirmed. Not a game control.
             var keyboard = UnityEngine.InputSystem.Keyboard.current;

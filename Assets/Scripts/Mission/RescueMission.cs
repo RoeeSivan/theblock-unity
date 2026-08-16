@@ -217,6 +217,8 @@ namespace TheBlock.Missions
 
         private void Update()
         {
+            if (Core.Pause.Frozen) return; // see Core.Pause
+
             for (var i = _fading.Count - 1; i >= 0; i--)
             {
                 var beacon = _fading[i];

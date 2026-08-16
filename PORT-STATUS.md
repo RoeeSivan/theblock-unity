@@ -30,7 +30,10 @@ a real Rigidbody wreck, which thirty Rapier vehicles could never have afforded (
 route real A\* over the street graph instead of driving straight at you, which the web could not do
 because its graph was five disconnected islands (U19); and the sirens are 3D sounds on the cars
 rather than one wail at a constant gain, because the web build has no `AudioListener` in it at all
-(U27). Still queued: UI Toolkit instead of DOM overlays (U25).
+(U27); and the loading bar reads `AsyncOperation.progress` instead of the hand-counted milestones
+the web had to fake, while the character preview is a second camera into a RenderTexture rather than
+the second WebGL context that "did not hold on an iPad" (U26). Still queued: an emoji-capable font,
+the last thing U25 owes.
 
 **U27 also adds the sharpest instance yet of the rule's cost, and it is not a Unity feature failing
 — it is a Unity feature having a price nobody quoted.** Putting the dance's song on a mixer bus is
@@ -69,24 +72,178 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-**Next action: FLY THE HUEY — M3 is the only mission in Tier 5 no human has ever played.** The
-scene is already set up for it (see the box below). U20, U23 and U24 stay `wip` until it and the
-jetski chase come back confirmed.
+**Next action: FLY THE HUEY — M3 is the only mission in Tier 5 no human has ever played.** U20, U23
+and U24 stay `wip` until it and the jetski chase come back confirmed.
+
+**U26 is DONE, user-confirmed 2026-08-16** (*"works"* — after the radar toggle was fixed; *"all
+other buttons work good"*). The game has a shell: a Boot scene with a real loading bar, a title
+screen, Esc, Settings, How to Play, Mission Select and a character panel. Its block is below.
 
 **U21 (pizza) and U22 (dance) are DONE, user-confirmed 2026-08-16** (*"pizza mission and dance
 mission - mark as done."*). Their rows are below. U20, the framework underneath both, is left `wip`
 deliberately: two missions running clean is strong evidence for it, but the user marked the
 missions, not the framework, and this ledger does not promote a row on inference.
 
-### ⚠ THE SCENE IS IN A TEST SETTING — put it back when M3 is confirmed
+### How to reach M3 now — Mission Select, not the debug field
 
-`Campaign → CampaignRunner → Debug → Debug Start Mission` is **2** (the helicopter). It is the port
-of the web's `?mission=` flag: it moves the CURSOR, so the Huey unlocks and its objective is live
-from the first frame, and it fakes nothing — pizza and dance are simply not played. **Set it back to
-−1** for a normal campaign run. 0 pizza · 1 dance · 2 heli · 3 jetski.
+`Campaign → CampaignRunner → Debug → Debug Start Mission` is back at **−1**, which is the shipped
+setting, and it no longer has to be moved to test a mission: **U26's title screen has Mission
+Select**, which does the same job through the same entry path and also puts the player at the
+mission's start. 0 pizza · 1 dance · 2 heli · 3 jetski, locked above `Progress.UnlockedIndex`.
 
-Play still starts you at the parking lot; the Huey is at Unity ≈ `(428, 0.1, −228)` on the beach,
-about 220 m away, so take the Mustang or the bike. `E` at the craft, then fly.
+So: Play from **`Assets/Scenes/Boot.unity`** → bar → title → `Mission Select` → row 3. You are set
+down beside the Huey at Unity ≈ `(428, 0.1, −228)` facing it. `E`, then fly.
+
+A row above the unlock is dim and inert, so reaching M3 on a fresh profile still needs either the
+debug field or a play through M1–M2. `Continue` resumes at the furthest mission reached.
+
+### U26, 2026-08-16 — the game has a shell — DONE, user-confirmed
+
+Boot scene with a real loading bar → title screen over the frozen city → `Esc` → Settings, How to
+Play, Character, Mission Select, Quit to Title. Seven of the web's `src/ui/` modules, plus U25's
+interior fade. `Assets/Scripts/UI/Menus/`, `Assets/Scripts/Boot/`, `Core/Pause.cs`,
+`Core/SessionReset.cs`, built into the scene by **The Block → Build Menus**.
+
+**What Unity actually gave us, and one thing it charged for:**
+
+- **The loading bar finally measures something.** `loading-screen.ts` opens with an apology:
+  `THREE.DefaultLoadingManager` reports `itemsLoaded / itemsTotal` against a sequential loader, so
+  the first file to finish reports 1/1 and the bar sits pinned at 100% for the whole remaining
+  download — "the worst possible lie to tell someone waiting". Its answer is a hand-counted list of
+  milestones kept in sync with `main.ts` by hand. `AsyncOperation.progress` is the number that file
+  wanted. Held at `allowSceneActivation = false`, which parks the load at 0.9 — exactly the 99% cap
+  the web imposed on itself.
+- **The Play button is scar tissue and is gone.** `waitForPlay()` exists to harvest a user gesture
+  so a browser will start an `AudioContext`; its own comment says so at the click handler. Unity has
+  no autoplay policy.
+- **The character preview is a second Camera into a RenderTexture.** `character-select.ts` spends
+  four paragraphs justifying a second `WebGLRenderer` against the browser's LRU context eviction —
+  "exactly the assumption that did not hold on an iPad". None of that exists here. The rig stands at
+  **y = −2000** and the camera's 20 m far plane is the entire culling strategy: no preview layer, no
+  TagManager edit, nothing a future scene inherits.
+- **Mission Select reads the objective pin's own table.** `campaign-launch.ts` keeps a second,
+  hand-written coordinate block beside `stepCoords`; they agree only because nothing has moved.
+  `CampaignDirector.TryStepPosition` is the one dictionary, read twice.
+- **⚠ AND THE PRICE: `Time.timeScale = 0` does not stop `Update`.** The web pauses by skipping its
+  own `stepSim` call — one branch, and nothing downstream runs. Unity has no such choke point.
+  Fourteen scripts poll `Keyboard.current` every frame and every one of them keeps firing behind an
+  open menu: `E` gets into a car, `M` opens the map under the overlay, `F` retries a mission, `R`
+  respawns the vehicle out from under you. `Core.Pause.Frozen` is the other half of a pause, and it
+  is a guard line in each of the fourteen. `FixedUpdate` needs none — `timeScale` really does stop
+  that — but `PlayerCarInput.Read` returns `CarInput.None` anyway, because a WheelCollider latches
+  the last torque it was given and "in practice nothing calls it" is the wrong standard there.
+
+**The dance is deliberately unpausable, and this is the U19 arithmetic again.** `Conductor` is
+anchored to `AudioSettings.dspTime`, which `timeScale` cannot touch: pause a routine and the arrows
+freeze while the song keeps playing, then resume against an anchor wrong by however long the menu
+was up. `GameFlow.CanPause` refuses in `GameMode.Rhythm` — the web's own `canPause` clause, ported
+verbatim — and `DanceMission`'s guard is written so the routine survives even if that rule is ever
+broken. U27 paid 21.3 ms for a shift in that anchor; this would have been seconds.
+
+**Audio pauses through `AudioListener.pause`, not a fifth mixer snapshot.** A snapshot means
+re-running `AudioMixerBuilder`'s reflection tool over an asset U27 shipped and nobody has balanced
+by ear yet. Unity already provides the exception a menu needs: `ignoreListenerPause` on the Sfx
+voice pool, so the click of the button you press to un-pause still sounds.
+
+**Three faults found by measurement rather than by looking, and all three were invisible:**
+
+- **UI Toolkit hands `Color` to its shader as LINEAR.** This project renders in linear space, so
+  every sRGB value in the palette was drawn as if already linear and came out lighter: a 0.90-alpha
+  near-black scrim rendered as a pale blue-grey haze the city read straight through, and the
+  `#ff9440` buttons rendered peach. Nothing logs. `MenuStyle.Ui()` converts, through the
+  `UNITY_COLORSPACE_GAMMA` define rather than `QualitySettings.activeColorSpace` — that call is
+  forbidden from a static field initialiser, which is where every colour here is built.
+- **A percentage `max-width` against an indefinite parent collapses the element.** The CSS is
+  `min(340px, 78vw)`; ported literally, the buttons measured **162 px** — their text width — because
+  these columns are sized BY their children, so the percentage resolved to nothing and took the
+  340 with it. Desktop-first: the viewport clamp is gone.
+- **Hiding the gameplay HUD by `display` clobbered the Radar toggle, and this was the one the user
+  caught.** Behind a menu, `GameFlow` takes the wanted stars, the cash and the radar off the shared
+  document. The first version remembered each element's `display` and restored it on close — which
+  looks careful and is exactly wrong, because `GameMap.SetMinimapVisible` writes `display` on that
+  same element, so Settings → Radar changed it while the menu was up and the restore put the old
+  value straight back. It hides with **`visibility`** now: a separate property no owner in this
+  project writes, so there is nothing to remember and nothing to fight. Measured one frame after
+  closing: `wanted-stars` and `cash` back to `Flex`, `map` still `None`, `GameMap.Hidden` true.
+
+**`[RuntimeInitializeOnLoadMethod]` fires once per Play SESSION, not per scene load** — and until
+Quit to Title there was no scene load, so the distinction had never mattered. Six statics reset
+themselves that way and each comment is right about the trap it guards; none of them can fire again.
+`Core.SessionReset` is the callable version, run by `BootLoader` before the load. Two of the six are
+why it is not optional: `MapRegistry` ACCUMULATES, so a second pass through the world draws every
+district twice over itself; and `SeaSurface` LATCHES — `_searched` goes true once, after which the
+cached material is a destroyed object that still reads as non-null and nothing will look for the
+new one.
+
+**Deliberately not built:**
+
+- **No Multiplayer button.** The web has one; U32 is deferred, and a dead control is worst on the
+  screen a player presses first.
+- **Mission Select teleports, it does not mount.** The web mounts the heli and the jetski because
+  otherwise you are left swimming beside one. `VehicleEnterExit` has no public programmatic entry,
+  and opening one reaches into U8/U23/U24 while all three await their play-test. Six metres of walk
+  is not a cost.
+- **Settings is one row.** Volume sliders are the obvious next tenant and U27 exposed seven mixer
+  parameters for them — but a slider over an unbalanced mix hides the imbalance instead of
+  reporting it.
+- **The roster is one row (Joe).** The panel, the turntable and the persistence all ship; **U29 adds
+  two `Entry` rows and two rigs under the turntable** and does not reopen this menu.
+
+**⚠ U25's emoji font is NOT done, and it is the only thing that unit still owes.** The fade shipped
+here — `ScreenFade`, which COVERS rather than brackets, because both `Interior` call sites are
+synchronous and `DeliveryMission` reads `interior.Inside` on the next line. `Glyphs.Strip` is still
+in place, so Mission Select reads `1.  The Block Pizza Run` with the 🍕 gone and the map still draws
+dots. Next attempt: Noto Color Emoji (OFL) as a fallback `FontAsset` on `HudPanelSettings`' theme,
+falling back to monochrome Noto Emoji if TextCore will not rasterise CBDT/COLR.
+
+### U23c / U24b, 2026-08-16 — the roofs are fine, the buoys were drowning, the thief was strolling
+
+Three reports from the M3 play-test, and they needed three different answers. **Committed as
+`6b38c6e`** by the U26 session, which found this work sitting uncommitted in the shared tree; the
+design is this section's, the commit only carried it.
+
+- **The survivors are on the roofs, and this one needed no fix — it needed a measurement.** All 46
+  baked spots have a surface within 5 cm of their baked Y (0 exceptions), and the check that
+  matters is the POSED mesh, not the renderer bounds: Survivor #1's baked sole sits **0.001 m**
+  from the roof. The bounds say −0.15, which is the `skinned-bounds-ignore-thrown-bones` memory
+  showing up as a false alarm — a skinned bound is conservative and never follows the pose. Verified
+  in a rendered frame as well: shoes on the gravel.
+- **The buoys were under water, and the cause was the sea getting better.** U12 gave the water three
+  summed swells displaced in the VERTEX stage — up to **0.37 m of crest** — and nothing on the CPU
+  ever knew: `SeaGeometry` answers `sea.Level`, which is the water's MEAN. The buoy was placed at
+  the mean with a hand-rolled ±0.12 sine on top, so measured at gate 1 the water swings
+  **−0.175 … +0.248 m** around a hull whose base sat at 0. Half of every wave went over it.
+  `Assets/Scripts/World/SeaSurface.cs` is the CPU's copy of that displacement, **read off
+  `Water.mat` itself** rather than from a second table of amplitudes — if the two ever disagree the
+  shader is what the player sees, so the shader's own inputs are the source. The buoys ride it now
+  and the fake sine is gone, because the swell IS the bob. Measured: 9/9 buoys sit at
+  **|buoyY − surfaceY| = 0.0000 m**.
+  ⚠ **The jetski still floats on the mean** (`level + floatY + its own bob`) and so does the thief's.
+  Nobody has complained, but it is the same class of fault and `SeaSurface` is now sitting there.
+- **The thief walked because he was on the crowd's tree, and every motion in it is a walk.**
+  `Npc.controller`'s Gait is `Sophie_Walk` at 0.6 / 1.0 / 1.4 — a pedestrian has never had anywhere
+  to be — and `ChaseThief` fed it `speed / baseSpeed`, so a man fleeing a chase strolled up the
+  beach. He is on **`Joe_Sprint`** now, which retargets onto Peter for free because both are
+  Humanoid: no import, no LFS. **The stride is matched to his ground speed rather than typed** —
+  the clip carries **5.58 m/s** of root motion against his `run.baseSpeed` of 3, so the sprint
+  child's `timeScale` is that ratio (**× 0.538 = 3.00 m/s**), computed in `ThiefBuilder` the same
+  way the crowd's own tree retimes its walk. Playing it at 1.0 would have skated his feet by
+  2.6 m/s. `Speed` is now normalised by his SLOW speed, so anything from 1.2 m/s up is a full run
+  and only a genuine stop settles him to idle. Verified in Play: `Joe_Sprint` at weight 1.00 on a
+  Humanoid avatar, and a rendered frame of him mid-stride.
+  **`ThiefRun.controller` is rebuilt by Build Campaign every time**, so a retuned `baseSpeed` lands
+  in the stride instead of drifting away from it.
+
+⚠ **Two sessions edited this repo at once, and the tree is now clean.** The M3/M4 work above and
+U26 were written into the same working tree; both are committed, M3/M4 first (`6b38c6e`) so that
+history attributes it. `JetskiChase.cs` carries both sets of edits — the sea-surface gate heights
+from here, one `Pause.Frozen` guard from U26 — and `World.unity` carries a Build Campaign run from
+here plus a Build Menus run from U26.
+
+**One thing genuinely collided and it went U26's way:** `Debug Start Mission` was left at **2** by
+this section to reach the Huey, and U26 set it back to **−1**, which is the shipped value. That is
+not a loss — Mission Select reaches the Huey through the same entry path, and the ledger's own rule
+is that a scene left in a test setting is a trap. See the box at the top of RESUME HERE.
 
 ### U23b, 2026-08-16 — the Huey answers both key sets, and it cannot spin any more — `d485bae`
 
@@ -1655,8 +1812,8 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 ### Tier 6 — Shell
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
-| U25 | HUD + in-game UI (UI Toolkit) | todo | | Panel scaffolding already exists from U14 (`HudBuilder`, `HudPanelSettings`) — extend it, do not build a second panel. Owes U14 two things: an emoji-capable font so POI pins can draw their `⛽`/`🚓`/`🏪` glyphs again, and the fade behind U13's interior teleport |
-| U26 | Menus — title, character select, briefing, controls, pause | todo | | **Settings → Display wants a Radar on/off toggle** (user, 2026-08-15) that hides U14's collapsed minimap while playing. `M` must still open the full map with the radar off — the toggle is about the always-on widget, not the map |
+| U25 | HUD + in-game UI (UI Toolkit) | **wip — one thing left: the emoji font** | | This row was only ever two owings, and U26 paid one of them. **DONE: the fade** behind U13's interior teleport — `Assets/Scripts/UI/Menus/ScreenFade.cs`, on the shared document, unscaled. It COVERS rather than brackets (black up in the same frame as the teleport, then fades off) because `fade.ts`'s `await to(true)` has nowhere to go here: `Interior.Enter`/`Leave` flip `inside` and move the capsule in one statement and `DeliveryMission` reads `interior.Inside` on the next line. Nothing is lost — the move is instantaneous either way and UI Toolkit composites after the scene, so the first frame of the destination is already black. **NOT DONE: the emoji-capable font.** `Glyphs.Strip` is still the stop-gap, so the map draws dots instead of `⛽`/`🚓`/`🏪` and Mission Select reads `1.  The Block Pizza Run`. Plan: Noto Color Emoji (OFL) as a fallback `FontAsset` on `HudPanelSettings`' theme; if Unity 6's TextCore will not rasterise CBDT/COLR, fall back to monochrome **Noto Emoji** — a grey 🍕 beats a blank box — and only then delete `Glyphs.cs`. Everything else the row wanted was already built by U14/U19/U20 on the one panel |
+| U26 | Menus — title, character select, briefing, controls, pause | done | | **User-confirmed 2026-08-16** (*"works"*, after the radar toggle was fixed; *"all other buttons work good"*). A Boot scene whose bar reads `AsyncOperation.progress` (the number `loading-screen.ts` wished for and faked with hand-counted milestones), then a title screen on the HUD document over the frozen city — New Game · Continue · Character · Mission Select · Settings · How to Play — plus `Esc` → Resume/Settings/How to Play/Quit to Title. Built by **The Block → Build Menus**; `Boot` is build index 0, `World` is 1. **⚠ THE UNIT'S REAL LESSON: `Time.timeScale = 0` does not stop `Update`.** The web pauses by skipping one `stepSim` call; here fourteen scripts poll `Keyboard.current` every frame and kept firing behind the overlay, so `Core.Pause.Frozen` is a guard line in each of them. **The dance is unpausable by rule** — `Conductor` runs on `dspTime`, which no freeze touches. Three faults found only by measuring: UI Toolkit takes `Color` as LINEAR (the scrim rendered as a pale haze, the buttons peach); a percentage `max-width` against an indefinite parent collapsed every button to 162 px; and hiding the HUD by `display` **clobbered the Radar toggle**, which writes `display` on the same element — it hides with `visibility` now. `SessionReset` exists because `[RuntimeInitializeOnLoadMethod]` fires once per Play session, not per scene load, and Quit to Title is this port's first scene load. Deliberately absent: no Multiplayer button (U32), Mission Select teleports rather than mounts, Settings is one row, roster is Joe alone (U29 adds two entries and two rigs) |
 | U27 | Audio — sfx, engine, ambient, sirens | done | `bf0bdd9` | **User-confirmed 2026-08-16** (*"sound - mark it as done"*). Twelve of the web's thirteen audio modules, ~1.2 MB of clips, one `AudioMixer` (7 buses / 7 exposed params / 4 snapshots) built by a REFLECTION tool because Unity ships no public API for authoring one. The 20 synth cues of `sfx.ts` are **baked to `AudioClip`s once** instead of rebuilding an oscillator graph per press, with PolyBLEP on saw/square because Web Audio's oscillators are band-limited by spec and a naive one would alias audibly. The rotor is a literal port through **`OnAudioFilterRead`** — the three rates move by different factors (chop 2.43×, hum 1.71×, whine 2.17×) so one `pitch` knob cannot reproduce it. Sirens are **3D, on the cars**, capped at the nearest 3: the web's one-shot wail exists only because that build has no `AudioListener` at all. **Caught, and it is the important one: an `AudioMixerGroup` costs one DSP buffer, and it moved the dance's music 21.3 ms off its own beatmap** (§ below). Also caught: the engine WAVs' 7–18 ms decoder tail, which Unity has no `loopEnd` to ignore. **Radio deferred** by the user — the only system with a network dependency |
 | U28 | Economy + fuel + power-ups | todo | | |
 | U29 | Character roster | todo | | |

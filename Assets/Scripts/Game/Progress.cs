@@ -20,6 +20,7 @@ namespace TheBlock.Game
     {
         private const string UnlockedKey = "theblock.unlocked";
         private const string CharacterKey = "theblock.character";
+        private const string RadarKey = "theblock.radar";
 
         /// <summary>
         /// Furthest mission index unlocked. 0 = only the first, which is also what a fresh profile
@@ -47,6 +48,26 @@ namespace TheBlock.Game
             set
             {
                 PlayerPrefs.SetString(CharacterKey, value ?? string.Empty);
+                PlayerPrefs.Save();
+            }
+        }
+
+        /// <summary>
+        /// Settings → Display → Radar: is the corner minimap on? Default true, which is the state
+        /// the user restored on 2026-08-16 after the same day's removal.
+        ///
+        /// A PREFERENCE, not progress, so like <see cref="CharacterId"/> it survives
+        /// <see cref="Reset"/> — a New Game is a new campaign, not a new profile. It is also not the
+        /// dance's <c>GameMap.Suppressed</c>: that is a temporary override a scene takes and gives
+        /// back, and writing this from there would hand the radar back ON to someone who turned it
+        /// off.
+        /// </summary>
+        public static bool RadarOn
+        {
+            get => PlayerPrefs.GetInt(RadarKey, 1) != 0;
+            set
+            {
+                PlayerPrefs.SetInt(RadarKey, value ? 1 : 0);
                 PlayerPrefs.Save();
             }
         }

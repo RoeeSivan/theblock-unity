@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using TheBlock.UI.Menus;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
@@ -57,13 +58,13 @@ namespace TheBlock.UI
             // The flash goes in FIRST so it sits under the card — a green pulse over the words
             // would wash out the very line it is celebrating.
             _flash = new VisualElement { name = "feedback-flash" };
-            Stretch(_flash);
+            MenuStyle.Stretch(_flash);
             _flash.pickingMode = PickingMode.Ignore;
             _flash.style.display = DisplayStyle.None;
             root.Add(_flash);
 
             _overlay = new VisualElement { name = "briefing" };
-            Stretch(_overlay);
+            MenuStyle.Stretch(_overlay);
             _overlay.style.backgroundColor = new Color(0f, 0f, 0f, 0.55f);
             _overlay.style.alignItems = Align.Center;
             _overlay.style.justifyContent = Justify.Center;
@@ -81,7 +82,7 @@ namespace TheBlock.UI
             _card.style.paddingRight = 36f;
             _card.style.maxWidth = 720f;
             _card.style.alignItems = Align.Center;
-            SetBorder(_card, new Color(1f, 1f, 1f, 0.18f), 1f, 10f);
+            MenuStyle.SetBorder(_card, MenuStyle.Rim, 1f, 10f);
             _overlay.Add(_card);
 
             _hintLabel = new Label("Press SPACE or click to continue");
@@ -92,31 +93,6 @@ namespace TheBlock.UI
             _card.Add(_hintLabel);
 
             root.Add(_overlay);
-        }
-
-        private static void Stretch(VisualElement element)
-        {
-            element.style.position = Position.Absolute;
-            element.style.top = 0f;
-            element.style.bottom = 0f;
-            element.style.left = 0f;
-            element.style.right = 0f;
-        }
-
-        private static void SetBorder(VisualElement element, Color color, float width, float radius)
-        {
-            element.style.borderTopColor = color;
-            element.style.borderBottomColor = color;
-            element.style.borderLeftColor = color;
-            element.style.borderRightColor = color;
-            element.style.borderTopWidth = width;
-            element.style.borderBottomWidth = width;
-            element.style.borderLeftWidth = width;
-            element.style.borderRightWidth = width;
-            element.style.borderTopLeftRadius = radius;
-            element.style.borderTopRightRadius = radius;
-            element.style.borderBottomLeftRadius = radius;
-            element.style.borderBottomRightRadius = radius;
         }
 
         /// <summary>Opens the card. Fire-and-forget; use <see cref="ShowAndWait"/> to sequence.</summary>
@@ -202,7 +178,9 @@ namespace TheBlock.UI
             // Space dismisses, read through the Input System like every other key in the project so
             // it respects the physical-key mapping (the web build had to solve the same problem for
             // a Hebrew layout).
-            if (IsOpen)
+            // The key is gated but the FLASH below is not: the pulse is feedback about the card, and
+            // it runs on unscaled time precisely so a freeze cannot leave it stuck half-lit.
+            if (IsOpen && !Core.Pause.Frozen)
             {
                 var keyboard = Keyboard.current;
                 if (keyboard != null && keyboard.spaceKey.wasPressedThisFrame) Dismiss();

@@ -83,6 +83,22 @@ namespace TheBlock.Missions
         }
 
         /// <summary>
+        /// Where a step begins, in Unity space. U26's Mission Select drops the player here.
+        ///
+        /// <b>Deliberately the same number the objective pin uses</b>, not a second table. The web
+        /// build has two — <c>stepCoords</c> for the marker and a hand-written block inside
+        /// <c>campaign-launch.ts</c> for the jump — and they agree only because nobody has moved
+        /// anything yet. One dictionary, read twice, cannot drift.
+        /// </summary>
+        public bool TryStepPosition(string id, out Vector3 position)
+        {
+            position = Vector3.zero;
+            if (id == null || !_steps.TryGetValue(id, out var step)) return false;
+            position = step.Follow != null ? step.Follow.position : step.Position;
+            return true;
+        }
+
+        /// <summary>
         /// Hands a step a live Transform to track instead of its fixed waypoint. Nothing needs it in
         /// Tier 5 — every giver stands still — but it is the reason the pin holds a Transform at
         /// all, and it costs one method.

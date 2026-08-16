@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using TheBlock.Core;
 using TheBlock.UI;
 using TheBlock.Vehicles;
+using TheBlock.World;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -45,7 +46,6 @@ namespace TheBlock.Missions
         private float _timeLeft;
         private int _passed;
         private int _total;
-        private float _bobT;
         private float _seaLevel;
         private bool _entering;
 
@@ -201,6 +201,8 @@ namespace TheBlock.Missions
 
         private void Update()
         {
+            if (Core.Pause.Frozen) return; // see Core.Pause
+
             var dt = Time.deltaTime;
 
             for (var i = _fading.Count - 1; i >= 0; i--)
@@ -255,16 +257,20 @@ namespace TheBlock.Missions
 
         private void TickGates(float dt, Vector3 chaser)
         {
-            _bobT += dt;
-
             foreach (var gate in _gates)
             {
-                // A gentle bob so the buoys read as afloat. Cheap sine, no physics — a fixed body
-                // resting dead still on a moving sea is the thing that looks wrong.
+                // THE BUOY RIDES THE REAL SURFACE, not a sine around the mean level.
+                //
+                // The web bobs its buoys by hand because its sea is flat, and this port copied that
+                // — against a sea U12 gave three summed swells to, up to 0.37 m of crest. A hull
+                // whose base sits at the MEAN is under water for half of every wave, which is what
+                // the play-test saw. SeaSurface is the CPU's copy of the shader's own displacement,
+                // read off the same material, so the base sits on the water wherever the water is.
+                // The swell IS the bob; the extra sine would now fight it.
                 if (gate.Buoy != null)
                     gate.Buoy.transform.position = new Vector3(
                         gate.Position.x,
-                        _seaLevel + Mathf.Sin(_bobT * 1.4f + gate.Position.x) * 0.12f,
+                        SeaSurface.Height(gate.Position.x, gate.Position.z),
                         gate.Position.z);
 
                 if (gate.Passed) continue;

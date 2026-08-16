@@ -221,6 +221,10 @@ namespace TheBlock.Player
 
         private void Update()
         {
+            // A menu owns the screen. Update keeps being called at timeScale 0, so the freeze has to
+            // be read here or the player walks around behind the pause overlay — see Core.Pause.
+            if (Core.Pause.Frozen) return;
+
             if (_spec == null) Bind();
             if (_spec == null) return;
 

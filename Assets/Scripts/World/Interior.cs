@@ -119,6 +119,8 @@ namespace TheBlock.World
 
         private void Update()
         {
+            if (Core.Pause.Frozen) return; // no E through a menu — see Core.Pause
+
             if (player == null) Bind();
             if (player == null) return;
 
@@ -220,7 +222,15 @@ namespace TheBlock.World
             // same move and a second copy is how one of them loses the guard.
             player.Teleport(position, yawDegrees);
             if (followCamera != null) followCamera.SnapToTarget();
+
+            // U25's fade, owed since U13 shipped this teleport as a hard cut. Raised in the SAME
+            // frame as the move, so the first frame of the destination is already black — see
+            // ScreenFade for why it covers instead of bracketing.
+            if (fade == null) fade = FindAnyObjectByType<UI.Menus.ScreenFade>();
+            if (fade != null) fade.Cover();
         }
+
+        private UI.Menus.ScreenFade fade;
 
         /// <summary>Distance on the ground plane — a doorway does not care how high you are standing.</summary>
         private static bool WithinXZ(Vector3 a, Vector3 b, float radius)

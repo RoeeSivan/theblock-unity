@@ -204,6 +204,10 @@ namespace TheBlock.UI
 
         private void LateUpdate()
         {
+            // M is dead behind a menu. Esc's own priority order — close the map first, pause second
+            // — means the map can never be open while frozen, so this only has to stop it OPENING.
+            if (Core.Pause.Frozen) return;
+
             if (mapCamera == null || player == null) return;
 
             var keyboard = Keyboard.current;

@@ -91,7 +91,7 @@ namespace TheBlock.Police
 
             if (heat != null && interior != null) heat.Frozen = interior.Inside;
 
-            if (debugStarKey && heat != null &&
+            if (debugStarKey && heat != null && !Core.Pause.Frozen &&
                 UnityEngine.InputSystem.Keyboard.current?.pKey.wasPressedThisFrame == true)
                 heat.Bump();
         }

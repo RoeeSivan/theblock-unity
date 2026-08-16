@@ -269,6 +269,14 @@ namespace TheBlock.Missions
 
         private void Update()
         {
+            // The PROMPT is gated; the ROUTINE is deliberately not, and that asymmetry is the whole
+            // rule. A running routine is scored against AudioSettings.dspTime, which no freeze can
+            // stop — pause it and the arrows halt while the song keeps playing, then resume against
+            // an anchor that is now wrong by however long the menu was up. GameFlow therefore
+            // refuses to pause in GameMode.Rhythm at all, and this guard is written so that if that
+            // rule is ever broken the routine survives it. See Core.Pause.
+            if (Core.Pause.Frozen && !_running) return;
+
             _track?.Tick(Time.unscaledDeltaTime);
             if (_cheerCooldown > 0f) _cheerCooldown -= Time.unscaledDeltaTime;
 

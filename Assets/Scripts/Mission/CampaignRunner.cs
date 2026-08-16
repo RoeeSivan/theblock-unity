@@ -42,10 +42,11 @@ namespace TheBlock.Missions
         [SerializeField] private Interior interior;
 
         [Header("Debug")]
-        [Tooltip("Jump the cursor to this mission index on Play instead of starting at the first. " +
-                 "−1 starts at mission 1. This is the port of the web build's ?mission= URL flag, " +
-                 "and like it, it runs the REAL entry path — it selects the step, it does not fake " +
-                 "completing the ones before it.")]
+        [Tooltip("Jump the cursor to this mission index on Play, skipping the title screen's choice. " +
+                 "−1 leaves the opening cursor to the title menu (New Game / Continue / Mission " +
+                 "Select). This is the port of the web build's ?mission= URL flag, and like it, it " +
+                 "runs the REAL entry path — it selects the step, it does not fake completing the " +
+                 "ones before it.")]
         [SerializeField] private int debugStartMission = -1;
 
         [Tooltip("Log every status edge, payout and cursor move. Off for a normal play-test.")]
@@ -79,6 +80,13 @@ namespace TheBlock.Missions
 
         /// <summary>The card, so a mission's entry sequence can brief before it spawns anything.</summary>
         public BriefingCard Card => card;
+
+        /// <summary>
+        /// Is the <c>?mission=</c> debug jump set? <see cref="UI.Menus.GameFlow"/> asks, because a
+        /// debug jump has already chosen a mission and a title screen offering to choose one again
+        /// would undo it.
+        /// </summary>
+        public bool DebugStartActive => debugStartMission >= 0;
 
         private void Awake()
         {
@@ -115,41 +123,64 @@ namespace TheBlock.Missions
 
             director?.BuildSteps(_snapshot);
 
-            // THE CAMPAIGN ALWAYS OPENS ON MISSION 1, which is the web build's behaviour and not a
-            // simplification of it: `createCampaign` sets `idx = 0` on every load and NOTHING there
-            // reads the unlock index — `?mission=` is the only thing that moves the opening cursor.
-            //
-            // U20 shipped a resume instead ("Continue, with no title screen to press it on"), and
-            // the play-test found what that actually feels like: a finished save opens on the FINAL
-            // mission's objective — "Get to the jetski · chase the thief" over a fresh $0 wallet —
-            // with no way back to the pizza run short of wiping PlayerPrefs. A Continue needs a menu
-            // offering it, which is U26's; without one, every Play is a New Game.
-            //
-            // `Progress.UnlockedIndex` is still recorded below on every cursor move. It is what
-            // U26's Mission Select will read, and it is monotonic for exactly that reason.
-            var start = debugStartMission >= 0 ? debugStartMission : 0;
-            campaign?.Select(start);
-            _lastSavedIndex = campaign != null ? campaign.Index : 0;
-
             // Adopt the current statuses before the first poll, or a mission the scene already
             // reports complete fires its handoff card on frame one.
             _feedback.Prime(campaign?.Missions);
 
+            // WHERE THE CURSOR OPENS IS NOT DECIDED HERE ANY MORE — see BeginRun.
+            //
+            // U20 opened on `Progress.UnlockedIndex` and the play-test found what that feels like: a
+            // finished save opens on the FINAL mission's objective over a fresh $0 wallet, with no
+            // way back to the pizza run short of wiping PlayerPrefs. It was reverted to "every Play
+            // is a New Game" with a note saying a Continue needs a menu offering it. U26 built that
+            // menu, so the choice belongs to it and this only gets the campaign ready to receive one.
+            //
+            // The debug field still short-circuits, because it is the port of `?mission=` and its
+            // whole value is not needing a menu to use it.
+            if (debugStartMission >= 0) BeginRun(debugStartMission, fresh: false);
+        }
+
+        /// <summary>
+        /// Start the run at <paramref name="index"/>. Called by the title screen's New Game /
+        /// Continue / Mission Select, and by <c>debugStartMission</c>.
+        ///
+        /// <paramref name="fresh"/> is New Game: it is what shows the intro card. A Continue or a
+        /// Mission Select jump must NOT re-show it — the player has read it, and the card is a
+        /// modal over a world they asked to be dropped into.
+        ///
+        /// <b>Call this UNFROZEN.</b> The intro card is dismissed by SPACE or a click, and the space
+        /// key is one of the things <see cref="Core.Pause"/> gates — a card raised while the title
+        /// screen still holds the freeze would be dismissable by mouse only.
+        /// </summary>
+        public void BeginRun(int index, bool fresh)
+        {
+            if (campaign == null || _snapshot == null) return;
+
+            campaign.Select(Mathf.Max(0, index));
+            _lastSavedIndex = campaign.Index;
+
             director?.Refresh();
 
-            // The intro card is once per profile, and it is also how a fresh player learns the keys
-            // before U26 has a title screen to teach them on.
-            if (start == 0 && Onboarding.FirstTime("intro") && _snapshot.Campaign?.IntroLines != null)
+            // EVERY New Game, not once per profile. U20 gated it on Onboarding because there was no
+            // menu then and the card was the only thing marking a start; with a New Game button
+            // there IS an explicit request, and the web build answers it unconditionally —
+            // `await briefing.show(introLines)` sits directly in its New Game branch.
+            if (fresh && campaign.Index == 0 && _snapshot.Campaign?.IntroLines != null)
                 card?.Show(_snapshot.Campaign.IntroLines);
 
             if (verbose)
-                Debug.Log($"[campaign] start at {start} ({campaign?.Current?.Id}), " +
-                          $"unlocked {Progress.UnlockedIndex}, cash ${wallet?.Balance}");
+                Debug.Log($"[campaign] begin at {campaign.Index} ({campaign.Current?.Id}), " +
+                          $"fresh {fresh}, unlocked {Progress.UnlockedIndex}, cash ${wallet?.Balance}");
         }
 
         private void Update()
         {
             if (campaign == null) return;
+
+            // Frozen: no retry key, no cursor moves, no card presented behind the menu that is
+            // covering it. The whole reactor stands down rather than the key alone, because every
+            // edge it reads comes from a mission whose own clock is stopped anyway. See Core.Pause.
+            if (Core.Pause.Frozen) return;
 
             ApplyPoliceRules();
             HandleRetryKey();

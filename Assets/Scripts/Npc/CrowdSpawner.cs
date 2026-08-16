@@ -287,6 +287,8 @@ namespace TheBlock.Npc
 
         private void Update()
         {
+            if (Core.Pause.Frozen) return; // see Core.Pause
+
             if (_seeds == null) Bind();
             if (_seeds == null || _seeds.Length == 0) return;
 

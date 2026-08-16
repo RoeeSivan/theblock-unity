@@ -266,7 +266,15 @@ namespace TheBlock.Missions
         /// <see cref="UI.MapRegistry"/> guards against.
         /// </summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetOnPlay()
+        private static void ResetOnPlay() => ResetCaches();
+
+        /// <summary>
+        /// The same drop, callable. <c>RuntimeInitializeOnLoadMethod</c> fires once per Play
+        /// SESSION, not once per scene load, so U26's Quit to Title — which unloads the world and
+        /// rebuilds it inside one session — has to ask for this itself. See
+        /// <see cref="Core.SessionReset"/>.
+        /// </summary>
+        public static void ResetCaches()
         {
             _coneMesh = null;
             _beamMesh = null;
