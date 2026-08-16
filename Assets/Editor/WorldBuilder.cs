@@ -457,10 +457,70 @@ namespace TheBlock.EditorTools
             box.center = new Vector3((near + far) * 0.5f, -0.1f, 0f); // top face at the plate's y
             report.Colliders++;
 
+            BuildWorldEdges(plane.transform, far, near, ground.Size, sea, report);
+
             SetDistrictStaticFlags(plane);
             report.Placed.Add(
                 $"Ground {ground.Size:0} x {ground.Size:0} m @ y {ground.Y:0.##}, " +
                 $"solid over Unity x [{far:0}, {near:0}] (trimmed at the shore)");
+        }
+
+        /// <summary>
+        /// A fence around the solid plate - four invisible boxes on its rim, so nothing can drive off
+        /// the edge of the world.
+        ///
+        /// <b>Reported by the user, 2026-08-16:</b> *"יש אזור ליד הים שאם נוסעים בו אז פשוט נופלים
+        /// והמכונית ממשיכה ליפול."* The measurement behind it: the plate's collider is solid over
+        /// Unity x [−700, +430] and the full 1400 m of z, while the <b>shore wall covers only 600 m
+        /// of that z</b> - it is `sea.Length`, because it was built to hold the waterline, and the
+        /// water is 600 m of coast inside a 1400 m world. North and south of the water there is a
+        /// 400 m stretch of plate edge at x = 430 with nothing on it at all, and past it no collider
+        /// of any kind: the water surface has none. A car that reaches it falls forever.
+        ///
+        /// <b>This fence takes nothing away.</b> Its seaward side sits at the same x as the shore
+        /// wall, so where the shore wall already exists it is a duplicate collider and changes
+        /// nothing; the beach and the swim are seaward of BOTH and are reached exactly as they were.
+        /// The other three sides are the same edge on the other side of the map - the same bug, just
+        /// further from anywhere anyone has driven yet.
+        ///
+        /// <b>Ignore Raycast</b>, for the reason <see cref="BuildShoreWall"/> gives in full: a wall
+        /// is not a floor, and a downward probe started inside one reads its top as ground and lifts
+        /// the caller into the air.
+        /// </summary>
+        private static void BuildWorldEdges(
+            Transform parent, float far, float near, float size, TheBlockConfig.SeaSpec sea, Report report)
+        {
+            // The shore wall's own dimensions where the config has them, so the two agree by
+            // construction rather than by two numbers that happen to match today.
+            float height = sea?.Wall != null && sea.Wall.Height > 0f ? sea.Wall.Height : 8f;
+            float thickness = sea?.Wall != null && sea.Wall.Thickness > 0f ? sea.Wall.Thickness : 3f;
+
+            var edges = new GameObject("World Edges") { layer = LayerMask.NameToLayer("Ignore Raycast") };
+            edges.transform.SetParent(parent, worldPositionStays: false);
+            edges.transform.localPosition = Vector3.zero;
+
+            float half = size * 0.5f;
+            float midX = (near + far) * 0.5f;
+            float spanX = Mathf.Abs(near - far);
+
+            Edge("Seaward", new Vector3(near, height * 0.5f, 0f), new Vector3(thickness, height, size));
+            Edge("Landward", new Vector3(far, height * 0.5f, 0f), new Vector3(thickness, height, size));
+            Edge("North", new Vector3(midX, height * 0.5f, half), new Vector3(spanX, height, thickness));
+            Edge("South", new Vector3(midX, height * 0.5f, -half), new Vector3(spanX, height, thickness));
+
+            report.Placed.Add(
+                $"World edges: 4 walls {height:0.#} m high around the solid plate, Unity x " +
+                $"[{Mathf.Min(far, near):0}, {Mathf.Max(far, near):0}] z [{-half:0}, {half:0}] " +
+                "(Ignore Raycast, colliders only)");
+
+            void Edge(string name, Vector3 centre, Vector3 sizeOf)
+            {
+                var wall = new GameObject(name) { layer = edges.layer };
+                wall.transform.SetParent(edges.transform, worldPositionStays: false);
+                wall.transform.localPosition = centre;
+                wall.AddComponent<BoxCollider>().size = sizeOf;
+                report.Colliders++;
+            }
         }
 
         /// <summary>
