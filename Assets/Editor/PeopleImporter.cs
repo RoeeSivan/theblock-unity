@@ -272,7 +272,7 @@ namespace TheBlock.EditorTools
                 .Distinct()
                 .ToList();
 
-            foreach (var path in textures) ConfigureTexture(path);
+            foreach (var path in textures) ConfigureTexture(path, MaxTextureSize);
             AssetDatabase.Refresh();
 
             if (textures.Count == 0)
@@ -294,7 +294,13 @@ namespace TheBlock.EditorTools
             return BaseTokens.Any(t => stem.Contains(t));
         }
 
-        private static void ConfigureTexture(string path)
+        /// <summary>
+        /// Shared with <see cref="CharacterImporter"/>, which imports the playable bodies at a
+        /// larger <paramref name="maxSize"/> — a body the camera sits three metres behind is not a
+        /// pedestrian glimpsed across a street. Everything else about the recipe is the same, and
+        /// the npot trap below is the reason this is one function rather than two.
+        /// </summary>
+        internal static void ConfigureTexture(string path, int maxSize)
         {
             if (AssetImporter.GetAtPath(path) is not TextureImporter importer) return;
 
@@ -303,7 +309,7 @@ namespace TheBlock.EditorTools
 
             importer.textureType = isNormal ? TextureImporterType.NormalMap : TextureImporterType.Default;
             importer.sRGBTexture = !isNormal;
-            importer.maxTextureSize = MaxTextureSize;
+            importer.maxTextureSize = maxSize;
             importer.mipmapEnabled = true;
 
             // A non-power-of-two texture with mipmaps silently refuses block compression and ships

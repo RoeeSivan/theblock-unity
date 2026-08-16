@@ -36,6 +36,16 @@ the second WebGL context that "did not hold on an iPad" (U26); and the day/night
 thing this port ADDS rather than ports, and it ships switched off so every approved screenshot still
 reproduces (U33). U25's last owing, an emoji-capable font, landed with U28 and that row is closed.
 
+**U29 is the rule paying a dividend on a unit built four months earlier, and that is a shape worth
+recognising.** The web build's roster has to reach FIVE bodies, and its own comment says why: four
+separately built skinned meshes wear the player, "so picking one has to reach all of them or you'd
+change clothes on getting into a vehicle". U9 had already replaced all four with one reparented
+player, so the fan-out here is two — the player and the stage dancer — and nobody had to design that.
+**Answering the standing question well does not only improve the unit it is asked in; it deletes work
+from units that have not been written yet.** The counterweight is U29's own scar: the same reparenting
+means `VehicleEnterExit` caches the player's renderers, and a cache is exactly what a swappable body
+invalidates.
+
 **U27 also adds the sharpest instance yet of the rule's cost, and it is not a Unity feature failing
 — it is a Unity feature having a price nobody quoted.** Putting the dance's song on a mixer bus is
 plainly right: it is what a Music volume slider will attach to. It also inserted one DSP buffer of
@@ -81,6 +91,10 @@ unclear, re-test before inheriting.
 > *Ledger audited 2026-08-16: the U28b and U33 scene-rig debts are closed, a duplicated section and
 > four malformed table rows are fixed, and the open-work census below is complete as of that date.*
 
+**U29 IS DONE AND USER-CONFIRMED (2026-08-16).** *"looking good."* The roster is Joe, Jody and
+David; the pick dresses the player AND the stage dancer, and the character screen got the studio
+lighting U26 never ported. Section below. Nothing about it is open.
+
 **U28 IS DONE AND USER-CONFIRMED (2026-08-16).** The money loop is closed: the 7-Eleven's doors open
 as you walk at them, the counter sells four power-ups, all four effects fire, and U25's emoji font
 landed with it. Play-tested in three rounds — *"דלתות אוטומיות עובדות טוב"*, then the two faults
@@ -125,8 +139,9 @@ one star, and wait ~20–30 s for the cruiser to drive over from the station.
 Behind U19e and none of it blocking. This list was re-derived from the whole ledger in one pass, so
 it is the census — if something is not here or in **Deferred**, it is not open.
 
-- **U29 — the character roster.** `todo`, nothing blocks it. U26 shipped a Character screen with
-  Joe alone; this row adds the two other entries and their rigs.
+- ~~**U29 — the character roster.**~~ **DONE AND USER-CONFIRMED 2026-08-16** — *"looking good"*.
+  Joe, Jody and David; the swap reaches the player and the stage dancer, and the character screen
+  finally has the three-light rig the web build always had. Its own section is below.
 - **U19d — the police blue-light run.** `wip`: written, compiles, **never play-tested**. It needs no
   new work, only a play-test that either confirms it or reopens it.
 - **The jetski floats on the sea's MEAN level**, not on the swell — the exact fault U24b fixed for
@@ -277,6 +292,105 @@ menu item**, once the project compiles — the cruisers are `Instantiate`d from 
 **The scene commit that was owed since U28b lands here too**, on the user's call once fuel was
 confirmed closed: `World.unity`'s 81 added lines are U28b's `GasStation`, `FuelSystem` and
 `FuelGauge` plus this unit's one `officerPrefab` reference. Nothing in U19e is user-confirmed.
+
+### U29, 2026-08-16 — the character roster — DONE, user-confirmed
+
+*"looking good."* Three bodies, one swap, and the interesting part of the unit is how few places had
+to learn about it.
+
+**The fan-out is two, and the web build's is five.** `main.ts`'s `applyCharacter` is four calls plus a
+dancer, and its comment says why: *"Four separate rigs wear the player's body — the walking capsule,
+the seated car driver, and the bike + jetski riders — so picking one has to reach all of them or
+you'd change clothes on getting into a vehicle."* Each of those is a separately built skinned mesh
+there. **U9 already deleted that problem**: this port reparents ONE player into every seat, so all
+four are the same body and the fan-out is the player plus the stage dancer. This is the standing
+question answered by a unit that was built four months earlier — the dividend, not a new idea.
+
+**The dance WAS the gap, and the user named it before a line was written.** `DanceBuilder`
+instantiated `Joe.fbx` straight onto the stage at build time, so picking Jody would have left Joe up
+there. That is not a hypothetical: `dancer.ts`'s own header records it as a bug the web build had and
+fixed — *"picking the female character still put joe on stage"*. The stage wears a roster prefab now
+and `DanceBuilder` lost its white-material rebind with it, because a Joe prefab is a Joe prefab
+wherever it is instantiated.
+
+**The gap nobody had named is a cache.** `VehicleEnterExit` takes `player.GetComponentsInChildren
+<Renderer>()` once in `Bind` and hides the driver with it — correct for four units, and wrong the
+moment a body can be replaced: swap while driving and the array holds the DEAD body's renderers, so
+the new one is never hidden and the cabin that is supposed to look empty has somebody in it.
+`CharacterBody.Swapped` is an event for exactly this, and it has three subscribers: that cache,
+`PlayerAnimator`'s Animator, and `Dancer`'s. `PlayerAnimator` also re-pushes its mount flags on a
+swap — a fresh Animator starts in its controller's entry state, so without it a character picked
+mid-drive stands up in the driver's seat.
+
+**`Player_Joe` was restructured, and it is the only invasive thing here.** He carried the Animator,
+nine skinned meshes and the whole `mixamorig7:` skeleton on the same transform as his
+`CharacterController`. A second body needs a height match, a height match is a scale, and a scale
+there resizes the physics capsule — the same rule `NpcBuilder` follows and the reason the crowd and
+the stage dancer were already built with a `Visual` child. He has one now.
+
+**Heights are matched to JOE, not to 1.70 m.** `referenceCharacterId` is `'joe'` and the point of
+that is that adding a roster changed nothing about how the character the game shipped with looks. So
+Joe's own measurement is the target and his scale is 1 by construction rather than by luck: Joe
+1.968 m × 1, Jody 1.899 m × 1.037, David 1.934 m × 1 (inside the 2% tolerance). The crowd's
+`PeopleImporter` normalises to a constant instead, which is right for a pedestrian and would have
+been wrong here.
+
+**⚠ U16b's material claim is importer STATE, not a guarantee — and Joe's copy of it is gitignored.**
+`PeopleImporter`'s doc says Mixamo FBX "come out of Unity's own importer as URP/Lit with base +
+normal already bound". Jody and David came out with **7 and 6 slots holding a white URP/Lit material
+and no `_BaseMap`**, their textures extracted right beside them. Joe looks right on this machine
+because his `.meta` carries a hand-made remap — and `Joe.fbx.meta` is in `.gitignore`, so that fix is
+a local patch no clone has ever had (memory: `gitignored-meta-hides-importer-fixes`). The builder
+writes URP/Lit materials as assets now, which is code, and code survives a clone.
+
+**⚠ And the texture↔slot pairing is Mixamo's SET NUMBER, not the names.** Jody's body material is
+called `Ch38_body` while every one of her textures is `Ch37_*` — matching by prefix finds nothing.
+What holds across all three characters is the number: `_body` takes 1001, `_hair` takes 1002, which
+is exactly the table Joe's two hand-made materials already encoded. David has no 1002 at all, so his
+hair falls back to 1001 rather than staying white.
+
+**The character screen had no lighting, and this was the user's report.** *"חסר לי קצת יותר אור."*
+`character-select.ts` adds three lights to its preview scene before it adds a body — a
+`HemisphereLight(0xffffff, 0x333344, 2.2)`, a warm `DirectionalLight(0xffd7a8, 2.6)` at (2, 4, 3) and
+a cool `DirectionalLight(0x88bbff, 1.4)` at (−3, 2, −2). U26 ported the camera and the turntable and
+none of that, so the body was lit only by the world's sun, two kilometres overhead at whatever angle
+the day/night cycle left it. **Both directionals become range-limited POINT lights**: a directional
+has no position and one down here would light all 963 × 805 m of the city as a second sun, and URP
+honours one main directional anyway (memory: `urp-has-one-main-directional`). A 6 m range cannot
+reach anything but the body — the camera's "20 m far plane is the culling" trick, applied to light.
+The hemisphere becomes a frontal fill, because ambient in URP is one global setting a preview may not
+touch. Shadows off on all three: the preview camera does not render shadows, so they would only take
+space in the 2048² atlas the world already overflows.
+
+**The intensities were measured, because "brighter" is not a number.** Rendering the rig at 0×, 1×,
+2×, 4×, 8× and 16× and averaging the luminance of the **body** pixels only — the background is most
+of the frame and swamps a whole-image mean — gives **0.154** unlit (what U26 shipped), then 0.218,
+0.262, 0.326, 0.411, 0.521. The brightest pixel reaches **1.000 at 4×**, so everything above that is
+buying mean brightness by blowing the specular out. **2× is the last stop before the clip** — 0.959
+peak, 70% brighter than the screen that was called too dark — and that is what shipped: key 24,
+rim 14, fill 10. They are `[SerializeField]` on `CharacterPreview` and re-pushed onto the rig on every
+open, so they can be dragged in the Inspector with the screen up; the builder's numbers must be kept
+equal to the component's defaults or the component wins at runtime.
+
+**⚠ What is committed and what is not, because the two new bodies are NOT like Joe.** `Jody.fbx` and
+`David.fbx` are in the repo (52 + 50 MB, LFS), with their extracted textures, their materials and
+their prefabs — so those two are complete on a fresh clone. **`Joe.fbx` is still gitignored** (a U2
+decision, and `Joe_Jumping.fbx` / `Joe_Sprint.fbx` with it), so `Assets/Prefabs/Characters/Joe.prefab`
+points at a mesh and an avatar that a clone does not have. That is not new — the scene's `Player_Joe`
+has always pointed at the same missing file — but it is now written down. Un-ignoring the three is
++150 MB of LFS against a free 1 GiB shared with the original repo, and it is a decision for whoever
+does U30's build pass, not a thing to slip into a roster unit.
+
+**Two new menu items, and no build order to remember.** **The Block → Import Characters (slow)**
+(~100 MB of FBX, Humanoid, textures extracted) and **→ Build Characters** (prefabs + the roster + all
+three hosts). `Build Menus` and `Build Campaign` each call back into the second to dress what they
+just rebuilt, so it does not matter which was run last.
+
+**The roster table is hand-written, and it is the only ported table in this project that is.**
+Everything else comes through `export-config.mjs` because it is full of hand-tuned numbers that must
+not be re-typed. `characters.config.ts` is three ids, three names, and `scale`/`seat` nudges that are
+unset for all three characters; the rest of the file is GLB URLs that mean nothing to Unity. There is
+no number here to get wrong, and an eleventh exporter source would have been ceremony.
 
 ### U28 round 2, 2026-08-16 — what the play-test found
 
@@ -580,6 +694,12 @@ new one.
   reporting it.
 - **The roster is one row (Joe).** The panel, the turntable and the persistence all ship; **U29 adds
   two `Entry` rows and two rigs under the turntable** and does not reopen this menu.
+  **⚠ CLOSED at U29, and that last clause was wrong.** The menu was reopened, twice and for good
+  reasons: the panel's hand-seeded roster became a read of the `CharacterRoster` component (two
+  copies of one table is two tables that drift), and the turntable turned out to have **no lighting
+  at all** — U26 ported this screen's camera and its body and left the web's three-light rig behind,
+  which is what the user saw as "too dark". A prediction that a later unit will not touch a screen is
+  a prediction about faults nobody has found yet.
 
 **⚠ U25's emoji font is NOT done, and it is the only thing that unit still owes.** The fade shipped
 here — `ScreenFade`, which COVERS rather than brackets, because both `Interior` call sites are
@@ -2204,11 +2324,11 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
 | U25 | HUD + in-game UI (UI Toolkit) | **done — the font landed with U28, 2026-08-16** | `dd6fbb8` (the fade) | **CLOSED BY U28.** `EmojiFontBuilder` builds NotoColorEmoji (OFL) as a dynamic `FontAsset` at `GlyphRenderMode.COLOR` — the render mode is the whole question, because CBDT/CBLC glyphs are bitmaps and every SDF mode rasterises them empty. It goes in a `PanelTextSettings` (`Assets/UI/HudTextSettings.asset`), in both `fallbackFontAssets` and `emojiFallbackTextAssets`, assigned to `HudPanelSettings.textSettings`. **Not `TMP_Settings`** — that is uGUI's and does nothing here. Measured 11/11 probe glyphs into a 1024² RGBA32 atlas. `Glyphs.cs` deleted, its three call sites now draw the copy as written. The original row said: — This row was only ever two owings, and U26 paid one of them. **DONE: the fade** behind U13's interior teleport — `Assets/Scripts/UI/Menus/ScreenFade.cs`, on the shared document, unscaled. It COVERS rather than brackets (black up in the same frame as the teleport, then fades off) because `fade.ts`'s `await to(true)` has nowhere to go here: `Interior.Enter`/`Leave` flip `inside` and move the capsule in one statement and `DeliveryMission` reads `interior.Inside` on the next line. Nothing is lost — the move is instantaneous either way and UI Toolkit composites after the scene, so the first frame of the destination is already black. **NOT DONE: the emoji-capable font.** `Glyphs.Strip` is still the stop-gap, so the map draws dots instead of `⛽`/`🚓`/`🏪` and Mission Select reads `1.  The Block Pizza Run`. Plan: Noto Color Emoji (OFL) as a fallback `FontAsset` on `HudPanelSettings`' theme; if Unity 6's TextCore will not rasterise CBDT/COLR, fall back to monochrome **Noto Emoji** — a grey 🍕 beats a blank box — and only then delete `Glyphs.cs`. Everything else the row wanted was already built by U14/U19/U20 on the one panel |
-| U26 | Menus — title, character select, briefing, controls, pause | done | `dd6fbb8` | **User-confirmed 2026-08-16** (*"works"*, after the radar toggle was fixed; *"all other buttons work good"*). A Boot scene whose bar reads `AsyncOperation.progress` (the number `loading-screen.ts` wished for and faked with hand-counted milestones), then a title screen on the HUD document over the frozen city — New Game · Continue · Character · Mission Select · Settings · How to Play — plus `Esc` → Resume/Settings/How to Play/Quit to Title. Built by **The Block → Build Menus**; `Boot` is build index 0, `World` is 1. **⚠ THE UNIT'S REAL LESSON: `Time.timeScale = 0` does not stop `Update`.** The web pauses by skipping one `stepSim` call; here fourteen scripts poll `Keyboard.current` every frame and kept firing behind the overlay, so `Core.Pause.Frozen` is a guard line in each of them. **The dance is unpausable by rule** — `Conductor` runs on `dspTime`, which no freeze touches. Three faults found only by measuring: UI Toolkit takes `Color` as LINEAR (the scrim rendered as a pale haze, the buttons peach); a percentage `max-width` against an indefinite parent collapsed every button to 162 px; and hiding the HUD by `display` **clobbered the Radar toggle**, which writes `display` on the same element — it hides with `visibility` now. `SessionReset` exists because `[RuntimeInitializeOnLoadMethod]` fires once per Play session, not per scene load, and Quit to Title is this port's first scene load. Deliberately absent: no Multiplayer button (U32), Mission Select teleports rather than mounts, Settings is one row, roster is Joe alone (U29 adds two entries and two rigs) |
+| U26 | Menus — title, character select, briefing, controls, pause | done | `dd6fbb8` | **User-confirmed 2026-08-16** (*"works"*, after the radar toggle was fixed; *"all other buttons work good"*). A Boot scene whose bar reads `AsyncOperation.progress` (the number `loading-screen.ts` wished for and faked with hand-counted milestones), then a title screen on the HUD document over the frozen city — New Game · Continue · Character · Mission Select · Settings · How to Play — plus `Esc` → Resume/Settings/How to Play/Quit to Title. Built by **The Block → Build Menus**; `Boot` is build index 0, `World` is 1. **⚠ THE UNIT'S REAL LESSON: `Time.timeScale = 0` does not stop `Update`.** The web pauses by skipping one `stepSim` call; here fourteen scripts poll `Keyboard.current` every frame and kept firing behind the overlay, so `Core.Pause.Frozen` is a guard line in each of them. **The dance is unpausable by rule** — `Conductor` runs on `dspTime`, which no freeze touches. Three faults found only by measuring: UI Toolkit takes `Color` as LINEAR (the scrim rendered as a pale haze, the buttons peach); a percentage `max-width` against an indefinite parent collapsed every button to 162 px; and hiding the HUD by `display` **clobbered the Radar toggle**, which writes `display` on the same element — it hides with `visibility` now. `SessionReset` exists because `[RuntimeInitializeOnLoadMethod]` fires once per Play session, not per scene load, and Quit to Title is this port's first scene load. Deliberately absent: no Multiplayer button (U32), Mission Select teleports rather than mounts, Settings is one row, ~~roster is Joe alone~~ (**U29 added Jody and David, and had to reopen this screen twice: the panel's own roster list became a read of `CharacterRoster`, and the turntable had NO lighting — the web's three-light preview rig was never ported**) |
 | U27 | Audio — sfx, engine, ambient, sirens | done | `bf0bdd9` | **User-confirmed 2026-08-16** (*"sound - mark it as done"*). Twelve of the web's thirteen audio modules, ~1.2 MB of clips, one `AudioMixer` (7 buses / 7 exposed params / 4 snapshots) built by a REFLECTION tool because Unity ships no public API for authoring one. The 20 synth cues of `sfx.ts` are **baked to `AudioClip`s once** instead of rebuilding an oscillator graph per press, with PolyBLEP on saw/square because Web Audio's oscillators are band-limited by spec and a naive one would alias audibly. The rotor is a literal port through **`OnAudioFilterRead`** — the three rates move by different factors (chop 2.43×, hum 1.71×, whine 2.17×) so one `pitch` knob cannot reproduce it. Sirens are **3D, on the cars**, capped at the nearest 3: the web's one-shot wail exists only because that build has no `AudioListener` at all. **Caught, and it is the important one: an `AudioMixerGroup` costs one DSP buffer, and it moved the dance's music 21.3 ms off its own beatmap** (§ below). Also caught: the engine WAVs' 7–18 ms decoder tail, which Unity has no `loopEnd` to ignore. **Radio deferred** by the user — the only system with a network dependency |
 | U28 | Economy — the 7-Eleven + power-ups | **done — user-confirmed 2026-08-16** | `0044863` + `cd276a4` | Fuel was split out to **U28b** by the user, 2026-08-16, so the store could be one checkpoint. Everything else is built and in the scene: `SevenEleven` (automatic bi-parting doors, sales floor, counter), a clerk from a crowd prefab, `ShopMenu`, `PowerUps` + `SpeedBoost`, `PowerUpChips`, and the four effects at their own call sites. **The store's geometry is READ OFF THE MODEL, not converted** — the glb ships a marker node for every point the config states, and 12 of them check out to 0.0 cm. **Caught by measurement, not by reading: the ☕ boost applied to police cars** — `PoliceCar.prefab` has no `CopDriver` (it arrives at runtime with `CopCar`, after `CarController.Awake`), so the cop exclusion never latched and drinking coffee to escape would have sped up the chase. `MarkAsPolice()` + a serialized flag. **Also: the door leaves swap sides on import**, so the parting direction is measured, never taken from `config.door.slide.x`'s sign. `Heat` gained `Immune` because `CrimeWatch` already writes `Frozen` every frame. Wallet deliberately left on the Police group. New menu item **The Block → Build Store** |
 | U28b | Fuel — tank, limp mode, the pump | **done — user-confirmed 2026-08-16** | `4f46f70` | Built 2026-08-16. **The scene rig is not in this commit — it landed in `a269a6b` and the debt is closed** (verified 2026-08-16); a parallel session shared the tree, so only U28b's own hunks were staged here. `The Block → Build Gas Station` rebuilds it in one click if it is ever lost. `fuelConfig` is the **tenth exporter source**, appended so the JSON diffed clean. `FuelTank` is a component the vehicle owns, and **being a component IS the exemption** — the heli, the ski and every cruiser are excluded by never receiving one, so there is no second flag to forget. Both ceilings take the factor (**fuel scales reverse, ☕ does not**), and they multiply: measured, dry+coffee is exactly 1.25× the dry cap. **The line the whole unit hung on: `CarController.ApplyDrive` had no coast brake on `capped`** — the bike's had one since U10 and the car never needed it, because a boost only ever RAISES a ceiling. Limp mode collapses it 20→5 under a car doing 20, and without the brake the car coasts at 20 and the limp is invisible. Measured before and after: ordinary top speed **19.99 m/s**, unchanged. **Per-pump trigger, and it is a UNION with the web's circle, not a replacement** — pumps alone would be STRICTER across the forecourt's middle. Machine-checked 576/576 over the 9 m disc. New menu item **The Block → Build Gas Station** (which also installs the HUD gauge, so the destructive `Build Map HUD` never has to be run). Old row, still the plan of record: Split off U28, 2026-08-16. `vehicle/fuel.ts` + `fuel.config.ts` + `refuel.ts` + `world/gas-station.ts`. Tank per car and bike (never the heli or ski — `Vehicle.fuel` is optional for exactly that reason), distance-based burn so a tank means RANGE, limp at 0.25× that eases in over 1.5 s and NEVER strands you, hold-to-refuel on the Paz forecourt, the bar and the two hints. **Two cues are already baked and waiting**: `FuelTick`, `FuelDone`. **The speed hook already exists** — `SpeedBoost.Factor` multiplies the same clamp, so the tank's factor multiplies too and a dry tank still limps at full boost. ~~`fuelConfig` still needs adding to `export-config.mjs`'s `SOURCES`~~ and ~~put the refuel row back in `ControlsGuide` when it is true~~ — **both done, verified 2026-08-16**: the exporter carries `fuelConfig` and `ControlsGuide` line 45 reads `("Space", "Hold at a gas pump — refuel")` |
-| U29 | Character roster | todo | | |
+| U29 | Character roster | **done — user-confirmed 2026-08-16** | `PENDING` | ✅ *"looking good"*. Joe, Jody and David, from `characters.config.ts` — **the only ported table in this project that is hand-written rather than exported, and deliberately**: it is three ids, three names, and two optional tuning fields that are unset for all three; the rest of that file is GLB URLs. There is no number here to get wrong. **The fan-out is TWO bodies here and five in the web build, and that is U9's dividend** — `main.ts`'s `applyCharacter` reaches four separately-built rigs (walking capsule, seated driver, bike and jetski riders) because each is its own skinned mesh there; this port reparents ONE player into every seat, so all four collapse into a single `CharacterBody`. What is left is the player and the stage dancer. **The dance was a real gap and the user called it before a line was written** — `DanceBuilder` baked `Joe.fbx` into the stage at build time, so picking Jody would have left Joe up there, which is the exact fault `dancer.ts`'s own header records as fixed in the web build. **A second gap nobody had named: `VehicleEnterExit` caches `_driverRenderers` once**, so a swap mid-drive would switch the dead body's renderers and never hide the new one. `Swapped` is an event with three subscribers for that reason. **`Player_Joe` was restructured** — the Animator, nine skinned meshes and the skeleton moved off the root onto a `Visual` child, because the height match is a scale and a scale on the root resizes the `CharacterController` capsule. Heights are matched to **Joe**, not to 1.70 m: he is `referenceCharacterId` and the point of that is that adding a roster changed nothing about him. Jody 1.899 m × 1.037, David 1.934 m × 1 (inside tolerance), Joe × 1 by construction. **Two things measured rather than assumed: U16b's "Mixamo FBX come out with base+normal bound" is importer STATE, not a guarantee** — Jody and David arrived with 7 and 6 white slots and their textures extracted right beside them, and the reason Joe is fine is a remap in a **gitignored** `.meta`, i.e. a local patch no clone has; the builder writes URP/Lit materials in code now. And **the texture↔slot pairing is Mixamo's set number, not the names** — Jody's body material is `Ch38_body` while every texture of hers is `Ch37_*`, so `_body`→1001 / `_hair`→1002, with David falling back to 1001 because he has no 1002. New menu items: **The Block → Import Characters (slow)** and **→ Build Characters**; `Build Menus` and `Build Campaign` call back into the latter so no build order has to be remembered |
 
 ### Tier 7 — Ship
 | id | unit | state | commit | notes |

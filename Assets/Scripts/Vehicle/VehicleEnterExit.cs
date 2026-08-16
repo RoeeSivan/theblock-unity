@@ -80,6 +80,8 @@ namespace TheBlock.Vehicles
         [SerializeField, HideInInspector] private bool usingEntryClip;
         [SerializeField, HideInInspector] private bool riderSeated;
 
+        [SerializeField] private TheBlock.Player.CharacterBody playerBody;
+
         private TheBlockConfig.VehicleSpec _spec;
         private CharacterController _capsule;
         private Renderer[] _driverRenderers;
@@ -116,6 +118,11 @@ namespace TheBlock.Vehicles
 
         private void Awake() => Bind();
 
+        private void OnDestroy()
+        {
+            if (playerBody != null) playerBody.Swapped -= OnDriverBodySwapped;
+        }
+
         /// <summary>
         /// Resolves the scene references and the config. Called from Awake, and again from Update if
         /// the spec has gone null after a mid-Play recompile — the same guard PlayerController and
@@ -139,7 +146,20 @@ namespace TheBlock.Vehicles
             }
 
             player.TryGetComponent(out _capsule);
-            _driverRenderers = player.GetComponentsInChildren<Renderer>(true);
+
+            // U29: the driver's renderers belong to a body a menu can replace mid-drive, so the
+            // cache has to be invalidated rather than taken once. A stale array leaves the OLD
+            // body's renderers being switched — which reads as a driver visible through the
+            // windscreen of a car that is meant to look empty, and the new body never hidden.
+            if (playerBody == null && player != null)
+                playerBody = player.GetComponent<TheBlock.Player.CharacterBody>();
+            if (playerBody != null)
+            {
+                playerBody.Swapped -= OnDriverBodySwapped;
+                playerBody.Swapped += OnDriverBodySwapped;
+            }
+
+            CacheDriverRenderers();
 
             var snapshot = TheBlockConfig.Load();
             if (snapshot?.Config?.Vehicle == null)
@@ -533,6 +553,23 @@ namespace TheBlock.Vehicles
         /// Hides the body without deactivating it. The GameObject has to stay alive: its Animator is
         /// what plays the entry clip, and a disabled object animates nothing.
         /// </summary>
+        private void CacheDriverRenderers() =>
+            _driverRenderers = player == null ? null : player.GetComponentsInChildren<Renderer>(true);
+
+        /// <summary>
+        /// A fresh body starts visible, so the hidden-driver state has to be re-imposed on it. The
+        /// only mode where the driver is hidden is a quick mount into something that does not show
+        /// its rider — a car — which is exactly the case the stale cache used to break.
+        /// </summary>
+        private void OnDriverBodySwapped()
+        {
+            CacheDriverRenderers();
+
+            bool hidden = riderSeated && mode != GameMode.OnFoot &&
+                          ActiveVehicle != null && !ActiveVehicle.ShowRiderOnQuickMount;
+            SetDriverVisible(!hidden);
+        }
+
         private void SetDriverVisible(bool visible)
         {
             if (_driverRenderers == null) return;

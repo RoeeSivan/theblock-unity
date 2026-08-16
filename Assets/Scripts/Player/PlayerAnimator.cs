@@ -7,8 +7,14 @@ namespace TheBlock.Player
     /// Drives Joe's Animator from <see cref="PlayerController"/>.
     ///
     /// Kept apart from the controller on purpose: movement decides what the body does, this decides
-    /// what it looks like doing it. When the character roster lands (U29) the body underneath
-    /// changes and the controller must not care.
+    /// what it looks like doing it. U29 is what that separation was for: the body underneath is now
+    /// a <see cref="CharacterBody"/>'s visual child that a menu can replace mid-game, and the
+    /// controller never learned about it.
+    ///
+    /// <b>The Animator is on the CHILD, not here.</b> Until U29 it sat on the player root beside the
+    /// capsule; a roster needs the body to carry a height-match scale, and on the root that scale
+    /// would resize the <c>CharacterController</c>. So this resolves through the
+    /// <see cref="CharacterBody"/> and re-resolves whenever it swaps.
     ///
     /// Root motion stays OFF. The controller owns position; the clips only supply pose. The sprint
     /// clip does carry root motion, which the Animator ignores — the builder corrects its playback
@@ -16,10 +22,10 @@ namespace TheBlock.Player
     ///
     /// Build the graph this expects with **The Block → Build Joe Animator**.
     /// </summary>
-    [RequireComponent(typeof(Animator))]
     public class PlayerAnimator : MonoBehaviour
     {
         [SerializeField] private PlayerController controller;
+        [SerializeField] private CharacterBody body;
 
         [Tooltip("How fast the blended gait catches up to the real speed, in m/s per second. " +
                  "Without it, tapping Shift snaps the legs from walk to sprint in one frame.")]
@@ -37,7 +43,15 @@ namespace TheBlock.Player
 
         private Animator _animator;
         private float _blendedSpeed;
+
+        /// <summary>Mounted in anything — a car or a bike. Owns the gait blend's freeze.</summary>
         private bool _inCar;
+
+        // The two raw flags behind _inCar, kept apart from it so a body swap can re-push exactly
+        // what the old Animator was holding. Without them a character picked mid-drive stands up in
+        // the driver's seat, because a fresh Animator starts in its controller's entry state.
+        private bool _seatedInCar;
+        private bool _riding;
 
         /// <summary>
         /// How long the entry animation runs, in seconds, or 0 if the clip has not been imported.
@@ -58,7 +72,26 @@ namespace TheBlock.Player
         /// </summary>
         private void Bind()
         {
-            _animator = GetComponent<Animator>();
+            if (controller == null) controller = GetComponent<PlayerController>();
+            if (controller == null)
+            {
+                Debug.LogError("PlayerAnimator: no PlayerController to read.", this);
+                enabled = false;
+                return;
+            }
+
+            if (body == null) body = GetComponent<CharacterBody>();
+            if (body != null && body.Animator == null) body.Rebind();
+
+            _animator = body != null ? body.Animator : GetComponentInChildren<Animator>(true);
+            if (_animator == null)
+            {
+                // Not worth an error: a swap destroys the old body before the new one is parented,
+                // and anything polling in that one window sees exactly this. Update rebinds.
+                EnterCarSeconds = 0f;
+                return;
+            }
+
             _animator.applyRootMotion = false;
 
             // The clip's hip travel is baked into its pose, not extracted as root motion (see
@@ -68,23 +101,33 @@ namespace TheBlock.Player
             EnterCarSeconds = _animator.runtimeAnimatorController == null ? 0f
                 : _animator.runtimeAnimatorController.animationClips
                     .FirstOrDefault(c => c != null && c.name == EnterCarClip)?.length ?? 0f;
-
-            if (controller == null) controller = GetComponent<PlayerController>();
-            if (controller == null)
-            {
-                Debug.LogError("PlayerAnimator: no PlayerController to read.", this);
-                enabled = false;
-            }
         }
 
         private void OnEnable()
         {
             if (controller != null) controller.Jumped += OnJumped;
+            if (body == null) body = GetComponent<CharacterBody>();
+            if (body != null) body.Swapped += OnBodySwapped;
         }
 
         private void OnDisable()
         {
             if (controller != null) controller.Jumped -= OnJumped;
+            if (body != null) body.Swapped -= OnBodySwapped;
+        }
+
+        /// <summary>
+        /// A new body means a new Animator, and it comes up in whatever state its controller starts
+        /// in. The mount flags are re-pushed rather than assumed: swap character while sitting in a
+        /// car and the fresh Animator would otherwise stand up in the driver's seat.
+        /// </summary>
+        private void OnBodySwapped()
+        {
+            Bind();
+            if (_animator == null) return;
+
+            _animator.SetBool(EnterCarId, _seatedInCar);
+            _animator.SetBool(RideId, _riding);
         }
 
         private void Update()
@@ -126,12 +169,18 @@ namespace TheBlock.Player
 
         private void Seat(bool inCar, bool riding)
         {
+            // Recorded before the guard, not after: these three are what a later swap re-pushes, so
+            // losing them because the Animator happened to be mid-rebind would put the new body on
+            // its feet inside a moving car.
+            _inCar = inCar || riding;
+            _seatedInCar = inCar;
+            _riding = riding;
+
             // These are called from another component's Update, which may well run before this
             // one's has had a chance to rebind after a recompile.
             if (_animator == null) Bind();
             if (_animator == null) return;
 
-            _inCar = inCar || riding;
             _animator.SetBool(EnterCarId, inCar);
             _animator.SetBool(RideId, riding);
         }

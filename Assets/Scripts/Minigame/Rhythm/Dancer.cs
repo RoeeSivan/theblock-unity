@@ -36,13 +36,55 @@ namespace TheBlock.Minigame.Rhythm
 
         [SerializeField] private Animator animator;
 
+        [Tooltip("Whose body is on the stage. U29: the dancer IS the player, so it wears the roster " +
+                 "pick — and this is the one place the swap had to reach beyond the player himself.")]
+        [SerializeField] private TheBlock.Player.CharacterBody body;
+
         [Tooltip("Seconds of blend between clips — rhythmConfig.dancer.crossFadeSec.")]
         [SerializeField] private float crossFade = 0.2f;
 
         private int _hitIndex;
 
-        private void Awake()
+        private void Awake() => Bind();
+
+        private void OnEnable()
         {
+            if (body == null) body = GetComponent<TheBlock.Player.CharacterBody>();
+            if (body != null) body.Swapped += OnBodySwapped;
+
+            // Re-bound on every enable, not only in Awake. The stage stands DISABLED between
+            // routines, so a character picked from the menu swaps a body this component was not
+            // listening for — OnDisable had already unsubscribed. Taking the animator again on the
+            // way in covers exactly that window.
+            Bind();
+        }
+
+        private void OnDisable()
+        {
+            if (body != null) body.Swapped -= OnBodySwapped;
+        }
+
+        /// <summary>
+        /// A swap destroys the skeleton this was holding, so the state the routine was in goes with
+        /// it. Back to the groove is the only safe answer and also the right one: the character
+        /// screen cannot be opened during the routine (<c>GameFlow.CanPause</c> refuses in
+        /// <c>GameMode.Rhythm</c>), so this only ever runs between runs.
+        /// </summary>
+        private void OnBodySwapped()
+        {
+            Bind();
+            ResetRun();
+        }
+
+        private void Bind()
+        {
+            if (body == null) body = GetComponent<TheBlock.Player.CharacterBody>();
+            if (body != null)
+            {
+                if (body.Animator == null) body.Rebind();
+                animator = body.Animator;
+            }
+
             if (animator == null) animator = GetComponentInChildren<Animator>(true);
             if (animator == null) return;
 
