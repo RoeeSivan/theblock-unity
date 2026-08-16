@@ -15,8 +15,14 @@ namespace TheBlock.EditorTools
     /// skyline, and why the fog's ratios rather than its metres are what carry across.
     ///
     /// It runs at BUILD time rather than in a MonoBehaviour because fog is scene state and the
-    /// scene is WorldBuilder's output: <see cref="Interior"/> already saves and restores "the
-    /// street fog" on every doorway crossing, and until now there was nothing there to save.
+    /// scene is WorldBuilder's output.
+    ///
+    /// <b>U33 made what this writes the reference for a second thing.</b> With Settings → Display →
+    /// Time of Day on Fixed — the default — <see cref="DayNightCycle"/> does not write the sky at
+    /// all; it replays the values found here at <c>Awake</c>. So this function defines what "off"
+    /// looks like, and the palette's <see cref="SkyPalette.AnchorHour"/> stop is authored to match
+    /// it. Change the fog colour here and that stop has to move with it, or switching the setting on
+    /// will visibly jump.
     /// </summary>
     public static partial class WorldBuilder
     {

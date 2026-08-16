@@ -1,4 +1,5 @@
 using TheBlock.Core;
+using TheBlock.World;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -106,19 +107,55 @@ namespace TheBlock.UI
 
         // The scene's fog is tuned for a street-level camera; from 250 m up it greys out the whole
         // city. Off for this camera's render only, restored immediately after.
+        //
+        // U33 added the same treatment for ambient. This camera renders with m_RenderShadows off and
+        // no key light of its own, so once the sun sets the map goes as black as the city does — and
+        // a minimap you cannot read at 02:00 is a broken minimap, not atmosphere. It is lit at a flat
+        // daylight level whatever the hour.
+        //
+        // Save-and-restore is safe HERE, unlike in Interior, and the difference is worth naming: this
+        // pair brackets one camera's render inside a single frame, and nothing else runs between the
+        // two callbacks. There is no second writer to race.
         private bool _fogWas;
+        private AmbientMode _ambientModeWas;
+        private Color _ambientSkyWas, _ambientEquatorWas, _ambientGroundWas;
+
+        private static readonly Color MapSky = new(0.42f, 0.45f, 0.50f, 1f);
+        private static readonly Color MapEquator = new(0.34f, 0.35f, 0.37f, 1f);
+        private static readonly Color MapGround = new(0.20f, 0.19f, 0.17f, 1f);
 
         private void OnBeginCamera(ScriptableRenderContext ctx, Camera cam)
         {
             if (cam != _camera) return;
+
             _fogWas = RenderSettings.fog;
             RenderSettings.fog = false;
+
+            if (!DayNightCycle.Running) return;
+
+            _ambientModeWas = RenderSettings.ambientMode;
+            _ambientSkyWas = RenderSettings.ambientSkyColor;
+            _ambientEquatorWas = RenderSettings.ambientEquatorColor;
+            _ambientGroundWas = RenderSettings.ambientGroundColor;
+
+            RenderSettings.ambientMode = AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = MapSky;
+            RenderSettings.ambientEquatorColor = MapEquator;
+            RenderSettings.ambientGroundColor = MapGround;
         }
 
         private void OnEndCamera(ScriptableRenderContext ctx, Camera cam)
         {
             if (cam != _camera) return;
+
             RenderSettings.fog = _fogWas;
+
+            if (!DayNightCycle.Running) return;
+
+            RenderSettings.ambientMode = _ambientModeWas;
+            RenderSettings.ambientSkyColor = _ambientSkyWas;
+            RenderSettings.ambientEquatorColor = _ambientEquatorWas;
+            RenderSettings.ambientGroundColor = _ambientGroundWas;
         }
     }
 }

@@ -27,6 +27,9 @@ namespace TheBlock.Core
     /// The others accumulate dead entries their own sweeps would eventually drop, or hold meshes
     /// that <c>UnloadUnusedAssets</c> may or may not have taken. "May or may not" is the answer that
     /// makes them worth clearing here rather than reasoning about per-type.
+    ///
+    /// <see cref="DayNightCycle"/> (U33) is the third that is not optional: its clock is a static, so
+    /// Quit to Title at 22:00 would otherwise drop a New Game into the dark.
     /// </summary>
     public static class SessionReset
     {
@@ -39,6 +42,7 @@ namespace TheBlock.Core
             BuoyField.Clear();
             Beacon.ResetCaches();
             SeaSurface.ResetCaches();
+            DayNightCycle.ResetClock();
         }
     }
 }

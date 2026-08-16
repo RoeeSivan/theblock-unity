@@ -21,6 +21,7 @@ namespace TheBlock.Game
         private const string UnlockedKey = "theblock.unlocked";
         private const string CharacterKey = "theblock.character";
         private const string RadarKey = "theblock.radar";
+        private const string DayNightKey = "theblock.daynight";
 
         /// <summary>
         /// Furthest mission index unlocked. 0 = only the first, which is also what a fresh profile
@@ -68,6 +69,25 @@ namespace TheBlock.Game
             set
             {
                 PlayerPrefs.SetInt(RadarKey, value ? 1 : 0);
+                PlayerPrefs.Save();
+            }
+        }
+
+        /// <summary>
+        /// Settings → Display → Time of Day: does the sun move? <b>Default FALSE, and that default is
+        /// load-bearing.</b> A moving sun is an addition to this port, not a port of anything — the
+        /// web build's sky is one constant colour — so off means the world looks exactly as it did
+        /// for every play-test from U11 to U27, and it costs exactly what it did too: with this false
+        /// the grading pass is not scheduled at all.
+        ///
+        /// A PREFERENCE, like <see cref="RadarOn"/>, so it survives <see cref="Reset"/>.
+        /// </summary>
+        public static bool DayNightOn
+        {
+            get => PlayerPrefs.GetInt(DayNightKey, 0) != 0;
+            set
+            {
+                PlayerPrefs.SetInt(DayNightKey, value ? 1 : 0);
                 PlayerPrefs.Save();
             }
         }

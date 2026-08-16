@@ -88,6 +88,14 @@ the map pins `⛽` `🚓` `🏪`, and Mission Select's `1.  🍕 The Block Pizza
 read as automatic rather than as an animation; whether the clerk is standing in a sensible place;
 and whether the chips in the top right are legible where they are.
 
+**Landed alongside U28, in a parallel session: U33, the day/night cycle** — the first addition to
+this port rather than a port of something. It is `done` and user-confirmed. It changes nothing until
+a player opens **Settings → Display → Time of Day**, because Fixed replays the scene as built and
+schedules no post pass; see the Tier 8 row. **Its rig is not in its own commit** — `World.unity` was
+holding U28's unsaved work, so `The Block → Build Day-Night` rebuilds it in one click and it rides
+in with the next scene commit. If a future session finds no `DayNightCycle` on the `Directional
+Light`, that is why, and that is the fix.
+
 **Also still open, and none of it blocking:** U28b is the other half of the old U28 row — fuel, the
 tank, limp mode and the pump — split out by the user's call on 2026-08-16 so the store could be one
 checkpoint. U19d (the police blue-light run) is written, compiles and has **never been
@@ -1940,6 +1948,11 @@ State: `todo` · `wip` (half-built — the notes column MUST say exactly what an
 | U31 | iOS / iPad | todo | | free 7-day Xcode provisioning; $99 only for distribution |
 | U32 | Multiplayer | todo | | DEFERRED by decision — revisit only here |
 
+### Tier 8 — Additions (not ports)
+| id | unit | state | commit | notes |
+| --- | --- | --- | --- | --- |
+| U33 | Day/night cycle | done | | **User-confirmed 2026-08-16** (*"i like the lighting… feature good"*). **The first thing in this repo that is not a port of anything** — the web build's sky is one constant `config.background` and its sun never moves. It therefore ships behind **Settings → Display → Time of Day**, default **Fixed**, and Fixed is not "close to" the old look: `DayNightCycle.RestoreBuilt` replays the scene as WorldBuilder left it, `renderPostProcessing` goes false so URP schedules **no post pass at all**, and ambient stays `Skybox`. Off costs 0 ms and every screenshot approved in U11–U27 still reproduces. **One light does the sun AND the moon** — URP's main light is the brightest directional and a second would demote to an additional light with no shadows, so it swings a full 360° (`pitch = (hour − 6) × 15`) and mirrors to the far side of the sky below the horizon; intensity ramps to 0 across ±2° of the crossing so the 180° flip is invisible. **Ambient is `Trilight`, never `DynamicGI.UpdateEnvironment`** — three lerped colours instead of a 1–3 ms skybox re-convolution — and that fixes a dead line from U13 as a side effect: `Interior` wrote `ambientLight`, which `AmbientMode.Skybox` ignores, so the pizzeria's warm ambient had never once rendered. **Night is CHEAPER than day**: below the horizon `shadows = None` drops the four 2048² cascades. Grading is Tonemapping·ColorAdjustments·WhiteBalance only — **Bloom was cut on cost**, 6–8 blur passes against a 20.7 ms frame. `SkyPalette` is 13 stops, **static and code-only on purpose** (a `[SerializeField]` palette is dead the moment the scene saves it). `Assets/Scripts/World/{DayNightCycle,SkyPalette}.cs`, built into the scene by **The Block → Build Day-Night** (`Assets/Editor/DayNightBuilder.cs`), which also has a **(Test Mode)** twin: cycle forced on, a full day in 2 min, `[` `]` step an hour, `\` holds the clock, and a corner banner so it cannot be left on silently. ⚠ **`Interior`'s per-Enter `RenderSettings` snapshot was DELETED** — it was U26's Radar/`display` bug again, two owners of one field. Day length **2880 s = 48 min**, GTA V's pace, the user's call. ⚠ **The scene rig is NOT in this unit's commit** — `World.unity` was carrying U28's unsaved work at the time; the menu item rebuilds it in one click and it rides in with U28's scene commit |
+
 ---
 
 ## How to close a unit
@@ -2063,6 +2076,18 @@ would trigger it. A `wip` unit is work half-done; this is work deliberately not 
 
 Dated one-liners. These are settled — do not re-litigate them without the user reopening.
 
+- **2026-08-16** (U33) — **The port may now GAIN things, and a gain ships switched off.** A day/night
+  cycle is in no version of the web build. It is allowed in because "Unity-idiomatic, same game" was
+  never a ban on additions — but an addition that is always on silently re-opens every visual
+  judgement made in U11 through U27, because the screenshots the user approved stop reproducing. So
+  the rule this unit sets for whatever comes next: **an addition defaults to off, and its off state is
+  the old behaviour reproduced by replaying the scene, not by feeding neutral values through the new
+  code path.** `DayNightCycle` does not write a neutral sky when it is off — it does not write at all,
+  and URP schedules no post pass. That is what makes "costs nothing" a fact rather than a hope.
+- **2026-08-16** (U33) — **Day length is 48 real minutes**, GTA V's own pace. The user played the
+  24-minute version first and asked for half speed. One constant, `DayNightBuilder.DayLengthSeconds`
+  — written through `SerializedObject` rather than left to the C# field initialiser, because the
+  scene had already serialized the old value and would have ignored a re-tune.
 - **2026-08-15** (U19b) — **A mechanism and its pacing are one decision, and U19 made them
   separately.** "Heat decays unconditionally so three stars with an empty screen is impossible" is a
   good rule. "Cruisers park at the station, so a response has a travel time" is a good rule. Together

@@ -70,12 +70,23 @@ namespace TheBlock.World
         // storefront from the middle of the city on the next E.
 
         [SerializeField, HideInInspector] private bool inside;
+
+        // The street palette as WorldBuilder baked it, captured once in Awake before anything has
+        // written those fields. It is the FALLBACK for Leave() when no DayNightCycle is in the scene
+        // — with no cycle nothing else moves the sky, so the as-built value cannot go stale. Do not
+        // mistake this for the per-Enter snapshot U33 deleted; see PaintInterior for why that one was
+        // wrong and this one is not. Serialized because a recompile during Play reloads the domain
+        // without re-running Awake.
+        [SerializeField, HideInInspector] private bool streetCaptured;
+        [SerializeField, HideInInspector] private bool streetFogEnabled;
         [SerializeField, HideInInspector] private Color streetFogColor;
         [SerializeField, HideInInspector] private float streetFogNear;
         [SerializeField, HideInInspector] private float streetFogFar;
-        [SerializeField, HideInInspector] private bool streetFogEnabled;
         [SerializeField, HideInInspector] private Color streetAmbientColor;
         [SerializeField, HideInInspector] private float streetAmbientIntensity;
+        [SerializeField, HideInInspector] private Color streetAmbientSky;
+        [SerializeField, HideInInspector] private Color streetAmbientEquator;
+        [SerializeField, HideInInspector] private Color streetAmbientGround;
 
         /// <summary>True while the player is in the room. U19's police and U21's mission both read it.</summary>
         public bool Inside => inside;
@@ -101,7 +112,32 @@ namespace TheBlock.World
         public bool AtExitPad => inside && player != null &&
                                  WithinXZ(player.transform.position, exitPad, exitPadRadius);
 
-        private void Awake() => Bind();
+        private void Awake()
+        {
+            CaptureStreet();
+            Bind();
+        }
+
+        /// <summary>
+        /// Reads the street palette once, at boot. Skipped when <c>inside</c> is already true — that
+        /// is a recompile mid-Play with the player standing in the room, where <c>RenderSettings</c>
+        /// holds the INTERIOR palette and the serialized copy from before the reload is the good one.
+        /// </summary>
+        private void CaptureStreet()
+        {
+            if (streetCaptured || inside) return;
+
+            streetFogEnabled = RenderSettings.fog;
+            streetFogColor = RenderSettings.fogColor;
+            streetFogNear = RenderSettings.fogStartDistance;
+            streetFogFar = RenderSettings.fogEndDistance;
+            streetAmbientColor = RenderSettings.ambientLight;
+            streetAmbientIntensity = RenderSettings.ambientIntensity;
+            streetAmbientSky = RenderSettings.ambientSkyColor;
+            streetAmbientEquator = RenderSettings.ambientEquatorColor;
+            streetAmbientGround = RenderSettings.ambientGroundColor;
+            streetCaptured = true;
+        }
 
         private void Bind()
         {
@@ -172,22 +208,57 @@ namespace TheBlock.World
             Enter();
         }
 
-        private void Enter()
+        /// <summary>
+        /// Paints the room's palette and hands the street's back.
+        ///
+        /// <b>This used to snapshot six <c>RenderSettings</c> fields on the way in and replay them on
+        /// the way out, and U33 deleted that.</b> It is the same fault U26 paid for with the Radar
+        /// toggle: remembering shared state and restoring it looks careful and is exactly wrong the
+        /// moment a SECOND writer owns the same fields. Against <see cref="DayNightCycle"/> it failed
+        /// twice over — the cycle overwrote the room's warm fog on the very next frame, and the
+        /// restore on the way out handed the street back a colour from whatever hour you walked in
+        /// at. One owner: the cycle stands down while you are inside, and re-derives the street from
+        /// the clock when you step out. There is nothing to remember, so there is nothing to fight.
+        /// </summary>
+        private void PaintInterior()
         {
-            streetFogEnabled = RenderSettings.fog;
-            streetFogColor = RenderSettings.fogColor;
-            streetFogNear = RenderSettings.fogStartDistance;
-            streetFogFar = RenderSettings.fogEndDistance;
-            streetAmbientColor = RenderSettings.ambientLight;
-            streetAmbientIntensity = RenderSettings.ambientIntensity;
-
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.Linear;
             RenderSettings.fogColor = fogColor;
             RenderSettings.fogStartDistance = fogNear;
             RenderSettings.fogEndDistance = fogFar;
+
+            // Written as BOTH a flat colour and a Trilight triple, because which one renders depends
+            // on the cycle's setting — and until U33 neither did. The scene is AmbientMode.Skybox,
+            // where ambientLight and ambientIntensity are ignored, so the room's {1, 0.808, 0.584}
+            // at 0.45 had never actually rendered since U13.
             RenderSettings.ambientLight = ambientColor;
             RenderSettings.ambientIntensity = ambientIntensity;
+            RenderSettings.ambientSkyColor = ambientColor * ambientIntensity;
+            RenderSettings.ambientEquatorColor = ambientColor * (ambientIntensity * 0.7f);
+            RenderSettings.ambientGroundColor = ambientColor * (ambientIntensity * 0.35f);
+        }
+
+        /// <summary>The as-built street, for a scene with no <see cref="DayNightCycle"/> in it.</summary>
+        private void PaintStreet()
+        {
+            if (!streetCaptured) return;
+
+            RenderSettings.fog = streetFogEnabled;
+            RenderSettings.fogColor = streetFogColor;
+            RenderSettings.fogStartDistance = streetFogNear;
+            RenderSettings.fogEndDistance = streetFogFar;
+            RenderSettings.ambientLight = streetAmbientColor;
+            RenderSettings.ambientIntensity = streetAmbientIntensity;
+            RenderSettings.ambientSkyColor = streetAmbientSky;
+            RenderSettings.ambientEquatorColor = streetAmbientEquator;
+            RenderSettings.ambientGroundColor = streetAmbientGround;
+        }
+
+        private void Enter()
+        {
+            DayNightCycle.SuspendedForInterior = true;
+            PaintInterior();
 
             inside = true;
             Teleport(spawnPoint, spawnYaw);
@@ -195,12 +266,9 @@ namespace TheBlock.World
 
         private void Leave()
         {
-            RenderSettings.fog = streetFogEnabled;
-            RenderSettings.fogColor = streetFogColor;
-            RenderSettings.fogStartDistance = streetFogNear;
-            RenderSettings.fogEndDistance = streetFogFar;
-            RenderSettings.ambientLight = streetAmbientColor;
-            RenderSettings.ambientIntensity = streetAmbientIntensity;
+            DayNightCycle.SuspendedForInterior = false;
+            if (DayNightCycle.Instance != null) DayNightCycle.Instance.ReassertNow();
+            else PaintStreet();
 
             inside = false;
             // Back out onto the pavement facing away from the storefront, as the web build does.
