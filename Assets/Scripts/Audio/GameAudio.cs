@@ -169,6 +169,8 @@ namespace TheBlock.Audio
 
         private void Update()
         {
+            PollMuteKey();
+
             float dt = Time.deltaTime;
             var listener = ListenerPosition();
 
@@ -178,6 +180,17 @@ namespace TheBlock.Audio
             if (ambient != null) ambient.Tick(dt, listener, duck);
             Siren.Arbitrate(listener, Mathf.Max(0, maxSirens));
             TickVehicle();
+        }
+
+        /// <summary>
+        /// <c>N</c> — mute / unmute. It lives here because this is the one always-present audio
+        /// object, and it is the one key in the game that does NOT stand down on
+        /// <see cref="Pause.Frozen"/>: a paused game is exactly when someone reaches for the mute.
+        /// </summary>
+        private static void PollMuteKey()
+        {
+            var keyboard = UnityEngine.InputSystem.Keyboard.current;
+            if (keyboard != null && keyboard.nKey.wasPressedThisFrame) Mute.Toggle();
         }
 
         private Vector3 ListenerPosition()

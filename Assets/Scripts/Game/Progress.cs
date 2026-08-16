@@ -22,6 +22,7 @@ namespace TheBlock.Game
         private const string CharacterKey = "theblock.character";
         private const string RadarKey = "theblock.radar";
         private const string DayNightKey = "theblock.daynight";
+        private const string SoundKey = "theblock.sound";
 
         /// <summary>
         /// Furthest mission index unlocked. 0 = only the first, which is also what a fresh profile
@@ -88,6 +89,24 @@ namespace TheBlock.Game
             set
             {
                 PlayerPrefs.SetInt(DayNightKey, value ? 1 : 0);
+                PlayerPrefs.Save();
+            }
+        }
+
+        /// <summary>
+        /// Settings → Audio → Sound: is anything audible at all? Default true. Read and written
+        /// through <c>Mute</c>, which is the only thing allowed to touch
+        /// <c>AudioListener.volume</c> — this property is the storage, not the mechanism.
+        ///
+        /// A PREFERENCE, like <see cref="RadarOn"/>, so it survives <see cref="Reset"/>: a New Game
+        /// must not start shouting at someone who muted the game.
+        /// </summary>
+        public static bool SoundOn
+        {
+            get => PlayerPrefs.GetInt(SoundKey, 1) != 0;
+            set
+            {
+                PlayerPrefs.SetInt(SoundKey, value ? 1 : 0);
                 PlayerPrefs.Save();
             }
         }

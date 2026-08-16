@@ -51,6 +51,7 @@ namespace TheBlock.UI.Menus
         private static readonly (string keys, string what)[] General =
         {
             ("M", "Map"),
+            ("N", "Mute / unmute sound"),
             ("Esc", "Pause / menu"),
             ("< v ^ >", "Dance — hit the arrows"),
         };

@@ -1,3 +1,4 @@
+using TheBlock.Audio;
 using TheBlock.Game;
 using TheBlock.World;
 using UnityEngine;
@@ -11,9 +12,10 @@ namespace TheBlock.UI.Menus
     /// mechanism was already built: <see cref="GameMap.SetMinimapVisible"/> landed early, explicitly
     /// labelled as this menu's.
     ///
-    /// It is two rows. Volume sliders are still the obvious next tenant — U27 exposed seven mixer
-    /// parameters for exactly that — but the mix has not been balanced by ear yet, and a slider over
-    /// an unbalanced mix hides the imbalance instead of reporting it.
+    /// It is three rows, in two sections. Per-bus volume sliders are still the obvious next tenant —
+    /// U27 exposed seven mixer parameters for exactly that — but the mix has not been balanced by ear
+    /// yet, and a slider over an unbalanced mix hides the imbalance instead of reporting it. A mute
+    /// needs no balance to be correct, which is why it could land first.
     ///
     /// U33 added <b>Time of Day</b>, and it belongs here rather than being always-on for the reason
     /// stated in <see cref="Progress.DayNightOn"/>: a moving sun is an addition to this port, and the
@@ -33,6 +35,7 @@ namespace TheBlock.UI.Menus
 
         private Button _radarButton;
         private Button _dayNightButton;
+        private Button _soundButton;
         private System.Action _onBack;
 
         protected override void Awake()
@@ -73,6 +76,17 @@ namespace TheBlock.UI.Menus
             dayNightNote.style.marginBottom = 22f;
             overlay.Add(dayNightNote);
 
+            overlay.Add(MenuStyle.Heading("Audio"));
+
+            _soundButton = MenuStyle.Primary("Sound", () => ApplySound(!Mute.SoundOn));
+            _soundButton.style.marginBottom = 12f;
+            overlay.Add(_soundButton);
+
+            var soundNote = MenuStyle.Body("Silences everything — engines, sirens, music, voices. N toggles it in play.");
+            soundNote.style.maxWidth = 420f;
+            soundNote.style.marginBottom = 22f;
+            overlay.Add(soundNote);
+
             overlay.Add(MenuStyle.Secondary("Back", Close));
         }
 
@@ -100,6 +114,21 @@ namespace TheBlock.UI.Menus
                 _dayNightButton.text = on ? "Time of Day:  Cycle" : "Time of Day:  Fixed";
         }
 
+        /// <summary>
+        /// Settings → Audio → Sound.
+        ///
+        /// <b>No boot-time push from <c>Start</c>, and for the opposite reason to the day/night
+        /// row:</b> <see cref="Mute"/> applies the preference itself at
+        /// <c>RuntimeInitializeOnLoadMethod</c> time, before any scene object exists — this method
+        /// only relabels the button after a press, and the label is also refreshed in
+        /// <see cref="Open"/> because <c>N</c> can flip the flag while the panel is closed.
+        /// </summary>
+        private void ApplySound(bool on)
+        {
+            Mute.SoundOn = on;
+            if (_soundButton != null) _soundButton.text = on ? "Sound:  On" : "Sound:  Muted";
+        }
+
         /// <summary>Opens over whatever raised it, remembering where Back goes.</summary>
         public void Open(System.Action onBack)
         {
@@ -108,6 +137,8 @@ namespace TheBlock.UI.Menus
                 _radarButton.text = Progress.RadarOn ? "Radar:  On" : "Radar:  Off";
             if (_dayNightButton != null)
                 _dayNightButton.text = Progress.DayNightOn ? "Time of Day:  Cycle" : "Time of Day:  Fixed";
+            if (_soundButton != null)
+                _soundButton.text = Mute.SoundOn ? "Sound:  On" : "Sound:  Muted";
             Show();
         }
 

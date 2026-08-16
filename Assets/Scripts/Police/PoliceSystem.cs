@@ -692,7 +692,7 @@ namespace TheBlock.Police
             if (cop.Officer != null && cop.Officer.Deployed)
             {
                 cop.Officer.Recall();
-                if (PickUp(cop, target, dt)) return;
+                if (Step(cop, target, dt)) return;
             }
 
             if (close && slow && !grace)
