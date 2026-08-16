@@ -41,6 +41,9 @@ namespace TheBlock.Missions
         [SerializeField] private Conductor conductor;
         [SerializeField] private UIDocument hudDocument;
 
+        [Tooltip("Hidden for the length of the routine — the corner radar covers the left arrows.")]
+        [SerializeField] private GameMap map;
+
         [Header("Actors — written by Build Campaign")]
         [Tooltip("The player-dancer on the stage. Hidden until the routine starts.")]
         [SerializeField] private Dancer dancer;
@@ -63,6 +66,7 @@ namespace TheBlock.Missions
         private float _lastNoteTime;
         private bool _running;
         private bool _entering;
+        private bool _replay;
         private float _cheerCooldown;
         private Vector3 _stage;
         private float _stageYaw;
@@ -100,6 +104,7 @@ namespace TheBlock.Missions
             if (hud == null) hud = FindAnyObjectByType<MissionHud>();
             if (voice == null) voice = FindAnyObjectByType<Voice>();
             if (conductor == null) conductor = FindAnyObjectByType<Conductor>();
+            if (map == null) map = FindAnyObjectByType<GameMap>();
             if (hudDocument == null)
             {
                 var found = GameObject.Find("HUD");
@@ -128,10 +133,21 @@ namespace TheBlock.Missions
 
         // ── entry ─────────────────────────────────────────────────────────────────────────────
 
+        /// <summary>
+        /// Starts a run — the campaign's first pass at the step, or a REPLAY of one already cleared.
+        ///
+        /// <b>The beach stays open after you win it.</b> Remy is a place on the map with a song
+        /// attached, and a minigame you can only ever play once is a cutscene. A failed run is the
+        /// one state this refuses: that is F's job, from anywhere, which is the campaign's own
+        /// answer to a loss and must not have a second door.
+        /// </summary>
         public override void Enter()
         {
-            if (_status != MissionStatus.Inactive || _entering) return;
+            if (_entering) return;
+            if (_status == MissionStatus.Active || _status == MissionStatus.Failed) return;
             if (!Ready()) return;
+
+            _replay = _status == MissionStatus.Complete;
             StartCoroutine(EnterRoutine());
         }
 
@@ -182,6 +198,10 @@ namespace TheBlock.Missions
         {
             if (vehicles != null) vehicles.EnterModal();
 
+            // The radar sits in the bottom-left corner, which is where the arrow lane's left half
+            // scrolls. Released in LeaveStage, which every exit path runs.
+            if (map != null) map.Suppressed = true;
+
             if (player != null)
             {
                 player.SetVisible(false);
@@ -209,7 +229,10 @@ namespace TheBlock.Missions
 
             for (var i = 0; i < steps.Count; i++)
             {
-                _track?.ShowCount(steps[i], i == steps.Count - 1);
+                var isGo = i == steps.Count - 1;
+                _track?.ShowCount(steps[i], isGo);
+                TheBlock.Audio.GameAudio.Cue(
+                    isGo ? TheBlock.Audio.SfxCue.CountGo : TheBlock.Audio.SfxCue.CountTick);
                 yield return new WaitForSecondsRealtime(_spec.Countdown.StepSec);
             }
 
@@ -280,6 +303,7 @@ namespace TheBlock.Missions
                 _track?.ShowJudgment(Judgment.Miss);
                 Readout();
                 dancer.PlayMiss();
+                TheBlock.Audio.GameAudio.Cue(TheBlock.Audio.SfxCue.RhythmMiss);
             }
 
             ReadPresses(t);
@@ -290,13 +314,20 @@ namespace TheBlock.Missions
         /// <summary>T near Remy starts it. The same key the counter uses, for the same reason.</summary>
         private void TickGiverPrompt()
         {
-            if (_status != MissionStatus.Inactive || _entering) return;
-            if (runner != null && !runner.IsCurrent(Id)) return;
+            if (_entering) return;
+            if (_status == MissionStatus.Active || _status == MissionStatus.Failed) return;
+
+            // Once cleared, Remy keeps offering it — the cursor has moved on to the helicopter and
+            // this stops asking IsCurrent. That is the whole of "you can dance again": no second
+            // trigger, no free-roam copy of the mission, the same entry path both times.
+            var replay = _status == MissionStatus.Complete;
+            if (!replay && runner != null && !runner.IsCurrent(Id)) return;
+
             if (runner?.Card != null && runner.Card.IsOpen) return;
             if (vehicles != null && vehicles.Mode != GameMode.OnFoot) return;
             if (!NearGiver) return;
 
-            hud?.SetPrompt("Press T to dance");
+            hud?.SetPrompt(replay ? "Press T to dance again" : "Press T to dance");
             var keyboard = Keyboard.current;
             if (keyboard != null && keyboard.tKey.wasPressedThisFrame) Enter();
         }
@@ -349,6 +380,15 @@ namespace TheBlock.Missions
             Readout();
             dancer.PlayHit();
 
+            // Brighter for a Perfect than a Good — the web's playRhythmHit(judgment) in one line.
+            // There is no metronome click beside it, and that is deliberate: the web fires playBeat
+            // only when conductor.isFallback() is true, i.e. when the MP3 failed to load and it is
+            // counting on the wall clock. This port has no fallback — a missing song is a build
+            // error, not a runtime state — so the cue exists and the condition that plays it cannot.
+            TheBlock.Audio.GameAudio.Cue(judgment.Value == Judgment.Perfect
+                ? TheBlock.Audio.SfxCue.RhythmPerfect
+                : TheBlock.Audio.SfxCue.RhythmGood);
+
             // Remy's hype: occasional by design, not on every hit — his own chance and cooldown.
             if (_cheerCooldown > 0f || _spec.Cheer?.Urls == null) return;
             if (Random.value > _spec.Cheer.Chance) return;
@@ -371,7 +411,12 @@ namespace TheBlock.Missions
 
             var accuracy = _score.Accuracy;
             var failed = _spec.FailBelowAccuracy.HasValue && accuracy < _spec.FailBelowAccuracy.Value;
-            _status = failed ? MissionStatus.Failed : MissionStatus.Complete;
+
+            // A REPLAY CANNOT UN-CLEAR THE STEP. Flopping a routine you already won is a worse
+            // score, not a lost mission — and it must not land in MissionStatus.Failed, because
+            // Campaign.Failed returns the FIRST failed mission in list order: a dance left sitting
+            // there would steal F from whatever the player actually failed later in the campaign.
+            _status = failed && !_replay ? MissionStatus.Failed : MissionStatus.Complete;
 
             if (failed) dancer.PlayFail();
             else dancer.PlayWin();
@@ -417,6 +462,7 @@ namespace TheBlock.Missions
 
             if (vehicles != null) vehicles.ExitModal();
             if (followCamera != null) followCamera.FollowPlayer();
+            if (map != null) map.Suppressed = false;
             hud?.SetPrompt(null);
         }
 

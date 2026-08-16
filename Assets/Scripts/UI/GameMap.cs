@@ -70,9 +70,36 @@ namespace TheBlock.UI
         private MapView _view;
 
         private bool _expanded;
+        private bool _suppressed;
         private float _lastMiniDraw;
 
         public bool IsExpanded => _expanded;
+
+        /// <summary>
+        /// Borrows the screen back from the radar for a scene that owns the whole bottom edge. The
+        /// dance's arrow lane runs full-width at 60 px up, and the 200 px corner widget sits square
+        /// on top of the left-hand arrows — the player cannot see the note they are being asked to
+        /// hit.
+        ///
+        /// <b>Deliberately not <see cref="SetMinimapVisible"/>.</b> That field is the player's own
+        /// Radar preference (U26's Settings → Display, arriving early); a mission that wrote to it
+        /// would hand it back turned ON to someone who had turned it off. This is a separate,
+        /// temporary override that leaves the preference untouched, and whoever sets it owns
+        /// clearing it on EVERY exit path — win, fail and retry alike.
+        /// </summary>
+        public bool Suppressed
+        {
+            get => _suppressed;
+            set
+            {
+                if (_suppressed == value) return;
+                _suppressed = value;
+
+                // A suppressed map cannot stay open: the dance freezes the player, so an expanded
+                // map over the routine is a screen nobody can dismiss by moving.
+                SetExpanded(_expanded && !value);
+            }
+        }
 
         private void Start()
         {
@@ -127,7 +154,7 @@ namespace TheBlock.UI
         }
 
         /// <summary>The radar is off: nothing is drawn while the map is closed.</summary>
-        public bool Hidden => !_expanded && !showMinimap;
+        public bool Hidden => _suppressed || (!_expanded && !showMinimap);
 
         /// <summary>Turns the corner radar on and off. U26's Settings → Display will call this.</summary>
         public void SetMinimapVisible(bool visible)
@@ -138,6 +165,10 @@ namespace TheBlock.UI
 
         public void SetExpanded(bool next)
         {
+            // Suppression can be set before Start has built the panel — a mission that starts on
+            // frame one would otherwise NRE here rather than in anything it can see.
+            if (_panel == null) { _expanded = next; return; }
+
             _expanded = next;
             _backdrop.style.display = next ? DisplayStyle.Flex : DisplayStyle.None;
             _lastMiniDraw = 0f; // repaint immediately on either toggle direction
@@ -145,7 +176,9 @@ namespace TheBlock.UI
             // With the radar off the closed state draws nothing at all. Hiding the PANEL rather
             // than shrinking it is what makes the saving real: an invisible element still has the
             // map's RenderTexture bound to it, and the camera pass behind that is the actual cost.
-            _panel.style.display = next || showMinimap ? DisplayStyle.Flex : DisplayStyle.None;
+            _panel.style.display = !_suppressed && (next || showMinimap)
+                ? DisplayStyle.Flex
+                : DisplayStyle.None;
 
             // The web build rounds the open map harder than the corner widget: 10px against 6px.
             var radius = next ? 10f : 6f;
@@ -174,7 +207,8 @@ namespace TheBlock.UI
             if (mapCamera == null || player == null) return;
 
             var keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.mKey.wasPressedThisFrame) SetExpanded(!_expanded);
+            if (keyboard != null && keyboard.mKey.wasPressedThisFrame && !_suppressed)
+                SetExpanded(!_expanded);
 
             var active = ActiveAnchor();
             if (active == null) return;

@@ -253,6 +253,25 @@ namespace TheBlock.Missions
                 // rest of the session. Idempotent, so a retry calling it first costs nothing.
                 campaign.Find(edge.Id)?.Cleanup();
 
+                // A completion whose payout is ALREADY BANKED is a replay of a cleared step, not a
+                // first clear — U28 opened the dance to be danced again, and nothing else can reach
+                // this twice. The campaign owes a replay no sting, no card and no cash; the mission's
+                // own result panel is the feedback. It is read here, before the sting, because a
+                // replay that flopped still reports Complete (a replay cannot un-clear a step) and
+                // would otherwise chime a success over its own "Routine flopped".
+                var replay = edge.Complete && Payouts.Has(edge.Id);
+
+                // The sting goes HERE, on the one reactor that owns every terminal edge, for the same
+                // reason the card and the payout do: a bust, a clock time-out and a completed run are
+                // three ways into two outcomes, and each mission announcing its own would be four
+                // places to forget one. The web build passes `sting: sfx.playComplete` INTO this
+                // reactor as a callback for exactly this reason; a static call is the same shape with
+                // nothing to wire.
+                if (!replay)
+                    TheBlock.Audio.GameAudio.Cue(edge.Complete
+                        ? TheBlock.Audio.SfxCue.Complete
+                        : TheBlock.Audio.SfxCue.Fail);
+
                 if (!edge.Complete)
                 {
                     if (verbose) Debug.Log($"[campaign] '{edge.Id}' FAILED");
@@ -260,21 +279,22 @@ namespace TheBlock.Missions
                     continue;
                 }
 
-                // Pay once per run. A retried or replayed mission does not mint cash twice, and the
-                // guard has to be PERSISTED — the web build shipped it in memory beside a persisted
-                // wallet and every mission paid again after a reload.
-                var payLine = text.Done;
-                if (!Payouts.Has(edge.Id))
+                // Pay once per run, and only ever announce a FIRST clear. The guard behind `replay`
+                // has to be PERSISTED — the web build shipped it in memory beside a persisted wallet
+                // and every mission paid again after a reload — and a handoff card is the other half
+                // of the same rule: "now get to the helicopter", re-read every time someone dances
+                // for fun, is the campaign talking over free roam. The replay stops here, having had
+                // its teardown above, which is all it was owed.
+                if (replay)
                 {
-                    Payouts.Mark(edge.Id);
-                    wallet?.Add(text.Reward);
-                    payLine = $"{text.Done}  (+${text.Reward})";
-                    if (verbose) Debug.Log($"[campaign] '{edge.Id}' paid ${text.Reward} → ${wallet?.Balance}");
+                    if (verbose) Debug.Log($"[campaign] '{edge.Id}' replayed — no payout, no card");
+                    continue;
                 }
-                else if (verbose)
-                {
-                    Debug.Log($"[campaign] '{edge.Id}' complete, already paid this run");
-                }
+
+                Payouts.Mark(edge.Id);
+                wallet?.Add(text.Reward);
+                var payLine = $"{text.Done}  (+${text.Reward})";
+                if (verbose) Debug.Log($"[campaign] '{edge.Id}' paid ${text.Reward} → ${wallet?.Balance}");
 
                 _pending = campaign.IsComplete
                     ? WinCard(payLine)
@@ -336,9 +356,10 @@ namespace TheBlock.Missions
         // ── the HUD ───────────────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// The objective line, the clock and the counter, driven from the CURRENT step so a finished
-        /// mission stops masking the next objective. The web build's <c>hud-driver.ts</c> makes the
-        /// same choice for the same reason; what differs is that each mission answers for its own
+        /// The objective line, the clock and the counter, driven from the running mission when there
+        /// is one and the CURRENT step otherwise, so a finished mission stops masking the next
+        /// objective. The web build's <c>hud-driver.ts</c> makes the same choice for the same reason;
+        /// what differs is that each mission answers for its own
         /// line here (<see cref="MissionBehaviour.ObjectiveLine"/>) instead of the driver holding a
         /// chain of per-mission special cases.
         /// </summary>
@@ -355,14 +376,21 @@ namespace TheBlock.Missions
                 return;
             }
 
-            if (director != null && director.IsWon)
+            // THE RUNNING MISSION WINS OVER THE CURSOR when the two differ. Normally they are the
+            // same object, because a mission is entered from the step it belongs to — but a
+            // REPLAYED step is not: U28 left the dance danceable after it is cleared, and by then
+            // the cursor has moved to the helicopter. Reading the cursor there puts "Get to the
+            // helicopter", or the win line on a finished save, over a routine the player is dancing
+            // this second. Falls back to the cursor whenever nothing is running, which is every
+            // other frame in the game.
+            var current = campaign.Active ?? campaign.Current;
+
+            if (campaign.Active == null && director != null && director.IsWon)
             {
                 hud.SetObjective(_snapshot.Campaign?.WinLine);
                 hud.SetTimer(null);
                 return;
             }
-
-            var current = campaign.Current;
 
             if (current != null && current.Status == MissionStatus.Failed)
             {
