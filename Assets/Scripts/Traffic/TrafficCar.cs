@@ -336,6 +336,21 @@ namespace TheBlock.Traffic
 
             Speed = 0f;
             InCorner = false;
+
+            // U35b's byproduct, and the cheapest line in the unit: a wrecked street car smokes. It
+            // takes no health, no deform and no explosion - a traffic car is a pooled obstacle that
+            // recycles, not a car anybody is going to drive home - so all it borrows is one timed
+            // plume from the shared bank. The timer matters: without it a slot would be held by a
+            // wreck that has already been recycled into a car driving normally somewhere else.
+            if (Game.Progress.VehicleDamageOn)
+                Vfx.DamageFx.Instance.Attach(this, transform, Vector3.up * 0.9f, Vfx.BurnLevel.Smoke, 12f);
+        }
+
+        /// <summary>Recycled back into the pool - a wreck's plume must not follow it into its next life.</summary>
+        private void OnDisable()
+        {
+            var fx = Vfx.DamageFx.Existing;
+            if (fx != null) fx.Detach(this);
         }
     }
 }

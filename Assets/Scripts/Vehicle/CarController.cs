@@ -138,6 +138,21 @@ namespace TheBlock.Vehicles
         public bool IsPolice => boostExempt;
 
         /// <summary>
+        /// U35b: the engine is finished - the car steers and rolls to a halt but takes no throttle.
+        /// Written by <see cref="VehicleDamage"/> when the condition reaches zero, and cleared by its
+        /// repair.
+        ///
+        /// A plain property rather than <c>enabled = false</c> on this component, because a disabled
+        /// CarController stops applying the coast brake as well, and a WheelCollider holds the last
+        /// torque it was handed (memory: <c>wheelcollider-latches-last-torque</c>) - so switching the
+        /// script off would leave a dead car accelerating away.
+        /// </summary>
+        public bool EngineDead { get; set; }
+
+        /// <summary>This car's damage model, for the entry refusal. Resolved on first use.</summary>
+        private VehicleDamage _damage;
+
+        /// <summary>
         /// U28b's tank, or null on a car that has never been driven - and on every cruiser, which is
         /// the point. Serialized for the same reason <see cref="boostExempt"/> is: a recompile
         /// mid-Play reloads the domain without re-running Awake, and a tank that silently detached
@@ -274,6 +289,12 @@ namespace TheBlock.Vehicles
             // component was on no prefab at all. See CrashSensor's own comment.
             CrashSensor.Ensure(gameObject);
 
+            // U35b. Added here, beside the sensor whose events it lives on, and for the same reason:
+            // a component dropped onto the prefab by hand is regenerated away the next time
+            // The Block → Build Drivable Cars runs. What the BUILDER wires is the two things that
+            // cannot be discovered at runtime - which panels dent and which nodes come off.
+            VehicleDamage.Ensure(gameObject);
+
             // The belt to FuelTank.Configure's braces: the tank pushes itself onto us as it
             // attaches, and this catches the one case the push cannot - a reload that brought the
             // component back but not the reference. Correct by then, harmless before.
@@ -327,7 +348,13 @@ namespace TheBlock.Vehicles
                 : CarInput.None;
 
             ApplySteering(input.Steer, Time.fixedDeltaTime);
-            ApplyDrive(input.Throttle, input.Handbrake);
+
+            // U35b: a dead engine steers and rolls, but it does not drive. Coast() rather than an
+            // early return, for the reason the recompile guard above spells out - a WheelCollider
+            // LATCHES its last torque, so "stop driving" has to be written, not omitted.
+            if (EngineDead) Coast();
+            else ApplyDrive(input.Throttle, input.Handbrake);
+
             ApplyDownforce();
         }
 
@@ -442,8 +469,36 @@ namespace TheBlock.Vehicles
 
         // --- IEnterable implementation -------------------------------------------------------
 
-        /// <summary>Try to enter the car (always succeeds; entry logic is in VehicleEnterExit).</summary>
-        public bool TryEnter() => true;
+        /// <summary>
+        /// Try to enter the car. Refused once the engine is dead - U35b, and the user's call on
+        /// 2026-08-16: a car that has exploded cannot be used, and the player has to be TOLD that
+        /// rather than left pressing E at a wreck.
+        ///
+        /// <b>The predicate is shared with <see cref="EntryRefusal"/> on purpose.</b> That is the
+        /// arrangement <see cref="IEnterable.EntryRefusal"/> exists to enforce: the prompt and the
+        /// action are drawn from one test, so a doorstep that says "Press E" cannot be one where E
+        /// does nothing - the web build's cashier bug, and the reason the locked Huey has a line.
+        /// </summary>
+        public bool TryEnter() => !EngineDead;
+
+        /// <summary>
+        /// Why E will not work here, in the words the player reads on the HUD - or null when it will.
+        ///
+        /// Two lines, because they are two different situations and the player can act on the
+        /// difference: a car with the fuse still burning is about to explode and standing beside it
+        /// is a bad idea, while a husk is simply finished.
+        /// </summary>
+        public string EntryRefusal
+        {
+            get
+            {
+                if (!EngineDead) return null;
+                if (_damage == null) TryGetComponent(out _damage);
+                return _damage != null && _damage.Wrecked
+                    ? "Wrecked - this car is not going anywhere"
+                    : "Get back - this car is about to blow";
+            }
+        }
 
         /// <summary>Exit the car (handled by VehicleEnterExit; this is a pass-through).</summary>
         public void Exit() { }
@@ -522,6 +577,12 @@ namespace TheBlock.Vehicles
         /// </summary>
         public void Teleport(Vector3 position, Quaternion rotation)
         {
+            // U35b: R is the repair as well as the respawn. It is the same key the play-test uses to
+            // undo a roll, and a car that comes home dented, smoking and undrivable is not a respawn.
+            // On Teleport rather than on Respawn so that the bust (U19), which teleports the car
+            // rather than respawning it, also hands back a whole one.
+            if (TryGetComponent<VehicleDamage>(out var damage)) damage.Repair();
+
             _body.linearVelocity = Vector3.zero;
             _body.angularVelocity = Vector3.zero;
 

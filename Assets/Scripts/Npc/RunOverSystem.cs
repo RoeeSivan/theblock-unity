@@ -151,6 +151,63 @@ namespace TheBlock.Npc
         }
 
         /// <summary>
+        /// U35b: an exploding car downs everyone near it.
+        ///
+        /// <b>It lives here rather than in <c>VehicleDamage</c>, and that is the point.</b> Downing a
+        /// person is four references deep - the clip tuning, the ragdoll tuning, the blood, the crowd
+        /// list - and every one of them is already on this component. A blast that reached into the
+        /// crowd itself would be a second place that knows how a body falls, and the two would drift.
+        ///
+        /// The throw is radial, away from the blast, and the "speed" handed to
+        /// <see cref="Pedestrian.KnockDown"/> falls off with distance, so someone at the rim is
+        /// knocked over and someone at the bonnet is thrown.
+        /// </summary>
+        /// <returns>How many people went down.</returns>
+        public int Blast(Vector3 origin, float radius, float speedAtCentre)
+        {
+            if (crowd == null) Bind();
+            if (crowd == null || radius <= 0f) return 0;
+
+            float radiusSquared = radius * radius;
+            int downed = 0;
+            var people = crowd.Crowd;
+
+            for (int i = 0; i < people.Count; i++)
+            {
+                var person = people[i];
+                if (person == null || person.Downed) continue;
+
+                var at = person.transform.position;
+                if (Mathf.Abs(at.y - origin.y) > sameStoreyBand) continue;
+
+                var away = at - origin;
+                away.y = 0f;
+                float distanceSquared = away.sqrMagnitude;
+                if (distanceSquared > radiusSquared) continue;
+
+                away = distanceSquared < 1e-4f ? Random.insideUnitSphere : away.normalized;
+                away.y = 0f;
+                away.Normalize();
+
+                float falloff = 1f - Mathf.Sqrt(distanceSquared) / radius;
+                float speedMs = Mathf.Max(minSpeedKmh / 3.6f + 0.1f, speedAtCentre * falloff);
+
+                person.KnockDown(away, speedMs, at + Vector3.up * bumperHeight, reaction, ragdoll, blood);
+                if (!person.Downed) { WarnNoClip(); continue; }
+
+                downed++;
+            }
+
+            if (downed > 0)
+            {
+                Victims += downed;
+                RanOver?.Invoke(downed);
+            }
+
+            return downed;
+        }
+
+        /// <summary>
         /// The vehicle's own bumper box, straight off its chassis collider.
         ///
         /// Measured rather than configured, and it has to be: the car's box is the Mustang's measured

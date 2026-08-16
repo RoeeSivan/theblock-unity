@@ -55,6 +55,14 @@ namespace TheBlock.Core
             // what it holds after a reload is a list of destroyed bodies which still read as
             // non-null - so the cap would be spent on corpses from the previous world.
             RagdollBudget.Clear();
+
+            // U35b, and the same shape again - two statics with no per-frame writer. DamageBudget
+            // holds lists of dented cars and shed parts from the world that just went away, and
+            // DamageFx caches the emitter bank that was destroyed with it: a cached destroyed object
+            // still reads as non-null, so without this the next world's first crash would smoke
+            // through a corpse.
+            DamageBudget.Clear();
+            Vfx.DamageFx.ResetCaches();
         }
     }
 }

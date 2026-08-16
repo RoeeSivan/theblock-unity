@@ -79,6 +79,14 @@ namespace TheBlock.Vehicles
 
         public void Close() => IsOpen = false;
 
+        /// <summary>
+        /// Is <paramref name="joint"/> the transform this door swings? Asked by
+        /// <see cref="DetachableParts"/> before it knocks a part off, because on all three lot cars
+        /// the detachable door node and this hinge are the same object - and a door lying in the road
+        /// must stop being animated.
+        /// </summary>
+        public bool IsJoint(Transform joint) => joint != null && joint == hinge;
+
         /// <summary>Editor-time wiring. Called by <c>CarBuilder</c>; nothing at runtime uses it.</summary>
         public void Configure(Transform joint, Vector3 axis, float degrees, float rate)
         {

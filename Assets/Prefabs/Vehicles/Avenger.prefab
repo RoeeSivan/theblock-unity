@@ -14,6 +14,9 @@ GameObject:
   - component: {fileID: 6383292331698275851}
   - component: {fileID: 6725158059864572795}
   - component: {fileID: 2954268540747667743}
+  - component: {fileID: 5482216052298971005}
+  - component: {fileID: 8721297086247135676}
+  - component: {fileID: 9216073597581524997}
   m_Layer: 0
   m_Name: Avenger
   m_TagString: Untagged
@@ -146,10 +149,86 @@ MonoBehaviour:
   downforce: 0.6
   driverAnchor: {fileID: 2703098354737547458}
   door: {fileID: 6383292331698275851}
+  enterable: 1
   fallbackLookYOffset: 0.5
+  boostExempt: 0
+  fuelTank: {fileID: 0}
   hasHome: 0
   homePosition: {x: 0, y: 0, z: 0}
   homeRotation: {x: 0, y: 0, z: 0, w: 1}
+--- !u!114 &5482216052298971005
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 768390918568435736}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b26d917d82124d58b181ca5b8d8f001, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Vehicles.DeformableBody
+  panels:
+  - {fileID: 658764319961297191}
+  skinnedPanels: []
+  radius: 0.9
+  strength: 0.16
+  maxDeform: 0.28
+  jitter: 0.18
+  minInterval: 0.12
+  recalculateNormalsUnderVerts: 25000
+--- !u!114 &8721297086247135676
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 768390918568435736}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d89a12ddbdb5a4e368bb5718ae673511, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Vehicles.DetachableParts
+  parts:
+  - {fileID: 3852983483471808483}
+  - {fileID: 4214838633896143627}
+  - {fileID: 6268796127644502618}
+  reach: 1.7
+  partMass: 22
+  partLife: 20
+  kick: 2.6
+  door: {fileID: 6383292331698275851}
+--- !u!114 &9216073597581524997
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 768390918568435736}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9546760a78d4542c19486f116b4d254e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Vehicles.VehicleDamage
+  minDamageSpeed: 5
+  speedForFullDamage: 45
+  maxPerImpact: 0.4
+  vehicleMultiplier: 1.4
+  speedForFullDent: 16
+  partThreshold: 0.45
+  smokeAt: 0.5
+  fireAt: 0.2
+  fuseSeconds: 3
+  bailOutAt: 0.4
+  huskSeconds: 20
+  blastRadius: 8
+  blastForce: 9000
+  blastLift: 0.5
+  chainDamage: 0.5
+  blastThrowSpeed: 11
+  deform: {fileID: 5482216052298971005}
+  parts: {fileID: 8721297086247135676}
+  debugKey: 1
 --- !u!1 &3341423299940899057
 GameObject:
   m_ObjectHideFlags: 0
@@ -657,6 +736,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: -4161369568681901532, guid: 55a70db4f5edb4f10be94bedc94085a4, type: 3}
+--- !u!33 &658764319961297191 stripped
+MeshFilter:
+  m_CorrespondingSourceObject: {fileID: 7027423762141591714, guid: 55a70db4f5edb4f10be94bedc94085a4, type: 3}
+  m_PrefabInstance: {fileID: 7539599744464062853}
+  m_PrefabAsset: {fileID: 0}
 --- !u!23 &1846830600496627249 stripped
 MeshRenderer:
   m_CorrespondingSourceObject: {fileID: -1079939633413605452, guid: 55a70db4f5edb4f10be94bedc94085a4, type: 3}
@@ -675,5 +759,15 @@ Transform:
 --- !u!4 &3852983483471808483 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6762865215548739174, guid: 55a70db4f5edb4f10be94bedc94085a4, type: 3}
+  m_PrefabInstance: {fileID: 7539599744464062853}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &4214838633896143627 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5970672964575748750, guid: 55a70db4f5edb4f10be94bedc94085a4, type: 3}
+  m_PrefabInstance: {fileID: 7539599744464062853}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &6268796127644502618 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4493808305347511263, guid: 55a70db4f5edb4f10be94bedc94085a4, type: 3}
   m_PrefabInstance: {fileID: 7539599744464062853}
   m_PrefabAsset: {fileID: 0}

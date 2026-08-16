@@ -143,6 +143,33 @@ namespace TheBlock.Audio
             if (host != null && host.sfx != null) host.sfx.Play(cue, gain);
         }
 
+        /// <summary>
+        /// U35b - a car explodes somewhere in the world.
+        ///
+        /// <b>The distance falloff is done here, by hand.</b> <see cref="Sfx"/>'s pool is deliberately
+        /// 2D - a UI tick and a crash both belong at the mix - so a blast four streets away would
+        /// otherwise arrive at exactly the volume of one under your window. Rolling it off against the
+        /// listener is the smallest thing that fixes that, and it keeps the cue in the same pool as
+        /// every other one rather than giving explosions their own spatial source to arbitrate.
+        /// </summary>
+        public static void Explosion(Vector3 at)
+        {
+            var host = Instance;
+            if (host == null || host.sfx == null) return;
+
+            float distance = Vector3.Distance(at, host.ListenerPosition());
+            float gain = Mathf.Clamp01(1f - Mathf.InverseLerp(explosionNear, explosionFar, distance));
+            if (gain <= 0.02f) return;
+
+            host.sfx.Play(SfxCue.Explosion, 0.25f + 0.75f * gain);
+        }
+
+        /// <summary>Metres within which an explosion is at full volume.</summary>
+        private const float explosionNear = 12f;
+
+        /// <summary>Metres past which it is not worth a voice at all.</summary>
+        private const float explosionFar = 150f;
+
         /// <summary>The run-over reaction's voice. Silent, never null-checked at the call site.</summary>
         public static void Scream(ScreamVoice voice)
         {

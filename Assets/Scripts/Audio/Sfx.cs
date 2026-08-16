@@ -66,6 +66,9 @@ namespace TheBlock.Audio
 
         /// <summary>U28 - the press did nothing. Deliberately quiet.</summary>
         Deny,
+
+        /// <summary>U35b - a car goes up. The longest and lowest cue in the game.</summary>
+        Explosion,
     }
 
     /// <summary>
@@ -275,6 +278,17 @@ namespace TheBlock.Audio
 
                 case SfxCue.Deny:
                     return c.Add(A4 * 0.5f, 0f, 0.07f, SfxSynth.Wave.Square, 0.09f);
+
+                case SfxCue.Explosion:
+                    // U35b, and the one cue with no line in sfx.ts to copy - the web build has
+                    // nothing that explodes. Voiced against Crash on purpose, because they are heard
+                    // seconds apart: the crash is 0.18 s of bright 900 Hz noise, so this is 1.1 s of
+                    // dark 260 Hz noise underneath two detuned sawtooths an octave down. The low pair
+                    // is what carries across a street; the noise alone reads as static.
+                    return c.AddNoise(0f, 0.14f, 2200f, 0.4f)     // the crack, brief and bright
+                        .AddNoise(0.02f, 1.1f, 260f, 0.42f)       // the body of it, dark and long
+                        .Add(46f, 0f, 0.55f, SfxSynth.Wave.Sawtooth, 0.34f)
+                        .Add(31f, 0.05f, 0.9f, SfxSynth.Wave.Sine, 0.3f);
 
                 default:
                     return c.Add(A4, 0f, 0.05f);

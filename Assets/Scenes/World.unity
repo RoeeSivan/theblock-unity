@@ -192798,7 +192798,6 @@ MonoBehaviour:
   settleTimeout: 4
   lieSeconds: 0.9
   blendSeconds: 0.35
-  debugRagdollKey: 1
   player: {fileID: 0}
   body: {fileID: 0}
   followCamera: {fileID: 0}

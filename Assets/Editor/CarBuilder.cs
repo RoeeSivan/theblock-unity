@@ -215,6 +215,7 @@ namespace TheBlock.EditorTools
                 var anchor = BuildDriverAnchor(root.transform, spec, bounds, driver, log);
                 var paint = BuildMaterials(visual, spec, materialFolder, written, log);
                 Wire(root, wheels, anchor, door, paint, log);
+                BuildDamage(root, visual.transform, wheels, door, log);
 
                 var path = SavePrefab(root, spec.Name);
                 log.AppendLine($"        prefab  {path}");
@@ -746,6 +747,122 @@ namespace TheBlock.EditorTools
                            $"{(driverAnchor == null ? "" : ", the driver anchor")}" +
                            $"{(door == null ? "" : ", the door")}" +
                            $"{(paint == null ? "" : ", the paint")}");
+        }
+
+        // --- U35b: damage ------------------------------------------------------------------------
+
+        /// <summary>
+        /// Nodes that may be knocked off a car, by model.
+        ///
+        /// <b>Every name here is one that already exists in the .glb</b> - this table was read out of
+        /// the files, not chosen. The three lot cars went through the web build's
+        /// <c>merge-car-meshes.py</c>, which welded the shell into one mesh and left the door, the
+        /// mirror and a window as their own nodes; the CrownVic keeps its light bar separate. Matching
+        /// is case-insensitive and by exact name, so a model that does not have one simply gets fewer
+        /// parts rather than a warning.
+        ///
+        /// <b>The Mustang is absent on purpose.</b> Its eighteen nodes are one per MATERIAL, each
+        /// spanning the whole car - there is no bumper to detach without a Blender split, and that
+        /// split was weighed and declined for this unit (the paint is rebound by the material NAME
+        /// <c>CarPrimaryColor</c>, so a re-export that renames anything breaks the hero car in every
+        /// screenshot). The build log says "parts none" for it rather than staying quiet.
+        /// </summary>
+        private static readonly string[] DetachableNodeNames =
+        {
+            "Door_R",           // audi, avenger - also CarDoor's own hinge
+            "door_dside_f",     // tesla, likewise
+            "Mirror_R",         // audi
+            "mirror",           // avenger
+            "Window_FR",        // audi, avenger
+            "window_lf",        // tesla
+            "Roof light bar_0", // the CrownVic cruiser
+        };
+
+        /// <summary>
+        /// Wires U35b onto the prefab: which meshes dent, which nodes come off.
+        ///
+        /// <b>Only the two things that cannot be discovered at runtime are wired here.</b> The
+        /// component itself is added by <c>CarController.Bind</c> at runtime, the same arrangement
+        /// <c>CrashSensor</c> uses - a component dropped on a prefab is regenerated away by the next
+        /// run of this menu item, which is the likeliest story of how the sensor was lost for fourteen
+        /// units. A serialized ARRAY of scene references cannot be found at runtime though, so those
+        /// two live on the prefab and the components are added here to hold them.
+        ///
+        /// <b>Wheels are excluded from the dent list</b> - a dented spinning wheel reads as a bug, not
+        /// as damage - and so is anything under a wheel node, which on the CrownVic is four 16.5k-vert
+        /// tyres and four brake discs.
+        ///
+        /// The readability count is logged because it is the single assumption layer ① rests on: a
+        /// mesh whose Read/Write is off cannot be deformed, and the failure is otherwise silent.
+        /// </summary>
+        private static void BuildDamage(
+            GameObject root, Transform visual, Dictionary<Corner, WheelCollider> wheels, CarDoor door,
+            StringBuilder log)
+        {
+            var wheelRoots = wheels == null
+                ? new List<Transform>()
+                : wheels.Values.Where(w => w != null).Select(w => w.transform).ToList();
+
+            var parts = new List<Transform>();
+            foreach (var candidate in visual.GetComponentsInChildren<Transform>(true))
+                if (DetachableNodeNames.Any(n => string.Equals(n, candidate.name, StringComparison.OrdinalIgnoreCase)))
+                    parts.Add(candidate);
+
+            var panels = new List<MeshFilter>();
+            var skins = new List<SkinnedMeshRenderer>();
+            int readable = 0, verts = 0, total = 0;
+
+            // Both kinds, because the cars are both kinds: the three lot cars are plain MeshFilter
+            // shells, and the Mustang is EIGHTEEN SkinnedMeshRenderers on one sixteen-bone rig - the
+            // rig CarDoor and CarWheel already drive. A MeshFilter-only sweep found zero dentable
+            // meshes on the hero car and said so in this log, which is how that was caught.
+            foreach (var renderer in visual.GetComponentsInChildren<Renderer>(true))
+            {
+                var filter = renderer.GetComponent<MeshFilter>();
+                var skin = renderer as SkinnedMeshRenderer;
+                var mesh = skin != null ? skin.sharedMesh : filter != null ? filter.sharedMesh : null;
+                if (mesh == null) continue;
+
+                // A wheel, or a brake disc under one. Both spin; neither dents. (On the Mustang the
+                // wheels are bound to bones inside a shared mesh, so there is nothing to exclude -
+                // and nothing to worry about either: a dent is a 0.9 m sphere at the contact point,
+                // so a wheel only moves if you hit the wheel.)
+                if (IsRigControl(renderer.name) ||
+                    renderer.name.IndexOf("wheel", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    wheelRoots.Any(w => renderer.transform == w || renderer.transform.IsChildOf(w))) continue;
+
+                // A part that has come off carries its own dents nowhere - it is a separate rigid
+                // body by then - so it is left out of the panel list rather than being deformed on a
+                // car it is no longer attached to.
+                if (parts.Any(p => renderer.transform == p || renderer.transform.IsChildOf(p))) continue;
+
+                if (skin != null) skins.Add(skin);
+                else if (filter != null) panels.Add(filter);
+                else continue;
+
+                total++;
+                verts += mesh.vertexCount;
+                if (mesh.isReadable) readable++;
+            }
+
+            var deform = root.AddComponent<DeformableBody>();
+            deform.Configure(panels.ToArray(), skins.ToArray());
+
+            var detachable = root.AddComponent<DetachableParts>();
+            detachable.Configure(parts.ToArray(), door);
+
+            var damage = root.AddComponent<VehicleDamage>();
+            damage.Configure(deform, detachable);
+
+            log.AppendLine(
+                $"        damage  {total} dentable mesh(es) ({panels.Count} static, {skins.Count} skinned), " +
+                $"{verts:n0} verts, {readable}/{total} readable");
+            log.AppendLine(parts.Count == 0
+                ? "        parts   none - this model has no node that is a PART (its .glb groups by material)"
+                : $"        parts   {string.Join(", ", parts.Select(p => p.name))}");
+
+            if (readable < total)
+                log.AppendLine("        ⚠ some meshes are not readable - those panels cannot dent");
         }
 
         // --- output ------------------------------------------------------------------------------

@@ -137,8 +137,6 @@ namespace TheBlock.World
         /// </summary>
         private void Wreck(Collision collision)
         {
-            Wrecked = true;
-
             var contact = collision.GetContact(0);
             var away = transform.position - contact.point;
             away.y = 0f;
@@ -146,6 +144,48 @@ namespace TheBlock.World
             away.Normalize();
 
             float speed = Mathf.Min(collision.relativeVelocity.magnitude * wreckMomentumShare, wreckMaxSpeed);
+            float offCentre = Vector3.Dot(contact.point - transform.position, transform.right);
+
+            Promote(away, speed, offCentre);
+        }
+
+        /// <summary>
+        /// U35b: an explosion next door promotes this filler too.
+        ///
+        /// <b>It needs its own entry point and cannot borrow <c>OnCollisionEnter</c>'s.</b> A parked
+        /// filler is a static collider with no Rigidbody, which is the whole trick that lets 101 of
+        /// them stand in the lot for free - and it also means <c>Physics.OverlapSphere</c> hands the
+        /// blast a collider whose <c>attachedRigidbody</c> is null, so <c>AddExplosionForce</c> has
+        /// nothing to push. The arithmetic below is <see cref="Wreck"/>'s, with the blast's centre
+        /// standing in for the contact point.
+        /// </summary>
+        /// <param name="origin">Where the car went up.</param>
+        /// <param name="force">Newtons at this distance, already faded by the caller.</param>
+        public void Blast(Vector3 origin, float force)
+        {
+            if (Wrecked) return;
+
+            var away = transform.position - origin;
+            away.y = 0f;
+            if (away.sqrMagnitude < 1e-4f) away = transform.forward;
+            away.Normalize();
+
+            // Force to speed, through the mass this filler is about to be given. A blast that shunts a
+            // parked car three metres is right; one that launches it over the buildings is a physics
+            // number nobody derived.
+            float speed = Mathf.Min(force / Mathf.Max(1f, wreckMass), wreckMaxSpeed);
+            float offCentre = Vector3.Dot(origin - transform.position, transform.right);
+
+            Promote(away, speed, -offCentre);
+        }
+
+        /// <summary>
+        /// Hands this filler to PhysX: the body, the mass, the dropped centre of mass, the shove and
+        /// the spin. Shared by the collision path and the blast path so the two cannot drift.
+        /// </summary>
+        private void Promote(Vector3 away, float speed, float offCentre)
+        {
+            Wrecked = true;
 
             var body = gameObject.AddComponent<Rigidbody>();
             body.mass = wreckMass;
@@ -158,7 +198,9 @@ namespace TheBlock.World
                 body.centerOfMass = box.center - Vector3.up * (box.size.y * 0.35f);
 
             body.linearVelocity = away * speed;
-            float offCentre = Vector3.Dot(contact.point - transform.position, transform.right);
+
+            // A little spin, scaled by how far off-centre the hit was, so a clipped wing slews the car
+            // round instead of shunting it squarely out of its stall.
             body.angularVelocity = new Vector3(0f, -offCentre * speed * wreckSpin, 0f);
         }
 

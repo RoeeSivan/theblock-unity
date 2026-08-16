@@ -36,6 +36,7 @@ namespace TheBlock.UI.Menus
         private Button _radarButton;
         private Button _dayNightButton;
         private Button _ragdollButton;
+        private Button _damageButton;
         private Button _soundButton;
         private System.Action _onBack;
 
@@ -90,6 +91,17 @@ namespace TheBlock.UI.Menus
             ragdollNote.style.marginBottom = 22f;
             overlay.Add(ragdollNote);
 
+            _damageButton = MenuStyle.Primary("Vehicle Damage", () => ApplyDamage(Next(Progress.VehicleDamage)));
+            _damageButton.style.marginBottom = 12f;
+            overlay.Add(_damageButton);
+
+            var damageNote = MenuStyle.Body(
+                "Visual dents the bodywork, smokes and burns, and knocks parts off. Full lets a car " +
+                "die and explode. Off is the game as it was before.");
+            damageNote.style.maxWidth = 420f;
+            damageNote.style.marginBottom = 22f;
+            overlay.Add(damageNote);
+
             overlay.Add(MenuStyle.Heading("Audio"));
 
             _soundButton = MenuStyle.Primary("Sound", () => ApplySound(!Mute.SoundOn));
@@ -143,6 +155,37 @@ namespace TheBlock.UI.Menus
         }
 
         /// <summary>
+        /// Settings → Gameplay → Vehicle Damage (U35b). Three states on one button, cycling
+        /// Off → Visual → Full, because a row of three radio buttons is a new widget and this menu
+        /// has exactly one.
+        ///
+        /// <b>No boot-time push, like the ragdoll row</b> - the preference is read at the moment a car
+        /// is struck. Turning it OFF mid-session does have something to undo though, and it is not
+        /// this method's job: every damaged car heals itself on the next frame it notices the mode
+        /// changed, which keeps the knowledge of what "damaged" means inside the component that owns
+        /// it rather than in the menu.
+        /// </summary>
+        private void ApplyDamage(VehicleDamageMode mode)
+        {
+            Progress.VehicleDamage = mode;
+            if (_damageButton != null) _damageButton.text = DamageLabel(mode);
+        }
+
+        private static VehicleDamageMode Next(VehicleDamageMode mode) => mode switch
+        {
+            VehicleDamageMode.Off => VehicleDamageMode.Visual,
+            VehicleDamageMode.Visual => VehicleDamageMode.Full,
+            _ => VehicleDamageMode.Off,
+        };
+
+        private static string DamageLabel(VehicleDamageMode mode) => mode switch
+        {
+            VehicleDamageMode.Visual => "Vehicle Damage:  Visual",
+            VehicleDamageMode.Full => "Vehicle Damage:  Full",
+            _ => "Vehicle Damage:  Off",
+        };
+
+        /// <summary>
         /// Settings → Audio → Sound.
         ///
         /// <b>No boot-time push from <c>Start</c>, and for the opposite reason to the day/night
@@ -167,6 +210,8 @@ namespace TheBlock.UI.Menus
                 _dayNightButton.text = Progress.DayNightOn ? "Time of Day:  Cycle" : "Time of Day:  Fixed";
             if (_ragdollButton != null)
                 _ragdollButton.text = Progress.RagdollsOn ? "Ragdolls:  On" : "Ragdolls:  Off";
+            if (_damageButton != null)
+                _damageButton.text = DamageLabel(Progress.VehicleDamage);
             if (_soundButton != null)
                 _soundButton.text = Mute.SoundOn ? "Sound:  On" : "Sound:  Muted";
             Show();

@@ -3,6 +3,23 @@ using UnityEngine;
 namespace TheBlock.Game
 {
     /// <summary>
+    /// How much of U35b's vehicle damage is switched on. Three states rather than a toggle, because
+    /// the two halves fail differently: the dents and the smoke change how a crash LOOKS, and the
+    /// explosion changes what a crash COSTS - a car you cannot drive home.
+    /// </summary>
+    public enum VehicleDamageMode
+    {
+        /// <summary>Nothing at all. No mesh is cloned, no emitter is built, no part comes off.</summary>
+        Off = 0,
+
+        /// <summary>Dents, smoke, fire and shed parts - but a car never dies and never explodes.</summary>
+        Visual = 1,
+
+        /// <summary>All of it: health reaches zero, the car burns down and goes up.</summary>
+        Full = 2,
+    }
+
+    /// <summary>
     /// Campaign unlock progress that survives a quit - the port of <c>game/progress.ts</c>.
     ///
     /// <see cref="Campaign"/> only tracks a cursor for the current session; this is the one number
@@ -24,6 +41,7 @@ namespace TheBlock.Game
         private const string DayNightKey = "theblock.daynight";
         private const string SoundKey = "theblock.sound";
         private const string RagdollKey = "theblock.ragdolls";
+        private const string VehicleDamageKey = "theblock.vehicledamage";
 
         /// <summary>
         /// Furthest mission index unlocked. 0 = only the first, which is also what a fresh profile
@@ -133,6 +151,43 @@ namespace TheBlock.Game
                 PlayerPrefs.Save();
             }
         }
+
+        /// <summary>
+        /// Settings → Gameplay → Vehicle Damage (U35b). <b>Default Off</b>, which is the Tier 8 rule
+        /// this whole showcase tier ships under: the off state IS today's game, so U30b's baseline is
+        /// taken with every U35 addition switched off and each one is then measured alone.
+        ///
+        /// The opposite call to <see cref="RagdollsOn"/>, and the difference is worth stating. A
+        /// ragdoll replaces a reaction nobody has approved a screenshot of; a dented, smoking car
+        /// changes what the world LOOKS like in every shot taken since U8, and it can leave the player
+        /// stranded beside a wreck. That earns the conservative default.
+        ///
+        /// A PREFERENCE, like <see cref="RadarOn"/>, so it survives <see cref="Reset"/>. Stored as an
+        /// int and read back through a range check rather than a cast, because a corrupt or
+        /// hand-edited value must land on Off - the safe state - and never on a mode that does not
+        /// exist.
+        /// </summary>
+        public static VehicleDamageMode VehicleDamage
+        {
+            get
+            {
+                int stored = PlayerPrefs.GetInt(VehicleDamageKey, (int)VehicleDamageMode.Off);
+                return stored == (int)VehicleDamageMode.Visual ? VehicleDamageMode.Visual
+                    : stored == (int)VehicleDamageMode.Full ? VehicleDamageMode.Full
+                    : VehicleDamageMode.Off;
+            }
+            set
+            {
+                PlayerPrefs.SetInt(VehicleDamageKey, (int)value);
+                PlayerPrefs.Save();
+            }
+        }
+
+        /// <summary>Is any of U35b on? The one read every damage call site starts with.</summary>
+        public static bool VehicleDamageOn => VehicleDamage != VehicleDamageMode.Off;
+
+        /// <summary>Are cars allowed to die and explode, or only to look hurt?</summary>
+        public static bool VehicleDamageLethal => VehicleDamage == VehicleDamageMode.Full;
 
         /// <summary>New Game: back to only the first mission unlocked.</summary>
         public static void Reset()

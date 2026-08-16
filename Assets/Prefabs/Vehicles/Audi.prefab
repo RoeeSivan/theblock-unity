@@ -329,6 +329,9 @@ GameObject:
   - component: {fileID: 8799722727837750709}
   - component: {fileID: 1157301085998523493}
   - component: {fileID: 5487633955048981709}
+  - component: {fileID: 5025518323454315436}
+  - component: {fileID: 792928866787939836}
+  - component: {fileID: 6472875970897304987}
   m_Layer: 0
   m_Name: Audi
   m_TagString: Untagged
@@ -461,10 +464,86 @@ MonoBehaviour:
   downforce: 0.6
   driverAnchor: {fileID: 648023844219381877}
   door: {fileID: 8799722727837750709}
+  enterable: 1
   fallbackLookYOffset: 0.5
+  boostExempt: 0
+  fuelTank: {fileID: 0}
   hasHome: 0
   homePosition: {x: 0, y: 0, z: 0}
   homeRotation: {x: 0, y: 0, z: 0, w: 1}
+--- !u!114 &5025518323454315436
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5264974367007267572}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b26d917d82124d58b181ca5b8d8f001, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Vehicles.DeformableBody
+  panels:
+  - {fileID: 5668683041758583953}
+  skinnedPanels: []
+  radius: 0.9
+  strength: 0.16
+  maxDeform: 0.28
+  jitter: 0.18
+  minInterval: 0.12
+  recalculateNormalsUnderVerts: 25000
+--- !u!114 &792928866787939836
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5264974367007267572}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d89a12ddbdb5a4e368bb5718ae673511, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Vehicles.DetachableParts
+  parts:
+  - {fileID: 7434167454260800779}
+  - {fileID: 8414048024918476764}
+  - {fileID: 336863030714081458}
+  reach: 1.7
+  partMass: 22
+  partLife: 20
+  kick: 2.6
+  door: {fileID: 8799722727837750709}
+--- !u!114 &6472875970897304987
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5264974367007267572}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9546760a78d4542c19486f116b4d254e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Vehicles.VehicleDamage
+  minDamageSpeed: 5
+  speedForFullDamage: 45
+  maxPerImpact: 0.4
+  vehicleMultiplier: 1.4
+  speedForFullDent: 16
+  partThreshold: 0.45
+  smokeAt: 0.5
+  fireAt: 0.2
+  fuseSeconds: 3
+  bailOutAt: 0.4
+  huskSeconds: 20
+  blastRadius: 8
+  blastForce: 9000
+  blastLift: 0.5
+  chainDamage: 0.5
+  blastThrowSpeed: 11
+  deform: {fileID: 5025518323454315436}
+  parts: {fileID: 792928866787939836}
+  debugKey: 1
 --- !u!1 &6200825013989440965
 GameObject:
   m_ObjectHideFlags: 0
@@ -669,6 +748,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: -4161369568681901532, guid: 6aa3c7435a0b34dc2b48157d6d3f0ffc, type: 3}
+--- !u!4 &336863030714081458 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4493808305347511263, guid: 6aa3c7435a0b34dc2b48157d6d3f0ffc, type: 3}
+  m_PrefabInstance: {fileID: 4247441990156608365}
+  m_PrefabAsset: {fileID: 0}
 --- !u!23 &2291204917228324134 stripped
 MeshRenderer:
   m_CorrespondingSourceObject: {fileID: -6540898707219863989, guid: 6aa3c7435a0b34dc2b48157d6d3f0ffc, type: 3}
@@ -679,6 +763,11 @@ MeshRenderer:
   m_CorrespondingSourceObject: {fileID: -1002948512265668717, guid: 6aa3c7435a0b34dc2b48157d6d3f0ffc, type: 3}
   m_PrefabInstance: {fileID: 4247441990156608365}
   m_PrefabAsset: {fileID: 0}
+--- !u!33 &5668683041758583953 stripped
+MeshFilter:
+  m_CorrespondingSourceObject: {fileID: 8384230042041974780, guid: 6aa3c7435a0b34dc2b48157d6d3f0ffc, type: 3}
+  m_PrefabInstance: {fileID: 4247441990156608365}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &7434167454260800779 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6762865215548739174, guid: 6aa3c7435a0b34dc2b48157d6d3f0ffc, type: 3}
@@ -687,5 +776,10 @@ Transform:
 --- !u!4 &8307082328421362473 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -3910990755373119420, guid: 6aa3c7435a0b34dc2b48157d6d3f0ffc, type: 3}
+  m_PrefabInstance: {fileID: 4247441990156608365}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &8414048024918476764 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -3587884677961407311, guid: 6aa3c7435a0b34dc2b48157d6d3f0ffc, type: 3}
   m_PrefabInstance: {fileID: 4247441990156608365}
   m_PrefabAsset: {fileID: 0}
