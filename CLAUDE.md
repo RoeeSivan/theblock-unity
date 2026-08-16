@@ -148,9 +148,11 @@ Most relevant here: `run_over_mechanic`, `police_pursuit`, `mixamo_bone_namespac
 - **No Unity Cloud, no Unity AI Assistant, no Unity Version Control.** The user will not pay Unity
   anything - Unity Personal only. Unity AI runs on paid credits; stay off it. Do not propose Unity
   Cloud / Build Automation / DevOps.
-- git + **Git LFS** local, no remote yet. GitHub free LFS is 1 GiB storage + 1 GiB/mo bandwidth
-  **per account**, already shared with the original repo - so the full 2 GB asset set cannot be
-  pushed there. Slice assets are small enough to be fine.
+- git + **Git LFS**, pushed to `origin` = **https://github.com/RoeeSivan/theblock-unity** (private;
+  the instructor is invited there and to the original repo). GitHub free LFS is 1 GiB storage +
+  1 GiB/mo bandwidth **per account**, already shared with the original repo - so the full 2 GB asset
+  set cannot live there, and this is why U22 deleted nine with-skin Mixamo FBX after harvesting
+  their clips (450 MB → 34 MB). **Before adding a large asset, check the LFS budget first.**
 - `com.coplaydev.unity-mcp` installed (MCP for Unity v10.1.2), Transport **HTTP Local**,
   server on `http://127.0.0.1:8080`. Registered for Claude Code, scoped to this project path.
 - `com.unity.ai.navigation` (NavMesh) present from the template - relevant much later, for police.
