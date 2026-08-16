@@ -94,28 +94,33 @@ unclear, re-test before inheriting.
 > a change of what "done" means - the graded artifacts are a video, a repo, a kanban board and a zip,
 > and only one of them is the game.
 >
-> **NEXT ACTION: U35b - vehicle damage.** ⚠ **U35a IS BUILT AND AWAITS THE BATCH PLAY-TEST** - see its
-> section below. Nothing in it is open; it is not `done` because U35's rule says the five are
-> confirmed together, by the user, at the end.
+> **NEXT ACTION: the user play-tests U35a. Nothing else starts until they have.** U35a is built and
+> committed (`6b856ab`); its section below carries the test recipe and the one thing to look at.
 >
-> ⚠ **REORDERED BY THE USER, 2026-08-16, later the same day:**
-> *"אני קודם רוצה שנעשה את הפיצ'רים, ואז כבר אני בודק את כל הפיצ'רים בסוף."* The five showcase
-> additions are built FIRST, back to back, and the user play-tests them in ONE batch at the end -
-> not at each unit boundary. So each U35 sub-unit lands as **`built - awaiting the batch play-test`**
-> with its own commit, and the user's confirmation for all five arrives together. Nothing else about
-> "how to close a unit" changes: a `wip` still needs its exact note.
+> ⚠ **THE BATCH PLAY-TEST IS OFF - the user reversed it, 2026-08-16, later the same day again:**
+> *"ברור, אנחנו צריכים לבדוק אחרי כל פיצ'ר כן."* **Every U35 sub-unit is play-tested by the user at
+> its own boundary**, exactly as `CLAUDE.md`'s "autonomous units, one checkpoint each" always said -
+> the one-batch-at-the-end reordering earlier today is dead and is recorded in the decisions log
+> rather than deleted, so it cannot be rediscovered as the plan.
+>
+> The reason it was reversed is the reason it should have been: **a ragdoll is judged with eyes and I
+> have none.** Four features stacked on a body whose knees bend the wrong way is four features to
+> re-check, and the frame-cost half of it compounds the same way.
+>
+> **So each sub-unit lands as `built`, is played by the user, and only then does the next one start.**
+> The state after a good play-test is still not `done` - it is
+> **`built - user-confirmed, awaiting U30b`** - because rule 3(a) puts the frame measurement on the
+> Player, which does not exist yet. That is the only thing U30b still owes them.
 >
 > **Why the old "build → baseline → features" trap does not bite here:** every U35 addition ships
 > behind a switch whose off state IS today's game (Tier 8, rule 2). So U30b's baseline is taken on
 > the Player with everything off - identical to what it would have measured before U35 - and each
 > feature is then toggled on alone for its delta. The order is now:
 >
-> **U35a → U35b → U35c → U35d → U35e → the user's batch play-test → U30a (build) → U30b (baseline
-> with all off, then per-feature deltas; anything over budget is tuned or cut) → record the video →
-> U30c (strip the debug keys, LAST, because they are how the recording reaches every feature).**
-> U35f-h are backlog behind all of that. Rule 3's "measured on the Player before it counts as
-> done" therefore resolves at U30b for all five at once, not per unit - which is exactly why their
-> state until then is `built`, not `done`.
+> **U35a (play-test) → U35b (play-test) → U35c (play-test) → U35d (play-test) → U35e (play-test) →
+> U30a (build) → U30b (baseline with all off, then per-feature deltas; anything over budget is tuned
+> or cut) → record the video → U30c (strip the debug keys, LAST, because they are how the recording
+> reaches every feature).** U35f-h are backlog behind all of that.
 >
 > **U30a's own note, still true when it comes:** U30 was split into a/b/c because a build is a
 > correctness job, a perf pass is a measurement job, and stripping debug keys is a shipping job.
@@ -188,7 +193,7 @@ Drive out of the spawn car park (it has **no NavMesh within 10 m**, so she falls
 straight lines there and it is the wrong place to judge her), get out on a street, press **`P`** for
 one star, and wait ~20-30 s for the cruiser to drive over from the station.
 
-### U35a, 2026-08-16 - ragdolls - BUILT, awaiting the batch play-test
+### U35a, 2026-08-16 - ragdolls - BUILT, awaiting the user's play-test
 
 The web build's run-over is a canned Mixamo clip because Rapier on the main thread has no budget for
 a 15-body articulated rig per victim. PhysX does. **Both halves of the row are built: the crowd and
@@ -255,6 +260,18 @@ folds a leg forwards, that sign is where it lives - `RagdollBuilder.Configure`.
 by **Build Pedestrians**, which now calls **Build Ragdolls** at its tail. `Build Characters` does the
 same. That hook is the U34 lesson paid forward: a rig written into a prefab that a builder
 regenerates is a rig with a countdown on it.
+
+**How to play-test it** - the scene is already built and saved, nothing needs rebuilding:
+
+1. Play → **Continue** (not New Game - `new-game-wipes-the-test-balance`).
+2. **The crowd.** Drive at ~50 km/h into someone on the pavement. Expect: the body is thrown,
+   tumbles, lands, lies, fades - and the same person gets up and walks on. Watch for a knee or an
+   elbow folding the wrong way, limbs buzzing against their stops, or a body sinking into the road.
+3. **The player, on demand.** On foot, press **`K`**.
+4. **The player, for real.** Crash the motorcycle into a wall above ~29 km/h; and separately, walk
+   off something over 5 m.
+5. **The switch.** Pause → Settings → **Gameplay → Ragdolls → Off**, then run someone over again:
+   U18's clip should come back exactly as it was.
 
 ### Everything else that is open, audited 2026-08-16
 
@@ -347,8 +364,11 @@ proudest of, which has no counterpart in the original: the **offline pipeline**,
 graph, route graph, roof spots, NavMesh). Runtime casts no rays for any of it.
 
 **Order, and the one sequencing trap:** ~~U30a (build) → U30b (perf baseline) → Tier 8 showcase
-features~~ **REORDERED by the user 2026-08-16: U35a-e first, one batch play-test, THEN U30a → U30b
-(baseline with all switches off, then per-feature deltas)** → record → U30c (strip the debug keys).
+features~~ **REORDERED by the user 2026-08-16: U35a-e first, THEN U30a → U30b (baseline with all
+switches off, then per-feature deltas)** → record → U30c (strip the debug keys). ⚠ The same day's
+second reorder - ~~"one batch play-test at the end of the five"~~ - was **reversed by the user within
+the hour**: each sub-unit is played at its own boundary. Kept struck through rather than deleted,
+because a plan that was live for an hour is a plan somebody can rediscover as current.
 **Something to say in the video, and it is only true because the list is written down:** the
 additions were chosen against a rule - "the web build could not have done it" - not collected. **U30c
 is last on purpose**:
@@ -2624,17 +2644,18 @@ of them, and the user set the third in the same breath:**
 **Order: U35a → U35b → U35c first** (the most GTA per hour, and all three ride on systems that already
 exist), **then U35d** (the best-looking on video and the riskiest for the frame), **then U35e** (the
 most fun to play, and it installs the camera the recording wants). **U35f-h are backlog** - after the
-five, only if the frame and the calendar allow, and never before the video is recorded. **Slot,
-REORDERED by the user 2026-08-16: BEFORE U30a/U30b, back to back, with ONE batch play-test at the
-end** - see RESUME HERE. Rule 2 is what makes that safe: U30b's baseline is taken with every switch
-off, then each feature alone for its delta, so a feature built before the baseline cannot pollute it.
-Until U30b measures them, a finished sub-unit's state is `built - awaiting the batch play-test`, never
-`done`.
+five, only if the frame and the calendar allow, and never before the video is recorded. **Slot: BEFORE
+U30a/U30b, and the user play-tests EACH one at its own boundary** - they reordered it to one batch at
+the end on 2026-08-16 and reversed that the same day (*"ברור, אנחנו צריכים לבדוק אחרי כל פיצ'ר כן"*),
+so the standard checkpoint rule stands. Rule 2 is what keeps building before the baseline safe: U30b
+takes it with every switch off, then each feature alone for its delta, so a feature built first cannot
+pollute it. A sub-unit the user has played is **`built - user-confirmed, awaiting U30b`** - never
+`done`, because rule 3(a)'s measurement is on a Player that does not exist yet.
 
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
 | U35 | The showcase additions - parent row | **planned 2026-08-16, list chosen** | | **The user's own idea and their framing:** *"סשן של 5 פיצ'רים מגניבים, לראות מה אני יכול עוד להוציא מ-Unity."* The list is now the eight rows below; this row is their parent and carries the rules above. ⚠ **The sequencing trap, and it is the same one U19b paid for:** a feature added after the perf baseline invalidates it, so the frame gets re-checked between the last landed sub-unit and the recording. Precedent for what a good row looks like is already in this tier and in the standing remark: real A\* pursuit against the web's five disconnected graph islands, Rigidbody wrecks against a 30-vehicle Rapier budget, `dspTime` against `audioElement.currentTime` |
-| U35a | Ragdolls - pedestrians and the player | **built - awaiting the batch play-test** | `6b856ab` | **BUILT 2026-08-16. Its own section is above** - what is in it, the three faults building it found (Optimize Game Objects deletes the bones a ragdoll needs; `Interpolate` on a kinematic body drags every bone to the prefab pose; a kinematic body's PhysX pose is stale when it goes dynamic), the measurements, and the one hinge sign to look at in the play-test. `Build Ragdolls` writes 11 bodies / 10 joints / ~64 kg into six pedestrians and three player characters; `Settings → Gameplay → Ragdolls` default **on**; cap 4 with the oldest freezing; player thrown by a bike crash over 8 m/s or a fall over 5 m, `K` to test, stand-up is a bone blend rather than a clip. ⚠ Perf debt for U30b: the six pedestrian FBX lost Optimize Game Objects, which is ~68 transforms per live body. **The original plan follows, unchanged, because every line of it survived contact:** **The argument:** the web's run-over is a canned Mixamo clip (`Hit_By_Car`, root motion harvested - memories `mixamo-pads-one-shot-clips`, `root-motion-on-a-scaled-child`) because Rapier on the main thread has no budget for a 15-body articulated rig per victim; PhysX does. **Mechanism:** the crowd prefabs are Humanoid, so Unity's **Ragdoll Wizard** (`GameObject → 3D Object → Ragdoll…`) builds the capsule/joint chain once per body type; at `RunOverSystem`'s hit, `RunOverReaction` disables the Animator, enables the rigidbodies and injects the car's velocity into the pelvis and the struck limb, then after N s the body settles and is recycled exactly as the clip's victims are today. **The player too:** thrown from the bike / a car door at speed, or a fall from a roof past a threshold, → ragdoll → `Getting_Up` (Mixamo, one more clip through the U29 importer) → control returns. **Off state:** a `Settings → Gameplay → Ragdolls` toggle, default **on** is the one exception argued for here - it replaces a reaction rather than adding a look, and it is the single most GTA thing on the list; if it does not read right the toggle restores the clip. **Perf budget:** a hard cap on simultaneous ragdolls (start at 4, oldest one freezes to a static pose), joints on `Solver Iterations` default, no ragdoll on the LOD-2 body (U16's `LODGroup` note applies - the ragdoll rig lives on ONE mesh). **Blender:** none. **Physics numbers are re-derived by feel (port rule 2)** - nothing to port anyway. Reuses: `RunOverSystem`, `RunOverReaction`, `Screams`, `Blood`, `CrashSensor` for the player's ejection |
+| U35a | Ragdolls - pedestrians and the player | **built - awaiting the user's play-test** | `6b856ab` | **BUILT 2026-08-16. Its own section is above** - what is in it, the three faults building it found (Optimize Game Objects deletes the bones a ragdoll needs; `Interpolate` on a kinematic body drags every bone to the prefab pose; a kinematic body's PhysX pose is stale when it goes dynamic), the measurements, and the one hinge sign to look at in the play-test. `Build Ragdolls` writes 11 bodies / 10 joints / ~64 kg into six pedestrians and three player characters; `Settings → Gameplay → Ragdolls` default **on**; cap 4 with the oldest freezing; player thrown by a bike crash over 8 m/s or a fall over 5 m, `K` to test, stand-up is a bone blend rather than a clip. ⚠ Perf debt for U30b: the six pedestrian FBX lost Optimize Game Objects, which is ~68 transforms per live body. **The original plan follows, unchanged, because every line of it survived contact:** **The argument:** the web's run-over is a canned Mixamo clip (`Hit_By_Car`, root motion harvested - memories `mixamo-pads-one-shot-clips`, `root-motion-on-a-scaled-child`) because Rapier on the main thread has no budget for a 15-body articulated rig per victim; PhysX does. **Mechanism:** the crowd prefabs are Humanoid, so Unity's **Ragdoll Wizard** (`GameObject → 3D Object → Ragdoll…`) builds the capsule/joint chain once per body type; at `RunOverSystem`'s hit, `RunOverReaction` disables the Animator, enables the rigidbodies and injects the car's velocity into the pelvis and the struck limb, then after N s the body settles and is recycled exactly as the clip's victims are today. **The player too:** thrown from the bike / a car door at speed, or a fall from a roof past a threshold, → ragdoll → `Getting_Up` (Mixamo, one more clip through the U29 importer) → control returns. **Off state:** a `Settings → Gameplay → Ragdolls` toggle, default **on** is the one exception argued for here - it replaces a reaction rather than adding a look, and it is the single most GTA thing on the list; if it does not read right the toggle restores the clip. **Perf budget:** a hard cap on simultaneous ragdolls (start at 4, oldest one freezes to a static pose), joints on `Solver Iterations` default, no ragdoll on the LOD-2 body (U16's `LODGroup` note applies - the ragdoll rig lives on ONE mesh). **Blender:** none. **Physics numbers are re-derived by feel (port rule 2)** - nothing to port anyway. Reuses: `RunOverSystem`, `RunOverReaction`, `Screams`, `Blood`, `CrashSensor` for the player's ejection |
 | U35b | Vehicle damage - deform, smoke, fire, parts that come off | todo | | **The argument:** the web's cars are kinematic and a crash is a number; U34 already made collisions cost a star and a thump. This makes them cost the car. **Mechanism, three layers, each independently switchable:** ① **vertex deformation** on the body mesh around the contact point (`CrashSensor.Impact` already carries the point, the closing speed and `HitVehicle` - U34) - a radius/strength curve, mesh readable at import, capped total deform so a car never turns inside-out; ② **health** per car → engine smoke (URP particles, pooled, ONE emitter per damaged car) at 50 %, fire at 20 %, and at 0 an explosion: radial impulse to everything within R, the U34 `LotCar` promotion path already handles static neighbours waking up, and the wanted level pays a star through the existing crime hooks; ③ **detachable parts - this is the Blender work:** split the Mustang's (then each car's) front/rear bumper, bonnet and doors into separate objects in Blender, re-export, and give each a `FixedJoint` with a `breakForce` - a hard hit sheds the bumper as its own rigidbody that despawns after 20 s. **Off state:** `Settings → Gameplay → Vehicle Damage` (Off / Visual / Full), default **Off**; Off touches no mesh and spawns no emitter. **Perf budget:** deform writes only the struck car's mesh and only on impact (never per frame); one particle system per damaged car, at most 3 live; detached parts are pooled and capped at 8. Texture/tri budget for the re-exported cars must not exceed today's - the split is topology, not detail. **Also on the list here:** the cop cruiser is a car built by the same `CarBuilder`, so it inherits all three for free, and traffic wrecks (`TrafficCar.Wrecked`) get smoke as a byproduct. **Careful:** the `preRotation` seam and every seat/rider scale (memory `every-seat-carries-a-rider-scale`) survive a re-export only if the object origins do not move in Blender - export from the same file, split in place |
 | U35c | Police helicopter at 3★ + GPS route on the map | todo | | **Two arguments in one unit, both riding on things that exist.** ① **The heli:** at three stars a police Huey (the U21 model, `HelicopterController`'s flight, a cop-coloured `CarPaint` twin) lifts off from the station, holds a hover slot above and behind you, and pins you with a **real `Spotlight`** - URP spot with a **cookie** and **shadows** - that tracks the player on the ground; the rotor sound already exists (`RotorSound`), so does the siren bus. Three.js in a browser does not do a moving shadowed spotlight over a city at frame rate; URP does it as one additional light. Reconcile through `PoliceSystem` like a fourth car (Returning mode when the star drops), and it never lands: no seat, `enterable=false`, no arrest of its own - it exists to make the third star feel like the third star. ② **The GPS line:** the objective on the minimap and the full map draws as a **route along the roads**, not a straight line - `RoutePlanner` + `RouteGraph` are the U19 A\* the cops already drive on, and the web build's traffic graph was five islands, so it *could not* have drawn this. Re-planned only when the player leaves the current path by > 15 m or the objective moves; drawn on `MapView` as a polyline (UI Toolkit `generateVisualContent`, one mesh). **Off state:** the heli is gated by star count and by `PoliceTuning.HeliStars` (0 = never, ships **3**); the GPS line is `Settings → Display → GPS Route` default **on** - it is HUD, it changes no visual judgement of the world. **Perf budget:** ONE extra shadow-casting light, at a 512 shadow map, only while the heli is airborne - measure it against the U30b baseline explicitly, it is the only new light in the port; the route replan is off the hot path (0.25 s cadence, same as the cops). **Blender:** none - unless a searchlight housing under the Huey's nose is wanted, which is a five-minute mesh. Reuses: `HelicopterController`, `Rotor`, `RotorSound`, `Siren`, `PoliceSystem`, `Heat`, `RoutePlanner`, `MapView`/`GameMap` |
 | U35d | Weather - rain, wet roads, lightning, and grip that answers | todo | | **The argument:** rain that changes how the car drives. Visuals alone the web could fake; a `WheelFrictionCurve` whose stiffness drops with wetness is a physics engine doing the work. **Mechanism:** a `Weather` component beside `DayNightCycle` on the same object, with a `Wetness` 0-1 that ramps in over ~30 s: **rain** = one URP particle system parented to the camera (pooled, ~600 drops, soft-particle off, no collision - the drops die at a fixed height), splashes as a second cheap emitter under the camera's ground point; **wet roads** = the road/pavement materials get their `_Smoothness` lerped up and `_BaseColor` darkened by `Wetness` via a `MaterialPropertyBlock` per district renderer (no material duplication - U15's texture memory lesson stands), which gives sky and neon reflections for free under URP; **lightning** = a 2-frame flash on the main light's intensity + a `Thunder` clip on the ambient bus with a distance delay; **grip** = every `CarWheel`'s forward/sideways stiffness × `(1 - 0.35 × Wetness)`, the bike more; ties into U33: rain darkens `SkyPalette`'s current stop by a fixed factor rather than adding a fourth palette. **Off state:** `Settings → Display → Weather` = Off / Rain / Random, default **Off**; Off never instantiates the emitter and writes no property block. **Perf budget - this is the row most likely to fail rule 3:** U33 already cut Bloom against a 20.7 ms frame; rain particles + darker sky must be measured on the Player, and the emitter has a `maxParticles` that is a tuning field, not a constant. If reflections on wet roads need a reflection probe or SSR, **they are cut** - the smoothness lerp alone reads as wet. **Blender:** none. **Note:** the sea (`SeaSurface`) and the ski get no rain treatment; the sea already moves. **Reuses:** `DayNightCycle`, `SkyPalette`, `Ambient`, `CarWheel`, `MotorcycleController` |
