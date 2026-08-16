@@ -31,6 +31,13 @@ namespace TheBlock.Missions
     /// </summary>
     public class DeliveryMission : MissionBehaviour
     {
+        /// <summary>
+        /// Metres in front of the doorway a returned ride is parked. Far enough that the player is
+        /// not standing inside its collider when he steps out, close enough to be the obvious thing
+        /// to walk to. Measured at the door: the ground is flat at y 0.15 for at least 5 m all round.
+        /// </summary>
+        private const float ParkOutsideDoor = 3f;
+
         [Header("Scene — found automatically when left empty")]
         [SerializeField] private CampaignRunner runner;
         [SerializeField] private Interior interior;
@@ -426,13 +433,63 @@ namespace TheBlock.Missions
             hud?.SetPrompt(null);
         }
 
-        /// <summary>Restarts in place — on foot, indoors, or from the saddle. No briefing twice.</summary>
+        /// <summary>
+        /// Back to the shop, and out again on the same path a first shift takes.
+        ///
+        /// <b>A retry is a new shift, so it starts where a shift starts.</b> U21 restarted it in
+        /// place, which meant pressing F in an alley three blocks away spawned five new customers
+        /// around a rider who had never collected the pizzas — the run had no beginning. Now F puts
+        /// you back behind the counter, Hazel briefs you again, and <see cref="EnterRoutine"/>'s own
+        /// <c>LeaveNow</c> steps you out onto the pavement with the clock starting there.
+        ///
+        /// The briefing IS repeated, deliberately: it is the thing that makes the restart read as
+        /// being handed the job again rather than as a checkpoint reload, and it is skippable with
+        /// the same key that dismisses it the first time.
+        /// </summary>
         public override void Retry()
         {
             if (_status != MissionStatus.Failed) return;
             Cleanup();
             _status = MissionStatus.Inactive;
-            Begin();
+
+            // With no interior in the scene there is nowhere to go back to, so the old in-place
+            // restart is the fallback rather than an error — the mission still has to be playable.
+            if (interior == null)
+            {
+                Begin();
+                return;
+            }
+
+            ReturnToShop();
+            Enter();
+        }
+
+        /// <summary>
+        /// Puts the rider back inside the pizzeria — and his ride at the kerb outside it.
+        ///
+        /// <b>The vehicle is the part that is easy to miss.</b> Teleporting the player out of the
+        /// saddle and leaving the bike wherever the shift died restarts a four-minute run across
+        /// Florentin ON FOOT, which is not a retry, it is a loss. So whatever you were driving comes
+        /// back with you and waits where you will be standing when you step out.
+        /// </summary>
+        private void ReturnToShop()
+        {
+            var ride = vehicles != null && vehicles.Mode == GameMode.Driving
+                ? vehicles.ActiveVehicle
+                : null;
+
+            vehicles?.LeaveVehicleNow();
+
+            if (ride != null)
+            {
+                // In front of the doorway, on whatever the ground turns out to be there: the exit
+                // puts the player down facing +X, so this is the first thing he sees.
+                var spot = interior.StreetDoor + new Vector3(ParkOutsideDoor, 0f, 0f);
+                spot.y = GroundAt(spot);
+                ride.Teleport(spot, Quaternion.Euler(0f, 90f, 0f));
+            }
+
+            interior.EnterNow();
         }
 
         /// <summary>

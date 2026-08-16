@@ -80,5 +80,28 @@ namespace TheBlock.Vehicles
 
         /// <summary>Back to where it was put down, upright and stopped — the <c>R</c> key.</summary>
         void Respawn();
+
+        /// <summary>
+        /// Puts this vehicle somewhere else, stopped. Unlike <see cref="Respawn"/> the caller chooses
+        /// the pose — U21's retry parks your ride outside the pizzeria while you take the briefing.
+        ///
+        /// The default is the whole implementation for anything on a plain Rigidbody, in the order
+        /// the physics requires: stop it, move it, then sync, so the next step does not resolve the
+        /// old pose against the new one. <see cref="CarController"/> declares its own and therefore
+        /// keeps it — a car also has to zero four <c>WheelCollider</c> steer angles and re-apply the
+        /// brake, which nothing generic can know about.
+        /// </summary>
+        void Teleport(Vector3 position, Quaternion rotation)
+        {
+            var root = GetTransform();
+            if (root.TryGetComponent<Rigidbody>(out var body))
+            {
+                body.linearVelocity = Vector3.zero;
+                body.angularVelocity = Vector3.zero;
+            }
+
+            root.SetPositionAndRotation(position, rotation);
+            Physics.SyncTransforms();
+        }
     }
 }

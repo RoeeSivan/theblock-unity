@@ -59,8 +59,8 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-**Next action: PLAY-TEST TIER 5 AGAIN — the first play-test happened and returned eight reports,
-all eight are fixed, none of the fixes has been played.** The block below is what changed and what
+**Next action: PLAY-TEST TIER 5 AGAIN — the first play-test happened and returned nine reports,
+all nine are fixed, none of the fixes has been played.** The block below is what changed and what
 each was actually caused by. U20–U24 stay `wip` until the second pass confirms them.
 
 Everything the fixes touched is rebuilt and saved in `World.unity`: **Build Mission Vehicles**,
@@ -84,12 +84,12 @@ The save was deliberately wiped, so Play starts a fresh campaign at mission 1 wi
 
 `F` retries any failed mission from anywhere. `M` opens the map. `R` respawns a vehicle.
 
-### Play-test round 1, 2026-08-16 — eight reports, eight causes, all fixed
+### Play-test round 1, 2026-08-16 — nine reports, nine causes, all fixed
 
-Reported in one pass over the campaign. **Not one of them was the mission logic** — five were a
-frame or a rotation being composed wrongly, two were a resource being shared or missing, and one was
-a cursor. Each is written with what it actually was, because in every case the symptom named a
-different thing.
+Reported in one pass over the campaign. **Only the last one was a design call** — five were a frame
+or a rotation being composed wrongly, two were a resource being shared or missing, one was a cursor.
+Each is written with what it actually was, because in every case the symptom named a different
+thing.
 
 1. **No "E to enter" anywhere.** There was no prompt SOURCE, only mission prompts. `MissionHud`'s
    prompt line is now an **arbitrated, immediate-mode channel** — claim it every frame you want it,
@@ -128,6 +128,28 @@ different thing.
 enter" for a key that refuses. `IEnterable.EntryRefusal` is the reason-or-null a vehicle gives, so
 the prompt and the action come from one place — the helicopter's line is the web's own
 ("Win the dance to earn the keys"); the jetski's is written to match, because the web has none.
+
+**9. Retrying the pizza shift restarted it in place.** The user's call: F should put you back at the
+shop, because that is where a shift begins. It does now — into the pizzeria, Hazel's briefing again,
+then `EnterRoutine`'s own `LeaveNow` steps you onto the pavement and the clock starts there. The
+briefing repeating is deliberate: it makes the restart read as being handed the job again, and it is
+skippable with the key that dismisses it the first time.
+
+**The part that is easy to miss is the ride.** Teleporting the rider out of the saddle and leaving
+the bike where the shift died restarts a 4-minute run across Florentin ON FOOT — a retry that is
+worse than the loss. So whatever you were driving comes back with you and is parked 3 m in front of
+the door, facing the way you will be facing when you step out (the ground there is flat at y 0.15
+for at least 5 m, measured). Three small mechanisms carry it, each of which had no owner before:
+`VehicleEnterExit.LeaveVehicleNow` (the E exit's two halves back to back, for a scripted dismount),
+`Interior.EnterNow` (the twin of `LeaveNow`, on-foot only for the same reason the doorway is), and
+`IEnterable.Teleport` with a default implementation — stop the body, move it, sync — which
+`CarController` already overrides with its own wheel-aware version. `BustSequence` hand-rolls that
+same default for the bike and could now use it; deliberately not touched.
+
+**Measured in Play:** retry from the starting lot `(209, 0.25, −230)` put the player at the interior
+spawn `(−1000, 0.30, 1002.8)` with `Inside` true and the room's palette applied (ambient 0.45, fog
+far 26), status back to Inactive, briefing card open with `briefing-1` playing; the bike landed at
+`(−25.00, 0.15, −100.00)` yaw 90 against the door at `(−28, 0, −100)`.
 
 **8. Play opened on "Get to the jetski · chase the thief" instead of the pizza run.** Reported as
 copy; it was the cursor. The save read `unlocked = 3`, `paid = pizza,dance,heli,jetski` — a

@@ -84,6 +84,12 @@ namespace TheBlock.World
         public Vector3 SpawnPoint => spawnPoint;
 
         /// <summary>
+        /// The doorway on the street, in world space — where you are put down when you step out.
+        /// U21's retry parks your ride against it.
+        /// </summary>
+        public Vector3 StreetDoor => streetDoor;
+
+        /// <summary>
         /// Standing at the counter, close enough to talk. The SAME predicate behind both the prompt
         /// and the action, so the two cannot drift — the arrangement the web build settled on after
         /// its cashier offered "Press T to start your shift" for a key that did nothing.
@@ -147,6 +153,21 @@ namespace TheBlock.World
         public void LeaveNow()
         {
             if (inside) Leave();
+        }
+
+        /// <summary>
+        /// Steps in from anywhere in the city, without standing on the doormat first — the twin of
+        /// <see cref="LeaveNow"/>, and what U21's retry uses to put a failed rider back at the shop.
+        ///
+        /// <b>On foot only.</b> The room is a cell a kilometre away with no floor for a vehicle,
+        /// which is the same reason <see cref="Update"/> refuses the doorway while driving. A caller
+        /// that wants this from the saddle has to get off first.
+        /// </summary>
+        public void EnterNow()
+        {
+            if (inside) return;
+            if (vehicles != null && vehicles.Mode != GameMode.OnFoot) return;
+            Enter();
         }
 
         private void Enter()

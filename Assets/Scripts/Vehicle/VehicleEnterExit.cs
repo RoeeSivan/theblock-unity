@@ -228,6 +228,21 @@ namespace TheBlock.Vehicles
             if (mode == GameMode.Rhythm) mode = GameMode.OnFoot;
         }
 
+        /// <summary>
+        /// Steps off immediately, skipping the door-close wait — the same two halves the E exit runs,
+        /// back to back.
+        ///
+        /// For a scripted exit rather than a player's: U21's retry has to have the rider on foot
+        /// before it can put him in the pizzeria, and teleporting a player who is still parented to
+        /// a seat leaves him being dragged around by a vehicle he is no longer driving.
+        /// </summary>
+        public void LeaveVehicleNow()
+        {
+            if (mode != GameMode.Driving) return;
+            BeginExit();
+            FinishExit();
+        }
+
         // --- entering ----------------------------------------------------------------------------
 
         /// <summary>
