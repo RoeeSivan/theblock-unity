@@ -73,8 +73,10 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-> **NEXT ACTION: finish U19e** — the two faults are listed below, and step one is testing the bust
-> fix that has never once been run. Everything above that line is state, not work.
+> **NEXT ACTION: finish U19e.** The foot arrest is user-confirmed working (2026-08-16). Two faults
+> are left: she walks INTO the player instead of stopping beside them (not written), and she sat
+> 21.4 cm through the cruiser's roof (fixed in code, **needs `The Block → Build Police Car` and a
+> look**). Both are spelled out in the U19e block.
 >
 > *Ledger audited 2026-08-16: the U28b and U33 scene-rig debts are closed, a duplicated section and
 > four malformed table rows are fixed, and the open-work census below is complete as of that date.*
@@ -101,12 +103,16 @@ you on foot.** The user's own design, built in a session that stopped mid-debug 
 three officers sit in three cruisers, one gets out at 18 m and runs at you. The first play-test found
 exactly two faults and its block below has the mechanism, the measurements and both:
 
-1. **No bust when she catches you.** A logic inversion in `PoliceSystem.FootArrest` put the grab test
-   on a path that never runs during a chase. **Fixed in code, and NEVER TESTED — that is step one.**
+1. ~~**No bust when she catches you.**~~ **FIXED AND USER-CONFIRMED 2026-08-16** — *"המעצר הרגלי
+   עובד טוב."* A logic inversion in `PoliceSystem.FootArrest` had put the grab test on a path that
+   never runs during a chase; `Step` is called before the decision now, and the arrest fires.
 2. **She walks into the player rather than stopping beside them.** NOT fixed. The fix is decided and
    written out in the block: a ~1.1 m standoff point instead of the player's exact position, a
    matching `agent.stoppingDistance`, and facing the player inside the grab radius. Add it as
    `PoliceTuning.OfficerStandoff`.
+3. **She sits 21.4 cm through the cruiser's roof.** Found in the same play-test, from outside the
+   car. **Fixed in code, NOT yet rebuilt or seen** — the fix is one number and the rebuild was
+   blocked, see the block below.
 
 **How to test it, which is not obvious:** there is no on-foot crime in this game — `CrimeWatch` gates
 every crime on `Driving` — so a wanted level while on foot is only reachable through the debug key.
@@ -219,6 +225,40 @@ change it; `AlwaysAnimate` fixes it on the same call. It is asserted both on the
 catch this**: `AnimationMode.SampleAnimationClip` in a preview scene writes the pose correctly, which
 is how the seat was verified as right hours before it was found to be wrong in Play. Memory file
 `culled-animator-skips-pose-write`.
+
+**The seat's rider scale, 2026-08-16 — she sat 21.4 cm through the roof, and the check that
+cleared her measured the wrong thing.**
+
+The row above used to end *"the scale stays at 1 because the officer is 1.89 m native against Joe's
+1.81 and a 4% difference in a seated pose is nothing to correct for."* That reasoning is wrong twice
+over, and the play-test saw it immediately from outside the car.
+
+- **Standing height is the wrong measurement for a seat.** What has to fit under a roof is the body
+  ABOVE the hips, and hers is **26 cm** longer than Joe's. Sampled in the same seat: his head top
+  lands at **1.627**, hers at **1.887**, against a cruiser roof at **1.673**.
+- **The earlier "head at 1.48 m under a 1.67 m roof" was the head BONE.** The bone sits at the base
+  of the skull; there is another 40 cm of head and cap above it. That is why the number looked like
+  clearance and the eye disagreed — and it is the same shape of error as
+  `skinned-bounds-ignore-thrown-bones`: the measurement was of a proxy, not of what draws.
+- **No cabin in this game leaves the rider scale at 1**, which is the part that should have caught
+  it without any of the above: the config gives the Mustang **0.95**, the Audi **0.97** and the
+  Tesla **0.82**, and only the Avenger — a 2.17 m roof — seats a driver unscaled. Even Joe only
+  clears the cruiser by 0.046 m at scale 1. A hand-stated seat with the scale left at its default
+  was never going to fit.
+
+**The fix is `PoliceCarBuilder.RiderScale = 0.833f`, and it is solved for rather than eyeballed.**
+The target is the headroom the config already gives Joe — Mustang 0.096 m, Audi 0.103, Tesla 0.134 —
+so `1.673 − 1.887 s = 0.10` gives `s = 0.833`. Measured at that value: head top **1.571**,
+clearance **+0.101 m**, hips **0.661**, between the Tesla's 0.656 and the Mustang's 0.759.
+
+It goes on the SEAT and not on her prefab **on purpose**: she is within 4 cm of Joe standing, so her
+size on foot is right, and this is a cabin too small for her rather than a body too big for the
+world. Scaling the prefab would shrink the officer who chases you on foot to fix a car she sits in.
+
+⚠ **NOT REBUILT AND NOT SEEN.** `The Block → Build Police Car` could not be run: a parallel session
+was mid-unit on U29 and `VehicleEnterExit.cs` did not compile. **The one step this needs is that
+menu item**, once the project compiles — the cruisers are `Instantiate`d from `PoliceCar.prefab` at
+`Start`, so rebuilding the prefab is the whole fix and **no `World.unity` change is involved**.
 
 **The two faults the play-test found, both mine, and the next action.**
 

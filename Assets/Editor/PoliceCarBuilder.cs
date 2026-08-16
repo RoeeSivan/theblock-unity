@@ -167,8 +167,19 @@ namespace TheBlock.EditorTools
         /// particular saloon's door; the CrownVic measures 2.09 × 1.67 × 5.65 m against the
         /// Mustang's 1.95 × 1.40 × 4.72, so it is the widest of them and 2.31 m from the body centre
         /// still clears its flank. <c>y</c> cancels the body centre exactly — the anchor stands on
-        /// the road — and the scale stays at 1 because the officer is 1.89 m native against Joe's
-        /// 1.81 and a 4% difference in a seated pose is nothing to correct for.
+        /// the road.
+        ///
+        /// <b><see cref="RiderScale"/> is the field this row got wrong, and the first play-test saw
+        /// it from outside the car.</b> It used to be 1, on the argument that the officer is 1.89 m
+        /// native against Joe's 1.81 and 4% is nothing in a seated pose. <b>Standing height is the
+        /// wrong measurement for a seat.</b> What has to fit under a roof is the body ABOVE the
+        /// hips, and hers is 26 cm longer than Joe's: sampled in the same seat, his head top lands
+        /// at 1.627 and hers at 1.887, against a roof at 1.673. So she sat 21.4 cm THROUGH it.
+        ///
+        /// It is also the field no cabin in this game leaves at 1: the config gives the Mustang
+        /// 0.95, the Audi 0.97 and the Tesla 0.82, and only the Avenger — a 2.17 m roof — seats a
+        /// driver unscaled. A 1.67 m cruiser roof was never in that company. See
+        /// <see cref="RiderScale"/> for how the number was chosen.
         ///
         /// <c>CarBuilder</c> feeds <c>Raw</c> through <see cref="Convert.ModelOffset"/>, which flips
         /// Z alone, so <c>x = -2.31</c> stays on Unity's left — the driver's side, as in the web.
@@ -182,9 +193,29 @@ namespace TheBlock.EditorTools
                     Y = -0.84f,
                     Z = -0.1f,
                     Yaw = -1.501f,
-                    Scale = 1f,
+                    Scale = RiderScale,
                 },
             };
+
+        /// <summary>
+        /// How far down the officer is scaled to fit the cruiser's cabin.
+        ///
+        /// <b>Solved for, not eyeballed.</b> The target is the headroom the config already gives
+        /// Joe in the cars it does describe — Mustang <b>0.096 m</b>, Audi <b>0.103</b>, Tesla
+        /// <b>0.134</b> — so the cruiser should read about 0.10 too. The anchor sits at road level,
+        /// so a rider's head height scales straight off it: <c>1.673 − 1.887 s = 0.10</c> gives
+        /// <c>s = 0.833</c>.
+        ///
+        /// Measured at that value by sampling <c>Joe_EnterCar</c> at its last frame on her rig in a
+        /// preview scene: head top <b>1.571</b>, clearance <b>+0.101 m</b>, hips <b>0.661</b> —
+        /// between the Tesla's 0.656 and the Mustang's 0.759, which is where a saloon's cushion is.
+        ///
+        /// <b>It is deliberately on the SEAT and not on her prefab.</b> Her size on foot is right —
+        /// she is within 4 cm of Joe standing — and this is a cabin that is too small for her, not a
+        /// body that is too big for the world. Scaling the prefab would shrink the officer who
+        /// chases you on foot in order to fix a car she is sitting in.
+        /// </summary>
+        private const float RiderScale = 0.833f;
 
         /// <summary>
         /// Clears <c>CarController.enterable</c> on the built prefab.
