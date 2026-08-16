@@ -65,7 +65,7 @@ each was actually caused by. U20–U24 stay `wip` until the second pass confirms
 
 Everything the fixes touched is rebuilt and saved in `World.unity`: **Build Mission Vehicles**,
 **Build World**, **Build Campaign**, in that order. Nothing else needs re-running. Committed as
-`8089e30` and `a0f7f0e`. **The save is wiped**: Play opens on mission 1 with $0 and every mission
+`8089e30` and `b60a9a5`. **The save is wiped**: Play opens on mission 1 with $0 and every mission
 pays again.
 
 ### What to play, in this order
