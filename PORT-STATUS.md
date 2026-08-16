@@ -94,21 +94,30 @@ unclear, re-test before inheriting.
 > a change of what "done" means - the graded artifacts are a video, a repo, a kanban board and a zip,
 > and only one of them is the game.
 >
-> **NEXT ACTION: U30a - the macOS build.** U30 was split into a/b/c today because a build is a
-> correctness job, a perf pass is a measurement job, and stripping debug keys is a shipping job.
-> **Start with a build that runs**, because nothing in this port has ever left the Editor - a Player
-> is a different renderer path, a different memory ceiling and a different input stack, and it is the
-> first place any of that is testable. **Then** measure, on the Player: U15 is the standing warning
-> that the obvious answer (streaming, LODs) can be the wrong one, and that the fault was a format
-> nobody had ever set.
+> **NEXT ACTION: U35a - ragdolls.** ⚠ **REORDERED BY THE USER, 2026-08-16, later the same day:**
+> *"אני קודם רוצה שנעשה את הפיצ'רים, ואז כבר אני בודק את כל הפיצ'רים בסוף."* The five showcase
+> additions are built FIRST, back to back, and the user play-tests them in ONE batch at the end -
+> not at each unit boundary. So each U35 sub-unit lands as **`built - awaiting the batch play-test`**
+> with its own commit, and the user's confirmation for all five arrives together. Nothing else about
+> "how to close a unit" changes: a `wip` still needs its exact note.
 >
-> **The run to the deadline, in order:** U30a → U30b (perf baseline) → **U35a-e** (the showcase
-> additions - **the list is chosen and recorded in Tier 8, 2026-08-16**: ragdolls, vehicle damage,
-> police heli + GPS route, weather, stunt jumps + Cinemachine; U35f-h are backlog behind them) →
-> re-measure the frame → record the video → U30c (strip the debug keys, LAST, because they are how
-> the recording reaches every feature). Every U35 sub-unit is bound by Tier 8's three rules - the
-> user's own being *"לא נדפוק את הביצועים… ה-assets צריכים להיראות טוב… שהמשחק לא ייתקע"* - so each is
-> measured on the Player before it counts as done.
+> **Why the old "build → baseline → features" trap does not bite here:** every U35 addition ships
+> behind a switch whose off state IS today's game (Tier 8, rule 2). So U30b's baseline is taken on
+> the Player with everything off - identical to what it would have measured before U35 - and each
+> feature is then toggled on alone for its delta. The order is now:
+>
+> **U35a → U35b → U35c → U35d → U35e → the user's batch play-test → U30a (build) → U30b (baseline
+> with all off, then per-feature deltas; anything over budget is tuned or cut) → record the video →
+> U30c (strip the debug keys, LAST, because they are how the recording reaches every feature).**
+> U35f-h are backlog behind all of that. Rule 3's "measured on the Player before it counts as
+> done" therefore resolves at U30b for all five at once, not per unit - which is exactly why their
+> state until then is `built`, not `done`.
+>
+> **U30a's own note, still true when it comes:** U30 was split into a/b/c because a build is a
+> correctness job, a perf pass is a measurement job, and stripping debug keys is a shipping job.
+> Nothing in this port has ever left the Editor - a Player is a different renderer path, a different
+> memory ceiling and a different input stack, and it is the first place any of that is testable. U15
+> is the standing warning that the obvious answer (streaming, LODs) can be the wrong one.
 >
 > **Tier 7 is TWO units now: U30 and U32.** U31 (iOS/iPad) is **dropped by the user, 2026-08-16** -
 > *"זה לא רלוונטי להגשה."* The iOS module stays installed and unused; nothing is to be ripped out.
@@ -265,8 +274,9 @@ proudest of, which has no counterpart in the original: the **offline pipeline**,
 `export-config.mjs` → `theblock-config.json` → `WorldBuilder` → baked `ScriptableObject`s (traffic
 graph, route graph, roof spots, NavMesh). Runtime casts no rays for any of it.
 
-**Order, and the one sequencing trap:** U30a (build) → U30b (perf baseline) → **Tier 8 showcase
-features (U35a-e, chosen 2026-08-16)** → re-check the frame → record → U30c (strip the debug keys).
+**Order, and the one sequencing trap:** ~~U30a (build) → U30b (perf baseline) → Tier 8 showcase
+features~~ **REORDERED by the user 2026-08-16: U35a-e first, one batch play-test, THEN U30a → U30b
+(baseline with all switches off, then per-feature deltas)** → record → U30c (strip the debug keys).
 **Something to say in the video, and it is only true because the list is written down:** the
 additions were chosen against a rule - "the web build could not have done it" - not collected. **U30c
 is last on purpose**:
@@ -2542,9 +2552,12 @@ of them, and the user set the third in the same breath:**
 **Order: U35a → U35b → U35c first** (the most GTA per hour, and all three ride on systems that already
 exist), **then U35d** (the best-looking on video and the riskiest for the frame), **then U35e** (the
 most fun to play, and it installs the camera the recording wants). **U35f-h are backlog** - after the
-five, only if the frame and the calendar allow, and never before the video is recorded. Slot for all
-of them: **AFTER U30a and U30b, BEFORE the recording**; the frame is re-measured between the last one
-that lands and the recording (build → baseline → features → re-measure → record).
+five, only if the frame and the calendar allow, and never before the video is recorded. **Slot,
+REORDERED by the user 2026-08-16: BEFORE U30a/U30b, back to back, with ONE batch play-test at the
+end** - see RESUME HERE. Rule 2 is what makes that safe: U30b's baseline is taken with every switch
+off, then each feature alone for its delta, so a feature built before the baseline cannot pollute it.
+Until U30b measures them, a finished sub-unit's state is `built - awaiting the batch play-test`, never
+`done`.
 
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
