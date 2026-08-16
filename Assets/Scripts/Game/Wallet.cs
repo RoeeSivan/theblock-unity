@@ -17,13 +17,29 @@ namespace TheBlock.Game
     {
         private const string Key = "theblock.cash";
 
-        [Tooltip("Balance for a save that has never been written. 0, the web build's own opening " +
-                 "balance — the campaign's $700 is the only income there is, and the 7-Eleven's " +
-                 "prices are a share of exactly that number. U19 set it to 500 so a bust could be " +
-                 "tested before anything could be earned; U28 gave it something to be true about. " +
-                 "NOTE the scene stores its own copy, so changing this default alone changes " +
-                 "nothing for a save that already exists — reach it through New Game.")]
-        [SerializeField] private int startingBalance;
+        [Tooltip("Balance a fresh profile opens on, and what New Game resets to. It is the price of " +
+                 "the FIRST power-up in the catalogue — one purchase, on the house — and " +
+                 "WorldBuilder writes it from powerUpConfig so the two can never drift. NOTE the " +
+                 "scene stores its own copy, so editing the C# default alone changes nothing for a " +
+                 "save that already exists — reach it through New Game.")]
+        [SerializeField] private int startingBalance = DefaultStartingBalance;
+
+        /// <summary>
+        /// The opening balance when nothing has written one: <c>powerUpConfig.items[0].price</c>, the
+        /// energy drink at $40.
+        ///
+        /// <b>Not zero, and not a round number.</b> The web build opens at $0, which means the shop
+        /// is a place you cannot use until the first mission pays — and a shop you have never been
+        /// inside is a shop you do not know exists. One item's worth of cash makes the 7-Eleven
+        /// reachable on the walk to the first job, which is the only cheap way to teach that it is
+        /// there. It is deliberately the CHEAPEST item, so it buys exactly one thing and the campaign
+        /// still has to pay for everything after it.
+        ///
+        /// <see cref="EditorTools.WorldBuilder"/> re-derives it from the catalogue on every build, so
+        /// a price change in <c>powerup.config.ts</c> carries here rather than leaving a stale
+        /// constant behind.
+        /// </summary>
+        public const int DefaultStartingBalance = 40;
 
         [Tooltip("Wipes the stored balance back to startingBalance on Play. Debug — leave off.")]
         [SerializeField] private bool resetOnPlay;

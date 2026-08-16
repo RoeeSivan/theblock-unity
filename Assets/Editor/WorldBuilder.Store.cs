@@ -68,7 +68,7 @@ namespace TheBlock.EditorTools
 
             var report = new Report();
             BuildStore(instance, snapshot.Config.SevenEleven, report);
-            EnsureEconomy(root.transform, report);
+            EnsureEconomy(root.transform, report, snapshot.PowerUps);
 
             // `new GameObject` and a component add do not dirty the scene by themselves, and an
             // unmarked scene is not written by Save — the shop would live in memory until the next
@@ -270,9 +270,9 @@ namespace TheBlock.EditorTools
         /// files, buys tidiness and risks a save. Every consumer resolves it with
         /// <c>FindAnyObjectByType</c>, so where it sits has never mattered.
         /// </summary>
-        private static void EnsureEconomy(Transform root, Report report)
+        private static void EnsureEconomy(Transform root, Report report, TheBlockConfig.PowerUpCatalogSpec catalogue)
         {
-            NormaliseWallet(report);
+            NormaliseWallet(report, catalogue);
 
             var existing = Object.FindAnyObjectByType<PowerUps>();
             if (existing != null)
@@ -287,32 +287,49 @@ namespace TheBlock.EditorTools
         }
 
         /// <summary>
-        /// Puts the opening balance back to 0 — the web build's, and the number the 7-Eleven's prices
-        /// are a share of.
+        /// Writes the opening balance from the catalogue: the price of the FIRST power-up, so a new
+        /// player can buy exactly one thing and nothing else.
         ///
-        /// U19 serialized 500 into the scene so a bust could be play-tested before anything could be
-        /// earned. Retuning the C# default cannot undo that: a field the scene has already stored
-        /// wins over its initializer, and only a NEW field ever takes a default. So it is written
-        /// here, where a world rebuild reaches it.
+        /// <b>Derived rather than typed, because it is not really a number — it is a relationship.</b>
+        /// "You start with enough for one energy drink" survives a price change in
+        /// <c>powerup.config.ts</c>; a hardcoded 40 quietly stops being true and nothing says so.
+        /// Build time rather than runtime, so <see cref="TheBlock.Game.Wallet"/> keeps knowing
+        /// nothing about power-ups.
+        ///
+        /// It also has to be written HERE at all, and not just as a C# default, because a field the
+        /// scene has already serialized beats its initializer — U19's debug 500 sat in this scene
+        /// through two units for exactly that reason.
         ///
         /// It does not touch the SAVE. <c>PlayerPrefs</c> still holds whatever the last run banked;
-        /// this is only what a profile that has never played opens on, which is what New Game asks
-        /// for.
+        /// this is only what a profile that has never played opens on, which is also what New Game
+        /// resets to.
         /// </summary>
-        private static void NormaliseWallet(Report report)
+        private static void NormaliseWallet(Report report, TheBlockConfig.PowerUpCatalogSpec catalogue)
         {
             var wallet = Object.FindAnyObjectByType<TheBlock.Game.Wallet>();
             if (wallet == null) return;
 
+            var first = catalogue?.Items != null && catalogue.Items.Count > 0 ? catalogue.Items[0] : null;
+            var want = first?.Price ?? TheBlock.Game.Wallet.DefaultStartingBalance;
+            var from = first != null
+                ? $"powerUpConfig.items[0] ({first.Emoji} {first.Label})"
+                : "Wallet.DefaultStartingBalance — the catalogue is missing";
+
             var serialized = new SerializedObject(wallet);
             var starting = serialized.FindProperty("startingBalance");
-            if (starting == null || starting.intValue == 0) return;
+            if (starting == null) return;
 
             var was = starting.intValue;
-            starting.intValue = 0;
+            if (was == want)
+            {
+                report.Notes.Add($"economy — Wallet.startingBalance already ${want}, from {from}");
+                return;
+            }
+
+            starting.intValue = want;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(wallet);
-            report.Notes.Add($"economy — Wallet.startingBalance {was} → 0 (U19's debug value)");
+            report.Notes.Add($"economy — Wallet.startingBalance ${was} → ${want}, from {from}");
         }
 
         // --- node lookup ------------------------------------------------------------------------

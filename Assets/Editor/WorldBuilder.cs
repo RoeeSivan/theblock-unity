@@ -239,7 +239,7 @@ namespace TheBlock.EditorTools
                 BuildPlace(places, snapshot.Config.PoliceStation, "Police Station", options, report);
                 BuildInterior(places, snapshot.Config.Interior, snapshot.Config.Player, options, report);
                 BuildStore(store, snapshot.Config.SevenEleven, report);
-                EnsureEconomy(root.transform, report);
+                EnsureEconomy(root.transform, report, snapshot.PowerUps);
                 BuildLotCars(places, snapshot.Config.LotCars, options, report);
             }
 
