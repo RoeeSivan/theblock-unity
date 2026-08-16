@@ -88,7 +88,7 @@ from the first frame, and it fakes nothing — pizza and dance are simply not pl
 Play still starts you at the parking lot; the Huey is at Unity ≈ `(428, 0.1, −228)` on the beach,
 about 220 m away, so take the Mustang or the bike. `E` at the craft, then fly.
 
-### U23b, 2026-08-16 — the Huey answers both key sets, and it cannot spin any more
+### U23b, 2026-08-16 — the Huey answers both key sets, and it cannot spin any more — `d485bae`
 
 Two reports, one flight model, and the second one had a mechanism nobody had looked for.
 
