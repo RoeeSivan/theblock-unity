@@ -10,10 +10,10 @@ using UnityEngine.InputSystem;
 namespace TheBlock.Missions
 {
     /// <summary>
-    /// M4, the jetski sea chase — the port of <c>src/mission/jetski-chase.ts</c>, and the finale.
+    /// M4, the jetski sea chase - the port of <c>src/mission/jetski-chase.ts</c>, and the finale.
     ///
     /// The same lifecycle as the rescue, with a different failure surface: the buoy GATES are
-    /// passed by proximity and <b>never fail you</b> — they mark the route, they do not gate it —
+    /// passed by proximity and <b>never fail you</b> - they mark the route, they do not gate it -
     /// and the win condition is catching the thief on foot after he beaches. Only the clock loses
     /// the run.
     ///
@@ -23,13 +23,13 @@ namespace TheBlock.Missions
     /// </summary>
     public class JetskiChase : MissionBehaviour
     {
-        [Header("Scene — found automatically when left empty")]
+        [Header("Scene - found automatically when left empty")]
         [SerializeField] private CampaignRunner runner;
         [SerializeField] private VehicleEnterExit vehicles;
         [SerializeField] private MissionHud hud;
         [SerializeField] private TheBlock.Player.PlayerController player;
 
-        [Header("Content — written by Build Campaign")]
+        [Header("Content - written by Build Campaign")]
         [SerializeField] private JetskiController jetski;
         [SerializeField] private ChaseThief thief;
         [SerializeField] private GameObject buoyPrefab;
@@ -125,7 +125,7 @@ namespace TheBlock.Missions
         {
             _entering = true;
 
-            // Released in a finally — see the same guard on RescueMission for why an entry latch
+            // Released in a finally - see the same guard on RescueMission for why an entry latch
             // that survives a throw is unrecoverable.
             try
             {
@@ -183,7 +183,7 @@ namespace TheBlock.Missions
             gate.Beacon = Beacon.Create(
                 _root, _beaconSpec, TheBlockConfig.ColorFromHex(_spec.BeaconColor), $"{gate.Id} Beacon");
 
-            // Above the buoy's mast, not at the waterline — the pin has to clear the thing it marks.
+            // Above the buoy's mast, not at the waterline - the pin has to clear the thing it marks.
             gate.Beacon.SetGround(at + Vector3.up * 4f);
 
             MapRegistry.AddPoi(new MapPoi
@@ -239,7 +239,7 @@ namespace TheBlock.Missions
             {
                 _timeLeft = 0f;
                 _status = MissionStatus.Failed;
-                thief?.Freeze(); // he "got away" — stopping makes the fail read
+                thief?.Freeze(); // he "got away" - stopping makes the fail read
                 hud?.SetPrompt(null);
                 if (verbose) Debug.Log("[chase] out of time");
                 return;
@@ -247,7 +247,7 @@ namespace TheBlock.Missions
 
             TickGates(dt, chaser);
 
-            // The finale. Proximity, no key press — the same feel the rescue pickup has.
+            // The finale. Proximity, no key press - the same feel the rescue pickup has.
             if (thief != null && thief.Current == ChaseThief.Phase.Running)
             {
                 hud?.SetPrompt("Catch the thief!");
@@ -262,7 +262,7 @@ namespace TheBlock.Missions
                 // THE BUOY RIDES THE REAL SURFACE, not a sine around the mean level.
                 //
                 // The web bobs its buoys by hand because its sea is flat, and this port copied that
-                // — against a sea U12 gave three summed swells to, up to 0.37 m of crest. A hull
+                // - against a sea U12 gave three summed swells to, up to 0.37 m of crest. A hull
                 // whose base sits at the MEAN is under water for half of every wave, which is what
                 // the play-test saw. SeaSurface is the CPU's copy of the shader's own displacement,
                 // read off the same material, so the base sits on the water wherever the water is.
@@ -365,7 +365,7 @@ namespace TheBlock.Missions
             _gates.Clear();
 
             // The field goes with them. A buoy the player still bounces off after the mission ended
-            // is the invisible-collider bug in its purest form — which is the very thing the web
+            // is the invisible-collider bug in its purest form - which is the very thing the web
             // build's own cleanup comment was written about.
             BuoyField.Clear();
 

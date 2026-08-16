@@ -13,7 +13,7 @@ namespace TheBlock.Audio
         /// <summary>The dull body impact under a run-over scream. Darker and softer than a crash.</summary>
         BodyThud,
 
-        /// <summary>Two-note ding on a successful delivery — or a rooftop survivor reached.</summary>
+        /// <summary>Two-note ding on a successful delivery - or a rooftop survivor reached.</summary>
         Delivery,
 
         /// <summary>Ascending arpeggio fanfare: a mission is complete.</summary>
@@ -22,10 +22,10 @@ namespace TheBlock.Audio
         /// <summary>Descending dissonant sting: a mission failed.</summary>
         Fail,
 
-        /// <summary>Rhythm hit, bright — a Perfect.</summary>
+        /// <summary>Rhythm hit, bright - a Perfect.</summary>
         RhythmPerfect,
 
-        /// <summary>Rhythm hit, duller — a Good.</summary>
+        /// <summary>Rhythm hit, duller - a Good.</summary>
         RhythmGood,
 
         /// <summary>Rhythm miss: a low thunk.</summary>
@@ -46,25 +46,25 @@ namespace TheBlock.Audio
         /// <summary>A cop got you. Lower and longer than <see cref="Fail"/>.</summary>
         Busted,
 
-        /// <summary>U28 — the pump counter ticking over.</summary>
+        /// <summary>U28 - the pump counter ticking over.</summary>
         FuelTick,
 
-        /// <summary>U28 — nozzle clunk plus a rising confirm: the tank is full.</summary>
+        /// <summary>U28 - nozzle clunk plus a rising confirm: the tank is full.</summary>
         FuelDone,
 
-        /// <summary>U28 — the convenience-store door chime.</summary>
+        /// <summary>U28 - the convenience-store door chime.</summary>
         StoreChime,
 
-        /// <summary>U28 — the till: a power-up was bought.</summary>
+        /// <summary>U28 - the till: a power-up was bought.</summary>
         Purchase,
 
-        /// <summary>U28 — a power-up ignited.</summary>
+        /// <summary>U28 - a power-up ignited.</summary>
         PowerUp,
 
-        /// <summary>U28 — its timer ran out. The same figure, falling.</summary>
+        /// <summary>U28 - its timer ran out. The same figure, falling.</summary>
         PowerDown,
 
-        /// <summary>U28 — the press did nothing. Deliberately quiet.</summary>
+        /// <summary>U28 - the press did nothing. Deliberately quiet.</summary>
         Deny,
     }
 
@@ -74,7 +74,7 @@ namespace TheBlock.Audio
     ///
     /// <b>The note data below is the web's, number for number.</b> Every frequency, offset, duration
     /// and peak is copied out of <c>src/audio/sfx.ts</c> rather than re-voiced, because these were
-    /// tuned against each other — <c>Fail</c> is sour specifically next to <c>Complete</c>,
+    /// tuned against each other - <c>Fail</c> is sour specifically next to <c>Complete</c>,
     /// <c>BodyThud</c> is deliberately darker and shorter than <c>Crash</c>, and <c>PowerDown</c> is
     /// the same three notes as <c>PowerUp</c> falling so the pair reads as one effect starting and
     /// ending. Re-deriving them by feel would quietly dissolve all of that.
@@ -118,7 +118,7 @@ namespace TheBlock.Audio
                 source.outputAudioMixerGroup = output;
 
                 // U26 pauses the world's audio with `AudioListener.pause`, which silences every
-                // source in the game — including the click of the button you press to un-pause it.
+                // source in the game - including the click of the button you press to un-pause it.
                 // Unity's exception to that is per-source and this is the pool the UI click comes
                 // out of. The cost is that a cue already in the air keeps playing into the freeze,
                 // which for a 0.1 s tick is not a cost.
@@ -130,7 +130,7 @@ namespace TheBlock.Audio
         /// <summary>Editor-side wiring, used by <c>The Block → Build Audio</c>.</summary>
         public void SetOutput(AudioMixerGroup group) => output = group;
 
-        /// <summary>Fires a cue. Safe to call every frame — the caller owns its own throttling.</summary>
+        /// <summary>Fires a cue. Safe to call every frame - the caller owns its own throttling.</summary>
         public void Play(SfxCue cue, float gain = 1f)
         {
             if (_pool == null || _pool.Length == 0) return;
@@ -141,7 +141,7 @@ namespace TheBlock.Audio
                 _baked[cue] = clip;
             }
 
-            // Round-robin, oldest first. Stealing a voice is correct here: a cue is 50–900 ms and
+            // Round-robin, oldest first. Stealing a voice is correct here: a cue is 50-900 ms and
             // eight of them sounding at once is already a mush nobody authored.
             var source = _pool[_next];
             _next = (_next + 1) % _pool.Length;
@@ -185,7 +185,7 @@ namespace TheBlock.Audio
 
         /// <summary>
         /// What each cue is made of. One switch, so the whole voicing of the game is readable in one
-        /// screen — which is how it stays comparable to <c>sfx.ts</c>.
+        /// screen - which is how it stays comparable to <c>sfx.ts</c>.
         /// </summary>
         public static SfxSynth.Cue SpecFor(SfxCue cue)
         {
@@ -197,7 +197,7 @@ namespace TheBlock.Audio
 
                 case SfxCue.BodyThud:
                     // Heavily lowpassed: a flat slap with no metallic edge, and a sine rather than a
-                    // sawtooth underneath — weight without the engine-y buzz.
+                    // sawtooth underneath - weight without the engine-y buzz.
                     return c.AddNoise(0f, 0.12f, 380f, 0.22f)
                         .Add(58f, 0f, 0.13f, SfxSynth.Wave.Sine, 0.18f);
 
@@ -244,7 +244,7 @@ namespace TheBlock.Audio
                         .AddNoise(0f, 0.5f, 480f, 0.12f);
 
                 case SfxCue.FuelTick:
-                    // As faint as Beat — this fires ~10 times per fill and must not become a drill.
+                    // As faint as Beat - this fires ~10 times per fill and must not become a drill.
                     return c.Add(A4, 0f, 0.035f, SfxSynth.Wave.Square, 0.05f);
 
                 case SfxCue.FuelDone:
@@ -253,7 +253,7 @@ namespace TheBlock.Audio
                         .Add(C6, 0.17f, 0.26f, SfxSynth.Wave.Triangle, 0.28f);
 
                 case SfxCue.StoreChime:
-                    // Sine, not the triangle every other cue uses — that is what makes it read as a
+                    // Sine, not the triangle every other cue uses - that is what makes it read as a
                     // doorbell rather than another game beep.
                     return c.Add(B5, 0f, 0.35f, SfxSynth.Wave.Sine, 0.2f)
                         .Add(E5, 0.18f, 0.9f, SfxSynth.Wave.Sine, 0.22f);

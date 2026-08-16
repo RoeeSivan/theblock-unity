@@ -11,7 +11,7 @@ namespace TheBlock.Vehicles
     /// U23's helicopter and U24's jetski are the next two.
     ///
     /// Vehicles put themselves in and take themselves out, in <c>OnEnable</c>/<c>OnDisable</c>,
-    /// rather than being registered by whatever spawned them — a spawner cannot know when its
+    /// rather than being registered by whatever spawned them - a spawner cannot know when its
     /// vehicle is destroyed, and a stale entry here is a soft lock: <c>E</c> pointed at a corpse.
     /// </summary>
     public static class EnterableRegistry
@@ -31,7 +31,7 @@ namespace TheBlock.Vehicles
         /// Every live vehicle. Dead ones are swept on the way out, which is not belt-and-braces:
         /// this list is static, so it survives a domain reload with "Reload Domain" turned off, and
         /// a destroyed MonoBehaviour reached through an INTERFACE reference does not compare equal
-        /// to null — the overloaded operator is on <see cref="Object"/>, and an interface does not
+        /// to null - the overloaded operator is on <see cref="Object"/>, and an interface does not
         /// carry it. So the sweep has to go through the concrete type to ask the question at all.
         /// </summary>
         public static IReadOnlyList<IEnterable> All

@@ -12,7 +12,7 @@ namespace TheBlock.EditorTools
     /// Remy grooving beside him on the sand.
     ///
     /// <b>One controller for both.</b> A Humanoid clip is stored as avatar-relative muscle curves,
-    /// so the same eight states drive Joe's rig and Remy's without either knowing about the other —
+    /// so the same eight states drive Joe's rig and Remy's without either knowing about the other -
     /// which is what makes the duet cost one asset instead of two. Its DEFAULT state is
     /// <c>Dance_Stand</c> (Remy's own idle), so a giver dropped in the world just stands there and
     /// only cross-fades into the groove when a routine starts.
@@ -63,7 +63,7 @@ namespace TheBlock.EditorTools
             var idle = Clip("Dance_Idle");
             if (idle == null)
             {
-                log.AppendLine("  dance: no Dance_Idle clip — run The Block → Import Dance Clips first.");
+                log.AppendLine("  dance: no Dance_Idle clip - run The Block → Import Dance Clips first.");
                 return null;
             }
 
@@ -92,7 +92,7 @@ namespace TheBlock.EditorTools
                 state.motion = Clip(name);
                 state.writeDefaultValues = false;
 
-                // Back to the groove when the flourish runs out. No condition — exit time IS the
+                // Back to the groove when the flourish runs out. No condition - exit time IS the
                 // condition, which is what makes a one-shot self-returning with no parameters at all.
                 var exit = state.AddTransition(groove);
                 exit.hasExitTime = true;
@@ -119,7 +119,7 @@ namespace TheBlock.EditorTools
             AssetDatabase.LoadAssetAtPath<AnimationClip>($"{ClipFolder}/{name}.anim");
 
         /// <summary>
-        /// Remy's imported idle, borrowed as the standing pose. Humanoid, so it plays on Joe too —
+        /// Remy's imported idle, borrowed as the standing pose. Humanoid, so it plays on Joe too -
         /// which matters because the dancer sits in this state until a routine begins.
         /// </summary>
         private static AnimationClip StandClip() =>
@@ -149,14 +149,14 @@ namespace TheBlock.EditorTools
             // dancer.ts's own header: "picking the female character still put joe on stage".
             //
             // CharacterPrefabBuilder does the instantiating now, so the white-materials rebind that
-            // lived here went with it — a Joe prefab is a Joe prefab wherever it is put.
+            // lived here went with it - a Joe prefab is a Joe prefab wherever it is put.
             log.AppendLine($"  {CharacterPrefabBuilder.DressStageDancer()}");
 
             var animator = go.GetComponentInChildren<Animator>(true);
             if (animator == null)
             {
                 log.AppendLine(
-                    "  ⚠ dance: the stage dancer has no body — run The Block → Build Characters, " +
+                    "  ⚠ dance: the stage dancer has no body - run The Block → Build Characters, " +
                     "then this again. The routine will play against an empty stage until then.");
             }
             else
@@ -174,7 +174,7 @@ namespace TheBlock.EditorTools
             // The reason is what each offset is relative to. The web's player model is π-rotated
             // inside its holder, so "behind" in that holder's frame is +z; the dancer is a raw
             // Mixamo body, which faces +z in three.js AND in Unity, so "behind" is −z in both.
-            // ModelOffset's job is to undo that π — apply it to a body that never had one and the
+            // ModelOffset's job is to undo that π - apply it to a body that never had one and the
             // camera lands in the dancer's face with Remy behind the lens.
             //
             // The general rule this is an instance of: a conversion belongs to a coordinate's
@@ -188,7 +188,7 @@ namespace TheBlock.EditorTools
             go.SetActive(false); // revealed when the routine takes the stage
 
             log.AppendLine(
-                $"  stage dancer: roster body + {controller.name}, boom {boom} (raw — see the " +
+                $"  stage dancer: roster body + {controller.name}, boom {boom} (raw - see the " +
                 $"comment), lookY {spec.World.Camera.LookY}, crossfade {spec.Dancer.CrossFadeSec}s");
             return dancer;
         }
@@ -203,7 +203,7 @@ namespace TheBlock.EditorTools
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(RemyPrefab);
             if (prefab == null)
             {
-                log.AppendLine($"  dance: {RemyPrefab} is missing — run Build Pedestrians. No giver.");
+                log.AppendLine($"  dance: {RemyPrefab} is missing - run Build Pedestrians. No giver.");
                 return null;
             }
 
@@ -214,7 +214,7 @@ namespace TheBlock.EditorTools
             instance.name = name;
             instance.transform.SetPositionAndRotation(at, Convert.RotFromRadians(npc.Yaw));
 
-            // Never bound to a seed, so the crowd's own script never ticks him — the same trick the
+            // Never bound to a seed, so the crowd's own script never ticks him - the same trick the
             // delivery targets and the cashier use.
             if (instance.TryGetComponent<TheBlock.Npc.Pedestrian>(out var pedestrian))
                 pedestrian.enabled = false;
@@ -222,14 +222,14 @@ namespace TheBlock.EditorTools
             var animator = instance.GetComponentInChildren<Animator>(true);
             if (animator == null)
             {
-                log.AppendLine("  dance: Ped_Remy has no Animator — no giver.");
+                log.AppendLine("  dance: Ped_Remy has no Animator - no giver.");
                 return null;
             }
 
             animator.runtimeAnimatorController = controller;
 
             // He is the shot's second figure for the whole routine, so he must keep being posed
-            // whatever the culling volumes think — the crowd's CullCompletely would freeze him
+            // whatever the culling volumes think - the crowd's CullCompletely would freeze him
             // mid-groove the moment the stage camera framed him from behind.
             animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
 

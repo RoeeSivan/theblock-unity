@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace TheBlock.UI
 {
-    /// <summary>What a POI looks like on the map — the port of <c>PoiKind</c> in the web build.</summary>
+    /// <summary>What a POI looks like on the map - the port of <c>PoiKind</c> in the web build.</summary>
     public enum MapPoiKind
     {
         Pizza,
@@ -25,7 +25,7 @@ namespace TheBlock.UI
         public MapPoiKind Kind = MapPoiKind.Marker;
 
         /// <summary>
-        /// An emoji drawn INSTEAD of the coloured dot — 🍕 for the pizzeria, ⛽ for the pumps.
+        /// An emoji drawn INSTEAD of the coloured dot - 🍕 for the pizzeria, ⛽ for the pumps.
         ///
         /// Standing places take one; mission pins deliberately do not. Every fixed landmark and
         /// every objective used to be the same green <see cref="MapPoiKind.Marker"/> dot, so during
@@ -42,7 +42,7 @@ namespace TheBlock.UI
         ///
         /// <see cref="Position"/> is a snapshot, which is right for a building and useless for a
         /// police car. Rather than have the pursuit rewrite its pins every frame, a POI can hold the
-        /// transform and the map reads it at draw time — six lines that also give U20's objective on
+        /// transform and the map reads it at draw time - six lines that also give U20's objective on
         /// a walking NPC and U32's rival arrow the thing they will both want.
         /// </summary>
         public Transform Follow;
@@ -51,8 +51,8 @@ namespace TheBlock.UI
         public Vector3 At => Follow != null ? Follow.position : Position;
 
         /// <summary>
-        /// Draw the dot but never the name. For the numbered sets a mission spawns in bulk —
-        /// "Delivery #3", "Gate 7" — where the label says nothing the dot doesn't and ten at once is
+        /// Draw the dot but never the name. For the numbered sets a mission spawns in bulk -
+        /// "Delivery #3", "Gate 7" - where the label says nothing the dot doesn't and ten at once is
         /// most of what makes the open map unreadable. The name still has to be unique:
         /// <see cref="MapRegistry.RemovePoi"/> finds by name.
         /// </summary>
@@ -67,15 +67,15 @@ namespace TheBlock.UI
     }
 
     /// <summary>
-    /// Runtime index of everything the map draws — the port of <c>src/world/registry.ts</c>.
+    /// Runtime index of everything the map draws - the port of <c>src/world/registry.ts</c>.
     ///
     /// Subsystems register into it as they load, so adding content never touches the map code. It is
     /// static because it outlives any one object: a district's outline and label keep being drawn
     /// whether or not its meshes are currently resident (a city map does not blank out the part of
     /// town you cannot see), which is also what U15's streaming will need.
     ///
-    /// Static state and Play mode do not mix by default — see the <c>recompile-during-play-nulls-fields</c>
-    /// memory — so the lists are cleared on every entry into Play rather than trusted to be empty.
+    /// Static state and Play mode do not mix by default - see the <c>recompile-during-play-nulls-fields</c>
+    /// memory - so the lists are cleared on every entry into Play rather than trusted to be empty.
     /// </summary>
     public static class MapRegistry
     {
@@ -94,7 +94,7 @@ namespace TheBlock.UI
             _pois.Add(poi);
         }
 
-        /// <summary>Removes a POI by name — for dynamic markers, e.g. a drop-off that is done.</summary>
+        /// <summary>Removes a POI by name - for dynamic markers, e.g. a drop-off that is done.</summary>
         public static void RemovePoi(string name)
         {
             var i = _pois.FindIndex(p => p.Name == name);

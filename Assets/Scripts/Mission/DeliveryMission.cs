@@ -12,7 +12,7 @@ using UnityEngine.InputSystem;
 namespace TheBlock.Missions
 {
     /// <summary>
-    /// M1, the pizza delivery run — the port of <c>src/mission/delivery-mission.ts</c>.
+    /// M1, the pizza delivery run - the port of <c>src/mission/delivery-mission.ts</c>.
     ///
     /// Five customers stand on five of the fifteen authored pavement spots, each shown twice: an
     /// overhead beacon in the world and a minor pin on the map. Ride to one, press F, and it pops.
@@ -20,8 +20,8 @@ namespace TheBlock.Missions
     ///
     /// <b>Can Unity do this better?</b> The web loads five more character FBX at boot for these
     /// standers, on top of the crowd's own copies of the same five people. Here a target IS a crowd
-    /// prefab — <c>Ped_Sophie</c>, <c>Ped_Remy</c> and the rest, already imported, already
-    /// URP-bound, already height-normalised — instantiated and simply never bound to a seed, so
+    /// prefab - <c>Ped_Sophie</c>, <c>Ped_Remy</c> and the rest, already imported, already
+    /// URP-bound, already height-normalised - instantiated and simply never bound to a seed, so
     /// <c>Pedestrian.Tick</c> never runs and it stands there idling. No second character pipeline,
     /// and no extra megabyte.
     ///
@@ -38,7 +38,7 @@ namespace TheBlock.Missions
         /// </summary>
         private const float ParkOutsideDoor = 3f;
 
-        [Header("Scene — found automatically when left empty")]
+        [Header("Scene - found automatically when left empty")]
         [SerializeField] private CampaignRunner runner;
         [SerializeField] private Interior interior;
         [SerializeField] private Transform player;
@@ -89,7 +89,7 @@ namespace TheBlock.Missions
         /// <summary>Pizzas still on the bike. The HUD's own readout, separate from the objective.</summary>
         public int Carried => Mathf.Max(0, (_spec?.PizzasGiven ?? 5) - _delivered);
 
-        /// <summary>True while the shift can be started at the counter — the cashier's prompt gate.</summary>
+        /// <summary>True while the shift can be started at the counter - the cashier's prompt gate.</summary>
         public bool CanStart => _status == MissionStatus.Inactive;
 
         private void Awake()
@@ -122,7 +122,7 @@ namespace TheBlock.Missions
         /// The shift hand-off: the cashier's briefing, then out to the street, then the targets.
         ///
         /// Runs as a coroutine because the card has to be READ before the world changes under the
-        /// player — the web awaits its promise for the same reason. The <see cref="_entering"/> latch
+        /// player - the web awaits its promise for the same reason. The <see cref="_entering"/> latch
         /// is what stops a second T during the card from starting two shifts.
         /// </summary>
         public override void Enter()
@@ -135,12 +135,12 @@ namespace TheBlock.Missions
         {
             _entering = true;
 
-            // Released in a finally — an entry latch that survives a throw is unrecoverable,
+            // Released in a finally - an entry latch that survives a throw is unrecoverable,
             // because Enter() refuses to run again while it is set.
             try
             {
                 // Hazel reads the briefing aloud while the card is up, and is cut off if the player
-                // dismisses early — the web's exact arrangement.
+                // dismisses early - the web's exact arrangement.
                 voice?.Play(_spec.BriefingVoiceUrl);
                 if (runner?.Card != null) yield return runner.Card.ShowAndWait(_spec.BriefingLines);
                 voice?.Stop();
@@ -183,7 +183,7 @@ namespace TheBlock.Missions
 
         /// <summary>
         /// A random subset of the authored spots. Every one of the fifteen is the centre of a
-        /// pavement rectangle the crowd already seeds, so all of them are walkable by construction —
+        /// pavement rectangle the crowd already seeds, so all of them are walkable by construction -
         /// there is no reachability test to run and the original says why.
         /// </summary>
         private List<TheBlockConfig.DeliverySpotSpec> PickSpots()
@@ -219,7 +219,7 @@ namespace TheBlock.Missions
                 target.Body.name = target.Id;
 
                 // Never bound to a seed, so Pedestrian.Tick is never called and the blend tree sits
-                // at Speed 0 — a stander, which is exactly the web's `mode: 'stand'`.
+                // at Speed 0 - a stander, which is exactly the web's `mode: 'stand'`.
                 if (target.Body.TryGetComponent<Pedestrian>(out var pedestrian)) pedestrian.enabled = false;
             }
 
@@ -252,7 +252,7 @@ namespace TheBlock.Missions
 
         /// <summary>
         /// Ground height at a drop-off. Casts DOWN from above and takes the FIRST hit, which on a
-        /// pavement is the pavement — not the lowest, which is the ground plate at −0.05 and the
+        /// pavement is the pavement - not the lowest, which is the ground plate at −0.05 and the
         /// fault behind U16's zebras z-fighting up through the street.
         /// </summary>
         private float GroundAt(Vector3 at)
@@ -268,10 +268,10 @@ namespace TheBlock.Missions
 
         private void Update()
         {
-            if (Core.Pause.Frozen) return; // no F, no T, and no clock behind a menu — see Core.Pause
+            if (Core.Pause.Frozen) return; // no F, no T, and no clock behind a menu - see Core.Pause
 
             // Beacons keep animating through a pop even after the shift ends, so this runs
-            // regardless of state — otherwise the last delivery's pin freezes mid-flourish.
+            // regardless of state - otherwise the last delivery's pin freezes mid-flourish.
             for (var i = _fading.Count - 1; i >= 0; i--)
             {
                 var beacon = _fading[i];
@@ -315,7 +315,7 @@ namespace TheBlock.Missions
         /// <summary>
         /// Hands a pizza to whoever is in reach. True if one was delivered.
         ///
-        /// Public because it is the ACTION, and the key press is only one way to ask for it — the
+        /// Public because it is the ACTION, and the key press is only one way to ask for it - the
         /// same reason <c>VehicleEnterExit.TryEnter</c> is public. It is also the only honest way to
         /// measure a delivery without a synthetic key press, and synthetic keys in this project have
         /// their own memory file about how they decay.
@@ -406,7 +406,7 @@ namespace TheBlock.Missions
                 _fading.Add(target.Beacon);
             }
 
-            // The ding first, then the line. They are two channels — Sfx and Voice — so they overlap
+            // The ding first, then the line. They are two channels - Sfx and Voice - so they overlap
             // rather than queue, and the web fires them in this order for the same reason: the ding
             // is the confirmation that the press landed, and it must not wait on a customer talking.
             TheBlock.Audio.GameAudio.Cue(TheBlock.Audio.SfxCue.Delivery);
@@ -444,7 +444,7 @@ namespace TheBlock.Missions
         ///
         /// <b>A retry is a new shift, so it starts where a shift starts.</b> U21 restarted it in
         /// place, which meant pressing F in an alley three blocks away spawned five new customers
-        /// around a rider who had never collected the pizzas — the run had no beginning. Now F puts
+        /// around a rider who had never collected the pizzas - the run had no beginning. Now F puts
         /// you back behind the counter, Hazel briefs you again, and <see cref="EnterRoutine"/>'s own
         /// <c>LeaveNow</c> steps you out onto the pavement with the clock starting there.
         ///
@@ -459,7 +459,7 @@ namespace TheBlock.Missions
             _status = MissionStatus.Inactive;
 
             // With no interior in the scene there is nowhere to go back to, so the old in-place
-            // restart is the fallback rather than an error — the mission still has to be playable.
+            // restart is the fallback rather than an error - the mission still has to be playable.
             if (interior == null)
             {
                 Begin();
@@ -471,7 +471,7 @@ namespace TheBlock.Missions
         }
 
         /// <summary>
-        /// Puts the rider back inside the pizzeria — and his ride at the kerb outside it.
+        /// Puts the rider back inside the pizzeria - and his ride at the kerb outside it.
         ///
         /// <b>The vehicle is the part that is easy to miss.</b> Teleporting the player out of the
         /// saddle and leaving the bike wherever the shift died restarts a four-minute run across
@@ -520,7 +520,7 @@ namespace TheBlock.Missions
                     Destroy(beacon.gameObject);
             _fading.Clear();
 
-            // Only what this component made. A component may only destroy what it made — the fault
+            // Only what this component made. A component may only destroy what it made - the fault
             // U18 found when CrowdSpawner.Bind deleted the blood pool off a shared object.
             if (_root != null) Destroy(_root.gameObject);
             _root = null;

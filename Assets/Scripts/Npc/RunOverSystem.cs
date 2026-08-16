@@ -10,8 +10,8 @@ namespace TheBlock.Npc
     /// Who the player just ran over. The port of <c>crowd.runOver()</c> plus the frame-loop gate in
     /// the original's <c>main.ts</c>.
     ///
-    /// <b>ONE detector, and it is the bumper box.</b> The original shipped two — this test, and a
-    /// separate radius scan in <c>crime.ts</c> that decided whether to call the police — and they
+    /// <b>ONE detector, and it is the bumper box.</b> The original shipped two - this test, and a
+    /// separate radius scan in <c>crime.ts</c> that decided whether to call the police - and they
     /// fought: the radius scan skipped anyone already yielding to the car bearing down on them, and
     /// wanted the victim within 1.8 m of the vehicle CENTRE while the box downs them at about 3.2 m.
     /// The result was blood on the road and, usually, no stars. That call is dead and is not being
@@ -19,7 +19,7 @@ namespace TheBlock.Npc
     ///
     /// <b>In FixedUpdate, and padded by a step's travel.</b> A person's capsule is solid, so a car
     /// arriving at 20 m/s would hit a wall for one physics step before anything downed them. Firing
-    /// on the step BEFORE contact is what makes the hit feel like a hit rather than a stop — the
+    /// on the step BEFORE contact is what makes the hit feel like a hit rather than a stop - the
     /// bumper box is padded by the victim's own body radius (a person is a capsule, not a point,
     /// which is what stopped a fender-corner clip doing nothing in the web build), plus how far the
     /// vehicle will move before the next step. Below <see cref="minSpeedKmh"/> none of that happens
@@ -43,7 +43,7 @@ namespace TheBlock.Npc
                  "same place. The web build never needed this because its city is one storey.")]
         [SerializeField] private float sameStoreyBand = 3f;
 
-        [Tooltip("Logs every hit with the numbers behind it — victim, speed, and how far the body was " +
+        [Tooltip("Logs every hit with the numbers behind it - victim, speed, and how far the body was " +
                  "actually thrown. This is how the knockback was measured; leave it on until it is.")]
         [SerializeField] private bool logHits = true;
 
@@ -124,7 +124,7 @@ namespace TheBlock.Npc
         ///
         /// Measured rather than configured, and it has to be: the car's box is the Mustang's measured
         /// bounds while the bike's WIDTH is deliberately overridden to 0.5 m (bike plus rider, not the
-        /// span of the mirrors) — so a bike that hit as wide as a car would mow down the pavement on
+        /// span of the mirrors) - so a bike that hit as wide as a car would mow down the pavement on
         /// both sides of it.
         /// </summary>
         private static bool TryBox(Transform vehicle, out TrafficGeometry.Box box)

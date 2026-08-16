@@ -12,7 +12,7 @@ namespace TheBlock.Audio
     }
 
     /// <summary>
-    /// The voice of a pedestrian being run over — the port of <c>src/audio/scream.ts</c>. A short
+    /// The voice of a pedestrian being run over - the port of <c>src/audio/scream.ts</c>. A short
     /// scream from the male or female pool with the synthesized body thud under it, fired once on
     /// the impact frame by <c>RunOverReaction.Begin</c>.
     ///
@@ -21,21 +21,21 @@ namespace TheBlock.Audio
     /// had a real claim on 3D and does not get it.
     ///
     /// <b>The throttle is the feature, not an optimisation.</b> A bumper box downs EVERY person
-    /// inside it in a single frame — U18 measured sixteen at once — so plowing a pavement offers up
+    /// inside it in a single frame - U18 measured sixteen at once - so plowing a pavement offers up
     /// five screams simultaneously, which reads as one loud mush instead of a reaction.
     /// <c>maxConcurrent</c> 2 still says "I hit a group", and <c>minGapSec</c> 0.18 is the other half
     /// of the same defence: it spaces out a fast run along a LINE of people, where the hits are
     /// frames rather than metres apart.
     ///
     /// <b>One thing the web had to work around is simply gone.</b> Its concurrency counter is
-    /// decremented by <c>onended</c>, which a suspended context can swallow — leaving the count
+    /// decremented by <c>onended</c>, which a suspended context can swallow - leaving the count
     /// wedged at the cap and every later hit silent forever, a dead feature with no error. It needs
     /// a <c>quietBy</c> horizon to detect and drop a stale count. Here the count is
     /// <see cref="AudioSource.isPlaying"/> over the pool: the question is asked of the thing that
     /// knows the answer, so there is no counter to go stale.
     ///
     /// <b>The clock is <see cref="AudioSettings.dspTime"/>, not <c>Time.time</c></b>, matching the
-    /// web's use of the audio context clock — and it matters here for a reason particular to this
+    /// web's use of the audio context clock - and it matters here for a reason particular to this
     /// project: measurements in <c>PORT-STATUS.md</c> are taken with <c>timeScale</c> at 0.02, and a
     /// scaled clock would make the 0.18 s gap read as 9 seconds of wall time.
     /// </summary>
@@ -83,7 +83,7 @@ namespace TheBlock.Audio
             _spec = TheBlockConfig.Load()?.Scream;
             if (_spec == null)
             {
-                Debug.LogWarning("Screams: no screamConfig in the snapshot — run tools/export-config.sh.");
+                Debug.LogWarning("Screams: no screamConfig in the snapshot - run tools/export-config.sh.");
                 _spec = new TheBlockConfig.ScreamSpec();
             }
 
@@ -110,7 +110,7 @@ namespace TheBlock.Audio
         }
 
         /// <summary>
-        /// Fires the reaction for one victim. Self-throttling — safe to call once per person knocked
+        /// Fires the reaction for one victim. Self-throttling - safe to call once per person knocked
         /// down, including several in the same frame.
         /// </summary>
         public void Play(ScreamVoice voice)

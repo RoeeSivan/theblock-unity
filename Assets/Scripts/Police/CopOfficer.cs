@@ -8,27 +8,27 @@ namespace TheBlock.Police
     /// The officer who drives the cruiser and finishes the arrest on foot.
     ///
     /// <b>She is one body in two places, not two bodies.</b> Seated, she is a child of the car's
-    /// <c>DriverAnchor</c> with her agent, her capsule and her Animator all switched off — a pose
+    /// <c>DriverAnchor</c> with her agent, her capsule and her Animator all switched off - a pose
     /// held on a skinned mesh costs nothing per frame, and the car carries her because her
     /// Rigidbody is kinematic and a kinematic body follows the transform it hangs under. Deployed,
     /// she is unparented at that same anchor and becomes a NavMeshAgent. There is no second prefab
     /// to keep in sync and no swap to get wrong.
     ///
     /// <b>The anchor is why the exit needs no animation.</b> <c>DriverAnchor</c> is where the entry
-    /// clip's ORIGIN goes — a person standing beside the door at road level — and the clip's own
+    /// clip's ORIGIN goes - a person standing beside the door at road level - and the clip's own
     /// travel is what carries the body into the seat (see the memory file
     /// <c>driver-seat-is-clip-origin</c>, and <c>CarBuilder.BuildDriverAnchor</c>). So sitting is
     /// <c>Joe_EnterCar</c> held at normalized time 1, standing up again is the same clip at 0, and
-    /// the transform never moves between the two. The cruiser's doors do not open — no car in this
-    /// project has a door joint on the driver's side — which is the same compromise the player
+    /// the transform never moves between the two. The cruiser's doors do not open - no car in this
+    /// project has a door joint on the driver's side - which is the same compromise the player
     /// already lives with.
     ///
     /// <b>The NavMesh is a pursuit surface here and only here.</b> U16b deleted agents from the
     /// crowd for good reasons: 1,147 of them owned their own transforms, avoided each other, and
     /// walked authored strips that never needed a path. None of that applies to three officers who
     /// have to corner a building after somebody who is actively running away. The fallback below
-    /// exists because the player can stand where the mesh does not reach — the car park they spawn
-    /// in is 80 m from the nearest road — and an officer frozen at the kerb because
+    /// exists because the player can stand where the mesh does not reach - the car park they spawn
+    /// in is 80 m from the nearest road - and an officer frozen at the kerb because
     /// <c>SetDestination</c> failed would read as a bug, not as a limit.
     /// </summary>
     [RequireComponent(typeof(NavMeshAgent))]
@@ -46,7 +46,7 @@ namespace TheBlock.Police
             Returning,
         }
 
-        [Header("Wiring — filled by CopOfficerBuilder")]
+        [Header("Wiring - filled by CopOfficerBuilder")]
         [SerializeField] private Animator animator;
         [SerializeField] private NavMeshAgent agent;
         [SerializeField] private CapsuleCollider capsule;
@@ -58,7 +58,7 @@ namespace TheBlock.Police
         [SerializeField] private float runSpeed = 6.2f;
 
         [Tooltip("Seconds between path requests. A destination that moves every frame does not need " +
-                 "a new A* every frame — the agent keeps following the old corridor meanwhile.")]
+                 "a new A* every frame - the agent keeps following the old corridor meanwhile.")]
         [SerializeField] private float repathInterval = 0.25f;
 
         [Tooltip("Metres of NavMesh search around a destination that is off the mesh.")]
@@ -86,13 +86,13 @@ namespace TheBlock.Police
         /// Metres she stops SHORT of the player, pushed in from <see cref="PoliceTuning.OfficerStandoff"/>
         /// at pool fill.
         ///
-        /// <b>The player is not an obstacle to a NavMeshAgent</b> — a `CharacterController` is neither
+        /// <b>The player is not an obstacle to a NavMeshAgent</b> - a `CharacterController` is neither
         /// an agent nor a carve, so nothing in the navigation system knows it is standing there, and a
         /// destination set to the player's exact position is an instruction to occupy them. The first
         /// play-test saw exactly that: she ran up and kept going, into and through.
         ///
         /// The stopping distance is a QUARTER of it, not a match, because the destination is already
-        /// the standoff point — see <see cref="StandoffPoint"/>. Setting both to the same number would
+        /// the standoff point - see <see cref="StandoffPoint"/>. Setting both to the same number would
         /// stop her at two standoffs, outside her own grab radius, which is the arrest never firing
         /// again by a different route. What the quarter buys is a dead band: without one the agent
         /// re-solves for a point it is already standing on every <see cref="repathInterval"/> and
@@ -159,7 +159,7 @@ namespace TheBlock.Police
             if (animator == null) return;
 
             // ⚠ AlwaysAnimate is what makes the next three lines do anything at all. A culled
-            // Animator — and every cruiser parked at the station is culled — evaluates its state
+            // Animator - and every cruiser parked at the station is culled - evaluates its state
             // machine and then skips WRITING the pose to the bones, so this whole call silently
             // left her standing in the bind pose beside the door. Asserted here as well as on the
             // prefab because it is the kind of field a later hand-edit puts back.
@@ -176,7 +176,7 @@ namespace TheBlock.Police
         /// <summary>
         /// Out of the car, at the door, running.
         ///
-        /// Returns false when there is nothing to step out of — no seat bound — which is the only
+        /// Returns false when there is nothing to step out of - no seat bound - which is the only
         /// way this can fail. Being off the NavMesh does not fail it: she walks in a straight line
         /// until the mesh is under her again.
         /// </summary>
@@ -253,13 +253,13 @@ namespace TheBlock.Police
         ///
         /// It is done here rather than by <c>agent.stoppingDistance</c> alone because ONE mechanism
         /// has to serve both paths: <see cref="Walk"/> is a hand-rolled straight line with no agent
-        /// in it at all, and the spawn car park — where a chase on foot is most likely to start — has
+        /// in it at all, and the spawn car park - where a chase on foot is most likely to start - has
         /// no NavMesh within 10 m. A brake that only exists on the agent would let her walk through
         /// the player on precisely the ground the fallback covers.
         ///
         /// <b>The clamp is what stops her backing away.</b> Once she is nearer than the standoff the
         /// pull-back would otherwise put the destination BEHIND her, and she would retreat to arm's
-        /// length every time the player closed in — a grab radius that pushes its own target out of
+        /// length every time the player closed in - a grab radius that pushes its own target out of
         /// itself. Clamped to her own distance, the point becomes where she is standing and she
         /// simply holds.
         /// </summary>
@@ -282,7 +282,7 @@ namespace TheBlock.Police
         /// heading the last step left her on is the one she keeps. The band is deliberately wider
         /// than the standoff itself so the turn starts as she settles rather than snapping after it,
         /// and it is inside the agent's stopping distance, so this is not fighting the agent for the
-        /// rotation — by here it has already given up steering.
+        /// rotation - by here it has already given up steering.
         /// </summary>
         private void FaceWhenClose(Vector3 target, float dt)
         {
@@ -296,7 +296,7 @@ namespace TheBlock.Police
                 transform.rotation, Quaternion.LookRotation(look, Vector3.up), 480f * dt);
         }
 
-        /// <summary>Planar metres between her and a point — the arrest test's input.</summary>
+        /// <summary>Planar metres between her and a point - the arrest test's input.</summary>
         public float DistanceTo(Vector3 point) => Planar(transform.position, point);
 
         // --- movement ------------------------------------------------------------------------------
@@ -318,7 +318,7 @@ namespace TheBlock.Police
         /// <summary>
         /// Off the mesh: straight at them, on whatever ground the crowd's own probe can find.
         ///
-        /// This is not a pathfinder and is not trying to be — it is the twenty metres of car park or
+        /// This is not a pathfinder and is not trying to be - it is the twenty metres of car park or
         /// sand between the mesh and the player, walked in a straight line, with the agent taken
         /// back the moment there is a polygon under her feet again.
         /// </summary>

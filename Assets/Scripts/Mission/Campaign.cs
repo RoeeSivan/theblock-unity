@@ -7,7 +7,7 @@ namespace TheBlock.Missions
     /// The campaign runner: the ordered list of missions and a cursor at the current one. The port
     /// of <c>src/mission/campaign.ts</c>.
     ///
-    /// Deliberately tiny and engine-light — it owns SEQUENCE, not gameplay. Reorder
+    /// Deliberately tiny and engine-light - it owns SEQUENCE, not gameplay. Reorder
     /// <see cref="missions"/> in the Inspector to reorder the game; everything here keys off list
     /// position or mission id.
     /// </summary>
@@ -53,7 +53,7 @@ namespace TheBlock.Missions
 
         /// <summary>
         /// If the current mission reports complete and a later one exists, advance the cursor.
-        /// Returns true if it moved. Points the HUD at what is next without forcing an auto-start —
+        /// Returns true if it moved. Points the HUD at what is next without forcing an auto-start -
         /// whether missions chain or drop you back into free roam stays a design choice, and in this
         /// game it is free roam.
         /// </summary>
@@ -67,12 +67,12 @@ namespace TheBlock.Missions
         }
 
         /// <summary>
-        /// The campaign is over — i.e. the LAST mission reports complete.
+        /// The campaign is over - i.e. the LAST mission reports complete.
         ///
         /// <b>Deliberately not "every mission is complete"</b>, and the web build's own comment
         /// explains what that cost it: Mission Select and Continue both jump the cursor forward,
         /// which leaves the skipped missions inactive forever. An all-complete test made the win
-        /// state permanently unreachable for anyone who did not play one straight run — no win card,
+        /// state permanently unreachable for anyone who did not play one straight run - no win card,
         /// the objective line pinned forever, the final marker never cleared. Keying off the last
         /// mission means "you finished the finale" however you got there.
         /// </summary>

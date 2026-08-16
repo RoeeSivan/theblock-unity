@@ -32,7 +32,7 @@ namespace TheBlock.Minigame.Rhythm
         }
     }
 
-    /// <summary>The run's tally. Immutable — folded, never mutated, exactly as the web's is.</summary>
+    /// <summary>The run's tally. Immutable - folded, never mutated, exactly as the web's is.</summary>
     public readonly struct Score
     {
         public readonly int Points;
@@ -55,14 +55,14 @@ namespace TheBlock.Minigame.Rhythm
         public int Judged => Perfect + Good + Miss;
 
         /// <summary>
-        /// Weighted accuracy in 0..1 — perfect 1, good 0.5, miss 0. An empty run is 1, which is what
+        /// Weighted accuracy in 0..1 - perfect 1, good 0.5, miss 0. An empty run is 1, which is what
         /// stops a routine nobody played from reading as a failure.
         /// </summary>
         public float Accuracy => Judged == 0 ? 1f : (Perfect + Good * 0.5f) / Judged;
     }
 
     /// <summary>
-    /// The pure half of the dance — the port of <c>src/minigame/rhythm/scoring.ts</c>.
+    /// The pure half of the dance - the port of <c>src/minigame/rhythm/scoring.ts</c>.
     ///
     /// No UI, no audio, no scene. That separation is the web build's and it is worth keeping for the
     /// same reason: the timing rules are the one part of a rhythm game that has a right answer, and
@@ -73,7 +73,7 @@ namespace TheBlock.Minigame.Rhythm
         /// <summary>
         /// Classifies a press against a note. <paramref name="delta"/> is press − note time; the sign
         /// is ignored, because early and late are equally wrong. Null means the press is outside the
-        /// good window and does NOT belong to this note — it must not consume it.
+        /// good window and does NOT belong to this note - it must not consume it.
         /// </summary>
         public static Judgment? Judge(float delta, TheBlockConfig.HitWindowsSpec windows)
         {

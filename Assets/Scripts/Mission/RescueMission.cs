@@ -11,11 +11,11 @@ using UnityEngine.InputSystem;
 namespace TheBlock.Missions
 {
     /// <summary>
-    /// M3, the rooftop rescue — the port of <c>src/mission/rescue-mission.ts</c>.
+    /// M3, the rooftop rescue - the port of <c>src/mission/rescue-mission.ts</c>.
     ///
     /// A near-twin of the delivery run by design: the same lifecycle, the same overhead beacon, the
     /// same map pin. What differs is that the targets are on ROOFS and "deliver" becomes "descend
-    /// the Huey close enough and they climb aboard" — no key press, the same feel as the web's.
+    /// the Huey close enough and they climb aboard" - no key press, the same feel as the web's.
     ///
     /// The survivors reuse the delivery run's five faces, which is the ORIGINAL's own choice: its
     /// <c>rescue.config.ts</c> deliberately lists no faces of its own so there is a single source of
@@ -26,13 +26,13 @@ namespace TheBlock.Missions
     /// </summary>
     public class RescueMission : MissionBehaviour
     {
-        [Header("Scene — found automatically when left empty")]
+        [Header("Scene - found automatically when left empty")]
         [SerializeField] private CampaignRunner runner;
         [SerializeField] private VehicleEnterExit vehicles;
         [SerializeField] private MissionHud hud;
         [SerializeField] private Voice voice;
 
-        [Header("Content — written by Build Campaign")]
+        [Header("Content - written by Build Campaign")]
         [SerializeField] private RoofSpots roofs;
         [SerializeField] private List<GameObject> facePrefabs = new();
         [SerializeField] private HelicopterController helicopter;
@@ -109,7 +109,7 @@ namespace TheBlock.Missions
             _entering = true;
 
             // The latch is released in a finally, so a throw anywhere inside cannot leave the
-            // mission believing it is still starting — which is unrecoverable, because Enter()
+            // mission believing it is still starting - which is unrecoverable, because Enter()
             // refuses to run again while it is set.
             try
             {
@@ -133,7 +133,7 @@ namespace TheBlock.Missions
                 // lives INSIDE the loop over survivors, so with none placed the run could never be
                 // won and the player flew until the clock hard-failed a mission that was impossible.
                 // Treat an empty bake as already finished rather than as a guaranteed loss.
-                Debug.LogError("RescueMission: no roof spots baked — run The Block → Bake Roof Spots.");
+                Debug.LogError("RescueMission: no roof spots baked - run The Block → Bake Roof Spots.");
                 _chosen = 0;
                 _rescued = 0;
                 _status = MissionStatus.Complete;
@@ -155,7 +155,7 @@ namespace TheBlock.Missions
         /// A random subset of the baked pool, re-checked for separation.
         ///
         /// The bake already spaced its whole pool, but a SUBSET of a spaced set is still spaced, so
-        /// this only has to shuffle and take — the expensive part happened at build time.
+        /// this only has to shuffle and take - the expensive part happened at build time.
         /// </summary>
         private List<Vector3> PickSpots()
         {
@@ -249,7 +249,7 @@ namespace TheBlock.Missions
                 return;
             }
 
-            // Auto-pickup: no key press, the same feel the web gives it. Only from the CHOPPER —
+            // Auto-pickup: no key press, the same feel the web gives it. Only from the CHOPPER -
             // walking onto a roof and collecting someone would make the aircraft optional.
             if (flying) RescueNear(helicopter.transform.position);
         }
@@ -272,7 +272,7 @@ namespace TheBlock.Missions
 
         /// <summary>
         /// Scoops up everyone inside <c>rescueRadius</c> in 3D. Generous, so no pixel-perfect
-        /// landing is wanted — but it IS 3D, so overflying at altitude collects nobody.
+        /// landing is wanted - but it IS 3D, so overflying at altitude collects nobody.
         /// </summary>
         public bool RescueNear(Vector3 from)
         {
@@ -296,7 +296,7 @@ namespace TheBlock.Missions
                     _fading.Add(survivor.Beacon);
                 }
 
-                // The same two-note ding the pizza run uses — the web's `sfx.playDelivery()` on
+                // The same two-note ding the pizza run uses - the web's `sfx.playDelivery()` on
                 // `rescue.rescueNear(...)`. One cue for "one of the set is done", whatever the set is.
                 TheBlock.Audio.GameAudio.Cue(TheBlock.Audio.SfxCue.Delivery);
 

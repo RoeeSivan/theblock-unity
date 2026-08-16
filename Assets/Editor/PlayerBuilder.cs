@@ -10,12 +10,12 @@ using UnityEngine.Rendering;
 namespace TheBlock.EditorTools
 {
     /// <summary>
-    /// U30a — builds the macOS Player, and fixes the settings the Player needs but the Editor never
+    /// U30a - builds the macOS Player, and fixes the settings the Player needs but the Editor never
     /// does.
     ///
     /// <b>A menu item rather than the Build Profiles window, for one reason: the window cannot fix
     /// anything.</b> Pressing Build there produces a Player carrying whatever settings happen to be
-    /// current, and two of those settings are wrong in a way that only shows up after the build —
+    /// current, and two of those settings are wrong in a way that only shows up after the build -
     /// see <see cref="FixPlayerSettings"/>. Running the fix and the build from one place means the
     /// pair cannot drift, and re-running is free because the fix is idempotent.
     ///
@@ -48,7 +48,7 @@ namespace TheBlock.EditorTools
         /// materials reference either of these</b>, the Always Included list held only Unity's
         /// built-ins, and the project has no <c>Resources/</c> folder at all. The Editor keeps every
         /// shader resident, so <c>Shader.Find</c> has worked here for 34 units and would have
-        /// returned null the first time it ran in a Player — <c>new Material(null)</c>, and the
+        /// returned null the first time it ran in a Player - <c>new Material(null)</c>, and the
         /// mission beacons render magenta.
         ///
         /// Call sites: <c>Mission/Beacon.cs</c> (the waypoint markers) and <c>Vfx/Blood.cs</c>
@@ -67,7 +67,7 @@ namespace TheBlock.EditorTools
             EditorUtility.DisplayDialog(
                 "Player settings",
                 changes.Count == 0
-                    ? "Already correct — nothing to change."
+                    ? "Already correct - nothing to change."
                     : "Applied:\n\n• " + string.Join("\n• ", changes),
                 "OK");
         }
@@ -83,7 +83,7 @@ namespace TheBlock.EditorTools
         ///
         /// <b>It deliberately does not touch <c>companyName</c> or <c>productName</c>.</b> On macOS
         /// PlayerPrefs live at <c>~/Library/Preferences/unity.[companyName].[productName].plist</c>,
-        /// so renaming either field does not migrate the save — it makes the existing one
+        /// so renaming either field does not migrate the save - it makes the existing one
         /// unreachable, campaign progress and wallet included. The Editor and the built Player share
         /// that one file, which is also why the build opens on the current test save rather than as
         /// a clean install. Renaming is a U30c decision, to be taken after the video is recorded and
@@ -110,7 +110,7 @@ namespace TheBlock.EditorTools
                 var shader = Shader.Find(name);
                 if (shader == null)
                 {
-                    Debug.LogWarning($"PlayerBuilder: no shader named '{name}' — skipped.");
+                    Debug.LogWarning($"PlayerBuilder: no shader named '{name}' - skipped.");
                     continue;
                 }
 
@@ -134,7 +134,7 @@ namespace TheBlock.EditorTools
             if (changes.Count > 0)
             {
                 AssetDatabase.SaveAssets();
-                Debug.Log("PlayerBuilder — settings applied:\n  " + string.Join("\n  ", changes));
+                Debug.Log("PlayerBuilder - settings applied:\n  " + string.Join("\n  ", changes));
             }
 
             return changes;
@@ -151,7 +151,7 @@ namespace TheBlock.EditorTools
         private static string Preflight()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)
-                return "Play mode is running. Stop it first — a build started in Play mode is discarded on Stop.";
+                return "Play mode is running. Stop it first - a build started in Play mode is discarded on Stop.";
 
             if (EditorApplication.isCompiling || EditorApplication.isUpdating)
             {
@@ -218,7 +218,7 @@ namespace TheBlock.EditorTools
             };
 
             Debug.Log(
-                $"PlayerBuilder — building {(development ? "DEVELOPMENT" : "release")} macOS Player\n" +
+                $"PlayerBuilder - building {(development ? "DEVELOPMENT" : "release")} macOS Player\n" +
                 $"  scenes: {string.Join(", ", scenes)}\n" +
                 $"  output: {outputPath}");
 
@@ -228,7 +228,7 @@ namespace TheBlock.EditorTools
             if (summary.result != BuildResult.Succeeded)
             {
                 Debug.LogError(
-                    $"PlayerBuilder — build {summary.result}. " +
+                    $"PlayerBuilder - build {summary.result}. " +
                     $"{summary.totalErrors} error(s) after {summary.totalTime:mm\\:ss}.");
 
                 EditorUtility.DisplayDialog(
@@ -243,9 +243,9 @@ namespace TheBlock.EditorTools
             var binary = Path.Combine(outputPath, "Contents/MacOS");
 
             Debug.Log(
-                $"PlayerBuilder — build SUCCEEDED in {summary.totalTime:mm\\:ss}, " +
+                $"PlayerBuilder - build SUCCEEDED in {summary.totalTime:mm\\:ss}, " +
                 $"{megabytes:N0} MB at {outputPath}\n" +
-                $"  Verify the architecture — the one setting this script does not control:\n" +
+                $"  Verify the architecture - the one setting this script does not control:\n" +
                 $"    lipo -archs \"{binary}/\"*\n" +
                 $"  Expect: x86_64 arm64");
 

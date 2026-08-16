@@ -8,16 +8,16 @@ using Debug = UnityEngine.Debug;
 namespace TheBlock.EditorTools
 {
     /// <summary>
-    /// U15 — points the world's materials at <see cref="TextureCompressor"/>'s compressed textures
+    /// U15 - points the world's materials at <see cref="TextureCompressor"/>'s compressed textures
     /// instead of at the raw RGB24 sub-assets glTFast produced.
     ///
-    /// This is the cheap half of the unit. The expensive half — extracting the images and letting
-    /// Unity compress them — is its own menu command, because it takes minutes and Build World runs
+    /// This is the cheap half of the unit. The expensive half - extracting the images and letting
+    /// Unity compress them - is its own menu command, because it takes minutes and Build World runs
     /// constantly. If that command has never been run, every lookup misses, this pass reports how
     /// many and changes nothing: the world still builds, just heavy.
     ///
     /// It runs LAST of the material passes, after the alpha-clip pass, so it sees the final set of
-    /// materials — including the URP/Lit cutouts U11 generates, which point at the same sub-asset
+    /// materials - including the URP/Lit cutouts U11 generates, which point at the same sub-asset
     /// textures and would otherwise have kept the uncompressed copy alive on their own.
     /// </summary>
     public static partial class WorldBuilder
@@ -39,7 +39,7 @@ namespace TheBlock.EditorTools
         /// <summary>
         /// Rebinds every material on <paramref name="instance"/> whose textures live inside a .glb.
         ///
-        /// A material we generated ourselves (the alpha-clip cutouts) is edited in place — it is
+        /// A material we generated ourselves (the alpha-clip cutouts) is edited in place - it is
         /// build output either way. An IMPORTED glTFast material cannot be: it is a sub-asset of the
         /// .glb and read-only, so it is cloned into <see cref="CompressedMaterialFolder"/> first.
         ///
@@ -96,7 +96,7 @@ namespace TheBlock.EditorTools
 
             if (misses > 0)
                 report.Warnings.Add(
-                    $"{instance.name}: {misses} texture(s) have no compressed copy and stay RGB24 — " +
+                    $"{instance.name}: {misses} texture(s) have no compressed copy and stay RGB24 - " +
                     $"run The Block → Compress Textures ({string.Join(", ", missNames.Take(4))}" +
                     $"{(missNames.Count > 4 ? ", …" : string.Empty)})");
         }
@@ -106,8 +106,8 @@ namespace TheBlock.EditorTools
         /// and has a compressed twin on disk, as property-name -> replacement.
         ///
         /// Anything that points inside a .glb and has NO twin is counted as a miss rather than left
-        /// silent: a partly-compressed district is the worst outcome — it costs the disk of the new
-        /// copy and keeps the old one resident anyway — so it has to show up in the build report.
+        /// silent: a partly-compressed district is the worst outcome - it costs the disk of the new
+        /// copy and keeps the old one resident anyway - so it has to show up in the build report.
         /// </summary>
         private static Dictionary<string, Texture> FindCompressedSwaps(
             Material material, SortedSet<string> missNames, ref int misses)
@@ -127,7 +127,7 @@ namespace TheBlock.EditorTools
                 var sourcePath = AssetDatabase.GetAssetPath(texture);
                 if (!sourcePath.EndsWith(".glb", StringComparison.OrdinalIgnoreCase)) continue;
 
-                // Below the compressor's threshold on purpose — a miss here is the design, not a
+                // Below the compressor's threshold on purpose - a miss here is the design, not a
                 // missing run, so it must not be reported as one.
                 if ((long)texture.width * texture.height < TextureCompressor.SkipBelowPixels) continue;
 
@@ -224,7 +224,7 @@ namespace TheBlock.EditorTools
             return path.StartsWith(CutoutMaterialFolder, StringComparison.Ordinal)
                    || path.StartsWith(CompressedMaterialFolder, StringComparison.Ordinal)
                    // U13's lot-car paint. Build output like the rest, so it is edited rather than
-                   // cloned — cloning it would also break the instancing that made it a material
+                   // cloned - cloning it would also break the instancing that made it a material
                    // asset in the first place.
                    || path.StartsWith(LotCarMaterialFolder, StringComparison.Ordinal);
         }

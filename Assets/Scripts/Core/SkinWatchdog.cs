@@ -6,7 +6,7 @@ namespace TheBlock.Core
     /// <summary>
     /// Catches the wedge.
     ///
-    /// A skinned mesh drawn across the sky is the same failure every time — one bone gets a world
+    /// A skinned mesh drawn across the sky is the same failure every time - one bone gets a world
     /// pose that has nothing to do with the rest of the skeleton, and every vertex weighted to it is
     /// dragged there. What makes it expensive is not the fix but the identification: it is
     /// intermittent, it is gone by the time anyone can look, and a screenshot cannot say whether the
@@ -17,20 +17,20 @@ namespace TheBlock.Core
     /// anything this game legitimately skins, name it, name the bone that dragged it, and PAUSE the
     /// editor on that frame so the Game view still shows what the log is describing.
     ///
-    /// Editor-only by construction — the auto-install is compiled out of a player build.
+    /// Editor-only by construction - the auto-install is compiled out of a player build.
     /// </summary>
     [DisallowMultipleComponent]
     public class SkinWatchdog : MonoBehaviour
     {
         /// <summary>
         /// How far a bone may sit from the middle of its own skeleton before it is not a pose but a
-        /// fault — the floor under the adaptive limit, for skeletons small enough that a proportional
+        /// fault - the floor under the adaptive limit, for skeletons small enough that a proportional
         /// budget would be jumpy. A pedestrian spans about 2 m and its bones never spread past that,
         /// so three is above every honest answer for a person.
         ///
         /// <b>Measured on the BONES, not on <c>renderer.bounds</c>, and that is the whole trick.</b>
         /// A SkinnedMeshRenderer's bounds are baked at import and re-derived from the root bone's
-        /// transform — they do NOT grow when a bone is thrown. Verified here by throwing
+        /// transform - they do NOT grow when a bone is thrown. Verified here by throwing
         /// <c>Hood_front_5</c> 500 m and watching the bounds report 5.65 m as if nothing had
         /// happened. A bounds-based watchdog is not a weak test, it is a test that can never fire.
         /// </summary>
@@ -41,14 +41,14 @@ namespace TheBlock.Core
         /// diagonal before it counts as a fault.
         ///
         /// <b>Why a fixed 15 m was the wrong number, measured.</b> That was chosen against the
-        /// wedge, which reaches the horizon, and it is 2.6x the Mustang's whole length — so a spike
+        /// wedge, which reaches the horizon, and it is 2.6x the Mustang's whole length - so a spike
         /// of six to fourteen metres, long enough to draw a white ray across half the screen, sat
         /// comfortably underneath it and this watchdog stayed silent through a play-test that
         /// produced a screenshot of exactly that. The budget has to be a proportion of the thing
         /// being watched, not a constant shared by a car and a pedestrian.
         ///
         /// One is deliberately tight: the Mustang's baked bounds are 6.6 m corner to corner and its
-        /// worst honest bone — <c>steer_3</c>, the steering column tip — measures 2.9 m out, so this
+        /// worst honest bone - <c>steer_3</c>, the steering column tip - measures 2.9 m out, so this
         /// leaves better than 3 m of headroom over the worst pose the car legitimately reaches.
         /// </summary>
         [SerializeField] private float strayPerDiagonal = 1f;
@@ -97,7 +97,7 @@ namespace TheBlock.Core
 
                 // Against the first bone rather than the median: this runs every frame on every
                 // skeleton in the scene, and the median costs three sorts. If the first bone is
-                // itself the thrown one every other bone reads as far, which still trips — the
+                // itself the thrown one every other bone reads as far, which still trips - the
                 // report then does the expensive, careful version to name the right bone.
                 var anchor = bones[0] != null ? bones[0].position : Vector3.zero;
                 float stray = 0f;
@@ -134,17 +134,17 @@ namespace TheBlock.Core
 
             var report = new StringBuilder();
             report.AppendLine($"SkinWatchdog: {Path(smr.transform)} has a bone {stray:0.#} m out of " +
-                              $"its own skeleton — this is the wedge. Limit was {limit:0.#} m " +
+                              $"its own skeleton - this is the wedge. Limit was {limit:0.#} m " +
                               $"(baked diagonal {smr.bounds.size.magnitude:0.#} m).");
 
             // The renderer names the victim; the bones name the culprit. Measure every bone against
-            // the MEDIAN of the skeleton rather than against the root — a thrown root would make
+            // the MEDIAN of the skeleton rather than against the root - a thrown root would make
             // every other bone look like the outlier, and it is the one bone that disagrees with the
             // crowd that is always the one that was written wrong.
             var bones = smr.bones;
             if (bones == null || bones.Length == 0)
             {
-                report.AppendLine("  no bones on this renderer — the fault is the mesh or its root bone.");
+                report.AppendLine("  no bones on this renderer - the fault is the mesh or its root bone.");
             }
             else
             {
@@ -170,7 +170,7 @@ namespace TheBlock.Core
                     var bone = bones[worst];
                     var q = bone.rotation;
                     float norm = q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w;
-                    report.AppendLine($"  bone[{worst}] {bone.name} is {worstDistance:0.#} m out — " +
+                    report.AppendLine($"  bone[{worst}] {bone.name} is {worstDistance:0.#} m out - " +
                                       $"pos {bone.position}, quaternion norm {norm:0.####} " +
                                       $"(1 is a valid rotation), local {bone.localPosition}");
                 }

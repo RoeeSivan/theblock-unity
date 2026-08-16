@@ -11,29 +11,29 @@ namespace TheBlock.World
     /// background are byte-identical, and the far plane at 1500 m is invisible ONLY because the haze
     /// reaches full opacity in front of it. Porting the plane without the fog sliced towers
     /// mid-building against clear sky and survived four units unnoticed. A clock that darkens the fog
-    /// on a different schedule from the sky puts that cut straight back at 21:00 — so both come out
+    /// on a different schedule from the sky puts that cut straight back at 21:00 - so both come out
     /// of one struct, sampled once, applied in the same frame.
     /// </summary>
     public readonly struct SkyStop
     {
-        /// <summary>Hour of day this stop is authored at, 0–24.</summary>
+        /// <summary>Hour of day this stop is authored at, 0-24.</summary>
         public readonly float Hour;
 
         /// <summary>
-        /// The key light's colour — the SUN above the horizon and the MOON below it, because there
+        /// The key light's colour - the SUN above the horizon and the MOON below it, because there
         /// is only one light. URP's main light is the brightest directional in the scene; a second
         /// one for the moon would be demoted to an additional light, which gets no shadows and is
         /// priced per pixel. So the one light swings a full 360°, is mirrored to the opposite side of
         /// the sky once it passes under, and simply changes colour.
         ///
-        /// sRGB — <c>Light.color</c> is gamma space and Unity converts on upload, so these are the
+        /// sRGB - <c>Light.color</c> is gamma space and Unity converts on upload, so these are the
         /// values you would type into the Inspector.
         /// </summary>
         public readonly Color Sun;
 
         /// <summary>Key light intensity. Roughly 0.1 at night, which is moonlight, not sunlight.
         /// <see cref="DayNightCycle"/> ramps it to zero either side of the horizon crossing so that
-        /// the mirror is invisible, and drops shadows entirely below it — that is the refund.</summary>
+        /// the mirror is invisible, and drops shadows entirely below it - that is the refund.</summary>
         public readonly float SunIntensity;
 
         /// <summary>The three <c>AmbientMode.Trilight</c> colours. sRGB, same as above.</summary>
@@ -87,7 +87,7 @@ namespace TheBlock.World
             Saturation = saturation;
         }
 
-        /// <summary>Component-wise blend. <c>t</c> is not clamped by the caller — <see cref="SkyPalette"/>
+        /// <summary>Component-wise blend. <c>t</c> is not clamped by the caller - <see cref="SkyPalette"/>
         /// only ever passes 0..1.</summary>
         public static SkyStop Lerp(in SkyStop a, in SkyStop b, float t) => new(
             Mathf.Lerp(a.Hour, b.Hour, t),
@@ -110,15 +110,15 @@ namespace TheBlock.World
     ///
     /// <b>Static and code-only, and that is the important decision in this file.</b> The obvious
     /// shape is a <c>[SerializeField] SkyStop[]</c> on <see cref="DayNightCycle"/> so the colours are
-    /// Inspector-editable — and it is a trap this project has already been bitten by: a serialized
+    /// Inspector-editable - and it is a trap this project has already been bitten by: a serialized
     /// field's value is written into <c>World.unity</c> the first time the scene is saved, and from
     /// then on the C# initialiser is dead. Re-tuning it changes nothing and reports nothing
     /// (memory: <c>scene-serialized-value-beats-cs-default</c>). Only the four numbers a player or a
-    /// tester turns — day length, start hour, fixed hour, enabled — are serialized. The palette lives
+    /// tester turns - day length, start hour, fixed hour, enabled - are serialized. The palette lives
     /// here, where editing it always takes effect.
     ///
     /// <b>Hour 9.33 is the anchor and is not free to move.</b> The scene's stock directional light
-    /// sits at <c>{50, −30, 0}</c>, and this cycle's rotation is <c>x = (hour − 6) × 15</c> — so 50°
+    /// sits at <c>{50, −30, 0}</c>, and this cycle's rotation is <c>x = (hour − 6) × 15</c> - so 50°
     /// is 09:20. The stop at that hour reproduces today's lighting field for field: the light's own
     /// <c>#FFF4D6</c> at intensity 1, the scene's stored ambient triple, and <c>#9FB8D4</c> fog,
     /// which is <c>config.background</c>. That is what lets the setting default to Fixed and be
@@ -129,13 +129,13 @@ namespace TheBlock.World
         /// <summary>The hour the scene's own lighting corresponds to. See the type summary.</summary>
         public const float AnchorHour = 9.3333f;
 
-        /// <summary>Degrees of sun rotation per hour. 360 / 24 — sunrise at 06:00, zenith at 12:00,
+        /// <summary>Degrees of sun rotation per hour. 360 / 24 - sunrise at 06:00, zenith at 12:00,
         /// sunset at 18:00, and the light under the map at midnight.</summary>
         public const float DegreesPerHour = 15f;
 
         /// <summary>Sun elevation, in degrees, at which shadows have faded fully in. Below this the
-        /// cascades stretch far enough that the project's 0.1/0.5 depth and normal bias — tuned
-        /// against a 50° sun — produce acne and peter-panning.</summary>
+        /// cascades stretch far enough that the project's 0.1/0.5 depth and normal bias - tuned
+        /// against a 50° sun - produce acne and peter-panning.</summary>
         public const float ShadowFadeElevation = 12f;
 
         /// <summary>
@@ -143,7 +143,7 @@ namespace TheBlock.World
         ///
         /// This is what hides the moon mirror. At the crossing the sun points horizontally one way
         /// and the moon horizontally the other, so flipping between them is a 180° change in light
-        /// direction — plainly visible on every vertical wall in the city unless the light is
+        /// direction - plainly visible on every vertical wall in the city unless the light is
         /// contributing nothing at the moment it happens. Two degrees is about five seconds of a
         /// 24-minute day, and the sky and ambient carry the look across it.
         /// </summary>
@@ -163,7 +163,7 @@ namespace TheBlock.World
 
         /// <summary>
         /// Sorted by hour, wrapping at 24. The first and last stops are both midnight and MUST hold
-        /// identical values — <see cref="Sample"/> blends across the wrap between them, and a
+        /// identical values - <see cref="Sample"/> blends across the wrap between them, and a
         /// mismatch would show as a hard snap at 00:00.
         /// </summary>
         private static readonly SkyStop[] Stops =
@@ -186,7 +186,7 @@ namespace TheBlock.World
 
         /// <summary>
         /// The look at <paramref name="hour"/>, blended between the two stops bracketing it. Hours
-        /// outside 0–24 wrap, so a caller never has to normalise before asking.
+        /// outside 0-24 wrap, so a caller never has to normalise before asking.
         /// </summary>
         public static SkyStop Sample(float hour)
         {
@@ -209,7 +209,7 @@ namespace TheBlock.World
         }
 
         /// <summary>Ease in and out of every stop. Linear blending between hand-placed keys puts a
-        /// visible crease at each one — the rate of change jumps, and on a sky that is exactly what
+        /// visible crease at each one - the rate of change jumps, and on a sky that is exactly what
         /// the eye catches.</summary>
         private static float SmoothStep(float t) => t * t * (3f - 2f * t);
 

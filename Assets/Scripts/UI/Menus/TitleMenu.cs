@@ -7,14 +7,14 @@ using UnityEngine.UIElements;
 namespace TheBlock.UI.Menus
 {
     /// <summary>
-    /// The cold-launch title screen — the port of <c>src/ui/title-menu.ts</c>.
+    /// The cold-launch title screen - the port of <c>src/ui/title-menu.ts</c>.
     ///
     /// New Game · Continue · Character · Mission Select · Settings · How to Play, over the city
     /// standing frozen behind it. <see cref="GameFlow"/> decides what each one DOES; this owns which
     /// panel is on screen and what the rows say.
     ///
     /// <b>No Multiplayer button.</b> The web has one; U32 is deferred by decision, and a button that
-    /// cannot do anything is worse on a title screen than anywhere else — it is the first thing a
+    /// cannot do anything is worse on a title screen than anywhere else - it is the first thing a
     /// player presses.
     ///
     /// <b>Continue is hidden, not disabled, until there is something to continue.</b> The web's own
@@ -82,7 +82,7 @@ namespace TheBlock.UI.Menus
 
             MenuStyle.Stack(_missionPanel, MenuStyle.Heading("Mission Select"));
 
-            // Four rows, built empty and repainted on every show — the web's own static-markup
+            // Four rows, built empty and repainted on every show - the web's own static-markup
             // idiom, for the same reason: the labels are config and the lock state is a save file,
             // and neither is known at build time.
             var count = campaign != null ? campaign.Missions.Count : 4;
@@ -141,7 +141,7 @@ namespace TheBlock.UI.Menus
                 }
                 else
                 {
-                    row.text = $"{i + 1}.  {title}   —   Locked";
+                    row.text = $"{i + 1}.  {title}   -   Locked";
                     MenuStyle.PaintLocked(row);
                 }
             }

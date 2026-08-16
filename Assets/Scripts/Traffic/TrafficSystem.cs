@@ -9,7 +9,7 @@ using UnityEngine;
 namespace TheBlock.Traffic
 {
     /// <summary>
-    /// Ambient traffic — the port of <c>traffic-cars.ts</c>'s sim loop, on U16's graph.
+    /// Ambient traffic - the port of <c>traffic-cars.ts</c>'s sim loop, on U16's graph.
     ///
     /// Each car drives the right-hand lane of its street, picks a random turn at every junction and
     /// eases its speed toward <c>min(cruise, follow, red light, corner)</c>, so queuing behind slower
@@ -23,7 +23,7 @@ namespace TheBlock.Traffic
     /// what is missing is the far half of the city, which was never on screen. Same argument and
     /// same conclusion as U16's crowd.
     ///
-    /// <b>How many is not a setting — it is measured.</b> 130 cars over 12,759 m of network is one
+    /// <b>How many is not a setting - it is measured.</b> 130 cars over 12,759 m of network is one
     /// car per 98 m, and every sweep this counts the metres of centreline inside the cull radius and
     /// asks for that many. Downtown gets a busy street and the edge of the map gets three cars,
     /// without either being typed in. The alternative was a fixed count, and it is worth recording
@@ -60,12 +60,12 @@ namespace TheBlock.Traffic
                  "(see metresPerCar); this is the safety rail and the number of prefab instances made.")]
         [SerializeField] private int maxLive = 40;
 
-        [Tooltip("Metres of centreline per car — the web build's own density, and the whole point of " +
+        [Tooltip("Metres of centreline per car - the web build's own density, and the whole point of " +
                  "the pool. Set from config: 12,759 m of network / 130 cars = one car per 98 m.")]
         [SerializeField] private float metresPerCar = 98f;
 
         [Tooltip("Multiplier on that density. 1 is the shipped game. Raise it for a busier city, and " +
-                 "watch the junctions — this is the number that decides whether the grid gridlocks.")]
+                 "watch the junctions - this is the number that decides whether the grid gridlocks.")]
         [SerializeField] private float densityScale = 1f;
 
         [Tooltip("Metres past which a car is recycled. `config.traffic.cullDistanceM`.")]
@@ -152,7 +152,7 @@ namespace TheBlock.Traffic
 
         /// <summary>
         /// One pursuing police car, as ambient traffic needs to see it: where it is, which way it is
-        /// pointed, and how fast. The heading is the part the position alone could not give — "a cop
+        /// pointed, and how fast. The heading is the part the position alone could not give - "a cop
         /// is 20 m away" and "a cop is 20 m behind me and closing" are different instructions.
         /// </summary>
         public readonly struct Pursuer
@@ -175,7 +175,7 @@ namespace TheBlock.Traffic
         /// <summary>Half-width a cop car occupies for the gap scan. The cruiser is 2.09 m wide.</summary>
         private const float copRadius = 1.1f;
 
-        [Header("Yielding to a pursuit — U19b")]
+        [Header("Yielding to a pursuit - U19b")]
         [Tooltip("How far ahead of a pursuing cop a car starts pulling over, metres. It has to be " +
                  "well beyond the closing distance of one step or the car moves after the impact " +
                  "rather than before it.")]
@@ -186,11 +186,11 @@ namespace TheBlock.Traffic
 
         [Tooltip("Metres outward from the lane centre a yielding car pulls. DERIVED, and 2.0 was too " +
                  "tight: the cruiser's half-width is 1.05 and a traffic car's about 0.9, so a 2 m " +
-                 "shift leaves FIVE CENTIMETRES between them. Measured — a car yielding the full 2.00 " +
+                 "shift leaves FIVE CENTIMETRES between them. Measured - a car yielding the full 2.00 " +
                  "still had the cop's nose ray hitting it at 2.9 m. 3.0 leaves about a metre.")]
         [SerializeField] private float copYieldShift = 3f;
 
-        [Tooltip("Speed cap while yielding, m/s. Slowing helps the cop past; STOPPING does not — a " +
+        [Tooltip("Speed cap while yielding, m/s. Slowing helps the cop past; STOPPING does not - a " +
                  "stopped car in the lane is the wall this whole mechanism exists to remove.")]
         [SerializeField] private float copYieldSpeed = 6f;
 
@@ -214,7 +214,7 @@ namespace TheBlock.Traffic
         public IReadOnlyList<TrafficCar> Cars => _cars;
 
         /// <summary>
-        /// Set by <c>WorldBuilder.Traffic</c> at build time — one call rather than twenty setters,
+        /// Set by <c>WorldBuilder.Traffic</c> at build time - one call rather than twenty setters,
         /// so a field added to <c>config.traffic</c> lands here and nowhere else.
         ///
         /// The values are then serialized on the scene object and editable in the Inspector, which
@@ -234,7 +234,7 @@ namespace TheBlock.Traffic
 
             // The density the shipped game actually has, read off its own two numbers rather than
             // guessed: 130 cars spread over the whole network. Everything about the pool follows
-            // from this — see the class note.
+            // from this - see the class note.
             if (built != null && spec.CarCount > 0 && built.TotalLength > 0f)
                 metresPerCar = built.TotalLength / spec.CarCount;
 
@@ -308,7 +308,7 @@ namespace TheBlock.Traffic
         /// Creates the pool over several frames.
         ///
         /// The same lesson as U16's, and it is worth repeating because it was measured and not
-        /// guessed: what stuttered there was not the crowd's steady cost — that came out at zero —
+        /// guessed: what stuttered there was not the crowd's steady cost - that came out at zero -
         /// it was ninety instantiations landing in one frame. A car is heavier than a pedestrian
         /// prefab in one respect that matters here: it brings a collider into the physics scene.
         /// </summary>
@@ -376,7 +376,7 @@ namespace TheBlock.Traffic
 
                 if (car.Mode == TrafficCar.State.Wrecked)
                 {
-                    // Not driven any more, but still an obstacle — so its box has to keep up with
+                    // Not driven any more, but still an obstacle - so its box has to keep up with
                     // wherever PhysX has taken it, or the traffic behind will queue at a ghost.
                     var wreckForward = car.transform.forward;
                     car.UpdateBox(car.transform.position, wreckForward);
@@ -390,7 +390,7 @@ namespace TheBlock.Traffic
         /// <summary>
         /// What the traffic is arranged around: the player on foot, or the vehicle they are driving.
         ///
-        /// The same resolution the crowd and the map use, and it has to be — the moment the player
+        /// The same resolution the crowd and the map use, and it has to be - the moment the player
         /// gets into a car, arranging traffic around the body they left behind empties the road
         /// ahead of them.
         /// </summary>
@@ -415,7 +415,7 @@ namespace TheBlock.Traffic
         /// work at all. A fixed 32 was the plan, from an estimate that a 160 m disc holds thirty
         /// streets' worth of road; measured, the disc around the starting lot holds 1,230 m, which
         /// at the web build's own density is twelve cars. Thirty-two of them in that space is 1 car
-        /// per 38 m — near jam density at signalised junctions — and it gridlocked in under a
+        /// per 38 m - near jam density at signalised junctions - and it gridlocked in under a
         /// minute. Reading the length in range every sweep gets the shipped game's density
         /// everywhere by construction instead of by guessing, and it thins out automatically at the
         /// edge of the map where there is barely any road.
@@ -451,7 +451,7 @@ namespace TheBlock.Traffic
             int budget = placementsPerSweep;
 
             // Round-robin from where the last sweep stopped, so a capped sweep cannot starve the
-            // tail of the pool — the same three cars would otherwise be re-placed forever.
+            // tail of the pool - the same three cars would otherwise be re-placed forever.
             for (int n = 0; n < _cars.Count && budget > 0 && live < target; n++)
             {
                 _cursor = (_cursor + 1) % _cars.Count;
@@ -486,7 +486,7 @@ namespace TheBlock.Traffic
         /// <summary>
         /// Streets within the cull radius, and how many metres of centreline that comes to.
         ///
-        /// The edge filter is a bounding-sphere test — 142 of them, twice a second. The length is
+        /// The edge filter is a bounding-sphere test - 142 of them, twice a second. The length is
         /// then accumulated per SEGMENT over the survivors only, because a street's bounding sphere
         /// says nothing about how much of it is actually in range, and the density the whole pool
         /// is sized from would inherit that error.
@@ -516,7 +516,7 @@ namespace TheBlock.Traffic
                     _streetInRange += Vector3.Distance(points[p - 1], points[p]);
                 }
 
-                // Too short to hold a car clear of the corner windows at both ends — counts towards
+                // Too short to hold a car clear of the corner windows at both ends - counts towards
                 // the density, cannot be spawned on.
                 if (edge.Length > (cornerDist + 1f) * 2f) _nearbyEdges.Add(i);
             }
@@ -548,7 +548,7 @@ namespace TheBlock.Traffic
 
                 // For most of the attempts, insist the point is out of the view cone. A car fading
                 // in at 80 m is only invisible if you are not looking at it, and in a grid city most
-                // of the network is behind a building from wherever you stand — so this succeeds
+                // of the network is behind a building from wherever you stand - so this succeeds
                 // often, and the last few attempts drop the requirement rather than leave a hole.
                 if (attempt < sampleAttempts * 2 / 3 &&
                     Vector3.Dot(offset.normalized, view) > 0.3f) continue;
@@ -593,7 +593,7 @@ namespace TheBlock.Traffic
         ///
         /// There is no surface height in here and no heading in radians, unlike the web build's
         /// <c>HijackSpec</c>. Both prefabs put their origin on the tyre contact patch, so the traffic
-        /// car's own transform IS where the drivable one goes — no ride-height arithmetic, no frame
+        /// car's own transform IS where the drivable one goes - no ride-height arithmetic, no frame
         /// conversion, and nothing that can be off by half a car.
         /// </summary>
         public readonly struct Claimed
@@ -606,7 +606,7 @@ namespace TheBlock.Traffic
                 Rotation = rotation;
             }
 
-            /// <summary>The <c>config.vehicle.cars</c> name to spawn — "Tesla", "Audi", "Avenger".</summary>
+            /// <summary>The <c>config.vehicle.cars</c> name to spawn - "Tesla", "Audi", "Avenger".</summary>
             public string ModelName { get; }
 
             /// <summary>The exact street-palette material it was wearing, so the theft keeps its colour.</summary>
@@ -621,7 +621,7 @@ namespace TheBlock.Traffic
         ///
         /// A car mid-turn through a junction is never offered, which is the web build's rule and a
         /// good one: stealing there leaves you parked diagonally across the intersection. A wreck is
-        /// not offered either — it is stopped, but it is not a car anyone is driving away.
+        /// not offered either - it is stopped, but it is not a car anyone is driving away.
         /// </summary>
         public TrafficCar NearestStopped(Vector3 point, float radius)
         {
@@ -657,8 +657,8 @@ namespace TheBlock.Traffic
         /// <b>The recycle is a retire</b>, and that is the whole of it. The web build has to teleport
         /// the stolen car to a far-away lane picked over up to thirty tries, because its pool is a
         /// fixed set of instanced-mesh slots allocated at boot and a car can never stop existing. This
-        /// pool already retires and re-places cars twice a second, from a ring 55–125 m out and
-        /// preferentially outside the view cone — so "recycle it somewhere you will not see it arrive"
+        /// pool already retires and re-places cars twice a second, from a ring 55-125 m out and
+        /// preferentially outside the view cone - so "recycle it somewhere you will not see it arrive"
         /// is not a thing to build here, it is the thing that was already running.
         /// </summary>
         public Claimed Claim(TrafficCar car)
@@ -676,7 +676,7 @@ namespace TheBlock.Traffic
         /// Kerb-waiters are deliberately excluded, and that exclusion is the whole reason there is no
         /// deadlock. A pedestrian waiting at a kerb gates on the LIGHT and never on traffic; a
         /// pedestrian already crossing makes cars stop. So nobody ever waits on somebody who is
-        /// waiting on them — the same argument <c>traffic-cars.ts</c> spells out, and it stops being
+        /// waiting on them - the same argument <c>traffic-cars.ts</c> spells out, and it stops being
         /// true the moment a queued pedestrian is added to this list.
         /// </summary>
         private void GatherCrossers()
@@ -712,7 +712,7 @@ namespace TheBlock.Traffic
 
             // Any-angle backstop: the higher-index car yields to any nearby lower-index one. Ordered
             // by index and therefore acyclic, so a ring of cars can never freeze one another for
-            // good — which a "yield to whoever is on your right" rule absolutely can.
+            // good - which a "yield to whoever is on your right" rule absolutely can.
             bool overlapYield = false;
             if (car.Stuck < car.StuckLimit)
             {
@@ -746,8 +746,8 @@ namespace TheBlock.Traffic
                 if (lights.HasLight(nodeId) && !lights.MayEnter(nodeId, car.EdgeId))
                 {
                     // ⚠ WHERE THE STOP LINE ACTUALLY IS. The web build stops a car `stopLineDist`
-                    // (8 m) from the junction centre and paints the zebra at 10 m — so the queue's
-                    // lead car, whose origin is its own body centre, straddles 5.5–10.5 m and parks
+                    // (8 m) from the junction centre and paints the zebra at 10 m - so the queue's
+                    // lead car, whose origin is its own body centre, straddles 5.5-10.5 m and parks
                     // its back half across the crossing. That is not a design decision there: the
                     // setback exists so the crossing's kerb ends clear the light POLES, and the car
                     // was never measured against it. Here the stop point clears the whole zebra plus
@@ -781,8 +781,8 @@ namespace TheBlock.Traffic
             target = GasStop(car, target, dt);
 
             // Gridlock escape: pinned past its own threshold, a car ignores the follow limit for
-            // `stuckNudgeSec` and creeps out. Lights are still obeyed — only the obstacle gate is
-            // waived — and waiting at a red is explicitly not "stuck", because the longest red here
+            // `stuckNudgeSec` and creeps out. Lights are still obeyed - only the obstacle gate is
+            // waived - and waiting at a red is explicitly not "stuck", because the longest red here
             // is ~11.5 s and `stuckAfterSec` is 20. The threshold is jittered per car so a blocked
             // ring unfreezes one car at a time instead of all at once.
             if (car.Speed < 0.5f && (gap < gapFollow || overlapYield) && !held)
@@ -842,7 +842,7 @@ namespace TheBlock.Traffic
                 // The yield rides on the lane offset, which is what makes it free: the lane sampler
                 // already knows which side of the centreline is outward, so pulling over is one
                 // added term and not a second positioning path. In a corner the bezier is already
-                // baked, so a car mid-junction only slows — it cannot also slide sideways.
+                // baked, so a car mid-junction only slows - it cannot also slide sideways.
                 network.SampleLane(
                     car.EdgeId, car.S, car.Dir,
                     network.LaneOffsetFor(car.EdgeId, car.Lane, laneGap) + car.Yield,
@@ -854,7 +854,7 @@ namespace TheBlock.Traffic
 
         /// <summary>
         /// Nearest obstacle ahead in this car's lane, as a bumper gap in metres: other cars, the
-        /// player, and anyone on a zebra. O(n²) over 32 cars is ~1,000 cone tests a step — the same
+        /// player, and anyone on a zebra. O(n²) over 32 cars is ~1,000 cone tests a step - the same
         /// arithmetic the web build does over more cars, and no spatial index earns its keep at this
         /// size.
         /// </summary>
@@ -905,7 +905,7 @@ namespace TheBlock.Traffic
             }
 
             // Police cars. They are real Rigidbodies rather than members of this pool, so nothing in
-            // the loops above can see one — and a cop stopped across a junction that ambient traffic
+            // the loops above can see one - and a cop stopped across a junction that ambient traffic
             // drives straight into looks like the traffic is broken, not like the cop is.
             foreach (var cop in _pursuit)
             {
@@ -925,7 +925,7 @@ namespace TheBlock.Traffic
         /// whether it should be easing off the throttle while it does.
         ///
         /// <b>This is the fix for "the police never reach me".</b> A traffic car is a KINEMATIC
-        /// Rigidbody — an immovable wall to the cop's 1400 kg dynamic one — so a cruiser that caught
+        /// Rigidbody - an immovable wall to the cop's 1400 kg dynamic one - so a cruiser that caught
         /// up with one did not shove past it, it wedged, reversed, and tried again. The web build
         /// never had this problem and its config says why: its cops were kinematic character
         /// controllers that collide-and-slide, so shoving through traffic was free. Here the honest
@@ -1011,7 +1011,7 @@ namespace TheBlock.Traffic
         /// <summary>
         /// Begins the bezier through a junction: this lane's exit point to the chosen next lane's
         /// entry point. The turn is picked at random, excluding the street the car arrived on unless
-        /// the node is a dead end — no instant U-turns.
+        /// the node is a dead end - no instant U-turns.
         /// </summary>
         private void StartCorner(TrafficCar car, int nodeId)
         {

@@ -3,10 +3,10 @@ using UnityEngine.UIElements;
 namespace TheBlock.UI.Menus
 {
     /// <summary>
-    /// The in-game pause overlay — the port of <c>src/ui/pause-menu.ts</c>.
+    /// The in-game pause overlay - the port of <c>src/ui/pause-menu.ts</c>.
     ///
     /// The web's version is three buttons and nothing else, and its own comment says why: "the frame
-    /// loop owns the paused flag and the freeze — this is purely the overlay + callbacks". The same
+    /// loop owns the paused flag and the freeze - this is purely the overlay + callbacks". The same
     /// division holds here, with <see cref="GameFlow"/> as the frame loop and
     /// <see cref="Core.Pause"/> as the freeze. A fourth button, Settings, is the only addition, and
     /// it is where the Radar toggle lives.

@@ -4,11 +4,11 @@ using UnityEngine;
 namespace TheBlock.Game
 {
     /// <summary>
-    /// One-time contextual hints — the port of <c>game/onboarding.ts</c>. "Nudge once, never nag":
+    /// One-time contextual hints - the port of <c>game/onboarding.ts</c>. "Nudge once, never nag":
     /// each key fires the first time its situation comes up and is then recorded forever.
     ///
     /// Deliberately NOT cleared by <see cref="Reset"/> from a New Game, because a hint teaches the
-    /// PLAYER something, not the save file — someone starting their third run does not need to be
+    /// PLAYER something, not the save file - someone starting their third run does not need to be
     /// told what M does again. <see cref="Reset"/> exists for the editor menu, which is the only
     /// place that wants a genuinely first-time profile back.
     /// </summary>
@@ -53,7 +53,7 @@ namespace TheBlock.Game
         }
 
         /// <summary>
-        /// The in-memory cache is static and Play mode does not clear statics by default — see the
+        /// The in-memory cache is static and Play mode does not clear statics by default - see the
         /// <c>recompile-during-play-nulls-fields</c> memory for the general trap. Dropping it on
         /// entering Play means an editor Reset between runs is actually seen.
         /// </summary>

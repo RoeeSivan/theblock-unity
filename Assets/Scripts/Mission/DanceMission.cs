@@ -13,13 +13,13 @@ using UnityEngine.UIElements;
 namespace TheBlock.Missions
 {
     /// <summary>
-    /// M2, the beach dance — the port of <c>rhythm-mission.ts</c>, <c>countdown.ts</c> and the
+    /// M2, the beach dance - the port of <c>rhythm-mission.ts</c>, <c>countdown.ts</c> and the
     /// <c>startDance</c>/<c>endDance</c> transitions in <c>game/transitions.ts</c>.
     ///
     /// <b>It is a modal takeover, and that is the whole reason the mission contract is as thin as it
     /// is.</b> The pizza run is an objective layered over free-roam; this hides the player, stands a
     /// dancer on the sand, points a different camera at them and takes over the keyboard. Two
-    /// missions this dissimilar can only share a lifecycle, never an update loop — which is exactly
+    /// missions this dissimilar can only share a lifecycle, never an update loop - which is exactly
     /// what <c>mission.ts</c>'s own comment says.
     ///
     /// Remy grooves through the whole thing on his own looping clip. He is the partner you dance to,
@@ -31,7 +31,7 @@ namespace TheBlock.Missions
     /// </summary>
     public class DanceMission : MissionBehaviour
     {
-        [Header("Scene — found automatically when left empty")]
+        [Header("Scene - found automatically when left empty")]
         [SerializeField] private CampaignRunner runner;
         [SerializeField] private PlayerController player;
         [SerializeField] private FollowCamera followCamera;
@@ -41,10 +41,10 @@ namespace TheBlock.Missions
         [SerializeField] private Conductor conductor;
         [SerializeField] private UIDocument hudDocument;
 
-        [Tooltip("Hidden for the length of the routine — the corner radar covers the left arrows.")]
+        [Tooltip("Hidden for the length of the routine - the corner radar covers the left arrows.")]
         [SerializeField] private GameMap map;
 
-        [Header("Actors — written by Build Campaign")]
+        [Header("Actors - written by Build Campaign")]
         [Tooltip("The player-dancer on the stage. Hidden until the routine starts.")]
         [SerializeField] private Dancer dancer;
 
@@ -134,7 +134,7 @@ namespace TheBlock.Missions
         // ── entry ─────────────────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Starts a run — the campaign's first pass at the step, or a REPLAY of one already cleared.
+        /// Starts a run - the campaign's first pass at the step, or a REPLAY of one already cleared.
         ///
         /// <b>The beach stays open after you win it.</b> Remy is a place on the map with a song
         /// attached, and a minigame you can only ever play once is a cutscene. A failed run is the
@@ -154,7 +154,7 @@ namespace TheBlock.Missions
         private bool Ready()
         {
             if (dancer != null && conductor != null && conductor.Ready) return true;
-            Debug.LogError("DanceMission: no dancer or no song — run The Block → Build Campaign.");
+            Debug.LogError("DanceMission: no dancer or no song - run The Block → Build Campaign.");
             return false;
         }
 
@@ -162,7 +162,7 @@ namespace TheBlock.Missions
         {
             _entering = true;
 
-            // Released in a finally — an entry latch that survives a throw is unrecoverable, and it
+            // Released in a finally - an entry latch that survives a throw is unrecoverable, and it
             // matters most here: a dance that dies mid-entry leaves the player hidden with the
             // camera on an inactive dancer.
             try
@@ -191,7 +191,7 @@ namespace TheBlock.Missions
         /// Hides the player, reveals the dancer, and points the camera over their shoulder.
         ///
         /// The camera offset is rotated by the dancer's OWN facing, so −z stays behind their back
-        /// whichever way the stage points — the same arithmetic the web build does, and the reason
+        /// whichever way the stage points - the same arithmetic the web build does, and the reason
         /// the offset is authored in local space rather than as a world position.
         /// </summary>
         private void TakeStage()
@@ -206,7 +206,7 @@ namespace TheBlock.Missions
             {
                 player.SetVisible(false);
 
-                // Frozen the way the bust freezes an on-foot player — disable the component, leave
+                // Frozen the way the bust freezes an on-foot player - disable the component, leave
                 // the capsule alone. Two ways to stop the player moving is how one of them drifts.
                 player.enabled = false;
             }
@@ -218,7 +218,7 @@ namespace TheBlock.Missions
             if (giver != null) giver.CrossFadeInFixedTime("Dance_Partner", 0.25f, 0);
 
             // The dancer is an IChaseTarget, so the existing camera frames it with no dance-specific
-            // camera code — the same swap U9 built for getting into a car.
+            // camera code - the same swap U9 built for getting into a car.
             if (followCamera != null) followCamera.Follow(dancer);
         }
 
@@ -271,7 +271,7 @@ namespace TheBlock.Missions
         {
             // The PROMPT is gated; the ROUTINE is deliberately not, and that asymmetry is the whole
             // rule. A running routine is scored against AudioSettings.dspTime, which no freeze can
-            // stop — pause it and the arrows halt while the song keeps playing, then resume against
+            // stop - pause it and the arrows halt while the song keeps playing, then resume against
             // an anchor that is now wrong by however long the menu was up. GameFlow therefore
             // refuses to pause in GameMode.Rhythm at all, and this guard is written so that if that
             // rule is ever broken the routine survives it. See Core.Pause.
@@ -325,7 +325,7 @@ namespace TheBlock.Missions
             if (_entering) return;
             if (_status == MissionStatus.Active || _status == MissionStatus.Failed) return;
 
-            // Once cleared, Remy keeps offering it — the cursor has moved on to the helicopter and
+            // Once cleared, Remy keeps offering it - the cursor has moved on to the helicopter and
             // this stops asking IsCurrent. That is the whole of "you can dance again": no second
             // trigger, no free-roam copy of the mission, the same entry path both times.
             var replay = _status == MissionStatus.Complete;
@@ -352,7 +352,7 @@ namespace TheBlock.Missions
         }
 
         /// <summary>
-        /// Judges a press against the note AT THE RING — the nearest unjudged, spawned one, whatever
+        /// Judges a press against the note AT THE RING - the nearest unjudged, spawned one, whatever
         /// its direction.
         ///
         /// Two refusals, both the web's and both deliberate: a press outside the good window is
@@ -388,16 +388,16 @@ namespace TheBlock.Missions
             Readout();
             dancer.PlayHit();
 
-            // Brighter for a Perfect than a Good — the web's playRhythmHit(judgment) in one line.
+            // Brighter for a Perfect than a Good - the web's playRhythmHit(judgment) in one line.
             // There is no metronome click beside it, and that is deliberate: the web fires playBeat
             // only when conductor.isFallback() is true, i.e. when the MP3 failed to load and it is
-            // counting on the wall clock. This port has no fallback — a missing song is a build
-            // error, not a runtime state — so the cue exists and the condition that plays it cannot.
+            // counting on the wall clock. This port has no fallback - a missing song is a build
+            // error, not a runtime state - so the cue exists and the condition that plays it cannot.
             TheBlock.Audio.GameAudio.Cue(judgment.Value == Judgment.Perfect
                 ? TheBlock.Audio.SfxCue.RhythmPerfect
                 : TheBlock.Audio.SfxCue.RhythmGood);
 
-            // Remy's hype: occasional by design, not on every hit — his own chance and cooldown.
+            // Remy's hype: occasional by design, not on every hit - his own chance and cooldown.
             if (_cheerCooldown > 0f || _spec.Cheer?.Urls == null) return;
             if (Random.value > _spec.Cheer.Chance) return;
             voice?.PlayRandom(_spec.Cheer.Urls);
@@ -421,7 +421,7 @@ namespace TheBlock.Missions
             var failed = _spec.FailBelowAccuracy.HasValue && accuracy < _spec.FailBelowAccuracy.Value;
 
             // A REPLAY CANNOT UN-CLEAR THE STEP. Flopping a routine you already won is a worse
-            // score, not a lost mission — and it must not land in MissionStatus.Failed, because
+            // score, not a lost mission - and it must not land in MissionStatus.Failed, because
             // Campaign.Failed returns the FIRST failed mission in list order: a dance left sitting
             // there would steal F from whatever the player actually failed later in the campaign.
             _status = failed && !_replay ? MissionStatus.Failed : MissionStatus.Complete;
@@ -458,7 +458,7 @@ namespace TheBlock.Missions
 
             if (player != null)
             {
-                // Beside him, facing him — the web puts the player back at npc.x + 3 for the same
+                // Beside him, facing him - the web puts the player back at npc.x + 3 for the same
                 // reason: stepping out of a cinematic into the exact spot the dancer occupied reads
                 // as a teleport, and standing next to the person you were dancing with does not.
                 // The sign is flipped because X negates: the web's +3 is Unity's −3.
@@ -474,7 +474,7 @@ namespace TheBlock.Missions
             hud?.SetPrompt(null);
         }
 
-        /// <summary>Another go. Same entry path, briefing and all — the routine IS the mission.</summary>
+        /// <summary>Another go. Same entry path, briefing and all - the routine IS the mission.</summary>
         public override void Retry()
         {
             if (_status != MissionStatus.Failed) return;

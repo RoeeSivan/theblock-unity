@@ -3,7 +3,7 @@ using UnityEngine;
 namespace TheBlock.Vehicles
 {
     /// <summary>
-    /// Spinning rotors for the helicopter — the port of <c>src/vehicle/rotor.ts</c>.
+    /// Spinning rotors for the helicopter - the port of <c>src/vehicle/rotor.ts</c>.
     ///
     /// <b>The pivot wrapper is the whole trick, and it is a property of this model.</b> In the Huey
     /// GLB both rotor nodes have their origin at the MODEL centre, not at their own hub. Spin such a
@@ -12,7 +12,7 @@ namespace TheBlock.Vehicles
     /// re-parented under it preserving its world pose, and the PIVOT is what spins.
     ///
     /// The throttle ramps rather than snaps, using the same framerate-independent smoothing
-    /// <see cref="CarDoor"/> uses — <c>k = 1 − exp(−rate·dt)</c>. A rotor that reaches full speed in
+    /// <see cref="CarDoor"/> uses - <c>k = 1 − exp(−rate·dt)</c>. A rotor that reaches full speed in
     /// one frame reads as a video starting, not as an engine.
     /// </summary>
     public class Rotor : MonoBehaviour

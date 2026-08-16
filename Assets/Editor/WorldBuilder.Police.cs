@@ -14,7 +14,7 @@ namespace TheBlock.EditorTools
     ///
     /// <b>It exists because the street graph is not connected.</b> Measured on the baked asset before
     /// a line of pursuit code was written: 97 nodes and 142 edges in <b>five</b> components. U17's
-    /// traffic could not have noticed — it picks a uniformly random outgoing edge at every junction,
+    /// traffic could not have noticed - it picks a uniformly random outgoing edge at every junction,
     /// and a random walk never asks whether two streets are reachable from each other. A pursuit asks
     /// that question every second.
     ///
@@ -27,7 +27,7 @@ namespace TheBlock.EditorTools
     /// another produces no junction at all. Four of the five islands touch one 1,364 m polyline, at
     /// gaps under 3 m.
     ///
-    /// So this pass stitches — <b>into a separate asset, never into
+    /// So this pass stitches - <b>into a separate asset, never into
     /// <see cref="TrafficNetwork"/></b>. Editing that would change <c>EdgeCount</c>, which decides
     /// <see cref="TrafficNetwork.IsLit"/>, which decides the 70 lit intersections, the 230 crossings
     /// and the 233 poles U16 and U17 verified. Nothing here copies geometry: a
@@ -46,7 +46,7 @@ namespace TheBlock.EditorTools
         /// with it, metres.
         ///
         /// 3.0 because the measured gaps that matter are 0.65, 1.13, 2.20 and 2.73 m and the next
-        /// one up is 4.85 m — so any value in (2.73, 4.85) picks the same four, and 3.0 sits in that
+        /// one up is 4.85 m - so any value in (2.73, 4.85) picks the same four, and 3.0 sits in that
         /// gap without pretending to more precision than the data has. Half a lane is also about the
         /// most that can be called "the same junction" with a straight face.
         /// </summary>
@@ -63,7 +63,7 @@ namespace TheBlock.EditorTools
         private const float CutMerge = 1.5f;
 
         /// <summary>
-        /// Vertical tolerance on a stitch, metres. Downtown's avenue is baked 6–10 m above the
+        /// Vertical tolerance on a stitch, metres. Downtown's avenue is baked 6-10 m above the
         /// streets it passes over, and joining those would let a cop drive off a viaduct.
         /// </summary>
         private const float StitchHeightBand = 3.0f;
@@ -75,7 +75,7 @@ namespace TheBlock.EditorTools
         private const float ReachableWarnFraction = 0.95f;
 
         /// <summary>
-        /// The three station bays, in the web build's own frame. Yaw 0 — they face the street.
+        /// The three station bays, in the web build's own frame. Yaw 0 - they face the street.
         ///
         /// These are the parked cruisers AND the pursuers, which is the web's trick: with the pool
         /// parked in the bays there is no second set of decorative cars to hide, and therefore no
@@ -98,7 +98,7 @@ namespace TheBlock.EditorTools
             var network = AssetDatabase.LoadAssetAtPath<TrafficNetwork>($"{GeneratedTrafficFolder}/TrafficNetwork.asset");
             if (network == null || network.Edges.Length == 0)
             {
-                report.Warnings.Add("police: no baked traffic network — route graph skipped");
+                report.Warnings.Add("police: no baked traffic network - route graph skipped");
                 return;
             }
 
@@ -111,7 +111,7 @@ namespace TheBlock.EditorTools
         /// <summary>
         /// Places the <c>Police</c> group and hands it everything that needed converting.
         ///
-        /// The bay and custody coordinates pass through <see cref="Convert"/> exactly once, here —
+        /// The bay and custody coordinates pass through <see cref="Convert"/> exactly once, here -
         /// port rule 1. Their height is probed with the same <see cref="GroundY"/> the streets and
         /// the zebras use, rather than taken from the config, because the config has no Y for either
         /// and the station forecourt is a raised slab.
@@ -122,7 +122,7 @@ namespace TheBlock.EditorTools
             if (prefab == null)
             {
                 report.Warnings.Add(
-                    $"police: no cruiser prefab at {PoliceCarBuilder.PrefabPath} — " +
+                    $"police: no cruiser prefab at {PoliceCarBuilder.PrefabPath} - " +
                     "run The Block → Build Police Car, then rebuild");
                 return;
             }
@@ -153,7 +153,7 @@ namespace TheBlock.EditorTools
 
             // U19e's officer is OPTIONAL wiring: missing, every cruiser drives itself and arrests
             // you itself, which is exactly what U19 shipped. So a missing prefab is a report line,
-            // not a warning — the police still work without her.
+            // not a warning - the police still work without her.
             var officer = AssetDatabase.LoadAssetAtPath<GameObject>(CopOfficerBuilder.PrefabPath);
 
             var serialized = new SerializedObject(system);
@@ -163,7 +163,7 @@ namespace TheBlock.EditorTools
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
             // How far the custody point is from a street decides whether you can drive away from a
-            // bust or have to reverse off a kerb first — worth a report line, not a guess.
+            // bust or have to reverse off a kerb first - worth a report line, not a guess.
             string custodyNote = graph != null && graph.TryNearest(custody, 60f, -1, out var hit)
                 ? $"custody point {hit.Distance:0.0} m from component {hit.Component}"
                 : "custody point is not near any street";
@@ -171,7 +171,7 @@ namespace TheBlock.EditorTools
             report.Placed.Add(
                 $"Police {bays.Length} bay(s) at the station, pool of cruisers wired, {custodyNote}, " +
                 (officer == null
-                    ? "NO officer prefab — the cruisers arrest you themselves"
+                    ? "NO officer prefab - the cruisers arrest you themselves"
                     : "an officer in every driver's seat"));
         }
 
@@ -211,7 +211,7 @@ namespace TheBlock.EditorTools
         }
 
         /// <summary>
-        /// Pass A — a node sitting in the middle of another street is a junction with it.
+        /// Pass A - a node sitting in the middle of another street is a junction with it.
         ///
         /// This is the one that matters: it is where the four islands are joined.
         /// </summary>
@@ -248,7 +248,7 @@ namespace TheBlock.EditorTools
         }
 
         /// <summary>
-        /// Pass B — two streets whose polylines genuinely cross with no shared node.
+        /// Pass B - two streets whose polylines genuinely cross with no shared node.
         ///
         /// Rarer than the T case and worth less, but a crossroads that is not a node is a place the
         /// planner would route the long way round for no reason a player could see.
@@ -386,7 +386,7 @@ namespace TheBlock.EditorTools
 
         /// <summary>
         /// Union-find over the stitched graph, components renumbered largest-first by centreline
-        /// metres — so component 0 is always the city and the orphans sort after it.
+        /// metres - so component 0 is always the city and the orphans sort after it.
         /// </summary>
         private static int LabelComponents(
             RouteGraph.Node[] nodes, RouteGraph.Link[] links, int[] owners, out float[] componentLength)
@@ -485,7 +485,7 @@ namespace TheBlock.EditorTools
             var at = Convert.Pos(station.Position.Raw);
             if (!graph.TryNearest(at, 200f, -1, out var hit))
             {
-                report.Warnings.Add("route graph: the police station is not near any street — cops cannot deploy");
+                report.Warnings.Add("route graph: the police station is not near any street - cops cannot deploy");
                 return;
             }
 
@@ -494,12 +494,12 @@ namespace TheBlock.EditorTools
 
             if (hit.Component != 0)
                 report.Warnings.Add(
-                    $"route graph: the police station is in component {hit.Component}, not the largest — " +
+                    $"route graph: the police station is in component {hit.Component}, not the largest - " +
                     "deploying cops will strand them");
             else if (share < ReachableWarnFraction)
                 report.Warnings.Add(
                     $"route graph: only {share:P1} of the network is reachable from the police station " +
-                    $"({ReachableWarnFraction:P0} expected) — check the stitch distance");
+                    $"({ReachableWarnFraction:P0} expected) - check the stitch distance");
         }
 
         /// <summary>Component sizes of the UNSTITCHED network, in metres, largest first.</summary>

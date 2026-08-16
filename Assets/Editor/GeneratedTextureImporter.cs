@@ -9,7 +9,7 @@ namespace TheBlock.EditorTools
     /// import time and derived entirely from the file's own name.
     ///
     /// WHY A POSTPROCESSOR AND NOT A SETTER. Writing the file and then editing its
-    /// <c>TextureImporter</c> means importing twice — once with Unity's defaults, which for a
+    /// <c>TextureImporter</c> means importing twice - once with Unity's defaults, which for a
     /// 16000x2000 atlas is a full downscale-to-2048-and-compress that is then thrown away. There
     /// are 241 of these. Worse, the settings would live only in the .meta, so anything that forces
     /// a reimport later (a Library wipe, a platform switch, a fresh clone) would silently restore
@@ -22,7 +22,7 @@ namespace TheBlock.EditorTools
     public class GeneratedTextureImporter : AssetPostprocessor
     {
         /// <summary>
-        /// Cap on the longest edge. 16384 is Unity's maximum, i.e. no resize at all — the
+        /// Cap on the longest edge. 16384 is Unity's maximum, i.e. no resize at all - the
         /// 16000-wide atlases pass through untouched and this pass is purely a format change.
         ///
         /// This is the knob U30's perf pass and U31's iPad build will want, and halving it is worth
@@ -32,7 +32,7 @@ namespace TheBlock.EditorTools
         private const int MaxTextureSize = 16384;
 
         /// <summary>
-        /// Marks a texture that must be sampled linearly — a roughness, metallic, occlusion or
+        /// Marks a texture that must be sampled linearly - a roughness, metallic, occlusion or
         /// normal map. Written by <see cref="TextureCompressor.AssetName"/> from the flag glTFast
         /// itself resolved, rather than re-derived from the glTF's material roles, because
         /// disagreeing with glTFast is how a roughness map ends up gamma-decoded.
@@ -43,7 +43,7 @@ namespace TheBlock.EditorTools
         /// Names that mean "this is a tangent-space normal map".
         ///
         /// They get BC7 rather than BC1. A normal map is three correlated channels with no tolerance
-        /// for the 5:6:5 endpoints BC1 quantises to — BC1 normals band into visible facets across a
+        /// for the 5:6:5 endpoints BC1 quantises to - BC1 normals band into visible facets across a
         /// flat wall, which is exactly the surface these districts are made of. Colour and roughness
         /// maps do not care. A false positive here costs size, never correctness.
         /// </summary>
@@ -51,7 +51,7 @@ namespace TheBlock.EditorTools
 
         /// <summary>
         /// Force-reimports everything in the generated folder so a change to the rules above is
-        /// actually applied — <b>The Block → Reimport Generated Textures</b>.
+        /// actually applied - <b>The Block → Reimport Generated Textures</b>.
         ///
         /// Needed because these settings live in this file rather than in the .meta (see the class
         /// note): editing a rule changes what a FUTURE import would produce and does nothing to the
@@ -59,7 +59,7 @@ namespace TheBlock.EditorTools
         /// <b>Compress Textures (force re-extract)</b>, which re-extracts every source image out of
         /// the district .glb files and is minutes of work to change one importer flag.
         ///
-        /// Slow — it is BC7 over 16384-wide atlases — and it deliberately reports what it did.
+        /// Slow - it is BC7 over 16384-wide atlases - and it deliberately reports what it did.
         /// </summary>
         [MenuItem("The Block/Reimport Generated Textures", priority = 5)]
         public static void ReimportGeneratedMenu()
@@ -105,7 +105,7 @@ namespace TheBlock.EditorTools
             // ⚠ NOT TextureImporterType.NormalMap, deliberately. That swizzles into Unity's DXT5nm
             // layout, which only makes sense for a shader calling UnpackNormal. glTF normal maps are
             // raw XYZ in RGB and glTFast's Shader Graph samples them raw, so the swizzle would feed
-            // it garbage — a world lit as though every wall were dented.
+            // it garbage - a world lit as though every wall were dented.
             importer.textureType = TextureImporterType.Default;
             importer.sRGBTexture = !isLinear;
 
@@ -119,7 +119,7 @@ namespace TheBlock.EditorTools
             importer.maxTextureSize = MaxTextureSize;
 
             // MIP STREAMING. U15 proved the format was the fault and left 2.19 GB of texture memory
-            // resident, every byte of it non-streaming — on a 16 GB unified-memory Mac that is most
+            // resident, every byte of it non-streaming - on a 16 GB unified-memory Mac that is most
             // of the reason the editor intermittently ran out of memory to give Metal and painted
             // green blocks over its own toolbar.
             //
@@ -133,33 +133,33 @@ namespace TheBlock.EditorTools
             // opt-in, and without it the budget applies to nothing.
             importer.streamingMipmaps = true;
 
-            // Priority 0 is the default band. The atlases are all the same kind of thing — city
-            // facades — so there is no honest reason to rank one above another, and inventing one
+            // Priority 0 is the default band. The atlases are all the same kind of thing - city
+            // facades - so there is no honest reason to rank one above another, and inventing one
             // here would just be a number nobody could defend later.
             importer.streamingMipmapsPriority = 0;
 
             // ⚠ THIS LINE IS THE WHOLE UNIT. A non-power-of-two texture with mipmaps is NOT block
-            // compressed by Unity — the importer picks DXT1, reports DXT1 from GetAutomaticFormat,
+            // compressed by Unity - the importer picks DXT1, reports DXT1 from GetAutomaticFormat,
             // agrees the platform supports it, and then hands back RGB24 anyway, silently. With
             // npotScale None the first run compressed only the 166 power-of-two textures and left
-            // all 75 NPOT ones raw, which is 8.9 GB of the 12.8 GB — the fix looked like it had
+            // all 75 NPOT ones raw, which is 8.9 GB of the 12.8 GB - the fix looked like it had
             // barely worked. Multiple-of-4 is not enough; it has to be a power of two.
             //
             // ToLarger rather than ToNearest or ToSmaller, because this unit promised a format
             // change and not a resize: scaling UP cannot lose source detail. 16000x2000 becomes
-            // 16384x2048 and 3900x3000 becomes 4096x4096 — slightly more pixels, a tenth of the
+            // 16384x2048 and 3900x3000 becomes 4096x4096 - slightly more pixels, a tenth of the
             // memory, and nothing resampled away. UVs are normalised, so nothing shifts.
             importer.npotScale = TextureImporterNPOTScale.ToLarger;
 
             // FromInput keeps an alpha channel when the source image has one and none when it does
-            // not — the same thing glTFast does. alphaIsTransparency stays OFF: it runs Unity's
+            // not - the same thing glTFast does. alphaIsTransparency stays OFF: it runs Unity's
             // colour dilation into transparent texels, which glTFast never did, so turning it on
             // would silently change the look of the foliage atlas U11 spent a unit getting right.
             importer.alphaSource = TextureImporterAlphaSource.FromInput;
             importer.alphaIsTransparency = false;
 
             importer.textureCompression = isNormal
-                ? TextureImporterCompression.CompressedHQ   // BC7 — see NormalMapPatterns
+                ? TextureImporterCompression.CompressedHQ   // BC7 - see NormalMapPatterns
                 : TextureImporterCompression.Compressed;    // BC1/BC3
             importer.compressionQuality = (int)TextureCompressionQuality.Normal;
             importer.crunchedCompression = false;

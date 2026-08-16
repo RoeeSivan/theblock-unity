@@ -7,20 +7,20 @@ using UnityEngine.InputSystem;
 namespace TheBlock.Powerup
 {
     /// <summary>
-    /// What you own and what is currently running — the port of <c>src/powerup/powerups.ts</c>.
+    /// What you own and what is currently running - the port of <c>src/powerup/powerups.ts</c>.
     ///
     /// <b>Two halves with deliberately different lifetimes, and getting that wrong is the whole
     /// bug surface of this file.</b>
     /// <list type="bullet">
     ///   <item>STOCK persists. You paid cash for it, and losing a purchase to a restart reads as a
     ///   bug rather than as a rule.</item>
-    ///   <item>TIMERS do not. A reload starts everything idle — the same rule the fuel tank rests
+    ///   <item>TIMERS do not. A reload starts everything idle - the same rule the fuel tank rests
     ///   on. Persisting a countdown would mean a 4-minute effect that survives a quit, which is
     ///   either free or stolen depending on which side of the clock you land.</item>
     /// </list>
     ///
     /// <b>A MonoBehaviour, unlike the web's pure model,</b> because the timers need a frame and the
-    /// hotkeys need polling — and because Unity's answer to "who owns per-frame state" is a
+    /// hotkeys need polling - and because Unity's answer to "who owns per-frame state" is a
     /// component in the scene, not a closure. The effects it drives are still owned by the systems
     /// they belong to: this pushes four values outward every frame and reads none of them back.
     ///
@@ -36,16 +36,16 @@ namespace TheBlock.Powerup
         ///
         /// <c>localStorage</c> only stores strings, so <c>powerups.ts</c> had to serialize a record
         /// and hand-tolerate a corrupt parse; <c>PlayerPrefs</c> stores ints natively and cannot
-        /// throw. Four keys with a typed default is the same state with none of the parsing — the
+        /// throw. Four keys with a typed default is the same state with none of the parsing - the
         /// same simplification <see cref="Game.Payouts"/> made for the same reason.
         /// </summary>
         private const string KeyPrefix = "theblock.powerups.";
 
         [Tooltip("Fills every slot on Play so the effects can be tested without shopping for them. " +
-                 "The port of the web's ?stock= flag. Debug — leave at 0.")]
+                 "The port of the web's ?stock= flag. Debug - leave at 0.")]
         [SerializeField] private int debugStock;
 
-        [Header("Effect targets — found automatically when left empty")]
+        [Header("Effect targets - found automatically when left empty")]
         [SerializeField] private Player.PlayerController player;
         [SerializeField] private Police.Heat heat;
 
@@ -54,7 +54,7 @@ namespace TheBlock.Powerup
         /// <summary>Seconds left on each timed effect, parallel to <see cref="Items"/>. 0 = idle.</summary>
         private float[] _timers;
 
-        /// <summary>🎒 has no clock — this is its whole state.</summary>
+        /// <summary>🎒 has no clock - this is its whole state.</summary>
         private bool _armed;
 
         private bool _enabled = true;
@@ -111,7 +111,7 @@ namespace TheBlock.Powerup
         }
 
         /// <summary>
-        /// A purchase landed. <b>This only holds stock</b> — the wallet is charged by the caller,
+        /// A purchase landed. <b>This only holds stock</b> - the wallet is charged by the caller,
         /// which is the one place that knows the price rules, exactly as in the web build.
         /// </summary>
         public void Add(string id, int n = 1)
@@ -129,7 +129,7 @@ namespace TheBlock.Powerup
 
         // --- running state --------------------------------------------------------------------------
 
-        /// <summary>Running now? For 🎒 this means ARMED — it has no clock.</summary>
+        /// <summary>Running now? For 🎒 this means ARMED - it has no clock.</summary>
         public bool IsActive(string id)
         {
             int i = IndexOf(id);
@@ -144,13 +144,13 @@ namespace TheBlock.Powerup
             return i >= 0 && Timed(i) ? _timers[i] : 0f;
         }
 
-        /// <summary>🥤 — sprint costs no stamina.</summary>
+        /// <summary>🥤 - sprint costs no stamina.</summary>
         public bool SprintFree => IsActive("energy");
 
-        /// <summary>📱 — crimes raise no stars.</summary>
+        /// <summary>📱 - crimes raise no stars.</summary>
         public bool HeatImmune => IsActive("phone");
 
-        /// <summary>🎒 — the next completed mission pays double. Read-only; the chip reads this.</summary>
+        /// <summary>🎒 - the next completed mission pays double. Read-only; the chip reads this.</summary>
         public bool DoublePayArmed => _armed;
 
         /// <summary>
@@ -168,7 +168,7 @@ namespace TheBlock.Powerup
         /// <summary>
         /// Spends one and starts it.
         ///
-        /// Returns false — and <b>consumes nothing</b> — when there is none left, when it is already
+        /// Returns false - and <b>consumes nothing</b> - when there is none left, when it is already
         /// running, or when the system is off. A mashed key can therefore never eat stock, which is
         /// the invariant the web build calls out and the reason the refusal has its own quiet cue.
         /// </summary>
@@ -194,7 +194,7 @@ namespace TheBlock.Powerup
         }
 
         /// <summary>
-        /// Off for a multiplayer round or any other seam that resets the world but not its clocks —
+        /// Off for a multiplayer round or any other seam that resets the world but not its clocks -
         /// the same switch the web build gives the fuel economy. Off also clears whatever is live.
         /// </summary>
         public void SetEnabled(bool on)
@@ -220,7 +220,7 @@ namespace TheBlock.Powerup
             if (!_bound) Bind();
             if (!_bound) return;
 
-            // A pause is not a slow clock — see Core.Pause. timeScale 0 already makes deltaTime 0,
+            // A pause is not a slow clock - see Core.Pause. timeScale 0 already makes deltaTime 0,
             // but the hotkeys below poll the keyboard directly and would fire through a menu.
             if (Core.Pause.Frozen) return;
 
@@ -245,7 +245,7 @@ namespace TheBlock.Powerup
             }
 
             // Pushed on every tick and not only on a change, so no path can leave the world boosted
-            // or the player immune by forgetting to clear it — the web build's own reasoning.
+            // or the player immune by forgetting to clear it - the web build's own reasoning.
             PushEffects();
 
             if (!expired) return;
@@ -258,7 +258,7 @@ namespace TheBlock.Powerup
             var keyboard = Keyboard.current;
             if (keyboard == null) return;
 
-            // 1–4 have to work on foot AND at the wheel, so this sits outside every mode switch —
+            // 1-4 have to work on foot AND at the wheel, so this sits outside every mode switch -
             // the same placement main.ts gives it.
             for (int i = 0; i < Items.Count && i < 4; i++)
             {

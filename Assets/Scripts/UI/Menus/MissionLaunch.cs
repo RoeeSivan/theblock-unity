@@ -6,18 +6,18 @@ using UnityEngine;
 namespace TheBlock.UI.Menus
 {
     /// <summary>
-    /// "Jump straight to mission N" — the port of <c>src/ui/campaign-launch.ts</c>.
+    /// "Jump straight to mission N" - the port of <c>src/ui/campaign-launch.ts</c>.
     ///
     /// Move the cursor, then put the player where that mission begins. Both halves matter: selecting
     /// the step alone leaves someone standing in a car park with an objective 600 m away and no idea
     /// they chose it.
     ///
     /// <b>It teleports; it does not mount.</b> The web build mounts the helicopter and the jetski
-    /// because otherwise you are dropped beside — or swimming next to — a vehicle whose mission is
+    /// because otherwise you are dropped beside - or swimming next to - a vehicle whose mission is
     /// armed by <c>F</c> while riding. Here the player is put down at the same waypoint and presses
     /// <c>E</c> themselves, for two reasons. <see cref="Vehicles.VehicleEnterExit"/> has no public
     /// programmatic entry (its <c>EnterModal</c> pair belongs to the dance, not to vehicles), so
-    /// mounting means opening up the enter/exit machine — and U8, U23 and U24 are all still awaiting
+    /// mounting means opening up the enter/exit machine - and U8, U23 and U24 are all still awaiting
     /// their play-test. And the walk of six metres to the aircraft is not a cost: it is the same
     /// three keys the mission teaches anyway.
     ///
@@ -27,13 +27,13 @@ namespace TheBlock.UI.Menus
     /// </summary>
     public class MissionLaunch : MonoBehaviour
     {
-        [Header("Scene — found automatically when left empty")]
+        [Header("Scene - found automatically when left empty")]
         [SerializeField] private Campaign campaign;
         [SerializeField] private CampaignDirector director;
         [SerializeField] private CampaignRunner runner;
         [SerializeField] private Player.PlayerController player;
 
-        [Tooltip("Metres east of the waypoint the player is set down — the web's own `spawn.x + 4`. " +
+        [Tooltip("Metres east of the waypoint the player is set down - the web's own `spawn.x + 4`. " +
                  "Far enough not to stand inside the giver or the aircraft, near enough to see it.")]
         [SerializeField] private float standOff = 4f;
 
@@ -54,7 +54,7 @@ namespace TheBlock.UI.Menus
 
         /// <summary>
         /// Select mission <paramref name="index"/> and stand the player at its start.
-        /// <paramref name="fresh"/> is New Game — it is the only path that shows the intro card.
+        /// <paramref name="fresh"/> is New Game - it is the only path that shows the intro card.
         /// </summary>
         public void Launch(int index, bool fresh)
         {
@@ -83,9 +83,9 @@ namespace TheBlock.UI.Menus
         }
 
         /// <summary>
-        /// What Y to stand at. The ground is SAMPLED first — the same runtime probe the crowd uses,
+        /// What Y to stand at. The ground is SAMPLED first - the same runtime probe the crowd uses,
         /// which already knows that the lowest hit is the plate and that the lowest hit can still be
-        /// a roof — and the config's own number is the fallback when nothing is under the point.
+        /// a roof - and the config's own number is the fallback when nothing is under the point.
         ///
         /// The jetski's fallback is the sea, not the street, which is the web build's distinction
         /// too: <c>config.sea.level</c> there, <c>config.player.spawn.y</c> everywhere else. Land

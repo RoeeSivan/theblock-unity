@@ -11,7 +11,7 @@ using Convert = TheBlock.Core.Convert;
 namespace TheBlock.EditorTools
 {
     /// <summary>
-    /// Generates the ambient traffic prefabs — <b>The Block → Build Traffic Cars</b>.
+    /// Generates the ambient traffic prefabs - <b>The Block → Build Traffic Cars</b>.
     ///
     /// One prefab per entry in <c>config.traffic.models</c>, each carrying its measured bumper box,
     /// a kinematic Rigidbody, a cull group and the whole street palette as material assets so a
@@ -26,7 +26,7 @@ namespace TheBlock.EditorTools
     ///
     /// <b>Materials are cloned onto U15's compressed textures.</b> A .glb's textures are sub-assets
     /// no importer ever compresses (memory: <c>gltfast-textures-never-compressed</c>), and
-    /// <c>WorldBuilder</c>'s rebinding pass only ever sees objects in the SCENE — these are prefabs
+    /// <c>WorldBuilder</c>'s rebinding pass only ever sees objects in the SCENE - these are prefabs
     /// instantiated at runtime, so they would have quietly pulled the raw copies back in: 110 MB of
     /// RGB24 across the three car models, for cars whose compressed twins are already on disk.
     /// The clones land in <see cref="MaterialFolder"/>, which only this builder writes and only this
@@ -68,7 +68,7 @@ namespace TheBlock.EditorTools
                 var model = LoadModel(spec.Url);
                 if (model == null)
                 {
-                    log.AppendLine($"{name,-10} MISSING — no asset for {spec.Url} under {ModelFolder}");
+                    log.AppendLine($"{name,-10} MISSING - no asset for {spec.Url} under {ModelFolder}");
                     continue;
                 }
 
@@ -79,7 +79,7 @@ namespace TheBlock.EditorTools
             VehicleMaterials.Sweep(MaterialFolder, written, log);
             AssetDatabase.SaveAssets();
 
-            var report = $"TrafficCarBuilder — {built.Count} prefab(s)\n{log}";
+            var report = $"TrafficCarBuilder - {built.Count} prefab(s)\n{log}";
             Debug.Log(report);
             return report;
         }
@@ -107,7 +107,7 @@ namespace TheBlock.EditorTools
             if (spec == null || car == null)
             {
                 log.AppendLine(
-                    $"{name,-10} NOTE — no config.vehicle.cars entry, so this model cannot be carjacked");
+                    $"{name,-10} NOTE - no config.vehicle.cars entry, so this model cannot be carjacked");
                 return Quaternion.identity;
             }
 
@@ -131,7 +131,7 @@ namespace TheBlock.EditorTools
                 // NOT `* Convert.ModelFacing`, unlike every other vehicle builder in this project.
                 // `config.traffic.models[].modelYaw` is authored in the OPPOSITE convention to
                 // `vehicle.cars` and `lotCars` (see TrafficModelSpec.ModelYaw): it already turns the
-                // nose to the travel direction, which the web build's heading math puts at +Z — and
+                // nose to the travel direction, which the web build's heading math puts at +Z - and
                 // Z survives the X-negation untouched, so +Z there is +Z here. Composing the
                 // -Z→+Z flip on top of numbers that contain it drives every ambient car in reverse.
                 visual.transform.localRotation = Convert.RotFromRadians(spec.ModelYaw);
@@ -140,14 +140,14 @@ namespace TheBlock.EditorTools
                 var renderers = visual.GetComponentsInChildren<MeshRenderer>(true);
                 if (renderers.Length == 0)
                 {
-                    log.AppendLine($"{name,-10} SKIPPED — the model has no MeshRenderers");
+                    log.AppendLine($"{name,-10} SKIPPED - the model has no MeshRenderers");
                     return null;
                 }
 
                 // Measured with the root at the origin and the model already turned, so this AABB is
                 // the box the car will actually occupy. Measuring before the rotation would give the
                 // pre-turn box, and measuring a car already yawed into a lane would give the bounding
-                // box of a bounding box — the trap U13 hit on the lot.
+                // box of a bounding box - the trap U13 hit on the lot.
                 var body = renderers[0].bounds;
                 foreach (var renderer in renderers) body.Encapsulate(renderer.bounds);
 
@@ -191,8 +191,8 @@ namespace TheBlock.EditorTools
         ///
         /// The web build uses a Rapier cuboid for the same reason U13's lot cars use a box: a convex
         /// hull of tens of thousands of triangles buys nothing against another box, a wheel and a
-        /// capsule, and would cost it thirty-two times over. The root's scale is 1 — the model's
-        /// scale lives on the Visual child — so unlike the lot cars this size needs no dividing back
+        /// capsule, and would cost it thirty-two times over. The root's scale is 1 - the model's
+        /// scale lives on the Visual child - so unlike the lot cars this size needs no dividing back
         /// out, which is the mistake that made the 37.4× Avenger's collider a kilometre wide.
         /// </summary>
         private static void AddCollider(GameObject root, Bounds body)
@@ -206,7 +206,7 @@ namespace TheBlock.EditorTools
         /// Kinematic, interpolated, continuous.
         ///
         /// <c>Interpolate</c> is what lets the sim run in <c>FixedUpdate</c> at 50 Hz and still look
-        /// smooth at any frame rate — without it a car driven by <c>MovePosition</c> visibly steps.
+        /// smooth at any frame rate - without it a car driven by <c>MovePosition</c> visibly steps.
         /// <c>ContinuousSpeculative</c> is the mode a kinematic body is allowed to have, and it is
         /// worth having: a car crossing a junction at 12 m/s moves a quarter of its own length
         /// between steps, which is enough for a thin collider to be missed.
@@ -225,7 +225,7 @@ namespace TheBlock.EditorTools
         ///
         /// Identical to the lot cars': LOD screen height is relative, so the threshold is derived
         /// from the car's own height rather than typed in as a bare 0.01. The sim keeps running past
-        /// this — a car is recycled by distance, not by visibility — so all this decides is whether
+        /// this - a car is recycled by distance, not by visibility - so all this decides is whether
         /// the renderer is submitted.
         /// </summary>
         private static void AddCullGroup(GameObject root, Bounds body, float cullDistance)
@@ -292,7 +292,7 @@ namespace TheBlock.EditorTools
                     if (paintSource == null) paintSource = clone;
                     else if (paintSource != clone)
                         log.AppendLine(
-                            $"{name,-10} NOTE — a second distinct paint material ('{source.name}'); " +
+                            $"{name,-10} NOTE - a second distinct paint material ('{source.name}'); " +
                             "the whole car takes the first one's palette");
 
                     slotOwners.Add(renderer);
@@ -308,7 +308,7 @@ namespace TheBlock.EditorTools
             if (paintSource == null)
             {
                 log.AppendLine(
-                    $"{name,-10} NOTE — no material named {string.Join("/", VehicleMaterials.PaintMaterialNames)}; " +
+                    $"{name,-10} NOTE - no material named {string.Join("/", VehicleMaterials.PaintMaterialNames)}; " +
                     "this model keeps its shipped colour");
                 if (misses > 0) log.AppendLine($"{name,-10} {misses} texture(s) have no compressed twin");
                 return Array.Empty<Material>();

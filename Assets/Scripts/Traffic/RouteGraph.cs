@@ -6,18 +6,18 @@ namespace TheBlock.Traffic
     /// The street graph as something a car can be ROUTED over, baked.
     ///
     /// <b>Why this exists at all.</b> <see cref="TrafficNetwork"/> describes where a car may be, and
-    /// U17's traffic drives it by picking a uniformly random outgoing edge at every junction — a
+    /// U17's traffic drives it by picking a uniformly random outgoing edge at every junction - a
     /// random walk never needs the graph to be connected, so U17 could not have noticed that it is
     /// not. Measured on the baked asset: <b>97 nodes / 142 edges in FIVE connected components</b>
     /// (49, 18, 16, 12 and 2 nodes). That is the same fault that killed routed pursuit in the web
-    /// build — its own config comment says routing was deleted because the network "is authored
+    /// build - its own config comment says routing was deleted because the network "is authored
     /// district by district and is not fully connected, so 'drive the roads to the player' was
     /// regularly an impossible instruction and the pursuit silently did nothing."
     ///
     /// The cause is mundane and fixable: <c>BuildGraph</c> mints nodes only where polyline ENDPOINTS
     /// meet, so a side street that <b>T</b>s into the middle of another street produces no junction.
     /// Four of the five islands touch one 1,364 m polyline, at gaps of 0.65 m, 1.13 m, 2.20 m and
-    /// 2.73 m. Stitching those — plus the handful of true segment crossings that share no node —
+    /// 2.73 m. Stitching those - plus the handful of true segment crossings that share no node -
     /// leaves <b>two</b> components, the larger holding 97.9% of the network.
     ///
     /// <b>This is a VIEW, never a mutation.</b> Splitting <see cref="TrafficNetwork"/>'s own edges
@@ -25,7 +25,7 @@ namespace TheBlock.Traffic
     /// (<c>EdgeCount >= 3</c>), which changes the 70 lit intersections, the 230 crossings and the 233
     /// poles U16 and U17 verified. So no geometry is copied and no edge is edited: a
     /// <see cref="Link"/> is an ARC-LENGTH SPAN over an existing edge, and every sample still goes
-    /// through <see cref="TrafficNetwork.SampleLane"/> — same lane offsets, same baked road height,
+    /// through <see cref="TrafficNetwork.SampleLane"/> - same lane offsets, same baked road height,
     /// same handedness. A cop drives the right-hand lane on the same side as the traffic, and the
     /// runtime casts no rays for any of it.
     ///
@@ -54,7 +54,7 @@ namespace TheBlock.Traffic
         /// <see cref="S1"/>, arriving at node <see cref="To"/>.
         ///
         /// <c>S1 &lt; S0</c> means travelling the edge backwards (b→a), which is exactly the
-        /// <c>dir = -1</c> <see cref="TrafficNetwork.SampleLane"/> already understands — so driving
+        /// <c>dir = -1</c> <see cref="TrafficNetwork.SampleLane"/> already understands - so driving
         /// the wrong way up an authored polyline still puts the car in the correct lane.
         /// </summary>
         [System.Serializable]
@@ -186,7 +186,7 @@ namespace TheBlock.Traffic
                 {
                     for (int dx = -ring; dx <= ring; dx++)
                     {
-                        // Only the ring's perimeter — the inside was covered by earlier rings.
+                        // Only the ring's perimeter - the inside was covered by earlier rings.
                         if (ring > 0 && Mathf.Abs(dx) != ring && Mathf.Abs(dz) != ring) continue;
 
                         int x = cx + dx;
@@ -220,7 +220,7 @@ namespace TheBlock.Traffic
         /// <summary>
         /// Closest point on one link's span, measured in XZ.
         ///
-        /// Horizontal on purpose: a car on the raised downtown avenue is 6–10 m above a street that
+        /// Horizontal on purpose: a car on the raised downtown avenue is 6-10 m above a street that
         /// passes under it, and a 3D distance would have it "on" the wrong one. The height comes back
         /// from the baked sample, which is right by construction.
         /// </summary>

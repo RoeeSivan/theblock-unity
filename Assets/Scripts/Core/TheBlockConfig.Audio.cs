@@ -7,7 +7,7 @@ namespace TheBlock.Core
     /// (<c>engineAudio</c>, <c>ambientAudio</c>) plus the eighth exported source,
     /// <c>src/audio/scream.config.ts</c>.
     ///
-    /// Split into its own file only for length — see the partial declaration in
+    /// Split into its own file only for length - see the partial declaration in
     /// <c>TheBlockConfig.cs</c>. Same rules as the rest: nothing is converted here.
     ///
     /// <b><c>config.radio</c> is deliberately NOT declared.</b> The car radio streams five live
@@ -17,7 +17,7 @@ namespace TheBlock.Core
     public static partial class TheBlockConfig
     {
         /// <summary>
-        /// <c>config.engineAudio</c> — one looped recording per vehicle type, pitch and gain
+        /// <c>config.engineAudio</c> - one looped recording per vehicle type, pitch and gain
         /// following throttle.
         /// </summary>
         public class EngineAudioSpec
@@ -43,9 +43,9 @@ namespace TheBlock.Core
             public string File;
 
             /// <summary>
-            /// Where the loop must restart, seconds — the ORIGINAL ogg duration.
+            /// Where the loop must restart, seconds - the ORIGINAL ogg duration.
             ///
-            /// The shipped WAVs carry 7–17 ms of decoder overlap tail past this. Web Audio has
+            /// The shipped WAVs carry 7-17 ms of decoder overlap tail past this. Web Audio has
             /// <c>source.loopEnd</c> to ignore it; Unity's <c>AudioSource</c> does not, so
             /// <see cref="TheBlock.Audio.EngineSound"/> trims the clip to this length at load.
             /// Measured: car 0.882358 s of file against 0.864943 here.
@@ -64,7 +64,7 @@ namespace TheBlock.Core
         }
 
         /// <summary>
-        /// <c>config.ambientAudio</c> — the city murmur and the ocean bed, crossfaded by where the
+        /// <c>config.ambientAudio</c> - the city murmur and the ocean bed, crossfaded by where the
         /// player is standing, with a sparse spot-sound layer over the top.
         /// </summary>
         public class AmbientAudioSpec
@@ -148,7 +148,7 @@ namespace TheBlock.Core
         }
 
         /// <summary>
-        /// <c>src/audio/scream.config.ts</c> — the run-over voice pools and the throttle that keeps
+        /// <c>src/audio/scream.config.ts</c> - the run-over voice pools and the throttle that keeps
         /// a plowed pavement from becoming one loud mush.
         /// </summary>
         public class ScreamSpec
@@ -167,7 +167,7 @@ namespace TheBlock.Core
             /// </summary>
             public int MaxConcurrent = 2;
 
-            /// <summary>Hard floor between two scream starts, seconds — the other half of that defence.</summary>
+            /// <summary>Hard floor between two scream starts, seconds - the other half of that defence.</summary>
             public float MinGapSec = 0.18f;
 
             public List<string> Male = new();

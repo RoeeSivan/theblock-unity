@@ -17,7 +17,7 @@ namespace TheBlock.EditorTools
     /// WHY THIS EXISTS. glTFast's <c>GltfImporter</c> is a <c>ScriptedImporter</c>: the textures it
     /// produces are SUB-ASSETS of the .glb, and a sub-asset has no <c>TextureImporter</c>. Nothing
     /// ever picks a compressed format for them, so every district texture sits in memory as raw
-    /// RGB24 — measured on 2026-08-15, before this pass existed:
+    /// RGB24 - measured on 2026-08-15, before this pass existed:
     ///
     /// <code>
     ///   RGB24    12,912 MB   <- glTFast sub-assets
@@ -27,10 +27,10 @@ namespace TheBlock.EditorTools
     /// </code>
     ///
     /// Twenty-one of them are 16000x2000 at 284 MB each. That is 96% of the world's memory and it
-    /// is the reason U15 is this pass and not Addressables — streaming 13.5 GB in chunks is still
+    /// is the reason U15 is this pass and not Addressables - streaming 13.5 GB in chunks is still
     /// 13.5 GB, while compressing the same pixels is a ~12x cut with no resize and no visual loss.
     ///
-    /// The image bytes are copied out VERBATIM — the PNG/JPEG buffer that is already inside the
+    /// The image bytes are copied out VERBATIM - the PNG/JPEG buffer that is already inside the
     /// .glb, byte for byte. There is no decode and no re-encode here, so this step cannot lose
     /// quality; the only lossy stage is the block compression Unity then applies on import, which
     /// is the stage that was missing.
@@ -39,8 +39,8 @@ namespace TheBlock.EditorTools
     /// ~390 textures takes minutes, and Build World runs constantly. Run this once after a district
     /// .glb changes; it skips anything already newer than its source.
     ///
-    /// The rebinding — pointing the districts' materials at these textures instead of at the
-    /// sub-assets — is <see cref="WorldBuilder"/>'s job, in WorldBuilder.Textures.cs.
+    /// The rebinding - pointing the districts' materials at these textures instead of at the
+    /// sub-assets - is <see cref="WorldBuilder"/>'s job, in WorldBuilder.Textures.cs.
     /// </summary>
     public static class TextureCompressor
     {
@@ -55,7 +55,7 @@ namespace TheBlock.EditorTools
         ///
         /// The world's 393 textures are dominated by a handful of huge atlases: 21 at 16000x2000,
         /// 101 at 2048², 40 at 2000². Everything from 1 MP up is 96% of the memory, and the tail
-        /// below it is ~200 MB in total — not worth a second copy on disk, an import round-trip, or
+        /// below it is ~200 MB in total - not worth a second copy on disk, an import round-trip, or
         /// the ambiguity risk below, since duplicate image names cluster in exactly that tail
         /// (there are seven images called "Untitled" in city 4 alone, all 512² or 1024²).
         /// </summary>
@@ -67,7 +67,7 @@ namespace TheBlock.EditorTools
         /// </summary>
         private static readonly Regex SamplerSuffix = new(@"_sampler\d+$", RegexOptions.Compiled);
 
-        /// <summary>Unnamed glTF images are named by index — <c>GltfImport.GetTextureName</c> again.</summary>
+        /// <summary>Unnamed glTF images are named by index - <c>GltfImport.GetTextureName</c> again.</summary>
         private static readonly Regex IndexedName = new(@"^image_(\d+)$", RegexOptions.Compiled);
 
         [MenuItem("The Block/Compress Textures", priority = 2)]
@@ -79,8 +79,8 @@ namespace TheBlock.EditorTools
         /// <summary>
         /// Resolves every texture and reports what WOULD be written, without touching disk.
         ///
-        /// Worth its own menu entry because the resolution step is the part that can go wrong — see
-        /// <see cref="ResolveImageIndex"/> on why names alone are not enough — and the real run
+        /// Worth its own menu entry because the resolution step is the part that can go wrong - see
+        /// <see cref="ResolveImageIndex"/> on why names alone are not enough - and the real run
         /// takes minutes of block compression before it would tell you.
         /// </summary>
         [MenuItem("The Block/Compress Textures (dry run)", priority = 4)]
@@ -96,7 +96,7 @@ namespace TheBlock.EditorTools
 
             if (glbPaths.Count == 0)
             {
-                const string empty = "Compress Textures — no .glb files under Assets/Models.";
+                const string empty = "Compress Textures - no .glb files under Assets/Models.";
                 Debug.LogWarning(empty);
                 return empty;
             }
@@ -135,7 +135,7 @@ namespace TheBlock.EditorTools
 
             var summary = new StringBuilder();
             summary.AppendLine(
-                $"Compress Textures{(dryRun ? " (DRY RUN — nothing written)" : string.Empty)} — " +
+                $"Compress Textures{(dryRun ? " (DRY RUN - nothing written)" : string.Empty)} - " +
                 $"{written} {(dryRun ? "resolved" : "written")}, {unchanged} already current, " +
                 $"{skipped} skipped (below {SkipBelowPixels / 1048576.0:0.#} MP, or unresolved)");
             summary.AppendLine(
@@ -172,13 +172,13 @@ namespace TheBlock.EditorTools
             }
             catch (Exception exception)
             {
-                warnings.Add($"{Path.GetFileName(glbPath)} — could not be read: {exception.Message}");
+                warnings.Add($"{Path.GetFileName(glbPath)} - could not be read: {exception.Message}");
                 return;
             }
 
             if (images.Count == 0)
             {
-                warnings.Add($"{Path.GetFileName(glbPath)} — {textures.Count} imported texture(s) but no embedded images");
+                warnings.Add($"{Path.GetFileName(glbPath)} - {textures.Count} imported texture(s) but no embedded images");
                 return;
             }
 
@@ -199,7 +199,7 @@ namespace TheBlock.EditorTools
                 var index = ResolveImageIndex(texture, images, out var reason);
                 if (index < 0)
                 {
-                    warnings.Add($"{stem} — {reason}");
+                    warnings.Add($"{stem} - {reason}");
                     skipped++;
                     continue;
                 }
@@ -224,7 +224,7 @@ namespace TheBlock.EditorTools
 
                 if (texture.wrapMode != TextureWrapMode.Repeat || texture.filterMode != FilterMode.Bilinear)
                     warnings.Add(
-                        $"{stem} — \"{texture.name}\" imports as {texture.wrapMode}/{texture.filterMode}, but the " +
+                        $"{stem} - \"{texture.name}\" imports as {texture.wrapMode}/{texture.filterMode}, but the " +
                         "extracted copy is forced to Repeat/Bilinear; teach GeneratedTextureImporter about it");
 
                 Directory.CreateDirectory(Path.GetDirectoryName(absolute)!);
@@ -237,7 +237,7 @@ namespace TheBlock.EditorTools
             if (perFile.Count > 0)
             {
                 report.AppendLine();
-                report.AppendLine($"{stem} — {perFile.Count} texture(s)");
+                report.AppendLine($"{stem} - {perFile.Count} texture(s)");
                 foreach (var line in perFile.Take(6)) report.AppendLine($"  {line}");
                 if (perFile.Count > 6) report.AppendLine($"  … and {perFile.Count - 6} more");
             }
@@ -275,7 +275,7 @@ namespace TheBlock.EditorTools
         /// into that BIN chunk whose bytes are already a complete PNG or JPEG file, so extracting
         /// one is a slice, not a conversion.
         ///
-        /// Draco compression, which these districts use, only ever touches MESH buffer views —
+        /// Draco compression, which these districts use, only ever touches MESH buffer views -
         /// images are untouched by it, which is why this works on a Draco file at all.
         /// </summary>
         private static GlbImages ReadImages(string glbPath)
@@ -329,7 +329,7 @@ namespace TheBlock.EditorTools
         }
 
         /// <summary>
-        /// Maps an imported texture back to the glTF image it came from — by name AND by shape, and
+        /// Maps an imported texture back to the glTF image it came from - by name AND by shape, and
         /// refusing rather than guessing when that is not enough.
         ///
         /// ⚠ NAMES ARE NOT UNIQUE. glTFast names a texture after its glTF IMAGE
@@ -337,10 +337,10 @@ namespace TheBlock.EditorTools
         /// stock texture packs, so the image names repeat: city 4 alone has seven images called
         /// "Untitled", two called "Street_Mashup_texture_normal" and two called
         /// "TCom_ConcretePlates0211_1_seamless_L.png". Binding by name alone would quietly point a
-        /// wall at another wall's normal map — the kind of fault that looks like a lighting bug.
+        /// wall at another wall's normal map - the kind of fault that looks like a lighting bug.
         ///
         /// So the pixel dimensions and the presence of an alpha channel are read straight out of the
-        /// embedded file's own header — a few bytes, no decode — and used to narrow the candidates.
+        /// embedded file's own header - a few bytes, no decode - and used to narrow the candidates.
         /// A texture that still matches zero or more than one image is SKIPPED and named in the
         /// report, because staying uncompressed is merely heavy while binding the wrong image is
         /// wrong.
@@ -392,7 +392,7 @@ namespace TheBlock.EditorTools
             {
                 reason =
                     $"\"{texture.name}\" {texture.width}x{texture.height} matches {candidates.Count} embedded " +
-                    "images that are alike in name, size and alpha — left uncompressed rather than guessed";
+                    "images that are alike in name, size and alpha - left uncompressed rather than guessed";
                 return -1;
             }
 
@@ -401,7 +401,7 @@ namespace TheBlock.EditorTools
         }
 
         /// <summary>
-        /// Pixel size and alpha, straight from a PNG or JPEG header. No decode — this runs on every
+        /// Pixel size and alpha, straight from a PNG or JPEG header. No decode - this runs on every
         /// embedded image in every district and one of them is 16000x2000.
         ///
         /// Returns zeroes for anything unrecognised, which simply makes the size filter in
@@ -413,7 +413,7 @@ namespace TheBlock.EditorTools
             hasAlpha = false;
             if (data == null) return;
 
-            // PNG: 8-byte signature, then the IHDR chunk — length, type, width, height, bit depth,
+            // PNG: 8-byte signature, then the IHDR chunk - length, type, width, height, bit depth,
             // colour type. Colour types 4 (grey+alpha) and 6 (RGBA) carry alpha.
             if (data.Length >= 26 && data[0] == 0x89 && data[1] == 0x50 &&
                 data[12] == 'I' && data[13] == 'H' && data[14] == 'D' && data[15] == 'R')
@@ -447,7 +447,7 @@ namespace TheBlock.EditorTools
                         return;
                     }
 
-                    if (marker == 0xDA) return; // start of scan — no SOF found
+                    if (marker == 0xDA) return; // start of scan - no SOF found
                     offset += 2 + length;
                 }
             }
@@ -518,7 +518,7 @@ namespace TheBlock.EditorTools
         /// The extracted file's name, without extension. It is the ONLY record of how the texture
         /// must be imported, so it carries two things beyond the name.
         ///
-        /// The pixel size, because the texture NAME is not unique inside one .glb — see
+        /// The pixel size, because the texture NAME is not unique inside one .glb - see
         /// <see cref="ResolveImageIndex"/>. Two same-named textures that both resolve (they resolve
         /// precisely because they differ in size) would otherwise land on one path and the second
         /// would silently overwrite the first.

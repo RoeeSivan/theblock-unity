@@ -4,13 +4,13 @@ using UnityEngine;
 namespace TheBlock.UI
 {
     /// <summary>
-    /// Fills <see cref="MapRegistry"/> at scene start — the port of <c>src/world/map-pois.ts</c>
+    /// Fills <see cref="MapRegistry"/> at scene start - the port of <c>src/world/map-pois.ts</c>
     /// plus the district half of <c>src/world/sandbox.ts</c>'s registration.
     ///
     /// The web build registers each district as its model finishes loading; here the world is baked
     /// into the scene by WorldBuilder, so one component walks the baked hierarchy once. Coordinates
     /// come from the same config the builder used and go through <see cref="Convert"/> exactly once,
-    /// on the way into the registry — everything the map reads back out is already Unity space.
+    /// on the way into the registry - everything the map reads back out is already Unity space.
     ///
     /// Deliberately absent from the web build's list, each because its system is not built yet:
     /// "Beach Dance" reads <c>rhythmConfig</c> (U22, not exported), and the 7-Eleven pin exists but
@@ -34,7 +34,7 @@ namespace TheBlock.UI
             var group = root != null ? root.transform.Find("Districts") : null;
             if (group == null)
             {
-                Debug.LogWarning("MapPois: no Districts group under WorldRoot — build the world first.");
+                Debug.LogWarning("MapPois: no Districts group under WorldRoot - build the world first.");
                 return;
             }
 
@@ -62,12 +62,12 @@ namespace TheBlock.UI
 
         private void RegisterStaticPois(TheBlockConfig.Root config)
         {
-            // The names are literals, not `place.Name`: a PlaceSpec in config.ts has no name field —
+            // The names are literals, not `place.Name`: a PlaceSpec in config.ts has no name field -
             // the pin's label is typed into map-pois.ts. Reading the missing field back gave every
             // landmark a null label, which is a crash and not a blank pin.
             // The emoji column is the web's, POI for POI (map-pois.ts): the three services that are
             // otherwise indistinguishable green Marker dots get a picture, and the places that
-            // already read as themselves — the pizzeria's red dot, the parking lot, spawn — keep
+            // already read as themselves - the pizzeria's red dot, the parking lot, spawn - keep
             // theirs. The pizzeria in particular must NOT be 🍕 here: that glyph is mission 1's
             // objective marker, and two pizzas on one map is the confusion, not the fix.
             void Place(TheBlockConfig.PlaceSpec place, string label, MapPoiKind kind, string icon = null)
@@ -87,7 +87,7 @@ namespace TheBlock.UI
             Place(config.GasStation, "Gas Station", MapPoiKind.Marker, "⛽");
             Place(config.SevenEleven, "7-Eleven", MapPoiKind.Marker, "🏪");
 
-            // One pin for the whole lot — the web build found per-car POIs stacked unreadably. The
+            // One pin for the whole lot - the web build found per-car POIs stacked unreadably. The
             // point is hand-authored in map-pois.ts, not derived from lotCars.bounds, so it is
             // hand-copied here the same way.
             MapRegistry.AddPoi(new MapPoi

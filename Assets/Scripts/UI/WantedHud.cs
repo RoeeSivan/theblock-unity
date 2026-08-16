@@ -8,7 +8,7 @@ namespace TheBlock.UI
     /// The wanted stars and the BUSTED screen, on the panel that already exists.
     ///
     /// <b>One UIDocument, always.</b> U14 built the HUD panel for the map and the ledger's U25 row
-    /// says to extend it rather than add a second — two panels means two PanelSettings, two scale
+    /// says to extend it rather than add a second - two panels means two PanelSettings, two scale
     /// modes and a z-order argument nobody wins.
     ///
     /// This is the minimum U19 needs to be play-testable, and no more: the typography, the emoji POI
@@ -60,7 +60,7 @@ namespace TheBlock.UI
             root.Add(_stars);
 
             // The cash readout sits under the stars. U25 owns the typography; what it owes here is
-            // legibility, not a design — a fine that is charged and never shown is a fine nobody
+            // legibility, not a design - a fine that is charged and never shown is a fine nobody
             // can tell happened.
             _cash = new Label("$0") { name = "cash" };
             _cash.style.position = Position.Absolute;
@@ -126,7 +126,7 @@ namespace TheBlock.UI
 
             var line = taken > 0 ? $"−${taken}" : "nothing left to take";
             if (owed > 0) line += $"   ·   ${owed} owed";
-            line += impounded ? "\nvehicle impounded — station" : "\ncuffed on the spot";
+            line += impounded ? "\nvehicle impounded - station" : "\ncuffed on the spot";
 
             _bustDetail.text = line;
             _bustOverlay.style.display = DisplayStyle.Flex;

@@ -10,24 +10,24 @@ using UnityEngine.UIElements;
 namespace TheBlock.UI.Menus
 {
     /// <summary>
-    /// Who is on screen, and what Esc does about it — the port of the boot tail of the web build's
+    /// Who is on screen, and what Esc does about it - the port of the boot tail of the web build's
     /// <c>main.ts</c> (the <c>for(;;) await titleMenu.showMainMenu()</c> loop) plus its
     /// <c>setPaused</c> and its <c>canPause</c>.
     ///
     /// Every panel in this namespace is dumb: it draws itself and raises a callback.
     /// <b>All the decisions are here</b>, which is the same division the web makes and for the same
-    /// reason — <c>pause-menu.ts</c>'s own comment, "the frame loop owns the paused flag and the
+    /// reason - <c>pause-menu.ts</c>'s own comment, "the frame loop owns the paused flag and the
     /// freeze; this is purely the overlay + callbacks".
     ///
     /// <b>The title screen is not a scene.</b> The loading bar is (see <c>BootLoader</c>), but the
-    /// title itself sits on the HUD document over the loaded, frozen city — the same shape as the
+    /// title itself sits on the HUD document over the loaded, frozen city - the same shape as the
     /// web's <c>#title-menu</c>, a z-101 overlay over a canvas that has already finished loading. A
     /// title in the Boot scene would need its own copy of the audio host, the Joe rig and the
     /// campaign, all so it could show them against a black background.
     /// </summary>
     public class GameFlow : MonoBehaviour
     {
-        [Header("Panels — found automatically when left empty")]
+        [Header("Panels - found automatically when left empty")]
         [SerializeField] private TitleMenu title;
         [SerializeField] private PauseMenu pause;
         [SerializeField] private ControlsGuide guide;
@@ -35,7 +35,7 @@ namespace TheBlock.UI.Menus
         [SerializeField] private CharacterPanel character;
         [SerializeField] private ShopMenu shop;
 
-        [Header("Scene — found automatically when left empty")]
+        [Header("Scene - found automatically when left empty")]
         [SerializeField] private MissionLaunch launch;
         [SerializeField] private CampaignRunner runner;
         [SerializeField] private GameMap map;
@@ -51,7 +51,7 @@ namespace TheBlock.UI.Menus
         [SerializeField] private bool skipTitle;
 
         [Tooltip("The scene Quit to Title goes back to. It re-shows the loading bar and rebuilds " +
-                 "the world, which is the honest teardown — the web reloads the page here.")]
+                 "the world, which is the honest teardown - the web reloads the page here.")]
         [SerializeField] private string bootScene = "Boot";
 
         private void Awake()
@@ -108,7 +108,7 @@ namespace TheBlock.UI.Menus
 
         /// <summary>
         /// The only thing in the game that SPENDS cash, so the charge lives here beside the wallet
-        /// rather than inside the overlay — the same placement <c>main.ts</c> gives it.
+        /// rather than inside the overlay - the same placement <c>main.ts</c> gives it.
         ///
         /// Charge first, then stock. <see cref="Wallet.Charge"/> returns what it actually took, and
         /// the balance was checked a line earlier, so a partial take is impossible; taking the money
@@ -203,7 +203,7 @@ namespace TheBlock.UI.Menus
             if (shop != null && shop.IsOpen) { CloseShop(); return; }
 
             // The title has nothing behind it to go back to. Esc there is not "resume", it is
-            // "resume WHAT" — the campaign has not been told which mission to open on yet.
+            // "resume WHAT" - the campaign has not been told which mission to open on yet.
             if (title != null && title.IsOpen) return;
 
             if (map != null && map.IsExpanded) { map.SetExpanded(false); return; }
@@ -225,7 +225,7 @@ namespace TheBlock.UI.Menus
         /// driving, and not over a briefing card.
         ///
         /// <b>The dance is the clause that matters.</b> <see cref="Minigame.Rhythm.Conductor"/> is
-        /// anchored to <c>AudioSettings.dspTime</c>, which <c>Time.timeScale</c> cannot stop — pause
+        /// anchored to <c>AudioSettings.dspTime</c>, which <c>Time.timeScale</c> cannot stop - pause
         /// a routine and the arrows freeze while the song plays on, then resume against an anchor
         /// that is wrong by however long the menu was up. U27 already paid for one 21.3 ms shift in
         /// that anchor; this would be a shift of seconds.
@@ -246,7 +246,7 @@ namespace TheBlock.UI.Menus
 
         /// <summary>
         /// Everything the web's New Game branch resets, in its order: unlocks, cash, the per-mission
-        /// paid flags, and the bag — which had to go too, because it was bought with cash that no
+        /// paid flags, and the bag - which had to go too, because it was bought with cash that no
         /// longer exists.
         ///
         /// <b>The freeze lifts BEFORE the run begins</b>, and that is not cosmetic ordering: the
@@ -310,8 +310,8 @@ namespace TheBlock.UI.Menus
         ///
         /// <b>By exclusion, not by a list of what to hide.</b> Six components draw onto this one
         /// document and more will; a list of gameplay elements would be a list somebody has to
-        /// remember to append to, and the failure — three wanted stars floating over the title
-        /// screen — is silent. The menus know their own names, so everything else is gameplay.
+        /// remember to append to, and the failure - three wanted stars floating over the title
+        /// screen - is silent. The menus know their own names, so everything else is gameplay.
         ///
         /// <b>It hides with <c>visibility</c>, and the first version hid with <c>display</c>.</b>
         /// That version remembered each element's previous <c>display</c> and restored it on close,
@@ -341,7 +341,7 @@ namespace TheBlock.UI.Menus
         }
 
         /// <summary>
-        /// Back to the loading bar and a fresh world. <b>Unfreeze first</b> — <c>Time.timeScale</c>
+        /// Back to the loading bar and a fresh world. <b>Unfreeze first</b> - <c>Time.timeScale</c>
         /// is not scene state, and loading a scene with it still at 0 gives you a Boot screen whose
         /// progress bar never animates.
         /// </summary>
@@ -353,7 +353,7 @@ namespace TheBlock.UI.Menus
 
         // ── panel arbitration ─────────────────────────────────────────────────────────────────
 
-        /// <summary>Exactly one panel visible at a time — the web's `showPanel` rule.</summary>
+        /// <summary>Exactly one panel visible at a time - the web's `showPanel` rule.</summary>
         private void Swap(MenuPanel from, System.Action open)
         {
             from?.Hide();

@@ -8,14 +8,14 @@ using UnityEngine;
 namespace TheBlock.EditorTools
 {
     /// <summary>
-    /// Builds <c>Assets/Animation/Npc.controller</c> and one override controller per character —
+    /// Builds <c>Assets/Animation/Npc.controller</c> and one override controller per character -
     /// the whole animation state of a pedestrian, which is idle, walking, and the blend between.
     ///
     /// <b>Six faces, six pairs of clips, ONE graph.</b> Each of the original's characters carries its
     /// own Mixamo idle and walk (see <see cref="PeopleImporter"/>), so the naive arrangement is six
-    /// controllers. The objection to overrides is real — an <c>AnimatorOverrideController</c> can
+    /// controllers. The objection to overrides is real - an <c>AnimatorOverrideController</c> can
     /// swap the CLIPS in a blend tree but not the thresholds or time scales, which live in the base
-    /// asset — and six characters whose walks were authored at 0.85 to 1.65 m/s would each need
+    /// asset - and six characters whose walks were authored at 0.85 to 1.65 m/s would each need
     /// their own numbers.
     ///
     /// <b>The fix is to make the blend parameter dimensionless.</b> <c>Speed</c> is not metres per
@@ -32,7 +32,7 @@ namespace TheBlock.EditorTools
         private const string OverrideFolder = "Assets/Animation/Npc";
 
         /// <summary>
-        /// The knockdown state's name, which is what <c>Pedestrian</c> cross-fades to by string — so
+        /// The knockdown state's name, which is what <c>Pedestrian</c> cross-fades to by string - so
         /// the name lives there and this file agrees with it.
         ///
         /// <b>The state is deliberately not overridden per character.</b> Idle and walk are, because
@@ -49,7 +49,7 @@ namespace TheBlock.EditorTools
         private const string BaseCharacter = "Sophie";
 
         /// <summary>
-        /// What a walk clip is assumed to travel at when its own reading is useless — a Mixamo "in
+        /// What a walk clip is assumed to travel at when its own reading is useless - a Mixamo "in
         /// place" export, or one whose root got baked. Roughly the middle of the crowd's band.
         /// </summary>
         internal const float FallbackWalkSpeed = 1.35f;
@@ -60,8 +60,8 @@ namespace TheBlock.EditorTools
         /// <summary>
         /// The dimensionless gait ladder: ratio of ground speed to the clip's own authored speed.
         ///
-        /// Three walk children, not one. The crowd walks at 1.0–1.5 m/s against clips authored at
-        /// 0.85–1.65, so the ratio lands anywhere in roughly 0.6–1.4 — and every point of that range
+        /// Three walk children, not one. The crowd walks at 1.0-1.5 m/s against clips authored at
+        /// 0.85-1.65, so the ratio lands anywhere in roughly 0.6-1.4 - and every point of that range
         /// blends walk-to-walk, never walk-to-idle, which is the foot-sliding fault the old
         /// <c>StrollSpeed</c> anchor existed to avoid. The 1.4 child is there because a 1-D tree
         /// clamps past its last threshold: without it the fastest walker on the slowest clip skates.
@@ -114,12 +114,12 @@ namespace TheBlock.EditorTools
             //
             // No transitions in or out, and no trigger parameter. Pedestrian cross-fades to this
             // state at impact and back to Locomotion when the body is recycled, because the reaction
-            // has a clock of its own — the arc, the stain and the fade all hang off it — and a
+            // has a clock of its own - the arc, the stain and the fade all hang off it - and a
             // transition graph would give the same reaction a second, disagreeing one.
             var hit = HitClipImporter.Load();
             if (hit == null)
             {
-                log.AppendLine("  ⚠ no hit clip — run The Block → Import Hit Clip. The crowd is unhittable.");
+                log.AppendLine("  ⚠ no hit clip - run The Block → Import Hit Clip. The crowd is unhittable.");
             }
             else
             {
@@ -145,7 +145,7 @@ namespace TheBlock.EditorTools
                 var walk = FindClip(PeopleImporter.WalkPath(name), PeopleImporter.WalkClip(name));
                 if (idle == null)
                 {
-                    log.AppendLine($"  {name,-11} SKIPPED — no idle clip");
+                    log.AppendLine($"  {name,-11} SKIPPED - no idle clip");
                     continue;
                 }
 
@@ -180,7 +180,7 @@ namespace TheBlock.EditorTools
             AssetDatabase.SaveAssets();
 
             var report =
-                $"NpcAnimatorBuilder — {built}/{PeopleImporter.Names.Length} override(s)\n{log}" +
+                $"NpcAnimatorBuilder - {built}/{PeopleImporter.Names.Length} override(s)\n{log}" +
                 "  No run and no panic: U19 owns the fleeing";
             Debug.Log(report, controller);
             return report;
@@ -189,7 +189,7 @@ namespace TheBlock.EditorTools
         internal static string OverridePath(string name) => $"{OverrideFolder}/Npc_{name}.overrideController";
 
         /// <summary>
-        /// The ground speed a character's walk clip was authored at — the denominator of the
+        /// The ground speed a character's walk clip was authored at - the denominator of the
         /// dimensionless <c>Speed</c> parameter. <see cref="NpcBuilder"/> bakes it onto the prefab.
         /// </summary>
         internal static float WalkSpeed(AnimationClip walk)

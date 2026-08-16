@@ -15,13 +15,13 @@ namespace TheBlock.EditorTools
     ///
     /// Generated rather than hand-assembled, for the reason every other builder here is: two
     /// WheelColliders and a seat dragged into place are invisible in review and quietly wrong after
-    /// a re-export. Re-running the menu item rebuilds the prefab in place so its GUID — and the
-    /// scene's reference to it — survives.
+    /// a re-export. Re-running the menu item rebuilds the prefab in place so its GUID - and the
+    /// scene's reference to it - survives.
     ///
     /// The one thing this cannot measure, and <c>CarBuilder</c> can, is the wheels. The Mustang's
     /// rig names its own corners; this GLB is two nodes, <c>Bike</c> and <c>WoltBox</c>, each a
     /// single merged mesh with no wheel to find. So the axles are placed from the body's bounding
-    /// box and the radius is a stated constant — see <see cref="WheelRadiusFraction"/>. Nothing
+    /// box and the radius is a stated constant - see <see cref="WheelRadiusFraction"/>. Nothing
     /// visible depends on getting them exactly right, because there is no wheel mesh to spin either;
     /// what depends on it is where the suspension pushes and how the bike pitches.
     /// </summary>
@@ -43,7 +43,7 @@ namespace TheBlock.EditorTools
         /// </summary>
         private const float WheelRadiusFraction = 0.22f;
 
-        /// <summary>Total suspension travel in metres. Shorter than the car's — a bike has less.</summary>
+        /// <summary>Total suspension travel in metres. Shorter than the car's - a bike has less.</summary>
         private const float SuspensionDistance = 0.16f;
 
         /// <summary>Where along that travel the wheel rests. Half, so it can compress and droop equally.</summary>
@@ -146,14 +146,14 @@ namespace TheBlock.EditorTools
 
         /// <summary>
         /// Parents the model under a lean pivot, turns it to face Unity's +Z, and drops it so the
-        /// root's origin lands on the tyre contact patch — the same convention the car uses, so
+        /// root's origin lands on the tyre contact patch - the same convention the car uses, so
         /// <c>spawn</c> plus <c>roadSurfaceY</c> means "put the bike here" without a correction.
         ///
         /// The extra node in the middle is the whole reason a bike reads as a bike. The controller
         /// rolls THAT to lean into corners, leaving the Rigidbody upright: rolling the body itself
         /// on two wheels is not a lean, it is a fall.
         ///
-        /// <c>groundClearance</c> is honoured as the web build honours it — the model carries a
+        /// <c>groundClearance</c> is honoured as the web build honours it - the model carries a
         /// little geometry below its tyres, and without the lift the visible wheels sink into the
         /// asphalt by exactly that much.
         /// </summary>
@@ -192,7 +192,7 @@ namespace TheBlock.EditorTools
             log.AppendLine($"body    {Fmt(bounds.size)} m, centre {Fmt(bounds.center)}");
             log.AppendLine($"yaw     modelYaw {spec.ModelYaw:0.###} rad + 180° facing = " +
                            $"{visual.transform.localEulerAngles.y:0.#}°");
-            log.AppendLine($"lift    visual raised {lift:0.###} m — root origin is the contact patch, " +
+            log.AppendLine($"lift    visual raised {lift:0.###} m - root origin is the contact patch, " +
                            $"wheels held {spec.GroundClearance:0.###} m clear per config groundClearance");
             log.AppendLine("lean    pivot 'Lean' between root and Visual; the controller rolls it, " +
                            "the Rigidbody stays upright");
@@ -207,7 +207,7 @@ namespace TheBlock.EditorTools
         ///
         /// That placement is not a guess about this model so much as a fact about bikes: the
         /// bounding box of a motorcycle is bounded front and back by its own tyres, so an axle sits
-        /// exactly one radius inside each edge. Both are centred on the body's X — a bike's wheels
+        /// exactly one radius inside each edge. Both are centred on the body's X - a bike's wheels
         /// are in line, which is the entire reason it needs a stabiliser.
         /// </summary>
         private static (WheelCollider front, WheelCollider rear) BuildWheels(
@@ -221,7 +221,7 @@ namespace TheBlock.EditorTools
             var axleZ = Mathf.Max(0.15f, bounds.size.z * 0.5f - radius);
 
             log.AppendLine($"wheels  radius {radius:0.###} m ({WheelRadiusFraction:P0} of body height, " +
-                           "stated not measured — this GLB has no wheel node), axles at " +
+                           "stated not measured - this GLB has no wheel node), axles at " +
                            $"z ±{axleZ:0.###} ({axleZ * 2f:0.###} m wheelbase), raised {rest:0.###} m " +
                            "for suspension rest");
 
@@ -275,7 +275,7 @@ namespace TheBlock.EditorTools
         ///
         /// The box floor is held clear of the road for the same reason the car's is: a collider that
         /// reaches the tarmac fights the wheels for ground contact and the vehicle judders. Its WIDTH
-        /// is overridden rather than measured — see <see cref="ChassisWidth"/>. Angular damping is
+        /// is overridden rather than measured - see <see cref="ChassisWidth"/>. Angular damping is
         /// higher than the car's so the upright stabiliser has something to settle against instead of
         /// ringing.
         /// </summary>
@@ -288,7 +288,7 @@ namespace TheBlock.EditorTools
             body.linearDamping = 0f;
             // Low, and deliberately: this damps YAW as well as roll, and yaw is how the bike turns.
             // Roll is already heavily over-damped by the stabiliser's look-ahead term, so it needs
-            // no help here — help here would only make the steering feel like treacle.
+            // no help here - help here would only make the steering feel like treacle.
             body.angularDamping = 0.15f;
 
             var top = bounds.max.y;
@@ -297,7 +297,7 @@ namespace TheBlock.EditorTools
             box.center = new Vector3(0f, (top + ChassisGroundGap) * 0.5f, bounds.center.z);
 
             log.AppendLine($"chassis box {Fmt(box.size)} centred {Fmt(box.center)}, floor at " +
-                           $"{ChassisGroundGap:0.##} m — width forced to {ChassisWidth:0.##} m, the " +
+                           $"{ChassisGroundGap:0.##} m - width forced to {ChassisWidth:0.##} m, the " +
                            $"measured {bounds.size.x:0.##} m spans the mirrors and bars");
             log.AppendLine($"mass    {Mass:0} kg, angular damping {body.angularDamping:0.##}");
         }
@@ -307,7 +307,7 @@ namespace TheBlock.EditorTools
         /// <summary>
         /// Places the seat.
         ///
-        /// Unlike the car's driver anchor, this one IS a seat — <c>config.vehicle.motorcycle.rider</c>
+        /// Unlike the car's driver anchor, this one IS a seat - <c>config.vehicle.motorcycle.rider</c>
         /// was tuned against a rider frozen on frame 0 of a sitting clip, not against an entry
         /// animation's origin. The two corrections are the same ones <c>CarBuilder</c> applies:
         ///
@@ -323,7 +323,7 @@ namespace TheBlock.EditorTools
             var rider = spec.Rider;
             if (rider?.Seat == null)
             {
-                log.AppendLine("seat    none in config.vehicle.motorcycle.rider — no rider anchor built");
+                log.AppendLine("seat    none in config.vehicle.motorcycle.rider - no rider anchor built");
                 return null;
             }
 

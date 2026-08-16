@@ -9,14 +9,14 @@ namespace TheBlock.Police
     /// <summary>
     /// The port of <c>crime.ts</c>: decides what counts as a crime, and how much.
     ///
-    /// Two sources, and deliberately only two — the same pair the shipped game has:
+    /// Two sources, and deliberately only two - the same pair the shipped game has:
     ///  - <see cref="RunOverSystem.RanOver"/>, which U18 already owns. There is no second pedestrian
     ///    detector to add: the web's <c>crime.ts pedHit</c> radius scan is dead upstream and the
     ///    decisions log says not to re-split them.
     ///  - <see cref="CrashSensor.Crashed"/>, which is new, and is where the "too sensitive" problem
     ///    was actually fixed.
     ///
-    /// <b>Gates.</b> No crime exists on foot — that is the web's rule and it survives, because a
+    /// <b>Gates.</b> No crime exists on foot - that is the web's rule and it survives, because a
     /// pedestrian who bumps a wall is not a police matter. Nothing happens indoors. A mission gate is
     /// exposed for U20 (<see cref="Heat.SuppressCrash"/>) and deliberately not wired to anything yet:
     /// the web suppresses crashes but never run-overs inside a mission, because its one driving
@@ -107,7 +107,7 @@ namespace TheBlock.Police
 
             _sinceRunOver = 0f;
 
-            // One event, one star, however many went down — the web's rule. A pavement full of
+            // One event, one star, however many went down - the web's rule. A pavement full of
             // people is not five cars, and the cooldown is what stops a rampage being one either.
             heat.Bump();
         }
@@ -122,7 +122,7 @@ namespace TheBlock.Police
         /// <b>The last filter is new, and it is what a counter forces.</b> Heat is whole stars again,
         /// so a crash is worth one star or nothing at all and "how hard did I hit that" has to become
         /// a threshold rather than a multiplier. <see cref="PoliceTuning.CrashCrimeSpeed"/> is that
-        /// line, set where a wall at about 22 km/h is a crime and a kerb hop is not — and
+        /// line, set where a wall at about 22 km/h is a crime and a kerb hop is not - and
         /// <see cref="PoliceTuning.VehicleCrashCrimeSpeed"/> is the far lower one an impact against
         /// another car is judged by, because that is a hit-and-run and the wall figure exists to
         /// forgive geometry, not victims.

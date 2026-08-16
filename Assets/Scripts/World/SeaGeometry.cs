@@ -4,7 +4,7 @@ using UnityEngine;
 namespace TheBlock.World
 {
     /// <summary>
-    /// The shape of the shoreline, in Unity space — one source of truth for the sand MESH, the
+    /// The shape of the shoreline, in Unity space - one source of truth for the sand MESH, the
     /// water shader's depth ramp, and (later) the swim state's "how deep am I" test.
     ///
     /// The web build has the same function in <c>world/sea.ts</c> and reuses it the same way; the
@@ -20,8 +20,8 @@ namespace TheBlock.World
         public static float ShoreX(TheBlockConfig.SeaSpec sea) => Convert.Pos(sea.ShoreX, 0f, 0f).x;
 
         /// <summary>
-        /// Seabed height (world Y) at a Unity world X. Flat at 0 landward of the shore — dry sand,
-        /// flush with the city ground — then a linear ramp down to <c>beach.deepY</c> over
+        /// Seabed height (world Y) at a Unity world X. Flat at 0 landward of the shore - dry sand,
+        /// flush with the city ground - then a linear ramp down to <c>beach.deepY</c> over
         /// <c>beach.wadeRun</c> metres, flat again past the ramp's foot.
         /// </summary>
         public static float SeabedHeight(TheBlockConfig.SeaSpec sea, float unityX)
@@ -37,7 +37,7 @@ namespace TheBlock.World
             sea.Level - SeabedHeight(sea, unityX);
 
         /// <summary>
-        /// Is this point inside the sea's rectangle? A region test, not a raycast — the water has no
+        /// Is this point inside the sea's rectangle? A region test, not a raycast - the water has no
         /// collider to hit, by design (see <c>WorldBuilder.Sea</c>).
         ///
         /// The web build writes <c>x &lt; shoreX</c>; here it is <c>x &gt; ShoreX</c>, because X is
@@ -50,7 +50,7 @@ namespace TheBlock.World
         /// <summary>
         /// Is the water here deep enough to swim in? Inside the region and deeper than
         /// <c>swim.wadeDepth</c>, measured from the swimmer's float height rather than from sea
-        /// level — which is what the web build does, and it matters: with the config's numbers the
+        /// level - which is what the web build does, and it matters: with the config's numbers the
         /// swim starts about 6.4 m past the waterline instead of 11.7 m.
         ///
         /// Shallower than that is wading, and wading needs no state of its own: the seabed is a real

@@ -9,27 +9,27 @@ using UnityEngine;
 namespace TheBlock.EditorTools
 {
     /// <summary>
-    /// Turns the three imported bodies into swappable prefabs and wires the scene to wear them —
+    /// Turns the three imported bodies into swappable prefabs and wires the scene to wear them -
     /// <b>The Block → Build Characters</b>.
     ///
     /// <b>A roster body is a PREFAB whose root is the visual child.</b> Its transform carries the
     /// height match against Joe and nothing else, so <see cref="CharacterBody"/> can instantiate it
     /// under any host with <c>worldPositionStays: false</c> and get a correctly sized body standing
-    /// on the host's own origin. Joe's own scale is 1 by construction — he is the reference.
+    /// on the host's own origin. Joe's own scale is 1 by construction - he is the reference.
     ///
     /// <b>The player is restructured here, and it is the only invasive thing this unit does.</b>
     /// Until now <c>Player_Joe</c> carried the Animator, nine skinned meshes and the whole skeleton
     /// on the same transform as its <c>CharacterController</c>. A second body needs a scale, and a
-    /// scale there resizes the physics capsule — so the body moves into a <c>Visual</c> child,
+    /// scale there resizes the physics capsule - so the body moves into a <c>Visual</c> child,
     /// which is how the crowd and the stage dancer were already built. Idempotent: run it twice and
     /// the second run finds the child already there.
     ///
     /// The three hosts and why their Animator settings differ:
-    ///  - <b>Player</b> — the game's own controller, ordinary culling. He is always on camera.
-    ///  - <b>Stage dancer</b> — the Dance controller, <c>AlwaysAnimate</c>: the routine is framed by
+    ///  - <b>Player</b> - the game's own controller, ordinary culling. He is always on camera.
+    ///  - <b>Stage dancer</b> - the Dance controller, <c>AlwaysAnimate</c>: the routine is framed by
     ///    its own camera and a culled Animator never writes the pose at all (memory:
     ///    <c>culled-animator-skips-pose-write</c>).
-    ///  - <b>Character screen turntable</b> — <c>AlwaysAnimate</c> AND <c>UnscaledTime</c>, because
+    ///  - <b>Character screen turntable</b> - <c>AlwaysAnimate</c> AND <c>UnscaledTime</c>, because
     ///    that menu is on screen precisely when <c>Time.timeScale</c> is 0.
     /// </summary>
     public static class CharacterPrefabBuilder
@@ -43,7 +43,7 @@ namespace TheBlock.EditorTools
         private const float PreviewHeight = 1.7f;
 
         /// <summary>
-        /// The roster, in <c>characters.config.ts</c>'s own order — which decides which button is
+        /// The roster, in <c>characters.config.ts</c>'s own order - which decides which button is
         /// first on the character screen. Joe leads because he is the default.
         /// </summary>
         private readonly struct Spec
@@ -68,7 +68,7 @@ namespace TheBlock.EditorTools
         };
 
         /// <summary>
-        /// Joe's FBX ships two WHITE materials — <c>Ch33_body</c> and <c>Ch33_hair</c> carry no map
+        /// Joe's FBX ships two WHITE materials - <c>Ch33_body</c> and <c>Ch33_hair</c> carry no map
         /// at all. The textured URP twins were bound by hand onto the scene's player at U2, which is
         /// why he looks right there and a freshly instantiated Joe does not. The other two bodies
         /// need none of this: they are imported with their textures extracted, and Unity's own
@@ -95,7 +95,7 @@ namespace TheBlock.EditorTools
 
             if (reference <= 0.01f)
             {
-                var missing = $"CharacterPrefabBuilder — {CharacterImporter.ReferenceFile} did not " +
+                var missing = $"CharacterPrefabBuilder - {CharacterImporter.ReferenceFile} did not " +
                               "measure. Everyone is scaled to Joe, so nothing was built.";
                 Debug.LogError(missing);
                 return missing;
@@ -113,7 +113,7 @@ namespace TheBlock.EditorTools
 
             if (entries.Count == 0)
             {
-                var nothing = "CharacterPrefabBuilder — no body built, so the scene was left alone.\n" + log;
+                var nothing = "CharacterPrefabBuilder - no body built, so the scene was left alone.\n" + log;
                 Debug.LogError(nothing);
                 return nothing;
             }
@@ -128,7 +128,7 @@ namespace TheBlock.EditorTools
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             AssetDatabase.SaveAssets();
 
-            var report = $"CharacterPrefabBuilder — {entries.Count}/{Specs.Length} body/bodies\n{log}";
+            var report = $"CharacterPrefabBuilder - {entries.Count}/{Specs.Length} body/bodies\n{log}";
             Debug.Log(report);
             return report;
         }
@@ -141,7 +141,7 @@ namespace TheBlock.EditorTools
             if (model == null)
             {
                 log.AppendLine(
-                    $"{spec.Name,-7} MISSING {spec.ModelPath} — run The Block → Import Characters " +
+                    $"{spec.Name,-7} MISSING {spec.ModelPath} - run The Block → Import Characters " +
                     "first, and copy the FBX in before that");
                 return null;
             }
@@ -180,7 +180,7 @@ namespace TheBlock.EditorTools
                 $"{spec.Name,-7} {height:0.000} m × {scale:0.###} → {reference:0.000} m | " +
                 $"avatar {(avatar == null ? "MISSING" : avatar.name)}" +
                 (rebound > 0 ? $" | {rebound} material(s) rebound" : "") +
-                (blank > 0 ? $" | ⚠ {blank} slot(s) with no base map — this body will render white" : "") +
+                (blank > 0 ? $" | ⚠ {blank} slot(s) with no base map - this body will render white" : "") +
                 $" → {path}");
 
             return saved;
@@ -231,16 +231,16 @@ namespace TheBlock.EditorTools
         ///
         /// <b>This is the U16b claim failing on a new file, and the failure is worth naming.</b> The
         /// crowd's importer says Mixamo FBX "come out of Unity's own importer as URP/Lit with base +
-        /// normal already bound", and Joe on this machine agrees — but Jody and David came out with
+        /// normal already bound", and Joe on this machine agrees - but Jody and David came out with
         /// seven and six slots holding a white URP/Lit material and no <c>_BaseMap</c> at all, with
         /// their textures sitting extracted right beside them. The remap is an importer STATE, not a
-        /// guarantee, and it lives in a <c>.meta</c> — which for Joe is gitignored, so his working
+        /// guarantee, and it lives in a <c>.meta</c> - which for Joe is gitignored, so his working
         /// remap is a local patch nobody else has (memory: <c>gitignored-meta-hides-importer-fixes</c>).
         /// Writing the materials as assets is code, and code is what survives a clone.
         ///
         /// <b>Which texture belongs to which slot is Mixamo's own numbering, not the names.</b>
         /// Jody's body material is called <c>Ch38_body</c> while every one of her textures is
-        /// <c>Ch37_*</c> — matching by prefix finds nothing. The pairing that does hold across all
+        /// <c>Ch37_*</c> - matching by prefix finds nothing. The pairing that does hold across all
         /// three characters is the set number: <c>_body</c> takes 1001 and <c>_hair</c> takes 1002,
         /// which is exactly the table Joe's two hand-made materials encode. David has no 1002 at
         /// all, so his hair falls back to 1001 rather than staying white.
@@ -286,7 +286,7 @@ namespace TheBlock.EditorTools
             if (bound > 0)
                 log.AppendLine(
                     $"{spec.Name,-7} wrote {cache.Count} material(s) from {sets.Count} texture set(s) " +
-                    $"— the FBX's own were white");
+                    $"- the FBX's own were white");
 
             return bound;
         }
@@ -314,7 +314,7 @@ namespace TheBlock.EditorTools
                 sets[key] = entry;
             }
 
-            // A set with no diffuse is a specular or gloss map on its own — nothing to build from.
+            // A set with no diffuse is a specular or gloss map on its own - nothing to build from.
             foreach (var empty in sets.Where(s => s.Value.Base == null).Select(s => s.Key).ToArray())
                 sets.Remove(empty);
 
@@ -359,7 +359,7 @@ namespace TheBlock.EditorTools
                     material.SetTexture("_BumpMap", normal);
 
                     // The keyword is the whole difference between a bound normal map and an ignored
-                    // one — assigning the texture alone changes nothing that is drawn.
+                    // one - assigning the texture alone changes nothing that is drawn.
                     material.EnableKeyword("_NORMALMAP");
                 }
             }
@@ -402,7 +402,7 @@ namespace TheBlock.EditorTools
         {
             var log = new StringBuilder();
             if (TryLoadEntries(out var entries)) RigTurntable(entries, log);
-            else log.AppendLine("preview  no character prefabs yet — run The Block → Build Characters");
+            else log.AppendLine("preview  no character prefabs yet - run The Block → Build Characters");
             return log.ToString().TrimEnd();
         }
 
@@ -411,7 +411,7 @@ namespace TheBlock.EditorTools
         {
             var log = new StringBuilder();
             if (TryLoadEntries(out var entries)) RigStageDancer(entries, log);
-            else log.AppendLine("dancer   no character prefabs yet — run The Block → Build Characters");
+            else log.AppendLine("dancer   no character prefabs yet - run The Block → Build Characters");
             return log.ToString().TrimEnd();
         }
 
@@ -459,7 +459,7 @@ namespace TheBlock.EditorTools
             var player = Object.FindAnyObjectByType<TheBlock.Player.PlayerController>(FindObjectsInactive.Include);
             if (player == null)
             {
-                log.AppendLine("player   no PlayerController in the scene — skipped");
+                log.AppendLine("player   no PlayerController in the scene - skipped");
                 return;
             }
 
@@ -501,7 +501,7 @@ namespace TheBlock.EditorTools
             var dancer = Object.FindAnyObjectByType<TheBlock.Minigame.Rhythm.Dancer>(FindObjectsInactive.Include);
             if (dancer == null)
             {
-                log.AppendLine("dancer   no Dancer in the scene — run The Block → Build Campaign first");
+                log.AppendLine("dancer   no Dancer in the scene - run The Block → Build Campaign first");
                 return;
             }
 
@@ -528,14 +528,14 @@ namespace TheBlock.EditorTools
             var preview = Object.FindAnyObjectByType<TheBlock.UI.Menus.CharacterPreview>(FindObjectsInactive.Include);
             if (preview == null)
             {
-                log.AppendLine("preview  no CharacterPreview — run The Block → Build Menus first");
+                log.AppendLine("preview  no CharacterPreview - run The Block → Build Menus first");
                 return;
             }
 
             var turntable = preview.transform.Find("Turntable");
             if (turntable == null)
             {
-                log.AppendLine("preview  the rig has no Turntable child — skipped");
+                log.AppendLine("preview  the rig has no Turntable child - skipped");
                 return;
             }
 
@@ -591,13 +591,13 @@ namespace TheBlock.EditorTools
         }
 
         /// <summary>
-        /// Stands the turntable's body 1.7 m tall on the rig's own floor — the web's
+        /// Stands the turntable's body 1.7 m tall on the rig's own floor - the web's
         /// <c>PREVIEW_HEIGHT_M</c>, and the framing the U26 camera was approved against.
         ///
         /// <b>On the TURNTABLE, not on the body.</b> U26 scaled the body it baked; a roster body's
         /// own transform now carries the height match against Joe, so scaling it here would fight
         /// that. And because every roster body is already the same height, one number on the
-        /// turntable frames all three — which is what U26's comment wanted and could not have.
+        /// turntable frames all three - which is what U26's comment wanted and could not have.
         /// </summary>
         private static void NormalisePreview(Transform turntable)
         {
@@ -624,7 +624,7 @@ namespace TheBlock.EditorTools
                 turntable.localPosition.z);
         }
 
-        /// <summary>Never <c>GetComponent() ?? AddComponent()</c> — memory: unity-null-coalescing-fake-null.</summary>
+        /// <summary>Never <c>GetComponent() ?? AddComponent()</c> - memory: unity-null-coalescing-fake-null.</summary>
         private static T Ensure<T>(GameObject host) where T : Component =>
             host.TryGetComponent<T>(out var existing) ? existing : host.AddComponent<T>();
 

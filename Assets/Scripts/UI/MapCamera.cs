@@ -6,13 +6,13 @@ using UnityEngine.Rendering;
 namespace TheBlock.UI
 {
     /// <summary>
-    /// The live top-down camera behind the map — Unity's replacement for the web build's one-shot
+    /// The live top-down camera behind the map - Unity's replacement for the web build's one-shot
     /// bake (<c>map-bake.ts</c>).
     ///
     /// The bake existed because three.js could not afford a second live camera: rendering the whole
     /// world once at boot compiled every shader in the same frame, which is why touch skipped it
     /// outright. Unity renders a second camera like any other, so the base layer is simply this
-    /// camera into a RenderTexture — always current, no readback, no boot spike. It stays disabled
+    /// camera into a RenderTexture - always current, no readback, no boot spike. It stays disabled
     /// and is rendered manually by <see cref="GameMap"/>, which throttles the collapsed minimap to
     /// ~12 fps the same way the web build throttles its canvas repaints.
     ///
@@ -44,7 +44,7 @@ namespace TheBlock.UI
             _camera.transform.rotation = Quaternion.Euler(90f, 180f, 0f);
             _camera.nearClipPlane = 1f;
             _camera.farClipPlane = Height + 50f; // down to y −50, below the seabed
-            _camera.enabled = false; // rendered manually — GameMap owns the cadence
+            _camera.enabled = false; // rendered manually - GameMap owns the cadence
             _camera.allowMSAA = false;
 
             // 24-bit depth, not 16: Metal reports "Ignoring depth surface load action as it is
@@ -77,7 +77,7 @@ namespace TheBlock.UI
 
         /// <summary>
         /// Frame the whole world: the registry's bounds pulled east (Unity +X) to the coastal band so
-        /// the sea strip is on-canvas — the same framing as the web full map. The window stays square
+        /// the sea strip is on-canvas - the same framing as the web full map. The window stays square
         /// because the RT and the panel element are square.
         /// </summary>
         public void FrameWorld(TheBlockConfig.Root config)
@@ -109,7 +109,7 @@ namespace TheBlock.UI
         // city. Off for this camera's render only, restored immediately after.
         //
         // U33 added the same treatment for ambient. This camera renders with m_RenderShadows off and
-        // no key light of its own, so once the sun sets the map goes as black as the city does — and
+        // no key light of its own, so once the sun sets the map goes as black as the city does - and
         // a minimap you cannot read at 02:00 is a broken minimap, not atmosphere. It is lit at a flat
         // daylight level whatever the hour.
         //

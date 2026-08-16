@@ -4,12 +4,12 @@ using UnityEngine;
 namespace TheBlock.Game
 {
     /// <summary>
-    /// Which missions have already paid out this run — the port of <c>game/payouts.ts</c>.
+    /// Which missions have already paid out this run - the port of <c>game/payouts.ts</c>.
     ///
     /// Each mission pays its flat reward exactly once per New Game. Retrying a failed run or
     /// replaying a finished one must not mint cash again, and <b>this has to be persisted, not held
     /// in memory</b>: the web build learned that the hard way. Its payout set was a plain in-memory
-    /// Set while <see cref="Wallet"/> persisted, so the pair disagreed across a reload — quit, hit
+    /// Set while <see cref="Wallet"/> persisted, so the pair disagreed across a reload - quit, hit
     /// Continue, and every mission paid a second time into a balance that had survived.
     ///
     /// Stored as one delimited string rather than a JSON array. Four ids that are all lowercase

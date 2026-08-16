@@ -5,7 +5,7 @@ namespace TheBlock.Vehicles
 {
     /// <summary>
     /// One vehicle's fuel tank: it burns by DISTANCE, and when it runs dry it does not stop the car
-    /// — it eases the speed ceiling down to a quarter and wobbles it, so an empty tank is a limp
+    /// - it eases the speed ceiling down to a quarter and wobbles it, so an empty tank is a limp
     /// home rather than a game over. Port of <c>src/vehicle/fuel.ts</c>.
     ///
     /// <b>Being a component IS the exemption mechanism.</b> The web expresses "this vehicle has no
@@ -16,11 +16,11 @@ namespace TheBlock.Vehicles
     /// keep in sync.
     ///
     /// <b>It is added at runtime, by <see cref="FuelSystem"/>, the first time you drive the vehicle
-    /// — never baked into a prefab.</b> That is not laziness: <c>PoliceCarBuilder</c> reuses
+    /// - never baked into a prefab.</b> That is not laziness: <c>PoliceCarBuilder</c> reuses
     /// <c>CarBuilder</c> wholesale, so a tank baked by the car builder would land on
     /// <c>PoliceCar.prefab</c> too, and a cruiser limping mid-pursuit is U28's ☕ bug in a new
-    /// currency. The known cost of runtime attachment — a component that misses the host's
-    /// <c>Awake</c> cache — is paid explicitly: the tank PUSHES itself onto the controller in
+    /// currency. The known cost of runtime attachment - a component that misses the host's
+    /// <c>Awake</c> cache - is paid explicitly: the tank PUSHES itself onto the controller in
     /// <see cref="Configure"/>, and each controller's <c>Bind</c> keeps a <c>TryGetComponent</c> as
     /// the belt to that push's braces.
     ///
@@ -36,7 +36,7 @@ namespace TheBlock.Vehicles
     {
         /// <summary>
         /// The economy's master switch, the port of <c>setFuelEnabled</c>. Off means no drain, no
-        /// cap easing and a <see cref="SpeedFactor"/> of exactly 1 — the web flips it for every
+        /// cap easing and a <see cref="SpeedFactor"/> of exactly 1 - the web flips it for every
         /// multiplayer entry, since a match cannot ask half its players to find a petrol station.
         ///
         /// <b>It needs BOTH resets below, and <see cref="SpeedBoost"/> needs neither.</b> A
@@ -75,7 +75,7 @@ namespace TheBlock.Vehicles
         /// True once <see cref="Configure"/> has seeded the tank.
         ///
         /// <b>Not padding.</b> A domain reload keeps serialized fields, so re-seeding on every bind
-        /// would refill a half-burned tank — that is what this guards. The initialiser on
+        /// would refill a half-burned tank - that is what this guards. The initialiser on
         /// <see cref="cap"/> is the other half of the same problem from the other end: a brand-new
         /// component would otherwise come up at <c>cap = 0</c> and clamp the car to a dead stop.
         /// </summary>
@@ -100,7 +100,7 @@ namespace TheBlock.Vehicles
         /// <summary>At or below <c>LowFrac</c>: the bar goes red and the hint fires.</summary>
         public bool IsLow => Fraction <= (_spec?.LowFrac ?? 0.2f);
 
-        /// <summary>Dry. Not stranded — see <see cref="SpeedFactor"/>.</summary>
+        /// <summary>Dry. Not stranded - see <see cref="SpeedFactor"/>.</summary>
         public bool IsEmpty => litres <= 0f;
 
         /// <summary>Full, and therefore nothing to do at a pump.</summary>
@@ -115,7 +115,7 @@ namespace TheBlock.Vehicles
         /// <summary>
         /// The factor this tank puts on its vehicle's speed ceiling.
         ///
-        /// <b>It multiplies with ☕ rather than competing with it</b> — a boosted car on a dry tank
+        /// <b>It multiplies with ☕ rather than competing with it</b> - a boosted car on a dry tank
         /// still limps, because you cannot drink your way out of an empty tank. That is the exact
         /// requirement <c>SpeedBoost</c>'s own doc comment wrote down before this unit existed.
         ///
@@ -130,7 +130,7 @@ namespace TheBlock.Vehicles
                 if (litres > 0f && cap >= 0.999f) return 1f;
 
                 // The sputter only exists at zero. Above it the cap eases silently, so a tank that
-                // is merely low drives exactly like a full one — the drama is all at the end.
+                // is merely low drives exactly like a full one - the drama is all at the end.
                 var wobble = litres <= 0f
                     ? 1f + _spec.SputterDepth * Mathf.Sin(phase * 2f * Mathf.PI * _spec.SputterHz)
                     : 1f;
@@ -139,14 +139,14 @@ namespace TheBlock.Vehicles
         }
 
         /// <summary>
-        /// Seeds the tank and hands it to its controller. Safe to call again — a tank that is already
+        /// Seeds the tank and hands it to its controller. Safe to call again - a tank that is already
         /// <see cref="configured"/> keeps its litres, which is what makes it survive a recompile.
         /// </summary>
         /// <param name="spec">The config section. Never null; <see cref="FuelSystem"/> refuses to
         /// bind without it.</param>
         /// <param name="startFrac">Below zero means "the config's <c>StartFrac</c>". The port of
         /// the web's <c>?fuel=</c> dev override.</param>
-        /// <param name="drainScale">Multiplies the DISTANCE burn only, never the idle trickle —
+        /// <param name="drainScale">Multiplies the DISTANCE burn only, never the idle trickle -
         /// same as the web's <c>?drain=</c>.</param>
         public void Configure(TheBlockConfig.FuelSpec spec, float startFrac, float drainScale, MonoBehaviour vehicle)
         {
@@ -174,7 +174,7 @@ namespace TheBlock.Vehicles
         public bool IsBound => _spec != null;
 
         /// <summary>
-        /// Adds fuel, and returns true on the single frame the tank REACHES full — the "done" edge
+        /// Adds fuel, and returns true on the single frame the tank REACHES full - the "done" edge
         /// the nozzle clunk and the hint hang off. It never latches: ask again next frame and it is
         /// false, because the tank is already full.
         /// </summary>
@@ -189,7 +189,7 @@ namespace TheBlock.Vehicles
 
         /// <summary>
         /// Burns, then eases the cap. Runs on the physics tick, and only while the vehicle is being
-        /// driven — <c>Driven</c> is false on every parked car and, explicitly, on every police
+        /// driven - <c>Driven</c> is false on every parked car and, explicitly, on every police
         /// cruiser, so nothing burns fuel off-screen.
         ///
         /// <c>timeScale = 0</c> stops FixedUpdate outright, so a paused game burns nothing and this
@@ -204,7 +204,7 @@ namespace TheBlock.Vehicles
             var dt = Time.fixedDeltaTime;
             var speed = Mathf.Abs(Vehicle.ForwardSpeed);
 
-            // Reverse burns too — it is |speed|, not speed. And the idle trickle is additive and
+            // Reverse burns too - it is |speed|, not speed. And the idle trickle is additive and
             // unconditional while there is fuel: sitting at a red light costs something.
             if (litres > 0f)
                 litres = Mathf.Max(0f, litres - (speed * dt * _litresPerMetre + _spec.IdleLitresPerSec * dt));

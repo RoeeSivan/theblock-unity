@@ -4,7 +4,7 @@ using UnityEngine.UIElements;
 namespace TheBlock.UI.Menus
 {
     /// <summary>
-    /// The shared "How to Play" reference — the port of <c>src/ui/controls-guide.ts</c> and the
+    /// The shared "How to Play" reference - the port of <c>src/ui/controls-guide.ts</c> and the
     /// markup it drives (<c>index.html</c> #controls-guide).
     ///
     /// One overlay, two entry points: the title screen and the pause menu both open it, which is
@@ -21,7 +21,7 @@ namespace TheBlock.UI.Menus
         protected override string PanelName => "controls-guide";
         protected override bool Opaque => true;
 
-        /// <summary>Where Back returns to — set by whoever opened it.</summary>
+        /// <summary>Where Back returns to - set by whoever opened it.</summary>
         private System.Action _onBack;
 
         private static readonly (string keys, string what)[] OnFoot =
@@ -35,14 +35,14 @@ namespace TheBlock.UI.Menus
             ("F", "Deliver / action"),
             ("F", "Retry a failed mission"),
             ("E", "Shop at the 7-Eleven counter"),
-            ("1 – 4", "Use a power-up"),
+            ("1 - 4", "Use a power-up"),
         };
 
         private static readonly (string keys, string what)[] Driving =
         {
             ("W A S D", "Drive & steer"),
             ("Space", "Brake"),
-            ("Space", "Hold at a gas pump — refuel"),
+            ("Space", "Hold at a gas pump - refuel"),
             ("E", "Exit vehicle"),
             ("R", "Respawn / flip vehicle"),
             ("Space / Shift", "Helicopter up / down"),
@@ -53,7 +53,7 @@ namespace TheBlock.UI.Menus
             ("M", "Map"),
             ("N", "Mute / unmute sound"),
             ("Esc", "Pause / menu"),
-            ("< v ^ >", "Dance — hit the arrows"),
+            ("< v ^ >", "Dance - hit the arrows"),
         };
 
         protected override void BuildContent(VisualElement overlay)

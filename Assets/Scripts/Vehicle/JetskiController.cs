@@ -7,7 +7,7 @@ using UnityEngine.InputSystem.Controls;
 namespace TheBlock.Vehicles
 {
     /// <summary>
-    /// M4's ride — the port of <c>src/vehicle/jetski.ts</c>.
+    /// M4's ride - the port of <c>src/vehicle/jetski.ts</c>.
     ///
     /// Handling is the bike's speed-and-heading model made drifty: a fifth of the road's friction so
     /// it coasts a long way, no handbrake, steering that only bites with forward travel, and a
@@ -15,7 +15,7 @@ namespace TheBlock.Vehicles
     /// not (port rule 2), so what carries over is the shape.
     ///
     /// <b>The hull is pinned to the water plane rather than floating on it.</b> Buoyancy would be a
-    /// whole system to tune for a sea that is a shader with no volume — U12 built the water as a
+    /// whole system to tune for a sea that is a shader with no volume - U12 built the water as a
     /// surface, not as a body. So Y is written to the waterline plus an idle bob, and the body is
     /// kinematic.
     ///
@@ -23,7 +23,7 @@ namespace TheBlock.Vehicles
     /// Unity would delete the web's two separate avoidance mechanisms because a collider is a
     /// collider. A kinematic rigidbody gets no collision response against a static one, so both skis
     /// would have driven straight through all nine. <see cref="TheBlock.Missions.BuoyField"/> is the
-    /// web's own radial push-out, shared by the player and the thief — one mechanism where the web
+    /// web's own radial push-out, shared by the player and the thief - one mechanism where the web
     /// has two, which is a smaller win than the plan claimed and a real one.
     ///
     /// Controls: W/S throttle · A/D steer · Space brake · R respawn · E off · F starts the chase.
@@ -34,7 +34,7 @@ namespace TheBlock.Vehicles
         [SerializeField] private Rigidbody body;
         [SerializeField] private Transform riderAnchor;
 
-        [Header("Handling — written from config.vehicle.jetski.handling")]
+        [Header("Handling - written from config.vehicle.jetski.handling")]
         [SerializeField] private float maxSpeed = 18f;
         [SerializeField] private float reverseMaxSpeed = 3f;
         [SerializeField] private float accel = 7f;
@@ -48,7 +48,7 @@ namespace TheBlock.Vehicles
         [SerializeField] private float bobFreq = 1.6f;
         [SerializeField] private float floatY;
 
-        [Header("Camera — the shared chase boom, as the bike uses")]
+        [Header("Camera - the shared chase boom, as the bike uses")]
         [SerializeField] private Vector3 boom = new(0f, 2.5f, -6.5f);
         [SerializeField] private float lookYOffset = 1.2f;
         [SerializeField] private float followLerp = 0.12f;
@@ -57,7 +57,7 @@ namespace TheBlock.Vehicles
         private Transform _visual;
 
         /// <summary>
-        /// The Visual's built rotation — the Sketchfab Rx(−90) plus the model's facing flip.
+        /// The Visual's built rotation - the Sketchfab Rx(−90) plus the model's facing flip.
         ///
         /// The lean is composed ON TOP of this rather than replacing it. Writing a bare
         /// <c>Euler(0, y, roll)</c> threw the −90° away on the first FixedUpdate, which laid the
@@ -120,12 +120,12 @@ namespace TheBlock.Vehicles
                 }
             }
 
-            // Speed. Coast decay is deliberately tiny — the long glide IS the jetski.
+            // Speed. Coast decay is deliberately tiny - the long glide IS the jetski.
             if (braking) _speed = Mathf.MoveTowards(_speed, 0f, brakeDecel * dt);
             else if (Mathf.Abs(throttle) > 0.01f) _speed += throttle * accel * dt;
             else _speed = Mathf.MoveTowards(_speed, 0f, waterFriction * dt);
             // ☕ raises the forward ceiling and nothing else. NOTE this clamp is also what the M4
-            // chase is balanced against — the thief's lead is tuned to a 18 m/s ski — so a boosted
+            // chase is balanced against - the thief's lead is tuned to a 18 m/s ski - so a boosted
             // run at the chase is a real 25% edge, which is exactly what the item is sold as.
             _speed = Mathf.Clamp(_speed, -reverseMaxSpeed, maxSpeed * Powerup.SpeedBoost.Factor);
 
@@ -135,7 +135,7 @@ namespace TheBlock.Vehicles
             else
                 _steer = Mathf.MoveTowards(_steer, 0f, wheelReturn * maxWheelAngle * dt);
 
-            // Yaw gained per metre travelled — so the nose does nothing while stopped, exactly as
+            // Yaw gained per metre travelled - so the nose does nothing while stopped, exactly as
             // the bike's does. This is the whole reason the config calls it a ratio, not a rate.
             var yawDelta = _steer * steerRatio * _speed * dt;
             var rotation = body.rotation * Quaternion.Euler(0f, yawDelta * Mathf.Rad2Deg, 0f);
@@ -143,11 +143,11 @@ namespace TheBlock.Vehicles
             var next = body.position + rotation * Vector3.forward * (_speed * dt);
 
             // The buoys. A KINEMATIC body gets no collision response against a static collider, so
-            // the nine gate markers would otherwise be scenery you drive through — see BuoyField,
+            // the nine gate markers would otherwise be scenery you drive through - see BuoyField,
             // which is where that finding is written down.
             next = TheBlock.Missions.BuoyField.PushOut(next);
 
-            // Pinned to the water. `SeaGeometry` owns the waterline and its handedness — the sea is
+            // Pinned to the water. `SeaGeometry` owns the waterline and its handedness - the sea is
             // Unity +X, which is the mirror of the web's −X, and this must never re-derive that.
             //
             // The ORIGIN is the waterline, which is why there is no hull-height term: the prefab is
@@ -202,11 +202,11 @@ namespace TheBlock.Vehicles
         public float SpeedKmh => Mathf.Abs(_speed) * 3.6f;
         public bool Driven { get; set; }
 
-        /// <summary>Locked until the campaign reaches its step — the port of <c>jetskiUnlocked</c>.</summary>
+        /// <summary>Locked until the campaign reaches its step - the port of <c>jetskiUnlocked</c>.</summary>
         public System.Func<bool> Unlocked;
 
         /// <summary>
-        /// The web has no line for this one — its jetski is simply silent when locked — so this is
+        /// The web has no line for this one - its jetski is simply silent when locked - so this is
         /// written to match the helicopter's, which the web does have. Swimming out to a ski that
         /// says nothing is the same dead-end the chopper's line exists to prevent.
         /// </summary>
@@ -257,7 +257,7 @@ namespace TheBlock.Vehicles
             bobFreq = h.BobFreq;
             floatY = h.FloatY;
 
-            // The shared chase boom, as the bike takes — the web hands the jetski the same one, and
+            // The shared chase boom, as the bike takes - the web hands the jetski the same one, and
             // a second camera feel for one vehicle is a worse game rather than a better one.
             var camera = TheBlockConfig.Load()?.Config?.Camera;
             if (camera != null)

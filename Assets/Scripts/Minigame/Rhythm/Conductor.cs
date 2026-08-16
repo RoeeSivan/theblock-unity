@@ -3,14 +3,14 @@ using UnityEngine;
 namespace TheBlock.Minigame.Rhythm
 {
     /// <summary>
-    /// The music clock — the single source of truth for every timing decision the dance makes. The
+    /// The music clock - the single source of truth for every timing decision the dance makes. The
     /// port of <c>src/minigame/rhythm/conductor.ts</c>, and <b>this unit's answer to the standing
     /// "can Unity do this better?" question.</b>
     ///
     /// The web reads <c>audioElement.currentTime</c>. That is the best a browser offers, and it is
     /// not very good: it updates on the main thread, it is quantised to the decode buffer, and it
     /// jitters against the frame. A rhythm game's whole job is deciding whether a press was within
-    /// 50 ms of a beat, so clock noise is not a rendering detail — it is the scoring being wrong.
+    /// 50 ms of a beat, so clock noise is not a rendering detail - it is the scoring being wrong.
     ///
     /// Unity has <see cref="AudioSettings.dspTime"/>: a sample counter maintained on the AUDIO
     /// thread, monotonic and immune to frame hitches. This project has a measured 42 ms frame and
@@ -56,7 +56,7 @@ namespace TheBlock.Minigame.Rhythm
         /// <summary>
         /// How far the DSP clock has drifted from the clip's own playhead, in seconds.
         ///
-        /// Diagnostic only — nothing reads it to make a decision. It exists because "the dsp clock
+        /// Diagnostic only - nothing reads it to make a decision. It exists because "the dsp clock
         /// is better" is a claim, and a claim in this project gets a number next to it.
         /// </summary>
         public float Drift =>
@@ -73,8 +73,8 @@ namespace TheBlock.Minigame.Rhythm
             source.loop = false;
             source.spatialBlend = 0f; // the soundtrack, not a speaker on the beach
 
-            // U27 routed the song onto its own bus. It changes nothing about the CLOCK — the anchor
-            // is still a dsp instant and the position is still dspTime − startDsp — but a mixer group
+            // U27 routed the song onto its own bus. It changes nothing about the CLOCK - the anchor
+            // is still a dsp instant and the position is still dspTime − startDsp - but a mixer group
             // is inserted into this source's output chain, so the drift measurement is worth
             // repeating rather than assumed. It was 0.02 ms before.
             source.outputAudioMixerGroup = output;
@@ -89,7 +89,7 @@ namespace TheBlock.Minigame.Rhythm
             if (song != null) source.clip = song;
             if (source.clip == null)
             {
-                Debug.LogError("Conductor: no song clip — the routine has nothing to keep time to.");
+                Debug.LogError("Conductor: no song clip - the routine has nothing to keep time to.");
                 return;
             }
 
@@ -97,7 +97,7 @@ namespace TheBlock.Minigame.Rhythm
 
             // PlayScheduled against a dsp instant, rather than Play() and then asking when it
             // started. Play() begins somewhere inside the next audio buffer, so the anchor would be
-            // off by up to a buffer's worth — which at 50 ms judgment windows is a real fraction of
+            // off by up to a buffer's worth - which at 50 ms judgment windows is a real fraction of
             // a perfect. Scheduling names the instant, so the anchor is exact by construction.
             var start = AudioSettings.dspTime + 0.1;
             source.PlayScheduled(start);
@@ -107,11 +107,11 @@ namespace TheBlock.Minigame.Rhythm
             //
             // U22 measured 0.02 ms of drift with this source wired straight to the default output.
             // With an AudioMixerGroup in the chain the same measurement reads **21.3 ms**, dead
-            // stable — and 21.3 ms is not noise, it is exactly 1024 / 48000, one DSP buffer. The
+            // stable - and 21.3 ms is not noise, it is exactly 1024 / 48000, one DSP buffer. The
             // group is processed a buffer behind the source, so what reaches the speakers is a
             // buffer later than the instant we scheduled. The clock was never wrong; the SOUND
             // moved. Against a 50 ms Perfect window that is 43% of the window, biased one way, on
-            // every note — the kind of fault a play-test reports as "the timing feels off" and
+            // every note - the kind of fault a play-test reports as "the timing feels off" and
             // nobody traces to a routing change.
             //
             // So the beatmap's t=0 is placed where the music actually arrives. `Drift` goes back to

@@ -6,25 +6,25 @@ using UnityEngine.AI;
 namespace TheBlock.Npc
 {
     /// <summary>
-    /// One person walking the pavement — U16b's port of the original's <c>pedestrian.ts</c>.
+    /// One person walking the pavement - U16b's port of the original's <c>pedestrian.ts</c>.
     ///
     /// <b>No NavMeshAgent, deliberately, and it is a reversal of U16.</b> U16 gave every pedestrian
     /// an agent so that "stays on the pavement" was a property of the world rather than of a
     /// heuristic. It works, and it costs: an agent owns the transform, does its own avoidance and
-    /// pathfinding, and has to be created on the mesh before it will do anything — which is what the
+    /// pathfinding, and has to be created on the mesh before it will do anything - which is what the
     /// "Failed to create agent because it is not close enough to the NavMesh" spam was. The original
     /// needs none of it, because it does not wander freely: it walks a hand-authored strip, or
     /// wanders inside a hand-painted rectangle, and both are pavement by construction.
     ///
-    /// So the port is the web's own state machine — arrive, pause, re-pick; or walk the lane and
-    /// turn around — and the NavMesh stays only as a QUERY SURFACE: <c>SamplePosition</c> answers
+    /// So the port is the web's own state machine - arrive, pause, re-pick; or walk the lane and
+    /// turn around - and the NavMesh stays only as a QUERY SURFACE: <c>SamplePosition</c> answers
     /// "is this pavement" and <c>Raycast</c> answers "does this straight line stay on it". Those are
     /// the only two questions the web build's 4096² sidewalk mask ever answered, and the carve makes
     /// the answer better than the mask's (it let people onto kerbstones). <b>The agent is gone; the
     /// mesh is not.</b> Deleting the queries does not "finish the job", it removes the pavement.
     ///
     /// What this class also owns is the KERB. A crosser waits at the edge, asks its
-    /// <see cref="Crossing"/> whether it may go, and walks across under its own power — the one
+    /// <see cref="Crossing"/> whether it may go, and walks across under its own power - the one
     /// moment the crowd is gated on something outside itself, and U17's traffic light is what
     /// answers.
     ///
@@ -51,12 +51,12 @@ namespace TheBlock.Npc
         }
 
         [Tooltip("Ground speed this character's walk clip was authored at, from the clip itself. " +
-                 "The animator's Speed parameter is a RATIO against this, not a m/s — see " +
+                 "The animator's Speed parameter is a RATIO against this, not a m/s - see " +
                  "NpcAnimatorBuilder.")]
         [SerializeField] private float walkClipSpeed = 1.35f;
 
         [Tooltip("Which pool this face screams from when it is run over. Baked by NpcBuilder from " +
-                 "npcConfig.people[].gender — it is the only thing that field has ever read to.")]
+                 "npcConfig.people[].gender - it is the only thing that field has ever read to.")]
         [SerializeField] private TheBlock.Audio.ScreamVoice voice = TheBlock.Audio.ScreamVoice.Male;
 
         [Tooltip("The visual child. Its Animator is what gets the Speed parameter.")]
@@ -66,7 +66,7 @@ namespace TheBlock.Npc
 
         /// <summary>
         /// The animator states this class drives by name. Declared on the runtime side rather than in
-        /// <c>NpcAnimatorBuilder</c> because the builder is editor-only and this is the consumer — the
+        /// <c>NpcAnimatorBuilder</c> because the builder is editor-only and this is the consumer - the
         /// builder references these, not the other way round.
         /// </summary>
         public const string LocomotionState = "Locomotion";
@@ -109,7 +109,7 @@ namespace TheBlock.Npc
         public int SeedIndex { get; private set; } = -1;
 
         /// <summary>
-        /// True while this person is actually ON a carriageway — not merely standing at the kerb
+        /// True while this person is actually ON a carriageway - not merely standing at the kerb
         /// waiting for the light.
         ///
         /// U17's traffic reads exactly this to decide whom to brake for, and the difference is what
@@ -117,7 +117,7 @@ namespace TheBlock.Npc
         /// never on cars, so a car and a pedestrian cannot end up each waiting on the other. Once
         /// they have stepped out they are a real obstacle, including when the light flips under them.
         ///
-        /// Measured against this lane's OWN endpoints rather than the road centreline — the web's
+        /// Measured against this lane's OWN endpoints rather than the road centreline - the web's
         /// <c>refreshOnRoad</c>. A crosser is on the road when it is more than
         /// <c>curbMargin</c> from both of its own kerbs.
         /// </summary>
@@ -138,7 +138,7 @@ namespace TheBlock.Npc
         /// <summary>
         /// This person's own capsule radius, read off the prefab rather than configured a second
         /// time. It is what widens a vehicle's hit box from "the fender touched their origin" to "the
-        /// fender touched them" — testing the bare origin means a corner clip with the capsule
+        /// fender touched them" - testing the bare origin means a corner clip with the capsule
         /// visibly inside the metal does nothing at all.
         /// </summary>
         public float BodyRadius
@@ -236,7 +236,7 @@ namespace TheBlock.Npc
 
         /// <summary>
         /// Walk to the target, stand a moment, pick another. A line-for-line port of the web's
-        /// wander mode — including the two behaviours that are easy to drop and change how a street
+        /// wander mode - including the two behaviours that are easy to drop and change how a street
         /// reads: the pause at each arrival (without it the crowd is a conveyor belt), and re-picking
         /// after being blocked by a car for <c>AvoidRepickSec</c> so people step AROUND it instead of
         /// standing in the road until it moves.
@@ -280,7 +280,7 @@ namespace TheBlock.Npc
             _blocked = false;
             _blockedFor = 0f;
 
-            // "Sidewalks are flat" — the web snaps to the target's height rather than probing every
+            // "Sidewalks are flat" - the web snaps to the target's height rather than probing every
             // step, and the target's height came from a real ground sample when it was picked.
             next.y = _state.Target.y;
             transform.SetPositionAndRotation(next, Quaternion.LookRotation(direction, Vector3.up));
@@ -367,18 +367,18 @@ namespace TheBlock.Npc
         }
 
         /// <summary>
-        /// Somewhere else to be, within <c>stepRadius</c> — the port of the web's
+        /// Somewhere else to be, within <c>stepRadius</c> - the port of the web's
         /// <c>sampleNearReachable</c>, and the one place the 4096² walkable mask is replaced rather
         /// than dropped.
         ///
         /// The mask answers two questions and the NavMesh answers both with no memory and no
         /// readback: <c>SamplePosition</c> is <c>isWalkable</c>, and <c>Raycast</c> is
-        /// <c>segmentWalkable</c> — which is what stops a wanderer cutting through a building corner
+        /// <c>segmentWalkable</c> - which is what stops a wanderer cutting through a building corner
         /// or across a carriageway. The sample radius is deliberately SMALL: a generous one snaps
         /// the candidate somewhere else entirely and stops being a test of the point at all.
         ///
         /// Finding nothing is not an error. The web's answer is "stay put and try again next time",
-        /// and so is this one — the target is left alone.
+        /// and so is this one - the target is left alone.
         /// </summary>
         private void PickTarget(in Tuning tuning)
         {
@@ -392,8 +392,8 @@ namespace TheBlock.Npc
                 if (!NavMesh.SamplePosition(candidate, out var hit, tuning.SampleRadius, NavMesh.AllAreas))
                     continue;
 
-                // The bake cannot tell a flat roof from a pavement — both are horizontal geometry a
-                // Humanoid agent fits on — so reject anything a storey off where this person is.
+                // The bake cannot tell a flat roof from a pavement - both are horizontal geometry a
+                // Humanoid agent fits on - so reject anything a storey off where this person is.
                 if (Mathf.Abs(hit.position.y - here.y) > tuning.SameStoreyBand) continue;
 
                 if (_hasRect && !Inside(hit.position, tuning.ZoneInset)) continue;
@@ -432,14 +432,14 @@ namespace TheBlock.Npc
         ///
         /// <b>Root motion goes ON here and OFF in <see cref="Recover"/>, and this is the only place in
         /// the project where it is on.</b> Every other clip a pedestrian plays is a locomotion cycle
-        /// whose travel is discarded because the script owns the position — but the knockback IS the
+        /// whose travel is discarded because the script owns the position - but the knockback IS the
         /// clip's travel, and reproducing it in code would be two clocks for one body.
         ///
         /// <b>The aim is derived from the clip, never from a constant.</b> The animation is authored
         /// as "hit from the side while crossing", so its travel leaves the body at roughly a right
         /// angle to where it was facing. Reading that angle off the clip's own root motion and
         /// subtracting it puts the authored throw along the vehicle's forward, whatever the clip does
-        /// — and it means nobody has to decide whether the web build's −85.8° survives a change of
+        /// - and it means nobody has to decide whether the web build's −85.8° survives a change of
         /// handedness.
         /// </summary>
         public void KnockDown(
@@ -448,7 +448,7 @@ namespace TheBlock.Npc
             if (!Live || Downed || animator == null) return;
 
             var clip = HitClip();
-            if (clip == null) return;   // no clip, no reaction — RunOverSystem says so once, loudly
+            if (clip == null) return;   // no clip, no reaction - RunOverSystem says so once, loudly
 
             _standingPosition = transform.position;
             _standingRotation = transform.rotation;
@@ -483,7 +483,7 @@ namespace TheBlock.Npc
             _reaction = new RunOverReaction();
             _reaction.Begin(transform, flat, speedMs, groundY, clip.length, tuning, blood);
 
-            // The voice and the thud, on the impact frame, beside the blood — U27's debt to U18, and
+            // The voice and the thud, on the impact frame, beside the blood - U27's debt to U18, and
             // the seam that row named. It sits HERE rather than inside the reaction because this is
             // the object that knows whose face this is; the reaction only knows a transform.
             // Self-throttling: a bumper box downs everyone inside it in this one frame.
@@ -492,7 +492,7 @@ namespace TheBlock.Npc
 
         /// <summary>
         /// The downed body's step. Driven from <see cref="CrowdSpawner"/>'s <c>LateUpdate</c> so it
-        /// runs AFTER the animator — the harvest below has to see this frame's root motion, and the
+        /// runs AFTER the animator - the harvest below has to see this frame's root motion, and the
         /// arc has to be applied on top of it rather than under it.
         /// </summary>
         public void TickDown(float dt)
@@ -531,14 +531,14 @@ namespace TheBlock.Npc
         /// Moves the clip's root motion from the visual child up onto the pedestrian's own transform.
         ///
         /// <b>Why it is not simply <c>applyRootMotion</c> and done.</b> The Animator is on the VISUAL
-        /// child, because that is where the model is — and a character that did not import at 1.70 m
+        /// child, because that is where the model is - and a character that did not import at 1.70 m
         /// is scaled there too (see <c>NpcBuilder</c>). Left alone, root motion slides the visual out
         /// from under its own collider, its culling and its seed. Harvesting it puts the body and the
         /// logical person back in one place every frame.
         ///
         /// <b>Scaled by the visual's own scale, and that is the part worth reading twice.</b>
         /// Humanoid retargeting produces root motion in the TARGET avatar's units, and Remy's avatar
-        /// really is 4.20 m tall — his knockback comes out 2.5× too long in local units, and is then
+        /// really is 4.20 m tall - his knockback comes out 2.5× too long in local units, and is then
         /// drawn 0.405× because that is what makes him 1.70 m on screen. Multiplying by the visual's
         /// scale is what makes the transform travel exactly as far as the body appears to. For anyone
         /// who imported at 1.70 m the factor is 1 and this line does nothing.
@@ -561,7 +561,7 @@ namespace TheBlock.Npc
 
         /// <summary>
         /// Back on their feet and back on their route, at the spot they were standing when they were
-        /// hit — which is the original's "recovery is free" call, and the reason the crowd never
+        /// hit - which is the original's "recovery is free" call, and the reason the crowd never
         /// depletes. The seed was never touched, so the person resumes their own walk rather than
         /// being replaced by a new one.
         /// </summary>
@@ -588,7 +588,7 @@ namespace TheBlock.Npc
         }
 
         /// <summary>
-        /// Cut the reaction short and stand the person back up wherever they are — used when the body
+        /// Cut the reaction short and stand the person back up wherever they are - used when the body
         /// is culled mid-flight because the player drove off. It is behind the camera by then, so the
         /// alternative is holding a body alive for four seconds to animate a fade nobody sees.
         /// </summary>
@@ -662,7 +662,7 @@ namespace TheBlock.Npc
         /// <summary>
         /// Flips a URP/Lit material to alpha-blended transparency.
         ///
-        /// The keyword is the load-bearing line — URP picks the variant by keyword, so setting
+        /// The keyword is the load-bearing line - URP picks the variant by keyword, so setting
         /// <c>_Surface</c> alone changes the inspector and nothing else.
         /// </summary>
         private static Material MakeTransparent(Material material)
@@ -685,8 +685,8 @@ namespace TheBlock.Npc
         /// <summary>
         /// The knockdown clip out of this character's own controller.
         ///
-        /// Looked up rather than serialized so there is one source of truth — the graph
-        /// <c>NpcAnimatorBuilder</c> writes — and cached per controller because six characters share
+        /// Looked up rather than serialized so there is one source of truth - the graph
+        /// <c>NpcAnimatorBuilder</c> writes - and cached per controller because six characters share
         /// six override controllers and the lookup is a linear scan of every clip in each.
         /// </summary>
         private AnimationClip HitClip()

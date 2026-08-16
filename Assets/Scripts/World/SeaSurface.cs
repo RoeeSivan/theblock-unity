@@ -3,14 +3,14 @@ using UnityEngine;
 namespace TheBlock.World
 {
     /// <summary>
-    /// Where the water actually IS, this frame, at a given point — the CPU's copy of the swell that
+    /// Where the water actually IS, this frame, at a given point - the CPU's copy of the swell that
     /// <c>Water.shader</c> displaces its vertices by.
     ///
     /// <b>Why this has to exist.</b> U12 gave the sea three summed swells in the vertex stage
     /// (amplitudes 0.18 + 0.12 + 0.07 = up to 0.37 m of crest) because a dead-flat plane reads as
     /// lino. Nothing on the CPU knew: <see cref="SeaGeometry"/> answers <c>sea.Level</c>, which is
     /// the water's MEAN height, and everything floating was placed against that. A buoy whose hull
-    /// starts exactly at the mean is under water for half of every wave — which is precisely how it
+    /// starts exactly at the mean is under water for half of every wave - which is precisely how it
     /// was reported ("the buoys are a bit lower"). The port's own standing rule caught this late:
     /// when a unit gains a mechanism, re-measure everything that was accepted against the old one.
     ///
@@ -18,7 +18,7 @@ namespace TheBlock.World
     /// <c>Water.mat</c>, written there by <c>WorldBuilder.Sea</c> from <c>config.sea.surface</c>. A
     /// second hand-kept table of amplitudes here would be a fourth place for the sea's shape to
     /// live, and the first to drift. If the shader and this file ever disagree, the shader is what
-    /// the player sees — so the shader's own inputs are the source.
+    /// the player sees - so the shader's own inputs are the source.
     ///
     /// Static and lazily bound: it is asked for by missions that may run before or after the world
     /// is built, and it holds nothing but a material reference.
@@ -37,7 +37,7 @@ namespace TheBlock.World
         /// <summary>Was a water material found? False means <see cref="Height"/> is just the level.</summary>
         public static bool Bound => Resolve() != null;
 
-        /// <summary>The mean water height — what <c>sea.Level</c> is, with no swell on it.</summary>
+        /// <summary>The mean water height - what <c>sea.Level</c> is, with no swell on it.</summary>
         public static float Level => Resolve() == null ? 0f : _level;
 
         /// <summary>
@@ -63,7 +63,7 @@ namespace TheBlock.World
             return _level + y * fade;
         }
 
-        /// <summary>The largest crest the swell can produce — every amplitude in phase.</summary>
+        /// <summary>The largest crest the swell can produce - every amplitude in phase.</summary>
         public static float MaxCrest =>
             Resolve() == null ? 0f : Mathf.Abs(_wave0.z) + Mathf.Abs(_wave1.z) + Mathf.Abs(_wave2.z);
 

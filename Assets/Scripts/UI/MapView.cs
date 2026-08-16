@@ -7,15 +7,15 @@ namespace TheBlock.UI
 {
     /// <summary>
     /// The vector overlay on top of the map's live render: district outlines, POI dots, the player
-    /// arrow — the drawing half of <c>src/ui/map.ts</c>, as a UI Toolkit element.
+    /// arrow - the drawing half of <c>src/ui/map.ts</c>, as a UI Toolkit element.
     ///
     /// Shapes are painted in <c>generateVisualContent</c> with Painter2D; labels are pooled child
     /// <see cref="Label"/>s because Painter2D has no text. The web build's greedy first-come label
     /// guard ports as-is: districts claim space before POI names, and a label that would overlap an
     /// earlier one is dropped rather than stacked.
     ///
-    /// The world→panel transform mirrors <see cref="MapCamera"/>'s orientation exactly — screen
-    /// right is world −X, screen down is world +Z — so the overlay lands on the pixels the camera
+    /// The world→panel transform mirrors <see cref="MapCamera"/>'s orientation exactly - screen
+    /// right is world −X, screen down is world +Z - so the overlay lands on the pixels the camera
     /// rendered underneath it.
     /// </summary>
     public class MapView : VisualElement
@@ -130,12 +130,12 @@ namespace TheBlock.UI
             }
 
             // POI dots. Cops last and larger, with a pulsing halo, so a pursuit is not mistaken for
-            // a row of parked-car pins — the same reason the web build pulses and flashes them.
+            // a row of parked-car pins - the same reason the web build pulses and flashes them.
             foreach (var poi in MapRegistry.Pois)
             {
                 if (poi.Kind == MapPoiKind.Cop) continue;
 
-                // A pin with an emoji is drawn as a label instead — Painter2D has no text, so the
+                // A pin with an emoji is drawn as a label instead - Painter2D has no text, so the
                 // picture and the dot cannot be the same primitive, and drawing both stacks a green
                 // circle under every landmark. See MapPoi.Icon for why the landmarks stopped being
                 // circles at all.
@@ -181,7 +181,7 @@ namespace TheBlock.UI
         // --- labels ------------------------------------------------------------------------------
 
         /// <summary>
-        /// Greedy first-come-first-served label placement, rebuilt per repaint — the web build's
+        /// Greedy first-come-first-served label placement, rebuilt per repaint - the web build's
         /// guard. Districts are placed before POI names, so a district pill always beats a POI label
         /// contesting the same pixels; among equals, earlier registration wins.
         /// </summary>
@@ -205,7 +205,7 @@ namespace TheBlock.UI
             var size = Mathf.Min(resolvedStyle.width, resolvedStyle.height);
             var scale = Mathf.Clamp(size / 740f, 0.8f, 1.4f);
 
-            // Emoji pins, drawn on the minimap as well as the full map and never collision-tested —
+            // Emoji pins, drawn on the minimap as well as the full map and never collision-tested -
             // the web's rule verbatim (`drawPois`, map.ts). An icon stands in for the DOT, so a
             // place dropped because a label got to those pixels first is a missing landmark, not a
             // missing name.
@@ -228,7 +228,7 @@ namespace TheBlock.UI
 
                 foreach (var poi in MapRegistry.Pois)
                 {
-                    // An emoji pin carries no name — the web `continue`s before its label, and the
+                    // An emoji pin carries no name - the web `continue`s before its label, and the
                     // picture says what the word would. It also keeps the icon out of the guard's
                     // way, so a landmark never costs a district its pill.
                     if (poi.Minor || !string.IsNullOrEmpty(poi.Icon)) continue;
@@ -266,12 +266,12 @@ namespace TheBlock.UI
         }
 
         /// <summary>
-        /// The emoji pin itself, centred on the POI — the web's <c>fillText(p.emoji, sx, sy)</c>.
+        /// The emoji pin itself, centred on the POI - the web's <c>fillText(p.emoji, sx, sy)</c>.
         ///
         /// Sized off the web's 20px full-map / 15px minimap, and the box is square and generous
         /// because a colour-emoji glyph is a bitmap whose advance is wider than a letter's; a tight
         /// box clips it. White, not the label colour: UI Toolkit multiplies the element's colour
-        /// into the glyph's own bitmap, so anything else tints the picture — the same trap
+        /// into the glyph's own bitmap, so anything else tints the picture - the same trap
         /// <see cref="Glyphs"/> exists for.
         /// </summary>
         private void PlaceIcon(ref int used, string icon, Vector2 at, float scale)

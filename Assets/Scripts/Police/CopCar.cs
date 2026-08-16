@@ -6,7 +6,7 @@ using UnityEngine;
 namespace TheBlock.Police
 {
     /// <summary>
-    /// One police car's state — the analogue of <c>TrafficCar</c>, and like it, a bag of state with
+    /// One police car's state - the analogue of <c>TrafficCar</c>, and like it, a bag of state with
     /// no opinions. <see cref="PoliceSystem"/> decides; <see cref="CopDriver"/> drives.
     ///
     /// It also carries this cop's own <see cref="RoutePlanner"/>. One planner per car rather than one
@@ -33,7 +33,7 @@ namespace TheBlock.Police
             ///
             /// It exists because the alternative is worse than it sounds: a cruiser twenty metres
             /// off your bumper teleporting home the instant a star bleeds reads as a fresh bug, not
-            /// as a stand-down. A returning cop is also still a car in the world — it can be rammed,
+            /// as a stand-down. A returning cop is also still a car in the world - it can be rammed,
             /// and a new crime turns it round rather than making it finish the trip.
             /// </summary>
             Returning,
@@ -64,7 +64,7 @@ namespace TheBlock.Police
         ///
         /// They were briefly held here as well, and the two lists cost an evening: the planner filled
         /// this one, the driver steered by that one, so every cop had a perfectly good 49-point route
-        /// and an empty cursor — which reads as "aim straight at the player" and drove all three into
+        /// and an empty cursor - which reads as "aim straight at the player" and drove all three into
         /// the car-park wall within seconds. One owner.
         /// </summary>
         public List<Vector3> Route => Driver != null ? Driver.Route : null;

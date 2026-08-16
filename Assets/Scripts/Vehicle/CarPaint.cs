@@ -6,12 +6,12 @@ namespace TheBlock.Vehicles
     /// The body-paint slots of a drivable car, so its colour can be changed at runtime.
     ///
     /// It exists for one thing: a car you steal has to keep the colour it had. U17b spawns drivable
-    /// cars in place of two other kinds of car — a parked filler from the lot and a stopped street
-    /// car from the traffic pool — and both of those are already wearing a generated material asset
+    /// cars in place of two other kinds of car - a parked filler from the lot and a stopped street
+    /// car from the traffic pool - and both of those are already wearing a generated material asset
     /// from a palette. Handing that same asset to the drivable copy is exact by construction, costs
     /// no allocation, and reuses a material whose textures another builder has already pointed at
-    /// U15's compressed copies. Anything else — a per-instance colour, a MaterialPropertyBlock, a
-    /// runtime <c>new Material</c> — either mismatches the original by a shade or gives this one car
+    /// U15's compressed copies. Anything else - a per-instance colour, a MaterialPropertyBlock, a
+    /// runtime <c>new Material</c> - either mismatches the original by a shade or gives this one car
     /// its own draw call.
     ///
     /// Wired by <c>CarBuilder</c>, which is the only place that knows which slot on which renderer

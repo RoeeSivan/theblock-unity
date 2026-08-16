@@ -3,7 +3,7 @@ using UnityEngine;
 namespace TheBlock.Game
 {
     /// <summary>
-    /// The player's cash — the port of <c>game/wallet.ts</c>.
+    /// The player's cash - the port of <c>game/wallet.ts</c>.
     ///
     /// One number, persisted, floored at zero. <c>PlayerPrefs</c> is Unity's <c>localStorage</c>:
     /// same shape, same key, same "swallow the failure so play never breaks" contract, and the same
@@ -18,10 +18,10 @@ namespace TheBlock.Game
         private const string Key = "theblock.cash";
 
         [Tooltip("Balance a fresh profile opens on, and what New Game resets to. It is the price of " +
-                 "the FIRST power-up in the catalogue — one purchase, on the house — and " +
+                 "the FIRST power-up in the catalogue - one purchase, on the house - and " +
                  "WorldBuilder writes it from powerUpConfig so the two can never drift. NOTE the " +
                  "scene stores its own copy, so editing the C# default alone changes nothing for a " +
-                 "save that already exists — reach it through New Game.")]
+                 "save that already exists - reach it through New Game.")]
         [SerializeField] private int startingBalance = DefaultStartingBalance;
 
         /// <summary>
@@ -29,7 +29,7 @@ namespace TheBlock.Game
         /// energy drink at $40.
         ///
         /// <b>Not zero, and not a round number.</b> The web build opens at $0, which means the shop
-        /// is a place you cannot use until the first mission pays — and a shop you have never been
+        /// is a place you cannot use until the first mission pays - and a shop you have never been
         /// inside is a shop you do not know exists. One item's worth of cash makes the 7-Eleven
         /// reachable on the walk to the first job, which is the only cheap way to teach that it is
         /// there. It is deliberately the CHEAPEST item, so it buys exactly one thing and the campaign
@@ -41,7 +41,7 @@ namespace TheBlock.Game
         /// </summary>
         public const int DefaultStartingBalance = 40;
 
-        [Tooltip("Wipes the stored balance back to startingBalance on Play. Debug — leave off.")]
+        [Tooltip("Wipes the stored balance back to startingBalance on Play. Debug - leave off.")]
         [SerializeField] private bool resetOnPlay;
 
         private int _balance;
@@ -91,7 +91,7 @@ namespace TheBlock.Game
         }
 
         /// <summary>
-        /// A penalty — the bust, and later the shop. Floors at zero, as the web build does, and
+        /// A penalty - the bust, and later the shop. Floors at zero, as the web build does, and
         /// returns <b>what was actually taken</b> rather than the new balance: a fine of 100 against
         /// a balance of 40 costs 40, and the caller is the only thing that can decide what happens to
         /// the other 60.

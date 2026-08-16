@@ -8,25 +8,25 @@ using UnityEngine.InputSystem;
 namespace TheBlock.World
 {
     /// <summary>
-    /// The pizzeria's interior cell and the doorway that gets you in and out of it — the port of
+    /// The pizzeria's interior cell and the doorway that gets you in and out of it - the port of
     /// <c>src/world/interior.ts</c> plus <c>transitions.ts</c>'s <c>enterPlace</c>/<c>leavePlace</c>.
     ///
     /// The room is a real room a kilometre from the city (<c>config.interior.offset</c>), not a
     /// separate scene: entering teleports the player into it. That is the web build's design and it
-    /// carries — a second scene would mean the street stops simulating the moment you buy a pizza,
+    /// carries - a second scene would mean the street stops simulating the moment you buy a pizza,
     /// which U21's delivery timer and U19's wanted level both care about.
     ///
     /// <b>Can Unity do this better?</b> Two of the web build's three chores here are gone.
     /// Its room lights are switched OFF while you are on the street, because three's forward renderer
     /// costs every light on every shaded fragment CITY-WIDE; URP culls lights per object, so three
     /// point lights a kilometre away cost nothing and simply stay on. And the sun does not have to be
-    /// dimmed to keep daylight out of the room — the room has a ceiling and URP shadows it. What is
+    /// dimmed to keep daylight out of the room - the room has a ceiling and URP shadows it. What is
     /// left is the palette: fog and ambient are global render settings in both engines, so those are
     /// still swapped, and swapping them is what makes the inside feel like an inside.
     /// </summary>
     public class Interior : MonoBehaviour
     {
-        [Header("Scene — found automatically when left empty")]
+        [Header("Scene - found automatically when left empty")]
         [SerializeField] private PlayerController player;
         [SerializeField] private FollowCamera followCamera;
         [SerializeField] private VehicleEnterExit vehicles;
@@ -34,7 +34,7 @@ namespace TheBlock.World
         [Tooltip("Where the doorway's own prompts are drawn. Optional; without it E still works.")]
         [SerializeField] private MissionHud hud;
 
-        [Header("Doorway — written by WorldBuilder from config.interior")]
+        [Header("Doorway - written by WorldBuilder from config.interior")]
         [Tooltip("The circle on the street that takes you in. World space, already converted.")]
         [SerializeField] private Vector3 streetDoor;
         [SerializeField] private float streetDoorRadius = 2.5f;
@@ -47,16 +47,16 @@ namespace TheBlock.World
         [SerializeField] private Vector3 exitPad;
         [SerializeField] private float exitPadRadius = 1.3f;
 
-        [Tooltip("Height the player is put back at on the street — config.player.spawn.y.")]
+        [Tooltip("Height the player is put back at on the street - config.player.spawn.y.")]
         [SerializeField] private float streetY = 1f;
 
-        [Header("The counter — config.interior.npc, U21's mechanics")]
+        [Header("The counter - config.interior.npc, U21's mechanics")]
         [Tooltip("Where the cashier stands, world space. WorldBuilder writes it from the config.")]
         [SerializeField] private Vector3 counterNpc;
 
         [SerializeField] private float counterTalkRadius = 3.5f;
 
-        [Header("Interior palette — config.interior.palette")]
+        [Header("Interior palette - config.interior.palette")]
         [SerializeField] private Color fogColor = Color.black;
         [SerializeField] private float fogNear = 5f;
         [SerializeField] private float fogFar = 26f;
@@ -66,14 +66,14 @@ namespace TheBlock.World
         // --- run state --------------------------------------------------------------------------
         // Serialized for the same reason VehicleEnterExit's is: a recompile during Play reloads the
         // domain but keeps the scene, and a machine that forgets it is indoors would put the street
-        // palette back with the player still standing in the room — or teleport them to the
+        // palette back with the player still standing in the room - or teleport them to the
         // storefront from the middle of the city on the next E.
 
         [SerializeField, HideInInspector] private bool inside;
 
         // The street palette as WorldBuilder baked it, captured once in Awake before anything has
         // written those fields. It is the FALLBACK for Leave() when no DayNightCycle is in the scene
-        // — with no cycle nothing else moves the sky, so the as-built value cannot go stale. Do not
+        // - with no cycle nothing else moves the sky, so the as-built value cannot go stale. Do not
         // mistake this for the per-Enter snapshot U33 deleted; see PaintInterior for why that one was
         // wrong and this one is not. Serialized because a recompile during Play reloads the domain
         // without re-running Awake.
@@ -95,14 +95,14 @@ namespace TheBlock.World
         public Vector3 SpawnPoint => spawnPoint;
 
         /// <summary>
-        /// The doorway on the street, in world space — where you are put down when you step out.
+        /// The doorway on the street, in world space - where you are put down when you step out.
         /// U21's retry parks your ride against it.
         /// </summary>
         public Vector3 StreetDoor => streetDoor;
 
         /// <summary>
         /// Standing at the counter, close enough to talk. The SAME predicate behind both the prompt
-        /// and the action, so the two cannot drift — the arrangement the web build settled on after
+        /// and the action, so the two cannot drift - the arrangement the web build settled on after
         /// its cashier offered "Press T to start your shift" for a key that did nothing.
         /// </summary>
         public bool NearCounter => inside && player != null &&
@@ -119,7 +119,7 @@ namespace TheBlock.World
         }
 
         /// <summary>
-        /// Reads the street palette once, at boot. Skipped when <c>inside</c> is already true — that
+        /// Reads the street palette once, at boot. Skipped when <c>inside</c> is already true - that
         /// is a recompile mid-Play with the player standing in the room, where <c>RenderSettings</c>
         /// holds the INTERIOR palette and the serialized copy from before the reload is the good one.
         /// </summary>
@@ -155,7 +155,7 @@ namespace TheBlock.World
 
         private void Update()
         {
-            if (Core.Pause.Frozen) return; // no E through a menu — see Core.Pause
+            if (Core.Pause.Frozen) return; // no E through a menu - see Core.Pause
 
             if (player == null) Bind();
             if (player == null) return;
@@ -194,7 +194,7 @@ namespace TheBlock.World
         }
 
         /// <summary>
-        /// Steps in from anywhere in the city, without standing on the doormat first — the twin of
+        /// Steps in from anywhere in the city, without standing on the doormat first - the twin of
         /// <see cref="LeaveNow"/>, and what U21's retry uses to put a failed rider back at the shop.
         ///
         /// <b>On foot only.</b> The room is a cell a kilometre away with no floor for a vehicle,
@@ -215,7 +215,7 @@ namespace TheBlock.World
         /// the way out, and U33 deleted that.</b> It is the same fault U26 paid for with the Radar
         /// toggle: remembering shared state and restoring it looks careful and is exactly wrong the
         /// moment a SECOND writer owns the same fields. Against <see cref="DayNightCycle"/> it failed
-        /// twice over — the cycle overwrote the room's warm fog on the very next frame, and the
+        /// twice over - the cycle overwrote the room's warm fog on the very next frame, and the
         /// restore on the way out handed the street back a colour from whatever hour you walked in
         /// at. One owner: the cycle stands down while you are inside, and re-derives the street from
         /// the clock when you step out. There is nothing to remember, so there is nothing to fight.
@@ -229,7 +229,7 @@ namespace TheBlock.World
             RenderSettings.fogEndDistance = fogFar;
 
             // Written as BOTH a flat colour and a Trilight triple, because which one renders depends
-            // on the cycle's setting — and until U33 neither did. The scene is AmbientMode.Skybox,
+            // on the cycle's setting - and until U33 neither did. The scene is AmbientMode.Skybox,
             // where ambientLight and ambientIntensity are ignored, so the room's {1, 0.808, 0.584}
             // at 0.45 had never actually rendered since U13.
             RenderSettings.ambientLight = ambientColor;
@@ -281,7 +281,7 @@ namespace TheBlock.World
         /// The CharacterController has to be switched off across the write: it caches its own
         /// position and will happily sweep the capsule from the pizzeria back to the city if it is
         /// left enabled, which reads as the player being dragged through every building on the way.
-        /// The camera snap is the same reason the web build has one — without it the boom lerps
+        /// The camera snap is the same reason the web build has one - without it the boom lerps
         /// across a kilometre of city while the player stands in a lit room.
         /// </summary>
         private void Teleport(Vector3 position, float yawDegrees)
@@ -292,7 +292,7 @@ namespace TheBlock.World
             if (followCamera != null) followCamera.SnapToTarget();
 
             // U25's fade, owed since U13 shipped this teleport as a hard cut. Raised in the SAME
-            // frame as the move, so the first frame of the destination is already black — see
+            // frame as the move, so the first frame of the destination is already black - see
             // ScreenFade for why it covers instead of bracketing.
             if (fade == null) fade = FindAnyObjectByType<UI.Menus.ScreenFade>();
             if (fade != null) fade.Cover();
@@ -300,7 +300,7 @@ namespace TheBlock.World
 
         private UI.Menus.ScreenFade fade;
 
-        /// <summary>Distance on the ground plane — a doorway does not care how high you are standing.</summary>
+        /// <summary>Distance on the ground plane - a doorway does not care how high you are standing.</summary>
         private static bool WithinXZ(Vector3 a, Vector3 b, float radius)
         {
             var dx = a.x - b.x;
@@ -308,7 +308,7 @@ namespace TheBlock.World
             return dx * dx + dz * dz <= radius * radius;
         }
 
-        /// <summary>Draws the two circles in the Scene view — they are invisible otherwise.</summary>
+        /// <summary>Draws the two circles in the Scene view - they are invisible otherwise.</summary>
         private void OnDrawGizmosSelected()
         {
             Gizmos.color = new Color(1f, 0.7f, 0.2f, 0.9f);

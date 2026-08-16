@@ -8,7 +8,7 @@ namespace TheBlock.Audio
     /// (<c>/audio/ambient/honk.mp3</c>, <c>/audio/engine/car.wav</c>).
     ///
     /// <b>One resolver, and an asset rather than a scene list.</b> Before U27 there were two ways to
-    /// find a clip — <c>Voice</c>'s private <c>List&lt;Entry&gt;</c>, filled by Build Campaign, and
+    /// find a clip - <c>Voice</c>'s private <c>List&lt;Entry&gt;</c>, filled by Build Campaign, and
     /// nothing at all for the other four folders. A second mechanism is how the two disagree later,
     /// and a list serialized into the scene is lost the next time something rebuilds that object.
     ///
@@ -41,7 +41,7 @@ namespace TheBlock.Audio
         public int Count => clips.Count;
 
         /// <summary>
-        /// The clip for a web URL, or null. Null is a real answer — a warning belongs to the ONE
+        /// The clip for a web URL, or null. Null is a real answer - a warning belongs to the ONE
         /// caller that knows whether silence there is a degraded mix or a broken feature.
         /// </summary>
         public AudioClip Resolve(string url)

@@ -5,19 +5,19 @@ using UnityEngine;
 namespace TheBlock.Missions
 {
     /// <summary>
-    /// The reusable overhead waypoint pin — the port of <c>src/mission/marker.ts</c>. A downward
+    /// The reusable overhead waypoint pin - the port of <c>src/mission/marker.ts</c>. A downward
     /// cone over a tall thin translucent beam, bobbing and spinning so it reads from across the
     /// street, and popping when its objective is met.
     ///
     /// All three marker missions use it and differ only in colour: green drops, orange survivors,
-    /// cyan gates. Unlit and additive, exactly as the web's <c>MeshBasicMaterial</c> is — a beacon
+    /// cyan gates. Unlit and additive, exactly as the web's <c>MeshBasicMaterial</c> is - a beacon
     /// must not be shaded by the sun or it goes dark at the wrong moment.
     ///
     /// <b>Can Unity do this better?</b> The web clones a material per beacon, so nine gates are nine
     /// materials and nine draw calls. Here the two meshes are built ONCE as statics and the
     /// materials are cached per colour, so every beacon of a mission shares one pair and the SRP
     /// batcher draws them together. A beacon only leaves that batch while it is mid-pop, because the
-    /// pop fades an instance and nothing else — and at most a handful pop at a time.
+    /// pop fades an instance and nothing else - and at most a handful pop at a time.
     ///
     /// <b>The beam hangs DOWNWARD from the cone, which is what the original does</b>, so most of its
     /// 14 m is under the ground (or under the roof) and occluded. That is the shipped look and it is
@@ -149,7 +149,7 @@ namespace TheBlock.Missions
 
         private void OnDestroy()
         {
-            // The meshes and materials are shared statics — destroying them here would take out
+            // The meshes and materials are shared statics - destroying them here would take out
             // every other live beacon. Only the GameObjects this pin made are its to remove, and
             // Unity does that with the hierarchy.
         }
@@ -185,17 +185,17 @@ namespace TheBlock.Missions
             material.DisableKeyword("_ALPHATEST_ON");
             material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
 
-            // A SetColor on a property the shader does not have is a silent no-op — the fault that
+            // A SetColor on a property the shader does not have is a silent no-op - the fault that
             // left the Mustang the wrong colour for four units. Say so rather than render black.
             if (!material.HasProperty(BaseColorId))
-                Debug.LogError("Beacon: URP/Unlit has no _BaseColor — the pin will not take a colour.");
+                Debug.LogError("Beacon: URP/Unlit has no _BaseColor - the pin will not take a colour.");
             material.SetColor(BaseColorId, color);
 
             _materials[key] = material;
             return material;
         }
 
-        /// <summary>A cone with its APEX DOWN, centred on the origin — the pin tip points at the spot.</summary>
+        /// <summary>A cone with its APEX DOWN, centred on the origin - the pin tip points at the spot.</summary>
         private static Mesh BuildCone(float radius, float height, int segments)
         {
             var half = height * 0.5f;
@@ -223,7 +223,7 @@ namespace TheBlock.Missions
             return mesh;
         }
 
-        /// <summary>An open-ended tube centred on the origin. No caps — nothing ever sees them.</summary>
+        /// <summary>An open-ended tube centred on the origin. No caps - nothing ever sees them.</summary>
         private static Mesh BuildCylinder(float radius, float height, int segments)
         {
             var half = height * 0.5f;
@@ -262,7 +262,7 @@ namespace TheBlock.Missions
         /// <summary>
         /// The mesh and material caches are statics, and Play mode does not clear statics by
         /// default. A stale <see cref="Mesh"/> from a previous session is a destroyed object that
-        /// reads as non-null, so it has to be dropped explicitly — the same trap
+        /// reads as non-null, so it has to be dropped explicitly - the same trap
         /// <see cref="UI.MapRegistry"/> guards against.
         /// </summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -270,8 +270,8 @@ namespace TheBlock.Missions
 
         /// <summary>
         /// The same drop, callable. <c>RuntimeInitializeOnLoadMethod</c> fires once per Play
-        /// SESSION, not once per scene load, so U26's Quit to Title — which unloads the world and
-        /// rebuilds it inside one session — has to ask for this itself. See
+        /// SESSION, not once per scene load, so U26's Quit to Title - which unloads the world and
+        /// rebuilds it inside one session - has to ask for this itself. See
         /// <see cref="Core.SessionReset"/>.
         /// </summary>
         public static void ResetCaches()

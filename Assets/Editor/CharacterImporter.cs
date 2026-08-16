@@ -7,7 +7,7 @@ using UnityEngine;
 namespace TheBlock.EditorTools
 {
     /// <summary>
-    /// Imports the playable bodies — <b>The Block → Import Characters (slow)</b>.
+    /// Imports the playable bodies - <b>The Block → Import Characters (slow)</b>.
     ///
     /// The roster the shipped game has: Joe, Jody and David, named by
     /// <c>src/player/characters.config.ts</c>. Joe arrived at U2 and is not touched here; this
@@ -20,7 +20,7 @@ namespace TheBlock.EditorTools
     ///    ever reads a pedestrian's bones. A playable body is the one U19e measures a driver's seat
     ///    against and the one every future unit will hang something off, exactly as Joe's is.
     ///  - <b>No animation at all.</b> These are Mixamo T-Pose downloads: mesh only. Every clip the
-    ///    player uses is Joe's shelf, retargeted through Humanoid at play time — which is the whole
+    ///    player uses is Joe's shelf, retargeted through Humanoid at play time - which is the whole
     ///    reason the roster costs one file per character and no animation work. The web build says
     ///    the same thing in its own words at the top of <c>characters.config.ts</c>.
     ///  - <b>Height is matched to JOE, not to 1.70 m.</b> <c>referenceCharacterId</c> is
@@ -30,7 +30,7 @@ namespace TheBlock.EditorTools
     ///
     /// Shared with the crowd, because they are the same problems: textures are EXTRACTED (an
     /// embedded texture is a sub-asset, a sub-asset has no <c>TextureImporter</c>, so it is never
-    /// compressed — memory <c>gltfast-textures-never-compressed</c>, and the npot/mips trap with
+    /// compressed - memory <c>gltfast-textures-never-compressed</c>, and the npot/mips trap with
     /// it), and the height is measured by instantiating into a preview scene rather than read off
     /// <c>mesh.bounds</c>, which reports FILE units and ignores import scale.
     ///
@@ -43,7 +43,7 @@ namespace TheBlock.EditorTools
     {
         internal const string CharactersPath = "Assets/Models/Characters";
 
-        /// <summary>Whose proportions everyone else is matched to — <c>referenceCharacterId</c>.</summary>
+        /// <summary>Whose proportions everyone else is matched to - <c>referenceCharacterId</c>.</summary>
         internal const string ReferenceFile = "Joe.fbx";
 
         /// <summary>Past this much error the visual child is scaled. Joe himself is always 1.</summary>
@@ -74,14 +74,14 @@ namespace TheBlock.EditorTools
             float reference = PeopleImporter.MeasureHeight($"{CharactersPath}/{ReferenceFile}");
             if (reference <= 0.01f)
             {
-                var missing = $"CharacterImporter — {CharactersPath}/{ReferenceFile} did not measure " +
+                var missing = $"CharacterImporter - {CharactersPath}/{ReferenceFile} did not measure " +
                               "(is it in the project?). Everyone is scaled to Joe, so there is " +
                               "nothing to scale to. Nothing imported.";
                 Debug.LogError(missing);
                 return missing;
             }
 
-            log.AppendLine($"reference  {ReferenceFile} = {reference:0.000} m — everyone is matched to this");
+            log.AppendLine($"reference  {ReferenceFile} = {reference:0.000} m - everyone is matched to this");
 
             try
             {
@@ -100,7 +100,7 @@ namespace TheBlock.EditorTools
 
             AssetDatabase.SaveAssets();
 
-            var report = $"CharacterImporter — {done}/{Names.Length} body/bodies\n{log}";
+            var report = $"CharacterImporter - {done}/{Names.Length} body/bodies\n{log}";
             Debug.Log(report);
             return report;
         }
@@ -112,7 +112,7 @@ namespace TheBlock.EditorTools
             if (AssetImporter.GetAtPath(path) is not ModelImporter importer)
             {
                 log.AppendLine(
-                    $"{name,-11} MISSING {path} — copy it out of the game repo's " +
+                    $"{name,-11} MISSING {path} - copy it out of the game repo's " +
                     "source-assets/models/ first");
                 return false;
             }
@@ -124,7 +124,7 @@ namespace TheBlock.EditorTools
             if (avatar == null || !avatar.isValid || !avatar.isHuman)
             {
                 log.AppendLine(
-                    $"{name,-11} FAILED — {Path.GetFileName(path)} produced " +
+                    $"{name,-11} FAILED - {Path.GetFileName(path)} produced " +
                     (avatar == null ? "no avatar" : $"an avatar that is valid={avatar.isValid} human={avatar.isHuman}") +
                     ". Every clip retargets onto it, so this body is unusable.");
                 return false;
@@ -166,7 +166,7 @@ namespace TheBlock.EditorTools
             importer.importAnimation = false;
 
             // These FBX are in CENTIMETRES and Unity reads that from the file header. Never scale
-            // here — see the class doc for what a scaled importer does to a Humanoid rig.
+            // here - see the class doc for what a scaled importer does to a Humanoid rig.
             importer.useFileScale = true;
             importer.globalScale = 1f;
 
@@ -184,7 +184,7 @@ namespace TheBlock.EditorTools
 
         /// <summary>
         /// Pulls the FBX's embedded textures onto disk, where a <c>TextureImporter</c> can reach
-        /// them — and where Unity's own material remap can bind them, which is what stops a Mixamo
+        /// them - and where Unity's own material remap can bind them, which is what stops a Mixamo
         /// body rendering white.
         /// </summary>
         private static int ExtractTextures(string name, string modelPath, StringBuilder log)
@@ -208,7 +208,7 @@ namespace TheBlock.EditorTools
 
             if (textures.Count == 0)
                 log.AppendLine(
-                    $"{name,-11} ⚠ no textures came out of the FBX — the body will render white. " +
+                    $"{name,-11} ⚠ no textures came out of the FBX - the body will render white. " +
                     $"Check {folder}");
 
             return textures.Count;

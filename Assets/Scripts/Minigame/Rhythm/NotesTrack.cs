@@ -5,12 +5,12 @@ using UnityEngine.UIElements;
 namespace TheBlock.Minigame.Rhythm
 {
     /// <summary>
-    /// The falling-arrow track — the port of <c>src/minigame/rhythm/notes-ui.ts</c>, from a DOM
+    /// The falling-arrow track - the port of <c>src/minigame/rhythm/notes-ui.ts</c>, from a DOM
     /// overlay onto the HUD's existing UIDocument.
     ///
     /// <b>One horizontal lane, not four.</b> That is the web build's design and it is what makes the
     /// game readable: arrows scroll in from the right, the ring sits at 10% from the left, and the
-    /// note AT the ring is whichever one is nearest in time — so the player watches one place and
+    /// note AT the ring is whichever one is nearest in time - so the player watches one place and
     /// presses the arrow they see, rather than tracking four columns at once.
     ///
     /// Notes are pooled. A three-phase chart is ~150 arrows over 100 seconds and only a handful are
@@ -86,7 +86,7 @@ namespace TheBlock.Minigame.Rhythm
             _combo.style.top = 130f;
             _root.Add(_combo);
 
-            // The judgment word pops at the ring, not in a corner — feedback belongs where the eye
+            // The judgment word pops at the ring, not in a corner - feedback belongs where the eye
             // already is.
             _judgment = Text(34f, Color.white, TextAnchor.MiddleCenter);
             _judgment.style.position = Position.Absolute;
@@ -190,7 +190,7 @@ namespace TheBlock.Minigame.Rhythm
 
         /// <summary>
         /// Positions a note. <paramref name="fraction"/> is 1 at the right spawn edge and 0 at the
-        /// ring, so the arrow travels the same distance whatever the tempo — the ramp changes
+        /// ring, so the arrow travels the same distance whatever the tempo - the ramp changes
         /// density, never speed, and this is where that promise is kept.
         /// </summary>
         public void MoveNote(int id, float fraction)

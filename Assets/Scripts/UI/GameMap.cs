@@ -9,23 +9,23 @@ using UnityEngine.UIElements;
 namespace TheBlock.UI
 {
     /// <summary>
-    /// The minimap and the full map — the port of <c>src/ui/map.ts</c>, drawn with UI Toolkit
+    /// The minimap and the full map - the port of <c>src/ui/map.ts</c>, drawn with UI Toolkit
     /// instead of a 2D canvas (the U25 decision, arriving early because the map IS ui).
     ///
     /// Structure is the web build's: a small always-on minimap centred on the active entity, and
     /// <c>M</c> (or a click) expands it into a whole-world map with district and POI labels. The
     /// base layer is <see cref="MapCamera"/>'s live render where the web build had a boot-time bake;
-    /// the vector overlay — district outlines, POI dots, the player arrow — is painted by
+    /// the vector overlay - district outlines, POI dots, the player arrow - is painted by
     /// <see cref="MapView"/> on top, and labels are pooled <see cref="Label"/> elements because
     /// Painter2D draws shapes, not text.
     ///
     /// Ports that became unnecessary and are absent on purpose:
     /// <list type="bullet">
-    /// <item><c>drawSea</c> — the blue rectangle stood in for water the bake did not show; the live
+    /// <item><c>drawSea</c> - the blue rectangle stood in for water the bake did not show; the live
     /// camera sees the real water shader, so painting over it would hide the actual sea.</item>
-    /// <item><c>districtFill</c> — filled the boxes only when the bake was missing; the live render
+    /// <item><c>districtFill</c> - filled the boxes only when the bake was missing; the live render
     /// is never missing.</item>
-    /// <item>The dev zone-paint / road-draw tools — authoring tools for config.ts, which is
+    /// <item>The dev zone-paint / road-draw tools - authoring tools for config.ts, which is
     /// authored in the original repo, not here.</item>
     /// </list>
     /// The cop-blip overlay (<c>drawCops</c>) belongs to U19 with the pursuit itself, and the rival
@@ -36,7 +36,7 @@ namespace TheBlock.UI
     {
         /// <summary>
         /// Repaint + re-render at ~12 fps, the web build's minimap cap. The RT keeps its last frame
-        /// between renders, so a skipped frame holds the image — no flicker, and a second full-world
+        /// between renders, so a skipped frame holds the image - no flicker, and a second full-world
         /// camera pass every frame is exactly the cost worth not paying.
         ///
         /// The web build exempts its OPEN map from the cap so panning stays responsive; there is
@@ -45,7 +45,7 @@ namespace TheBlock.UI
         private const float RedrawSec = 1f / 12f;
 
         /// <summary>
-        /// Collapsed minimap edge and its inset from the screen corner, in panel px — the web
+        /// Collapsed minimap edge and its inset from the screen corner, in panel px - the web
         /// build's `#map { width/height: 200px; bottom/left: 12px }` verbatim.
         ///
         /// <b>These are no longer screen px.</b> Until 2026-08-16 the panel was
@@ -63,10 +63,10 @@ namespace TheBlock.UI
         [SerializeField] private PlayerController player;
         [SerializeField] private VehicleEnterExit vehicles;
 
-        [Tooltip("Show the always-on minimap in the bottom-left corner. ON — the web build has it, " +
+        [Tooltip("Show the always-on minimap in the bottom-left corner. ON - the web build has it, " +
                  "and the port matches it (turned off 2026-08-16, restored the same day by the user: " +
                  "the radar belongs on screen). This doubles as the Settings → Display 'Radar' " +
-                 "toggle U26 already owes, arriving early as a serialized field — U26 gives it a " +
+                 "toggle U26 already owes, arriving early as a serialized field - U26 gives it a " +
                  "menu, it does not build the mechanism again.")]
         [SerializeField] private bool showMinimap = true;
 
@@ -85,14 +85,14 @@ namespace TheBlock.UI
         /// <summary>
         /// Borrows the screen back from the radar for a scene that owns the whole bottom edge. The
         /// dance's arrow lane runs full-width at 60 px up, and the 200 px corner widget sits square
-        /// on top of the left-hand arrows — the player cannot see the note they are being asked to
+        /// on top of the left-hand arrows - the player cannot see the note they are being asked to
         /// hit.
         ///
         /// <b>Deliberately not <see cref="SetMinimapVisible"/>.</b> That field is the player's own
         /// Radar preference (U26's Settings → Display, arriving early); a mission that wrote to it
         /// would hand it back turned ON to someone who had turned it off. This is a separate,
         /// temporary override that leaves the preference untouched, and whoever sets it owns
-        /// clearing it on EVERY exit path — win, fail and retry alike.
+        /// clearing it on EVERY exit path - win, fail and retry alike.
         /// </summary>
         public bool Suppressed
         {
@@ -172,7 +172,7 @@ namespace TheBlock.UI
 
         public void SetExpanded(bool next)
         {
-            // Suppression can be set before Start has built the panel — a mission that starts on
+            // Suppression can be set before Start has built the panel - a mission that starts on
             // frame one would otherwise NRE here rather than in anything it can see.
             if (_panel == null) { _expanded = next; return; }
 
@@ -211,8 +211,8 @@ namespace TheBlock.UI
 
         private void LateUpdate()
         {
-            // M is dead behind a menu. Esc's own priority order — close the map first, pause second
-            // — means the map can never be open while frozen, so this only has to stop it OPENING.
+            // M is dead behind a menu. Esc's own priority order - close the map first, pause second
+            // - means the map can never be open while frozen, so this only has to stop it OPENING.
             if (Core.Pause.Frozen) return;
 
             if (mapCamera == null || player == null) return;
@@ -264,7 +264,7 @@ namespace TheBlock.UI
             var h = root.resolvedStyle.height;
             if (float.IsNaN(w) || w <= 0f) return;
 
-            // Square, 82% of the shorter screen edge — what the web css's min(82vw, 82vh) resolves to.
+            // Square, 82% of the shorter screen edge - what the web css's min(82vw, 82vh) resolves to.
             var size = Mathf.Min(w, h) * 0.82f;
             _panel.style.width = size;
             _panel.style.height = size;

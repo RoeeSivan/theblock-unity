@@ -3,7 +3,7 @@
 #
 #   tools/blend-to-glb.sh <in.blend> <out.glb>
 #
-# For the districts the web build never shipped a source for — the parking lot and Reichman
+# For the districts the web build never shipped a source for - the parking lot and Reichman
 # are hand-modelled, so there is no Sketchfab original to fall back on and the shipped GLB is
 # a Draco/webp download build. Re-exporting from the .blend gives Unity raw geometry to do
 # its own per-platform compression on (CLAUDE.md port rule 3).

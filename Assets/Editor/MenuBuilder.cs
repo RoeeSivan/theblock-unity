@@ -16,7 +16,7 @@ namespace TheBlock.EditorTools
     /// Builds U26's shell: the menu components on the existing HUD document, the character
     /// preview rig, and the Boot scene that shows the loading bar.
     ///
-    /// Idempotent, like every other builder here — running it again tears the generated objects
+    /// Idempotent, like every other builder here - running it again tears the generated objects
     /// down and remakes them. It does NOT touch the HUD document itself, the map, or anything U14
     /// through U24 put in the scene; it adds components beside them.
     ///
@@ -47,7 +47,7 @@ namespace TheBlock.EditorTools
             {
                 EditorUtility.DisplayDialog(
                     "Build Menus",
-                    "Open Assets/Scenes/World.unity first — the menus go on the HUD document that " +
+                    "Open Assets/Scenes/World.unity first - the menus go on the HUD document that " +
                     "lives in it.",
                     "OK");
                 return;
@@ -70,7 +70,7 @@ namespace TheBlock.EditorTools
             RegisterScenes();
 
             // `new GameObject` does not dirty a scene, and an unmarked scene is not written by Save
-            // — the whole shell would live in memory until the next domain reload discarded it.
+            // - the whole shell would live in memory until the next domain reload discarded it.
             EditorSceneManager.MarkSceneDirty(scene);
 
             Debug.Log("MenuBuilder: built the title/pause/settings/controls/character panels on " +
@@ -95,7 +95,7 @@ namespace TheBlock.EditorTools
             var character = Replace<CharacterPanel>(hud);
 
             // U28's counter. A panel like any other, so Esc layers over it and the freeze is the same
-            // freeze — the only thing that differs is that E rather than a menu button opens it.
+            // freeze - the only thing that differs is that E rather than a menu button opens it.
             Replace<ShopMenu>(hud);
 
             Replace<MissionLaunch>(hud);
@@ -111,7 +111,7 @@ namespace TheBlock.EditorTools
             // The roster itself is NOT seeded here any more. U26 hand-wrote a list of one because
             // Joe was the only body; U29 gave the game a CharacterRoster component and the panel
             // reads that, so the names on these buttons and the bodies they apply can no longer
-            // drift apart. The reference is resolved at runtime — a serialized one would go stale
+            // drift apart. The reference is resolved at runtime - a serialized one would go stale
             // every time Build Characters ran, which is a failure this project has already had.
             characterSerialized.ApplyModifiedPropertiesWithoutUndo();
 
@@ -124,7 +124,7 @@ namespace TheBlock.EditorTools
             }
 
             // Left unwired on purpose: TitleMenu finds the campaign itself, and the campaign object
-            // is rebuilt by Build Campaign — a serialized reference here would go stale every time
+            // is rebuilt by Build Campaign - a serialized reference here would go stale every time
             // that ran, which is the failure this project has already had once.
             if (title == null) Debug.LogWarning("MenuBuilder: TitleMenu did not attach.");
         }
@@ -164,7 +164,7 @@ namespace TheBlock.EditorTools
             camera.fieldOfView = 38f;
             camera.nearClipPlane = 0.05f;
 
-            // 20 m of far plane is the whole culling strategy — there is nothing else down here, so
+            // 20 m of far plane is the whole culling strategy - there is nothing else down here, so
             // no preview layer and no TagManager edit.
             camera.farClipPlane = 20f;
             camera.clearFlags = CameraClearFlags.SolidColor;
@@ -186,11 +186,11 @@ namespace TheBlock.EditorTools
             SceneManager.MoveGameObjectToScene(root, EditorSceneManager.GetActiveScene());
 
             // U29: the turntable wears a roster body like every other host, so the body is not built
-            // here any more — CharacterPrefabBuilder puts a CharacterBody on it with the Animator
+            // here any more - CharacterPrefabBuilder puts a CharacterBody on it with the Animator
             // settings a menu needs (AlwaysAnimate, and UnscaledTime because this screen is on
             // precisely when timeScale is 0). Called back into rather than ordered, so it does not
             // matter which of the two menu items was run last.
-            Debug.Log($"MenuBuilder — {CharacterPrefabBuilder.DressTurntable()}");
+            Debug.Log($"MenuBuilder - {CharacterPrefabBuilder.DressTurntable()}");
 
             return preview;
         }
@@ -201,13 +201,13 @@ namespace TheBlock.EditorTools
         /// <c>character-select.ts</c> adds a <c>HemisphereLight(0xffffff, 0x333344, 2.2)</c>, a warm
         /// <c>DirectionalLight(0xffd7a8, 2.6)</c> at (2, 4, 3) and a cool
         /// <c>DirectionalLight(0x88bbff, 1.4)</c> at (−3, 2, −2). U26 ported the camera and the
-        /// turntable and none of this, so the body was lit only by the world's sun — which is
+        /// turntable and none of this, so the body was lit only by the world's sun - which is
         /// two kilometres above it and pointed wherever the day/night cycle left it.
         ///
         /// <b>Both directionals become POINT lights, and that is not a downgrade.</b> A directional
         /// light in Unity has no position: one added down here would light all 963 × 805 m of the
         /// city as a second sun, and URP only honours one main directional anyway. A point light
-        /// with a 6 m range cannot reach anything but the body — the same "the far plane is the
+        /// with a 6 m range cannot reach anything but the body - the same "the far plane is the
         /// culling" trick the camera already uses, applied to light instead of geometry.
         ///
         /// <b>Shadows off on all three.</b> The preview camera does not render shadows, so they
@@ -227,7 +227,7 @@ namespace TheBlock.EditorTools
             MakePreviewLight(rig.transform, "Key", new Vector3(2f, 4f, 3f), new Color32(0xFF, 0xD7, 0xA8, 0xFF), 24f);
             MakePreviewLight(rig.transform, "Rim", new Vector3(-3f, 2f, -2f), new Color32(0x88, 0xBB, 0xFF, 0xFF), 14f);
 
-            // The hemisphere has no local equivalent — ambient in URP is one global setting and this
+            // The hemisphere has no local equivalent - ambient in URP is one global setting and this
             // rig may not touch it. A soft, slightly cool frontal light standing where the camera is
             // does the job it was there for: lifting the side the key does not reach.
             MakePreviewLight(rig.transform, "Fill", new Vector3(0f, 1.2f, 3f), new Color32(0xEA, 0xEE, 0xFF, 0xFF), 10f);
@@ -258,8 +258,8 @@ namespace TheBlock.EditorTools
 
         /// <summary>
         /// A runtime UI Toolkit panel gets its pointer events through an <see cref="EventSystem"/>.
-        /// Nothing in this project has needed one until now — every control the game has had is a
-        /// key — so the scene does not contain one, and without it every button here is inert while
+        /// Nothing in this project has needed one until now - every control the game has had is a
+        /// key - so the scene does not contain one, and without it every button here is inert while
         /// looking perfectly fine.
         /// </summary>
         private static void EnsureEventSystem(Scene scene)
@@ -320,7 +320,7 @@ namespace TheBlock.EditorTools
 
         /// <summary>
         /// Boot first, World second. The order is the whole point: index 0 is what a built player
-        /// opens on, and <c>SceneManager.LoadScene("Boot")</c> — Quit to Title — needs World listed
+        /// opens on, and <c>SceneManager.LoadScene("Boot")</c> - Quit to Title - needs World listed
         /// at all or it cannot come back.
         /// </summary>
         private static void RegisterScenes()

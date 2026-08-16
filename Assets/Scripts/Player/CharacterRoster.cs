@@ -6,12 +6,12 @@ using UnityEngine;
 namespace TheBlock.Player
 {
     /// <summary>
-    /// Who you can play as, and the one call that dresses everybody — the port of
+    /// Who you can play as, and the one call that dresses everybody - the port of
     /// <c>src/player/characters.config.ts</c> plus <c>main.ts</c>'s <c>applyCharacter()</c> fan-out.
     ///
     /// <b>The fan-out is two bodies here and five in the web build, and that is U9's dividend.</b>
-    /// Its comment lists four rigs that wear the player's body — the walking capsule, the seated car
-    /// driver, and the bike and jetski riders — because each is a separately built skinned mesh
+    /// Its comment lists four rigs that wear the player's body - the walking capsule, the seated car
+    /// driver, and the bike and jetski riders - because each is a separately built skinned mesh
     /// there, so picking a character has to reach all of them "or you'd change clothes on getting
     /// into a vehicle". This port reparents ONE player into every seat (U9), so all four collapse
     /// into a single <see cref="CharacterBody"/>. What is left is that body and the one on the dance
@@ -21,7 +21,7 @@ namespace TheBlock.Player
     /// <b>Nothing here is exported from the web config, deliberately.</b> Every other ported table
     /// in this project comes through <c>export-config.mjs</c> because it is full of hand-tuned
     /// numbers that must not be re-typed. This one is three ids, three names and two optional
-    /// tuning fields that are unset for all three characters — the rest of that file is GLB URLs
+    /// tuning fields that are unset for all three characters - the rest of that file is GLB URLs
     /// that mean nothing to Unity. There is no number here to get wrong.
     ///
     /// The <c>scale</c> and <c>seat</c> nudges the web's <c>PlayableCharacter</c> carries are also
@@ -32,7 +32,7 @@ namespace TheBlock.Player
     public class CharacterRoster : MonoBehaviour
     {
         /// <summary>
-        /// <c>referenceCharacterId</c> AND <c>defaultCharacterId</c> — the web build has them as the
+        /// <c>referenceCharacterId</c> AND <c>defaultCharacterId</c> - the web build has them as the
         /// same character on purpose: keeping the body the game shipped with as the reference means
         /// the roster changed nothing about how he looks.
         /// </summary>
@@ -47,7 +47,7 @@ namespace TheBlock.Player
             [Tooltip("What the character screen's button says.")]
             public string Name;
 
-            [Tooltip("The body. Its root carries the height match — see CharacterPrefabBuilder.")]
+            [Tooltip("The body. Its root carries the height match - see CharacterPrefabBuilder.")]
             public GameObject Prefab;
         }
 
@@ -64,7 +64,7 @@ namespace TheBlock.Player
         public static CharacterRoster Find() => FindAnyObjectByType<CharacterRoster>(FindObjectsInactive.Include);
 
         /// <summary>
-        /// Dresses every body in the scene and remembers the pick — the whole of
+        /// Dresses every body in the scene and remembers the pick - the whole of
         /// <c>applyCharacter</c>. Safe to call with an id the roster no longer has: a stale
         /// PlayerPrefs value from a roster that has since changed must not brick the boot, which is
         /// what <c>characterById</c>'s fallback is for in the web build.
@@ -82,11 +82,11 @@ namespace TheBlock.Player
             if (remember) Progress.CharacterId = entry.Id;
         }
 
-        /// <summary>The stored pick, resolved — what the game boots wearing.</summary>
+        /// <summary>The stored pick, resolved - what the game boots wearing.</summary>
         public void ApplySaved() => Apply(Progress.CharacterId, remember: false);
 
         /// <summary>
-        /// The web's <c>applyCharacter(player.characterId())</c> at the bottom of <c>main.ts</c> —
+        /// The web's <c>applyCharacter(player.characterId())</c> at the bottom of <c>main.ts</c> -
         /// "fan the saved pick out to the vehicles built after it". In <c>Start</c> rather than
         /// <c>Awake</c> so every <see cref="CharacterBody"/> has cached its own body first; and free
         /// for the common case, because the builder bakes the default in and

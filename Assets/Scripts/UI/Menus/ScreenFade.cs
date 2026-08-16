@@ -4,7 +4,7 @@ using UnityEngine.UIElements;
 namespace TheBlock.UI.Menus
 {
     /// <summary>
-    /// The black that hides a teleport — U25's row, and the port of <c>src/ui/fade.ts</c>.
+    /// The black that hides a teleport - U25's row, and the port of <c>src/ui/fade.ts</c>.
     ///
     /// <b>It covers rather than brackets, and that is a deliberate difference from the web.</b>
     /// <c>fade.ts</c> exposes <c>to(black)</c> and the caller awaits a fade-OUT, teleports, then
@@ -17,7 +17,7 @@ namespace TheBlock.UI.Menus
     /// So the black goes up in the SAME frame as the teleport and fades off. Nothing is lost: the
     /// move is instantaneous either way, and UI Toolkit composites after the scene, so the first
     /// frame the player is shown of the destination is already covered. What the fade is actually
-    /// for — never cutting hard between a street and a lit room — is unchanged.
+    /// for - never cutting hard between a street and a lit room - is unchanged.
     ///
     /// Unscaled throughout: a fade can outlive a pause taken on top of it, and a fade stuck at full
     /// black is a black screen with no way out.
@@ -57,7 +57,7 @@ namespace TheBlock.UI.Menus
 
             _alpha = 1f;
             _sheet.style.display = DisplayStyle.Flex;
-            _sheet.BringToFront(); // above every menu — a teleport under an open panel still hides
+            _sheet.BringToFront(); // above every menu - a teleport under an open panel still hides
             _sheet.style.backgroundColor = Color.black;
         }
 

@@ -1,7 +1,7 @@
 namespace TheBlock.Core
 {
     /// <summary>
-    /// What the run is doing right now — the port of <c>src/game/modes.ts</c>.
+    /// What the run is doing right now - the port of <c>src/game/modes.ts</c>.
     ///
     /// The web build's enum has six labels and this now has five of them. <c>Transition</c> is still
     /// absent, and deliberately: it exists in the web to freeze input behind a fade-to-black, and
@@ -18,19 +18,19 @@ namespace TheBlock.Core
         /// <summary>Walking. The only mode that reads on-foot input.</summary>
         OnFoot,
 
-        /// <summary>Getting in — the entry animation or the timed door swing. Input is frozen.</summary>
+        /// <summary>Getting in - the entry animation or the timed door swing. Input is frozen.</summary>
         Entering,
 
         /// <summary>At the wheel. The only mode that reads vehicle input.</summary>
         Driving,
 
-        /// <summary>Getting out — stood beside the car while the door shuts. Input is frozen.</summary>
+        /// <summary>Getting out - stood beside the car while the door shuts. Input is frozen.</summary>
         Exiting,
 
         /// <summary>
         /// The beach dance (U22). A modal takeover: the player's body is hidden, a dancer stands on
         /// the stage in their place, the camera frames it, and the only live input is the four
-        /// arrows. Every other system — the police, the doorway, the vehicle machine — reads this
+        /// arrows. Every other system - the police, the doorway, the vehicle machine - reads this
         /// and stands down, because none of them has anything to act on while nobody is on the map.
         /// </summary>
         Rhythm,

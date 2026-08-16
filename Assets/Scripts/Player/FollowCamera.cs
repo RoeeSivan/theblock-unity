@@ -7,7 +7,7 @@ namespace TheBlock.Player
     /// Third-person chase camera, ported from <c>player.ts</c>'s <c>follow()</c>.
     ///
     /// It has no orbit and no mouse input by design: the player turns with A/D and the camera
-    /// trails the body. Deliberately hand-written rather than Cinemachine — this is fifteen lines
+    /// trails the body. Deliberately hand-written rather than Cinemachine - this is fifteen lines
     /// of behaviour with a specific feel to reproduce, and pulling in a whole camera framework to
     /// get it would be the tail wagging the dog. Cinemachine earns its place when the mission
     /// cameras land (U23's helicopter, U26's menus), not here.
@@ -44,7 +44,7 @@ namespace TheBlock.Player
             _camera.nearClipPlane = lens.Near;
             // NOT lens.Far. The config's 320 m is a three.js draw budget that only ever worked
             // because the fog it ships with dissolves everything before the plane reaches it, and
-            // because config.streaming unloads districts past 380 m anyway. See World.Atmosphere —
+            // because config.streaming unloads districts past 380 m anyway. See World.Atmosphere -
             // it owns this number and the fog range together, because a fog end that disagreed with
             // the far plane is exactly the hard slice this replaced.
             _camera.farClipPlane = World.Atmosphere.DrawDistance;
@@ -95,10 +95,10 @@ namespace TheBlock.Player
             if (snap) SnapToTarget();
         }
 
-        /// <summary>Back to the on-foot boom — what leaving a vehicle calls.</summary>
+        /// <summary>Back to the on-foot boom - what leaving a vehicle calls.</summary>
         public void FollowPlayer(bool snap = true) => Follow(player, snap);
 
-        /// <summary>Jumps the camera onto its mark with no smoothing — spawn, teleport, cut.</summary>
+        /// <summary>Jumps the camera onto its mark with no smoothing - spawn, teleport, cut.</summary>
         public void SnapToTarget()
         {
             if (_target == null || _target.Anchor == null) return;

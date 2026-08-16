@@ -6,13 +6,13 @@ using UnityEngine.UIElements;
 namespace TheBlock.UI
 {
     /// <summary>
-    /// The fuel bar — <c>hud.ts</c>'s <c>setFuel</c>, and the last of that file's surfaces to be
+    /// The fuel bar - <c>hud.ts</c>'s <c>setFuel</c>, and the last of that file's surfaces to be
     /// built.
     ///
     /// <b>It takes <see cref="PlayerMeters"/>'s slot, and shares its constants.</b> The sprint bar is
     /// on foot only and this is driving only, so exactly one of them is ever on screen and "the bar
     /// above the radar is your meter" stays true in both modes. That is the web build's own
-    /// arrangement, stated in a comment in <c>hud.css</c> — not a coincidence to be preserved by
+    /// arrangement, stated in a comment in <c>hud.css</c> - not a coincidence to be preserved by
     /// hand, which is why the position is <see cref="PlayerMeters.BarSlotBottomPx"/> rather than a
     /// second 220.
     ///
@@ -34,13 +34,13 @@ namespace TheBlock.UI
         /// </summary>
         private const float GlyphOffsetPx = 22f;
 
-        /// <summary>Seconds per pulse while fuel is flowing — <c>hud.css</c>'s <c>fuel-pump</c>.</summary>
+        /// <summary>Seconds per pulse while fuel is flowing - <c>hud.css</c>'s <c>fuel-pump</c>.</summary>
         private const float PulseSeconds = 0.7f;
 
         /// <summary>The dimmest the bar goes at the bottom of a pulse.</summary>
         private const float PulseFloor = 0.55f;
 
-        [Header("Scene — found automatically when left empty")]
+        [Header("Scene - found automatically when left empty")]
         [SerializeField] private FuelSystem fuel;
 
         private VisualElement _track;
@@ -80,7 +80,7 @@ namespace TheBlock.UI
             _track.style.display = DisplayStyle.None;
             root.Add(_track);
 
-            // No `overflow: Hidden` here, unlike the sprint bar — the ⛽ is a CHILD hanging off the
+            // No `overflow: Hidden` here, unlike the sprint bar - the ⛽ is a CHILD hanging off the
             // left edge, and clipping the track would clip the glyph away with it.
             var glyph = new Label(Glyphs.Opaque("⛽")) { name = "fuel-glyph" };
             glyph.style.position = Position.Absolute;
@@ -124,7 +124,7 @@ namespace TheBlock.UI
             }
 
             // Colours are flat and take each of the web's gradients by its LEFT stop, which is
-            // already this project's convention — the sprint bar's two are literally these two.
+            // already this project's convention - the sprint bar's two are literally these two.
             // UI Toolkit has no linear-gradient on a background colour, and through MenuStyle.Ui
             // because it takes a Color as LINEAR while these are written as sRGB.
             if (low != _lastLow || full != _lastFull)
@@ -132,13 +132,13 @@ namespace TheBlock.UI
                 _lastLow = low;
                 _lastFull = full;
                 _fill.style.backgroundColor = full
-                    ? MenuStyle.Ui(0.29f, 0.82f, 0.48f)   // #4ad17a — green at 100% IS the refuel confirm
+                    ? MenuStyle.Ui(0.29f, 0.82f, 0.48f)   // #4ad17a - green at 100% IS the refuel confirm
                     : low
-                        ? MenuStyle.Ui(0.82f, 0.29f, 0.29f)   // #d14a4a — the sprint bar's own low red
+                        ? MenuStyle.Ui(0.82f, 0.29f, 0.29f)   // #d14a4a - the sprint bar's own low red
                         : MenuStyle.Ui(0.878f, 0.631f, 0.247f); // #e0a13f
             }
 
-            // The pump pulse. UI Toolkit has no CSS keyframes, so it is driven here — a cosine IS
+            // The pump pulse. UI Toolkit has no CSS keyframes, so it is driven here - a cosine IS
             // ease-in-out, and on unscaled time so it keeps breathing if anything ever slows the
             // clock. Written only while filling, plus the one frame that turns it off.
             if (filling)

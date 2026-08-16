@@ -13,8 +13,8 @@ namespace TheBlock.EditorTools
     /// shopkeeper behind the till, and makes sure the economy has a component to live on.
     ///
     /// <b>The nodes are the source, and the config is the check.</b> <c>seven-eleven-lot.glb</c> ships
-    /// an empty for every point this needs — <c>se_door_trigger</c>, <c>se_cashier_stand</c>,
-    /// <c>se_register</c>, ten <c>pu_slot_*</c> — each holding the same number
+    /// an empty for every point this needs - <c>se_door_trigger</c>, <c>se_cashier_stand</c>,
+    /// <c>se_register</c>, ten <c>pu_slot_*</c> - each holding the same number
     /// <c>config.sevenEleven</c> holds, and glTFast converted the whole hierarchy on import. So the
     /// component binds transforms and this pass REPORTS the node-versus-config delta instead of
     /// converting anything. That matters more here than anywhere else in the project: every one of
@@ -35,7 +35,7 @@ namespace TheBlock.EditorTools
         private const string ClerkFace = "Sophie";
 
         /// <summary>
-        /// Re-wires just the shop, against the world already in the scene — <b>The Block → Build
+        /// Re-wires just the shop, against the world already in the scene - <b>The Block → Build
         /// Store</b>.
         ///
         /// A full <b>Build World</b> does this too, and would also re-instantiate nine districts, the
@@ -71,7 +71,7 @@ namespace TheBlock.EditorTools
             EnsureEconomy(root.transform, report, snapshot.PowerUps);
 
             // `new GameObject` and a component add do not dirty the scene by themselves, and an
-            // unmarked scene is not written by Save — the shop would live in memory until the next
+            // unmarked scene is not written by Save - the shop would live in memory until the next
             // domain reload threw it away.
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(
                 UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene());
@@ -100,12 +100,12 @@ namespace TheBlock.EditorTools
             if (left == null || right == null || entrance == null || stand == null)
             {
                 report.Warnings.Add(
-                    "7-Eleven — one of its marker nodes is missing, so the shop is not wired. " +
+                    "7-Eleven - one of its marker nodes is missing, so the shop is not wired. " +
                     "Expected SevenEleven_DoorL/R, se_door_trigger, se_cashier_stand.");
                 return;
             }
 
-            // TryGetComponent, never `GetComponent() ?? AddComponent()` — a missing component comes
+            // TryGetComponent, never `GetComponent() ?? AddComponent()` - a missing component comes
             // back as Unity's fake-null and `??` treats it as a real object.
             if (!instance.TryGetComponent<SevenEleven>(out var store))
                 store = instance.AddComponent<SevenEleven>();
@@ -117,7 +117,7 @@ namespace TheBlock.EditorTools
             BuildClerk(instance.transform, stand, register, spec, report);
 
             report.Placed.Add(
-                $"7-Eleven — doors {left.name}/{right.name} part {Mathf.Abs(spec.Door?.Slide.X ?? 0f):0.00} m, " +
+                $"7-Eleven - doors {left.name}/{right.name} part {Mathf.Abs(spec.Door?.Slide.X ?? 0f):0.00} m, " +
                 $"floor x[{minX:0.00},{maxX:0.00}] z[{minZ:0.00},{maxZ:0.00}] model-local, " +
                 $"counter r{spec.Clerk?.TalkRadius ?? 0f:0.0} m");
 
@@ -125,11 +125,11 @@ namespace TheBlock.EditorTools
         }
 
         /// <summary>
-        /// The sales floor rectangle — the one part of the store with no node to read, and therefore
+        /// The sales floor rectangle - the one part of the store with no node to read, and therefore
         /// the one part that must be converted by hand.
         ///
         /// glTFast negates X, so a min becomes a max: the rectangle is not just mirrored, its corners
-        /// SWAP. Z passes through untouched. This is deliberately not <c>Convert.ModelOffset</c> —
+        /// SWAP. Z passes through untouched. This is deliberately not <c>Convert.ModelOffset</c> -
         /// that rule (pass X, negate Z) governs offsets in a model whose facing has been corrected by
         /// <c>Convert.ModelFacing</c>, which a placed prop never gets. Two different conversions for
         /// two different frames; reaching for the more famous one is the whole trap.
@@ -177,7 +177,7 @@ namespace TheBlock.EditorTools
             if (prefab == null)
             {
                 report.Warnings.Add(
-                    $"7-Eleven — no {path}, so the counter is unstaffed. " +
+                    $"7-Eleven - no {path}, so the counter is unstaffed. " +
                     "Run The Block → Build Pedestrians, then rebuild.");
                 return;
             }
@@ -196,28 +196,28 @@ namespace TheBlock.EditorTools
                 clerk.transform.rotation = Quaternion.LookRotation(facing, Vector3.up);
                 var delta = Quaternion.Angle(clerk.transform.rotation, fromConfig);
                 report.Notes.Add(
-                    $"7-Eleven clerk — faces se_register; config's yaw sum disagrees by {delta:0.#}°");
+                    $"7-Eleven clerk - faces se_register; config's yaw sum disagrees by {delta:0.#}°");
             }
             else
             {
                 clerk.transform.rotation = fromConfig;
-                report.Notes.Add("7-Eleven clerk — no se_register node, so the facing came from the config");
+                report.Notes.Add("7-Eleven clerk - no se_register node, so the facing came from the config");
             }
 
             if (spec.Clerk != null && spec.Clerk.Scale > 0f && !Mathf.Approximately(spec.Clerk.Scale, 1f))
                 clerk.transform.localScale = Vector3.one * spec.Clerk.Scale;
 
-            // Never bound to a seed — see the method note. Disabled rather than destroyed so the
+            // Never bound to a seed - see the method note. Disabled rather than destroyed so the
             // prefab link survives and a future unit can hand her a line to say.
             if (clerk.TryGetComponent<Pedestrian>(out var pedestrian)) pedestrian.enabled = false;
 
-            report.Placed.Add($"7-Eleven clerk — {ClerkFace} @ {Fmt(clerk.transform.position)}");
+            report.Placed.Add($"7-Eleven clerk - {ClerkFace} @ {Fmt(clerk.transform.position)}");
         }
 
         /// <summary>
         /// Asserts the model and the config still describe the same building.
         ///
-        /// Every point below exists twice, so drift is detectable — and it is the ONLY thing that
+        /// Every point below exists twice, so drift is detectable - and it is the ONLY thing that
         /// would catch a re-export of the store with a shelf moved, which would otherwise show up as
         /// a power-up floating a metre off a counter that nobody looks at.
         /// </summary>
@@ -250,19 +250,19 @@ namespace TheBlock.EditorTools
 
             if (checks == 0)
             {
-                report.Warnings.Add("7-Eleven — no marker node matched the config; nothing was cross-checked");
+                report.Warnings.Add("7-Eleven - no marker node matched the config; nothing was cross-checked");
                 return;
             }
 
-            var line = $"7-Eleven — {checks} marker node(s) checked against the config, worst delta " +
+            var line = $"7-Eleven - {checks} marker node(s) checked against the config, worst delta " +
                        $"{worst * 100f:0.0} cm ({worstName})";
-            if (worst > 0.01f) report.Warnings.Add(line + " — over 1 cm, the model and the config have drifted");
+            if (worst > 0.01f) report.Warnings.Add(line + " - over 1 cm, the model and the config have drifted");
             else report.Notes.Add(line);
         }
 
         /// <summary>
         /// The economy's own component. Placed in a <c>Game</c> group rather than beside the store,
-        /// because power-ups outlive the building you bought them in — 1–4 have to work on foot, at
+        /// because power-ups outlive the building you bought them in - 1-4 have to work on foot, at
         /// the wheel and mid-mission.
         ///
         /// <see cref="TheBlock.Game.Wallet"/> is deliberately LEFT where U19 put it, on the Police
@@ -277,27 +277,27 @@ namespace TheBlock.EditorTools
             var existing = Object.FindAnyObjectByType<PowerUps>();
             if (existing != null)
             {
-                report.Notes.Add($"economy — PowerUps already on '{existing.gameObject.name}'");
+                report.Notes.Add($"economy - PowerUps already on '{existing.gameObject.name}'");
                 return;
             }
 
             var group = NewGroup("Game", root);
             group.gameObject.AddComponent<PowerUps>();
-            report.Placed.Add("economy — PowerUps on Game");
+            report.Placed.Add("economy - PowerUps on Game");
         }
 
         /// <summary>
         /// Writes the opening balance from the catalogue: the price of the FIRST power-up, so a new
         /// player can buy exactly one thing and nothing else.
         ///
-        /// <b>Derived rather than typed, because it is not really a number — it is a relationship.</b>
+        /// <b>Derived rather than typed, because it is not really a number - it is a relationship.</b>
         /// "You start with enough for one energy drink" survives a price change in
         /// <c>powerup.config.ts</c>; a hardcoded 40 quietly stops being true and nothing says so.
         /// Build time rather than runtime, so <see cref="TheBlock.Game.Wallet"/> keeps knowing
         /// nothing about power-ups.
         ///
         /// It also has to be written HERE at all, and not just as a C# default, because a field the
-        /// scene has already serialized beats its initializer — U19's debug 500 sat in this scene
+        /// scene has already serialized beats its initializer - U19's debug 500 sat in this scene
         /// through two units for exactly that reason.
         ///
         /// It does not touch the SAVE. <c>PlayerPrefs</c> still holds whatever the last run banked;
@@ -313,7 +313,7 @@ namespace TheBlock.EditorTools
             var want = first?.Price ?? TheBlock.Game.Wallet.DefaultStartingBalance;
             var from = first != null
                 ? $"powerUpConfig.items[0] ({first.Emoji} {first.Label})"
-                : "Wallet.DefaultStartingBalance — the catalogue is missing";
+                : "Wallet.DefaultStartingBalance - the catalogue is missing";
 
             var serialized = new SerializedObject(wallet);
             var starting = serialized.FindProperty("startingBalance");
@@ -322,14 +322,14 @@ namespace TheBlock.EditorTools
             var was = starting.intValue;
             if (was == want)
             {
-                report.Notes.Add($"economy — Wallet.startingBalance already ${want}, from {from}");
+                report.Notes.Add($"economy - Wallet.startingBalance already ${want}, from {from}");
                 return;
             }
 
             starting.intValue = want;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(wallet);
-            report.Notes.Add($"economy — Wallet.startingBalance ${was} → ${want}, from {from}");
+            report.Notes.Add($"economy - Wallet.startingBalance ${was} → ${want}, from {from}");
         }
 
         // --- node lookup ------------------------------------------------------------------------
@@ -353,7 +353,7 @@ namespace TheBlock.EditorTools
         {
             if (string.IsNullOrEmpty(name)) return null;
             if (nodes.TryGetValue(name, out var t)) return t;
-            report.Warnings.Add($"7-Eleven — no node named '{name}' in the imported model");
+            report.Warnings.Add($"7-Eleven - no node named '{name}' in the imported model");
             return null;
         }
 

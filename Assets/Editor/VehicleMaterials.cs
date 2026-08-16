@@ -9,9 +9,9 @@ namespace TheBlock.EditorTools
     /// <summary>
     /// The material work every car builder has to do, in one place.
     ///
-    /// Three builders now put a car in the world from the same three .glb files —
+    /// Three builders now put a car in the world from the same three .glb files -
     /// <see cref="TrafficCarBuilder"/> for the ambient traffic, <see cref="CarBuilder"/> for the
-    /// drivable copies, and <c>WorldBuilder.LotCars</c> for the parked fillers — and each of them
+    /// drivable copies, and <c>WorldBuilder.LotCars</c> for the parked fillers - and each of them
     /// needs the same two non-obvious things done to a .glb's materials. Both were learned the hard
     /// way and neither is guessable from the API:
     ///
@@ -118,7 +118,7 @@ namespace TheBlock.EditorTools
         /// declared gamma-tagged, so the sRGB value goes in exactly as written and <c>.linear</c>
         /// renders the car near-black. URP/Lit's <c>_BaseColor</c> is untagged and is read as linear,
         /// so it needs the conversion. A builder that only knows the URP name writes nothing at all
-        /// on a glTFast material — silently, with no warning — which is how the Mustang shipped in
+        /// on a glTFast material - silently, with no warning - which is how the Mustang shipped in
         /// its model's native paint instead of the config's red for the whole of U8.
         /// </summary>
         public static string SetBaseColor(Material material, int hex)
@@ -150,8 +150,8 @@ namespace TheBlock.EditorTools
         /// Points every .glb-sourced texture on a material at the copy <see cref="TextureCompressor"/>
         /// extracted, if there is one. Returns how many slots were rebound.
         ///
-        /// The lookup contract is <c>TextureCompressor</c>'s own — folder from the .glb's stem, file
-        /// name from <see cref="TextureCompressor.AssetName"/> — so the two sides cannot disagree
+        /// The lookup contract is <c>TextureCompressor</c>'s own - folder from the .glb's stem, file
+        /// name from <see cref="TextureCompressor.AssetName"/> - so the two sides cannot disagree
         /// about where a texture landed. A miss is counted rather than silently accepted: a
         /// half-compressed car costs the disk of the new copy and keeps the old one resident anyway.
         /// Textures under <see cref="TextureCompressor.SkipBelowPixels"/> were never extracted and
@@ -198,7 +198,7 @@ namespace TheBlock.EditorTools
         /// <summary>
         /// Deletes anything in <paramref name="folder"/> this run did not write, and says so.
         ///
-        /// A builder's material folder is build output that only that builder writes — which is also
+        /// A builder's material folder is build output that only that builder writes - which is also
         /// why these folders are not in <c>WorldBuilder.SweepGenerated</c>'s list. Putting them there
         /// would let an ordinary world build delete the materials a prefab points at, which is the
         /// same shape of fault that once blanked U16's zebras.

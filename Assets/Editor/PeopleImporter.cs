@@ -8,7 +8,7 @@ using UnityEngine;
 namespace TheBlock.EditorTools
 {
     /// <summary>
-    /// Imports the six street characters — <b>The Block → Import People (slow)</b>.
+    /// Imports the six street characters - <b>The Block → Import People (slow)</b>.
     ///
     /// These are the original game's own crowd: Sophie, Remy, Elizabeth, Chinese, Peter and Lewis,
     /// the same six Mixamo people <c>npc.config.ts</c> names, brought in from the FBX they were
@@ -23,24 +23,24 @@ namespace TheBlock.EditorTools
     ///
     /// Per character:
     ///  - <b>Idle FBX carries the mesh.</b> Humanoid, Create From This Model. Humanoid is also what
-    ///    makes Mixamo's per-upload <c>mixamorigN:</c> bone namespace a non-problem — the web build
+    ///    makes Mixamo's per-upload <c>mixamorigN:</c> bone namespace a non-problem - the web build
     ///    had to rename tracks by hand to work around it.
     ///  - <b>Walk FBX is used for its clip only.</b> Humanoid, Copy From Other → that character's own
     ///    avatar. Its mesh is imported and never referenced, exactly as <c>Joe_Driving.fbx</c>'s is.
     ///  - <b>Bake Into Pose OFF on both.</b> These are locomotion cycles the crowd script drives, so
-    ///    the travel is extracted and then discarded (<c>applyRootMotion = false</c>) — the
+    ///    the travel is extracted and then discarded (<c>applyRootMotion = false</c>) - the
     ///    <c>Joe_Swim</c> arrangement, not the <c>Joe_EnterCar</c> one. It also matters mechanically:
     ///    with the root baked, <c>AnimationClip.averageSpeed</c> reads ~0 and the animator builder
     ///    has no cadence to calibrate against.
     ///  - <b>Optimize Game Objects ON.</b> Joe has it off because gameplay hunts his bones (the
     ///    driver anchor, the seat). Nothing hunts a pedestrian's bones until U18, and this collapses
-    ///    ~68 transforms per instance into the animator's internal skeleton — across a live crowd
+    ///    ~68 transforms per instance into the animator's internal skeleton - across a live crowd
     ///    that is thousands of transforms that simply never exist.
     ///  - <b>Textures extracted, then bound by hand.</b> Unity does neither for a Mixamo FBX and the
     ///    character renders white; extraction is also the only way the textures get a
     ///    <c>TextureImporter</c> at all, which is what compresses them (the same fault U15 found
     ///    from the glTFast side).
-    ///  - <b>Height normalised to 1.70 m</b> on the IMPORTER, never on the prefab root — a scaled
+    ///  - <b>Height normalised to 1.70 m</b> on the IMPORTER, never on the prefab root - a scaled
     ///    root scales the physics capsule with it. The web build auto-normalises for the same
     ///    reason, and its comment names Remy specifically as the odd export.
     /// </summary>
@@ -57,7 +57,7 @@ namespace TheBlock.EditorTools
         /// <summary>A pedestrian is never examined up close. 1024² keeps the whole set near 34 MB.</summary>
         private const int MaxTextureSize = 1024;
 
-        /// <summary>The six faces, in <c>npc.config.ts</c>'s own order — which decides who is who.</summary>
+        /// <summary>The six faces, in <c>npc.config.ts</c>'s own order - which decides who is who.</summary>
         internal static readonly string[] Names =
             { "Sophie", "Remy", "Elizabeth", "Chinese", "Peter", "Lewis" };
 
@@ -95,7 +95,7 @@ namespace TheBlock.EditorTools
 
             AssetDatabase.SaveAssets();
 
-            var report = $"PeopleImporter — {done}/{Names.Length} character(s)\n{log}";
+            var report = $"PeopleImporter - {done}/{Names.Length} character(s)\n{log}";
             Debug.Log(report);
             return report;
         }
@@ -123,7 +123,7 @@ namespace TheBlock.EditorTools
             if (avatar == null || !avatar.isValid || !avatar.isHuman)
             {
                 log.AppendLine(
-                    $"{name,-11} FAILED — {Path.GetFileName(idlePath)} produced " +
+                    $"{name,-11} FAILED - {Path.GetFileName(idlePath)} produced " +
                     (avatar == null ? "no avatar" : $"an avatar that is valid={avatar.isValid} human={avatar.isHuman}") +
                     ". Everything downstream retargets onto it, so this character is skipped.");
                 return false;
@@ -137,7 +137,7 @@ namespace TheBlock.EditorTools
             float walkSpeed = 0f;
             if (AssetImporter.GetAtPath(walkPath) is not ModelImporter walk)
             {
-                log.AppendLine($"{name,-11} no {Path.GetFileName(walkPath)} — this character will only idle");
+                log.AppendLine($"{name,-11} no {Path.GetFileName(walkPath)} - this character will only idle");
             }
             else
             {
@@ -145,7 +145,7 @@ namespace TheBlock.EditorTools
                 walk.avatarSetup = ModelImporterAvatarSetup.CopyFromOther;
                 walk.sourceAvatar = avatar;
 
-                // The walk file's own mesh is never used, so its materials are pure clutter — and a
+                // The walk file's own mesh is never used, so its materials are pure clutter - and a
                 // second set of Mixamo materials would fight the body's over the shared texture names.
                 walk.materialImportMode = ModelImporterMaterialImportMode.None;
 
@@ -167,10 +167,10 @@ namespace TheBlock.EditorTools
                 $" | walk {walkSpeed:0.00} m/s | {textures} texture(s)");
 
             // A Mixamo "in place" export, or a baked root. The animator builder falls back, but the
-            // cadence will be guessed rather than measured — say so where it can be seen.
+            // cadence will be guessed rather than measured - say so where it can be seen.
             if (walkSpeed > 0f && walkSpeed < 0.2f)
                 log.AppendLine(
-                    $"{name,-11} ⚠ walk clip barely travels ({walkSpeed:0.00} m/s) — it is probably an " +
+                    $"{name,-11} ⚠ walk clip barely travels ({walkSpeed:0.00} m/s) - it is probably an " +
                     "\"in place\" Mixamo export. Build NPC Animator will fall back to a nominal speed.");
 
             return true;
@@ -182,7 +182,7 @@ namespace TheBlock.EditorTools
             importer.animationType = ModelImporterAnimationType.Human;
             importer.importAnimation = true;
 
-            // Unity's own unit conversion, explicitly — these FBX are in CENTIMETRES, and Unity
+            // Unity's own unit conversion, explicitly - these FBX are in CENTIMETRES, and Unity
             // reads that from the file header and divides by a hundred for you.
             //
             // An earlier pass here normalised the height by scaling the IMPORTER instead, and it
@@ -190,7 +190,7 @@ namespace TheBlock.EditorTools
             // carries the walk file's, so scaling one of them apart from the other made Unity report
             // "Avatar Rig Configuration mis-match … position error = 43757 mm" on every leg bone. A
             // character who is not 1.70 m is scaled on the prefab's VISUAL CHILD instead, by
-            // NpcBuilder — the root keeps scale 1 so the physics capsule stays the size the config
+            // NpcBuilder - the root keeps scale 1 so the physics capsule stays the size the config
             // asked for.
             importer.useFileScale = true;
             importer.globalScale = 1f;
@@ -211,7 +211,7 @@ namespace TheBlock.EditorTools
         /// Renames the file's first take and makes it a looping, root-extracted locomotion clip.
         ///
         /// Rebuilt from <c>defaultClipAnimations</c> every run rather than edited in place, so
-        /// re-running is idempotent and a re-exported FBX is picked up — the same reason
+        /// re-running is idempotent and a re-exported FBX is picked up - the same reason
         /// <see cref="JoeClipImporter"/> does it that way.
         /// </summary>
         private static void SetSingleClip(ModelImporter importer, string clipName, StringBuilder log, string name)
@@ -227,7 +227,7 @@ namespace TheBlock.EditorTools
             clip.name = clipName;
             clip.loopTime = true;
 
-            // Bake Into Pose OFF on all three, "Based Upon: Original" — see the class doc.
+            // Bake Into Pose OFF on all three, "Based Upon: Original" - see the class doc.
             clip.lockRootRotation = false;
             clip.lockRootHeightY = false;
             clip.lockRootPositionXZ = false;
@@ -248,7 +248,7 @@ namespace TheBlock.EditorTools
         /// Pulls the FBX's embedded textures onto disk, where an importer can reach them.
         ///
         /// An embedded texture is a sub-asset and a sub-asset has no <c>TextureImporter</c>, so it
-        /// is never compressed and never resized — the same fault U15 found on the districts from
+        /// is never compressed and never resized - the same fault U15 found on the districts from
         /// the glTFast side (memory: <c>gltfast-textures-never-compressed</c>). Extraction is what
         /// gives them one.
         ///
@@ -277,7 +277,7 @@ namespace TheBlock.EditorTools
 
             if (textures.Count == 0)
                 log.AppendLine(
-                    $"{name,-11} ⚠ no textures came out of the FBX — the character will render white. " +
+                    $"{name,-11} ⚠ no textures came out of the FBX - the character will render white. " +
                     $"Check {folder}");
 
             return textures.Count;
@@ -296,7 +296,7 @@ namespace TheBlock.EditorTools
 
         /// <summary>
         /// Shared with <see cref="CharacterImporter"/>, which imports the playable bodies at a
-        /// larger <paramref name="maxSize"/> — a body the camera sits three metres behind is not a
+        /// larger <paramref name="maxSize"/> - a body the camera sits three metres behind is not a
         /// pedestrian glimpsed across a street. Everything else about the recipe is the same, and
         /// the npot trap below is the reason this is one function rather than two.
         /// </summary>
@@ -313,7 +313,7 @@ namespace TheBlock.EditorTools
             importer.mipmapEnabled = true;
 
             // A non-power-of-two texture with mipmaps silently refuses block compression and ships
-            // as raw RGB24 — the importer still claims DXT. ToLarger is the fix (memory:
+            // as raw RGB24 - the importer still claims DXT. ToLarger is the fix (memory:
             // npot-mips-skip-block-compression).
             importer.npotScale = TextureImporterNPOTScale.ToLarger;
             importer.textureCompression = TextureImporterCompression.Compressed;
@@ -327,7 +327,7 @@ namespace TheBlock.EditorTools
         /// The character's standing height in metres, measured by actually instantiating it.
         ///
         /// Instantiated rather than read off <c>mesh.bounds</c>, because that reports the mesh in
-        /// FILE units and ignores the import scale entirely — which is how an earlier pass here
+        /// FILE units and ignores the import scale entirely - which is how an earlier pass here
         /// concluded every character was "170 m tall", scaled the importer to fix it, and broke the
         /// rigs. A real instance in a preview scene is the only reading that includes everything.
         ///

@@ -6,8 +6,8 @@ namespace TheBlock.Npc
     /// Makes one pedestrian prefab look like several people.
     ///
     /// Twelve finished characters is not many for a street, and the pack underneath them is
-    /// modular — 9 tops and 4 pairs of trousers per gender, 8 haircuts, 5 face materials, three
-    /// body blendshapes — so the combination space is six figures. Assembling parts at build time
+    /// modular - 9 tops and 4 pairs of trousers per gender, 8 haircuts, 5 face materials, three
+    /// body blendshapes - so the combination space is six figures. Assembling parts at build time
     /// would reach all of it, and costs a bone-rebinding pass across six parts times five LODs;
     /// swapping two MATERIALS reaches 30 looks per prefab, 360 across the twelve, for nothing.
     ///
@@ -47,7 +47,7 @@ namespace TheBlock.Npc
         /// <summary>
         /// Rolls this pedestrian's face and shirt. Called by <see cref="CrowdSpawner"/> every time an
         /// agent is recycled, so the same pooled body is a different person each time it walks back
-        /// into view — which is what keeps a pool of forty from reading as forty.
+        /// into view - which is what keeps a pool of forty from reading as forty.
         /// </summary>
         public void Randomize(System.Random rng)
         {

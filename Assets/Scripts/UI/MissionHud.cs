@@ -10,7 +10,7 @@ namespace TheBlock.UI
     /// <c>#enter-prompt</c> elements in the web build's <c>index.html</c>, driven by
     /// <c>ui/hud-driver.ts</c>.
     ///
-    /// <b>One UIDocument, always.</b> This goes on the panel U14 built and U19 already extended —
+    /// <b>One UIDocument, always.</b> This goes on the panel U14 built and U19 already extended -
     /// the U25 row is explicit that a second panel means a second PanelSettings, a second scale mode
     /// and an argument about z-order that nobody wins.
     ///
@@ -23,7 +23,7 @@ namespace TheBlock.UI
     {
         private const float HintSeconds = 4f;
 
-        /// <summary>A mission's own F/T action — the most specific thing you can do here.</summary>
+        /// <summary>A mission's own F/T action - the most specific thing you can do here.</summary>
         public const int PromptMission = 30;
 
         /// <summary>E gets you into the vehicle you are standing next to.</summary>
@@ -57,7 +57,7 @@ namespace TheBlock.UI
             var root = GetComponent<UIDocument>().rootVisualElement;
 
             // Top-centre stack: the objective line with the clock under it. Absolute and
-            // pointer-transparent, like every other HUD layer on this document — a HUD that eats
+            // pointer-transparent, like every other HUD layer on this document - a HUD that eats
             // clicks is a HUD that breaks the map.
             var top = new VisualElement { name = "mission-top" };
             top.style.position = Position.Absolute;
@@ -97,7 +97,7 @@ namespace TheBlock.UI
             _prompt.style.display = DisplayStyle.None;
             root.Add(_prompt);
 
-            // A hint fades itself out and never repeats — see Game/Onboarding.
+            // A hint fades itself out and never repeats - see Game/Onboarding.
             _hint = MakeLabel(19f, new Color(1f, 0.93f, 0.6f), FontStyle.Normal);
             _hint.style.position = Position.Absolute;
             _hint.style.bottom = 140f;
@@ -162,8 +162,8 @@ namespace TheBlock.UI
         /// shown, and stop claiming to hide it.</b> Null or empty is not a claim at all.
         ///
         /// It is arbitrated rather than last-writer-wins because three unrelated things now compete
-        /// for one line — a mission's F/T action, the vehicle you are standing beside, and the
-        /// pizzeria door — and with a latched setter the winner would be whichever component Unity
+        /// for one line - a mission's F/T action, the vehicle you are standing beside, and the
+        /// pizzeria door - and with a latched setter the winner would be whichever component Unity
         /// happened to call last that frame. The web build has the same three and resolves them in
         /// one `if/else` chain in <c>hud-driver.ts</c>; the priorities here ARE that chain's order,
         /// written where each claim is made instead of in a driver that has to know about all of them.
@@ -189,7 +189,7 @@ namespace TheBlock.UI
         {
             if (label == null) return;
 
-            // U28 gave the panel an emoji-capable fallback font, so the copy is drawn as written —
+            // U28 gave the panel an emoji-capable fallback font, so the copy is drawn as written -
             // but a colour-emoji glyph takes the label's colour as a tint, and these labels are
             // deliberately muted. `Glyphs.Opaque` resets just the pictographic runs. Still at the
             // point of DRAWING rather than of loading, which is what keeps the data clean.
@@ -222,7 +222,7 @@ namespace TheBlock.UI
 
         /// <summary>
         /// Draws whichever claim won this frame, then forgets it. LateUpdate, so every Update has
-        /// already had its say — that is the whole reason the arbitration can be order-independent.
+        /// already had its say - that is the whole reason the arbitration can be order-independent.
         /// </summary>
         private void LateUpdate()
         {

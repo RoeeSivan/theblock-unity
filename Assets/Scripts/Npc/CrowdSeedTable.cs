@@ -3,12 +3,12 @@ using UnityEngine;
 namespace TheBlock.Npc
 {
     /// <summary>
-    /// Where the crowd stands, baked — U16b's port of <c>npc.config.ts</c>'s placement tables.
+    /// Where the crowd stands, baked - U16b's port of <c>npc.config.ts</c>'s placement tables.
     ///
     /// <b>This asset is the crowd.</b> The original seeds people from three additive sources: 33
     /// hand-painted pavement rectangles (9 each), 38 sidewalk strips split into two opposing lanes
     /// (8 each, three of them overridden), and a per-district fallback. Those rectangles and strips
-    /// were captured by hand with the web build's in-game recorder — they are DATA, not tuning, and
+    /// were captured by hand with the web build's in-game recorder - they are DATA, not tuning, and
     /// re-deriving them would be re-authoring the crowd. <c>CrowdBuilder</c> converts them into
     /// Unity space once, at build time, and resolves a ground height per sample.
     ///
@@ -16,7 +16,7 @@ namespace TheBlock.Npc
     /// ~700 pedestrian objects at load and merely freezes those out of range; in Unity the steady
     /// cost of the crowd measured at zero and the whole stutter was the INSTANTIATION BURST. So the
     /// people live here as plain structs and only those inside the cull radius are ever given a
-    /// body — see <see cref="CrowdSpawner"/>. Nothing about their behaviour is approximated: each
+    /// body - see <see cref="CrowdSpawner"/>. Nothing about their behaviour is approximated: each
     /// seed carries its own position, target, path position, pace and face, and gets them back when
     /// it is bound again.
     ///
@@ -53,7 +53,7 @@ namespace TheBlock.Npc
         /// <summary>
         /// One walking lane, resampled by arc length with its ground height already resolved.
         ///
-        /// The web calls <c>buildPath</c> here, but only ever with TWO waypoints — and a centripetal
+        /// The web calls <c>buildPath</c> here, but only ever with TWO waypoints - and a centripetal
         /// Catmull-Rom through two points is a straight line. So there is no curve to port: the
         /// resampling exists solely to bake a Y per sample, which is what lets a strip follow a
         /// pavement that changes height without a raycast per step at runtime.
@@ -78,7 +78,7 @@ namespace TheBlock.Npc
 
         /// <summary>
         /// One person's entire state. Baked as the starting state, then owned by the spawner's
-        /// runtime copy — a bound pedestrian writes this back when it is released, so walking out of
+        /// runtime copy - a bound pedestrian writes this back when it is released, so walking out of
         /// range and back does not reset anybody.
         /// </summary>
         [System.Serializable]
@@ -121,7 +121,7 @@ namespace TheBlock.Npc
                  "This is what liveCap has to cover.")]
         [SerializeField] private int peakWithinCull;
 
-        [Tooltip("95th percentile of the same measurement — the number that matters in practice.")]
+        [Tooltip("95th percentile of the same measurement - the number that matters in practice.")]
         [SerializeField] private int p95WithinCull;
 
         public Rect[] Rects => rects;

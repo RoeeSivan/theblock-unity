@@ -18,7 +18,7 @@ namespace TheBlock.EditorTools
     /// scene is WorldBuilder's output.
     ///
     /// <b>U33 made what this writes the reference for a second thing.</b> With Settings → Display →
-    /// Time of Day on Fixed — the default — <see cref="DayNightCycle"/> does not write the sky at
+    /// Time of Day on Fixed - the default - <see cref="DayNightCycle"/> does not write the sky at
     /// all; it replays the values found here at <c>Awake</c>. So this function defines what "off"
     /// looks like, and the palette's <see cref="SkyPalette.AnchorHour"/> stop is authored to match
     /// it. Change the fog colour here and that stop has to move with it, or switching the setting on
@@ -46,19 +46,19 @@ namespace TheBlock.EditorTools
             RenderSettings.fogEndDistance = end;
 
             if (config.Fog == null)
-                report.Warnings.Add("fog — config has no `fog` section; fell back to the background colour");
+                report.Warnings.Add("fog - config has no `fog` section; fell back to the background colour");
 
             report.Placed.Add(
-                $"Atmosphere — linear fog {ColorUtility.ToHtmlStringRGB(color)} over {start:0}–{end:0} m, " +
+                $"Atmosphere - linear fog {ColorUtility.ToHtmlStringRGB(color)} over {start:0}-{end:0} m, " +
                 $"camera draws to {Atmosphere.DrawDistance:0} m " +
-                $"(config says {config.Camera?.Far ?? 0:0} m — three.js budget, not design)");
+                $"(config says {config.Camera?.Far ?? 0:0} m - three.js budget, not design)");
 
             ApplyShadowDistance(report);
         }
 
         /// <summary>
         /// Shadow distance lives on the URP asset, not on <c>QualitySettings</c>, whenever URP is
-        /// the active pipeline — setting the latter is silently ignored.
+        /// the active pipeline - setting the latter is silently ignored.
         ///
         /// It is raised here rather than left to U30 because it is part of the same fault: at 40 m
         /// nothing past the end of the street casts a shadow, which was invisible while the world
@@ -69,7 +69,7 @@ namespace TheBlock.EditorTools
             var asset = UniversalRenderPipeline.asset;
             if (asset == null)
             {
-                report.Warnings.Add("shadow distance skipped — URP is not the active render pipeline");
+                report.Warnings.Add("shadow distance skipped - URP is not the active render pipeline");
                 return;
             }
 

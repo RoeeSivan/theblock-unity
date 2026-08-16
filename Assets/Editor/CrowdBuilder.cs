@@ -11,24 +11,24 @@ using UnityEngine.AI;
 namespace TheBlock.EditorTools
 {
     /// <summary>
-    /// Bakes where the crowd stands — <b>The Block → Bake Crowd Seeds</b>.
+    /// Bakes where the crowd stands - <b>The Block → Bake Crowd Seeds</b>.
     ///
     /// The port of the original's three additive seeding passes (<c>crowd.ts</c>), run once at build
     /// time instead of once per boot:
-    ///  1. <b>33 painted rectangles</b> × <c>perDistrict</c> 9 — hand-captured pavement, the bulk of
+    ///  1. <b>33 painted rectangles</b> × <c>perDistrict</c> 9 - hand-captured pavement, the bulk of
     ///     the crowd.
     ///  2. <b>38 sidewalk strips</b>, each split into two lanes <c>laneOffset</c> apart walked in
     ///     opposite directions, which is what makes a pavement read as two-way foot traffic.
     ///  3. <b>A per-district fallback</b> of 9 more, for the districts no rectangle covers.
-    /// Zebra crossers are NOT baked — they hold a reference to a live <c>Crossing</c> and are built
+    /// Zebra crossers are NOT baked - they hold a reference to a live <c>Crossing</c> and are built
     /// by <see cref="CrowdSpawner"/> at Start.
     ///
     /// <b>Run this last.</b> It queries the NavMesh to decide what is pavement, so it needs
     /// <c>Build World + NavMesh (slow)</c> to have run first.
     ///
     /// <b>Handedness, once, through <see cref="Convert"/>.</b> Every number in <c>npc.config.ts</c>
-    /// is right-handed. Negating X swaps a rectangle's two X bounds — <c>xMin</c> becomes the Unity
-    /// <c>xMax</c> — so both corners go through <see cref="Convert.Pos(Vector3)"/> and min/max are
+    /// is right-handed. Negating X swaps a rectangle's two X bounds - <c>xMin</c> becomes the Unity
+    /// <c>xMax</c> - so both corners go through <see cref="Convert.Pos(Vector3)"/> and min/max are
     /// re-derived from the results. Never negate a field in place (port rule 1).
     ///
     /// The lane's sideways offset is <c>Cross(up, tangent)</c> on the CONVERTED endpoints. That is
@@ -228,7 +228,7 @@ namespace TheBlock.EditorTools
             var (peak, p95) = MeasureDensity(seeds, npc.CullDistanceM, rng);
             log.AppendLine(
                 $"  within {npc.CullDistanceM:0} m    peak {peak}, p95 {p95} " +
-                "— set the Crowd object's Live Cap from this");
+                "- set the Crowd object's Live Cap from this");
 
             // --- write --------------------------------------------------------------------------
 
@@ -249,7 +249,7 @@ namespace TheBlock.EditorTools
             string wiring = WireScene(table, peak);
 
             var report =
-                $"CrowdBuilder — {seeds.Count} seed(s), {rects.Count} rect(s), {paths.Count} lane(s)\n" +
+                $"CrowdBuilder - {seeds.Count} seed(s), {rects.Count} rect(s), {paths.Count} lane(s)\n" +
                 log + wiring +
                 "\n  crossers are NOT baked: they hold a live Crossing and are built at Start (2 per zebra)";
             Debug.Log(report, table);
@@ -295,7 +295,7 @@ namespace TheBlock.EditorTools
         }
 
         /// <summary>
-        /// A point on pavement inside the rectangle — the port of <c>walkable.ts</c>'s
+        /// A point on pavement inside the rectangle - the port of <c>walkable.ts</c>'s
         /// <c>sampleInBox</c>, with the mask replaced by the NavMesh and one extra guard the web
         /// build did not need: rooftops bake walkable, so a hit far off the ground probe's answer is
         /// a roof and is rejected (memory: <c>navmesh-bakes-rooftops</c>).
@@ -338,7 +338,7 @@ namespace TheBlock.EditorTools
             return new CrowdSeedTable.LanePath { Points = points, Length = Mathf.Max(length, 0.01f) };
         }
 
-        /// <summary>Every district's world bounds — the port of <c>worldMap.districts()</c>.</summary>
+        /// <summary>Every district's world bounds - the port of <c>worldMap.districts()</c>.</summary>
         private static IEnumerable<Bounds> DistrictBounds()
         {
             var root = GameObject.Find("World/Districts");
@@ -404,7 +404,7 @@ namespace TheBlock.EditorTools
         {
             var crowd = GameObject.Find("Crowd");
             if (crowd == null || !crowd.TryGetComponent<CrowdSpawner>(out var spawner))
-                return "\n  ⚠ no Crowd object with a CrowdSpawner in this scene — wire it by hand";
+                return "\n  ⚠ no Crowd object with a CrowdSpawner in this scene - wire it by hand";
 
             var prefabs = PeopleImporter.Names
                 .Select(n => AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefabs/Npc/Ped_{n}.prefab"))

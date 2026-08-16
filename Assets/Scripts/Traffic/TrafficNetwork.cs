@@ -4,7 +4,7 @@ namespace TheBlock.Traffic
 {
     /// <summary>
     /// The street graph, baked. U17's port of <c>traffic-graph.ts</c> plus <c>npc/path.ts</c>'s
-    /// <c>buildPath</c> — one edge per authored polyline, endpoints within <c>snapDist</c> merged
+    /// <c>buildPath</c> - one edge per authored polyline, endpoints within <c>snapDist</c> merged
     /// into shared nodes, each edge resampled to an even-arc-length lookup table with its road
     /// height already resolved.
     ///
@@ -13,13 +13,13 @@ namespace TheBlock.Traffic
     /// a sample every 2 m is ~6,400 downward rays on the main thread before the first frame. That
     /// cost is a load-time spike in three.js and would be the same spike here, for numbers that
     /// cannot change unless a district moves. So the whole graph is baked by
-    /// <c>WorldBuilder.Traffic</c> — same polylines, same snapping, same Catmull-Rom, same
-    /// <c>GroundY</c> the zebras use — and the runtime does zero raycasts for traffic, ever.
+    /// <c>WorldBuilder.Traffic</c> - same polylines, same snapping, same Catmull-Rom, same
+    /// <c>GroundY</c> the zebras use - and the runtime does zero raycasts for traffic, ever.
     ///
     /// <b>Everything in here is already in Unity space.</b> The conversion happens once, in the
     /// builder, and every tangent, lane offset and corner downstream is computed on converted
-    /// geometry (port rule 1). In particular the lane side is <c>Cross(up, tangent)</c> — the right
-    /// of travel in a LEFT-handed frame — which is the same physical side as the web build's
+    /// geometry (port rule 1). In particular the lane side is <c>Cross(up, tangent)</c> - the right
+    /// of travel in a LEFT-handed frame - which is the same physical side as the web build's
     /// <c>(-tz, tx)</c> in a right-handed one, and is not the same arithmetic.
     ///
     /// U19's police pursuit wants this asset too: it is the only description of where a car may be.
@@ -92,7 +92,7 @@ namespace TheBlock.Traffic
         /// <summary>The edge ids touching a node, without allocating.</summary>
         public int EdgeAt(in Node node, int index) => nodeEdges[node.EdgeStart + index];
 
-        /// <summary>A node is lit when three or more streets meet at it — <c>traffic-lights.ts</c>'s rule.</summary>
+        /// <summary>A node is lit when three or more streets meet at it - <c>traffic-lights.ts</c>'s rule.</summary>
         public bool IsLit(int nodeId) => nodes[nodeId].EdgeCount >= 3;
 
         // --- sampling -------------------------------------------------------------------------
@@ -136,7 +136,7 @@ namespace TheBlock.Traffic
             float magnitude = tangent.magnitude;
             tangent = magnitude > 1e-5f ? tangent / magnitude : Vector3.forward;
 
-            // Right of travel. In Unity's LEFT-handed frame that is Cross(up, forward) — the web
+            // Right of travel. In Unity's LEFT-handed frame that is Cross(up, forward) - the web
             // build's (-tz, tx) is the same side written for a right-handed one, and transcribing
             // it literally would put every car in the oncoming lane.
             var right = Vector3.Cross(Vector3.up, tangent);

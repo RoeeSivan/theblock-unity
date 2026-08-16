@@ -8,7 +8,7 @@ using UnityEngine.UIElements;
 namespace TheBlock.UI.Menus
 {
     /// <summary>
-    /// "Choose your character" — the port of the panel half of <c>src/ui/character-select.ts</c>
+    /// "Choose your character" - the port of the panel half of <c>src/ui/character-select.ts</c>
     /// (the render half is <see cref="CharacterPreview"/>).
     ///
     /// <b>The rows come from <see cref="CharacterRoster"/>, not from a list of its own.</b> U26
@@ -18,8 +18,8 @@ namespace TheBlock.UI.Menus
     ///
     /// The pick is applied immediately and written to <see cref="Progress.CharacterId"/>, which is
     /// where the web puts it too (<c>saveCharacterId</c>) and which already survives a New Game on
-    /// purpose: a new campaign is not a new person. Applying it is one call —
-    /// <see cref="CharacterRoster.Apply"/> — and that call is the port of <c>main.ts</c>'s
+    /// purpose: a new campaign is not a new person. Applying it is one call -
+    /// <see cref="CharacterRoster.Apply"/> - and that call is the port of <c>main.ts</c>'s
     /// <c>applyCharacter</c> fan-out, including the body on the dance stage.
     /// </summary>
     public class CharacterPanel : MenuPanel
@@ -55,7 +55,7 @@ namespace TheBlock.UI.Menus
             MenuStyle.SetBorder(_image, MenuStyle.Rim, 1f, 12f);
             overlay.Add(_image);
 
-            // A roster reads as a ROW, not as another vertical menu — the web's own note on
+            // A roster reads as a ROW, not as another vertical menu - the web's own note on
             // #title-character-list, and the reason this one panel breaks the column pattern.
             _list = new VisualElement { name = "character-list" };
             _list.style.flexDirection = FlexDirection.Row;

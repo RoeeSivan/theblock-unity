@@ -6,7 +6,7 @@ namespace TheBlock.Core
     /// The freeze. One flag the whole game reads, set by the pause menu and by the title screen.
     ///
     /// <b>This exists because <c>Time.timeScale = 0</c> does not stop <c>Update</c>.</b> The web
-    /// build pauses by skipping its own <c>stepSim</c> call — one branch in one frame loop, and
+    /// build pauses by skipping its own <c>stepSim</c> call - one branch in one frame loop, and
     /// nothing downstream of it runs. Unity has no such choke point: <c>timeScale</c> freezes
     /// physics, animators, NavMesh agents and every <c>Time.deltaTime</c> timer, but seventeen
     /// scripts in this project poll <c>Keyboard.current</c> in <c>Update</c> and every one of them
@@ -18,7 +18,7 @@ namespace TheBlock.Core
     /// <b>Audio pauses through the listener, not through the mixer.</b> A fifth
     /// <c>AudioMixerSnapshot</c> would mean re-running <c>AudioMixerBuilder</c>'s reflection-built
     /// mixer over an asset U27 shipped and nobody has balanced yet. <c>AudioListener.pause</c> is
-    /// one line and Unity already provides the exception the menu needs —
+    /// one line and Unity already provides the exception the menu needs -
     /// <c>AudioSource.ignoreListenerPause</c>, set on the sfx pool so the UI click still sounds.
     /// </summary>
     public static class Pause
@@ -29,7 +29,7 @@ namespace TheBlock.Core
         /// <summary>Raised on every change, so a system with state to shed can shed it once.</summary>
         public static event System.Action<bool> Changed;
 
-        /// <summary>The scale to go back to. Not assumed to be 1 — a synthetic Play test runs slow.</summary>
+        /// <summary>The scale to go back to. Not assumed to be 1 - a synthetic Play test runs slow.</summary>
         private static float _resumeScale = 1f;
 
         public static void Set(bool frozen)
@@ -54,7 +54,7 @@ namespace TheBlock.Core
         }
 
         /// <summary>
-        /// Entering Play with the statics left over from the last session — or from a domain reload —
+        /// Entering Play with the statics left over from the last session - or from a domain reload -
         /// must never start the game already frozen. Clears the flag AND the scale, because the two
         /// live in different places and only one of them is a static field.
         /// </summary>

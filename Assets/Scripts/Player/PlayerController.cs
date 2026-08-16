@@ -14,7 +14,7 @@ namespace TheBlock.Player
         Jog,
         Sprint,
 
-        /// <summary>Stamina hit zero — panting, locked out of sprint until it recovers.</summary>
+        /// <summary>Stamina hit zero - panting, locked out of sprint until it recovers.</summary>
         Exhausted,
     }
 
@@ -25,7 +25,7 @@ namespace TheBlock.Player
         Jump,
         Falling,
 
-        /// <summary>In deep water. Outranks every other pose — jump and falling are inert in the sea.</summary>
+        /// <summary>In deep water. Outranks every other pose - jump and falling are inert in the sea.</summary>
         Swim,
     }
 
@@ -37,7 +37,7 @@ namespace TheBlock.Player
     /// over unchanged. The camera follows the body rather than steering it.
     ///
     /// Unity's CharacterController replaces the web build's kinematic Rapier capsule plus
-    /// hand-rolled collide-and-slide — same behaviour, one component. Speeds, stamina and the gait
+    /// hand-rolled collide-and-slide - same behaviour, one component. Speeds, stamina and the gait
     /// tiers are gameplay tuning and port straight across; nothing here is a Rapier physics number.
     ///
     /// Animation is U7's job. This component only publishes what it is doing.
@@ -46,11 +46,11 @@ namespace TheBlock.Player
     public class PlayerController : MonoBehaviour, IChaseTarget
     {
         [Header("Spawn")]
-        [Tooltip("Spawn at config.player.spawn — the parking lot. Leave OFF until that district " +
+        [Tooltip("Spawn at config.player.spawn - the parking lot. Leave OFF until that district " +
                  "is ingested (U11) and there is ground under it, or the player falls forever.")]
         [SerializeField] private bool useConfigSpawn;
 
-        [Header("Feel — not in config.ts, Unity-side additions")]
+        [Header("Feel - not in config.ts, Unity-side additions")]
         [Tooltip("How high a step the controller walks up without jumping. Florentin curbs are ~0.15 m.")]
         [SerializeField] private float stepOffset = 0.35f;
 
@@ -98,7 +98,7 @@ namespace TheBlock.Player
         /// <summary>
         /// 🥤 Energy drink: sprint burns nothing. U28's, written by <see cref="Powerup.PowerUps"/>.
         ///
-        /// Not persisted and not serialized — it is pushed every frame from the live timer, so a
+        /// Not persisted and not serialized - it is pushed every frame from the live timer, so a
         /// recompile mid-Play cannot strand the player permanently tireless.
         /// </summary>
         public bool InfiniteStamina { get; set; }
@@ -117,7 +117,7 @@ namespace TheBlock.Player
         /// that first and owned the only copy; U19's bust needs the identical move, and two copies of
         /// this is how one of them quietly loses the guard.
         ///
-        /// The caller snaps the camera — this component does not own one.
+        /// The caller snaps the camera - this component does not own one.
         /// </summary>
         public void Teleport(Vector3 position, float yawDegrees)
         {
@@ -141,7 +141,7 @@ namespace TheBlock.Player
         /// U22's dance needs it: a dancer stands on the stage in the player's place, so the player
         /// himself must not also be visible three metres away. <see cref="VehicleEnterExit"/> does
         /// the identical thing to the driver on a quick mount, and it did it by holding its own
-        /// cached renderer list — which is the wrong owner. The body belongs to this component, so
+        /// cached renderer list - which is the wrong owner. The body belongs to this component, so
         /// the switch does too.
         ///
         /// The list is cached on first use rather than in Awake, because nothing but the dance and
@@ -214,7 +214,7 @@ namespace TheBlock.Player
             _controller.slopeLimit = slopeLimit;
 
             // The shore wall stops cars driving out to sea, and the swimmer has to be the one thing
-            // that walks through it — which is exactly what the web build's `obstacleFilter` does.
+            // that walks through it - which is exactly what the web build's `obstacleFilter` does.
             // WorldBuilder puts that wall, and only that wall, on Ignore Raycast; excluding the layer
             // here drops it out of this capsule's collisions while leaving everything else's alone.
             _controller.excludeLayers = 1 << LayerMask.NameToLayer("Ignore Raycast");
@@ -230,7 +230,7 @@ namespace TheBlock.Player
         private void Update()
         {
             // A menu owns the screen. Update keeps being called at timeScale 0, so the freeze has to
-            // be read here or the player walks around behind the pause overlay — see Core.Pause.
+            // be read here or the player walks around behind the pause overlay - see Core.Pause.
             if (Core.Pause.Frozen) return;
 
             if (_spec == null) Bind();
@@ -266,14 +266,14 @@ namespace TheBlock.Player
             var wantJog = keyboard.altKey.isPressed && moving;
             UpdateStamina(wantSprint, wantJog, dt);
 
-            // One speed in the water. Gait tiers do not apply — there is no sprinting a crawl stroke,
+            // One speed in the water. Gait tiers do not apply - there is no sprinting a crawl stroke,
             // and stamina keeps ticking back up while you swim.
             var speed = _swimming ? _sea.Swim.Speed
                 : wantSprint ? _spec.Movement.SprintSpeed
                 : wantJog ? _spec.Movement.JogSpeed
                 : _spec.Movement.WalkSpeed;
 
-            // Grounded check happens before Move(), so it describes last frame — which is exactly
+            // Grounded check happens before Move(), so it describes last frame - which is exactly
             // what the jump wants: you may jump on the frame you land, not the frame you leave.
             // Both of these are land-only: in water the seabed is 3 m down and grounded is false
             // anyway, but the stick speed would fight the buoyancy spring on the way out.
@@ -309,7 +309,7 @@ namespace TheBlock.Player
         /// Buoyancy instead of gravity: a spring that pulls the capsule's centre to the surface, and
         /// a damper so it settles there rather than bobbing forever.
         ///
-        /// <c>swim.surfaceY</c> is a CENTRE height, so the feet target is that much lower — miss the
+        /// <c>swim.surfaceY</c> is a CENTRE height, so the feet target is that much lower - miss the
         /// offset and Joe floats with the waterline at his knees.
         ///
         /// The web build multiplies by <c>damping</c> once per frame, which silently ties how fast
@@ -328,7 +328,7 @@ namespace TheBlock.Player
         {
             var stamina = _spec.Stamina;
 
-            // 🥤 does not top the bar up — it stops the drain. The difference shows the moment it
+            // 🥤 does not top the bar up - it stops the drain. The difference shows the moment it
             // runs out: you carry on from whatever you had left rather than falling off a full bar,
             // and a sprint already in progress simply stops being free.
             if (sprinting && !InfiniteStamina)
@@ -348,7 +348,7 @@ namespace TheBlock.Player
         /// <summary>
         /// Pose priority: swimming beats falling beats jumping beats locomotion. Falling only wins
         /// once the drop is faster than a hop ever reaches, so it fires off a ledge and never on a
-        /// jump — and never in water, where the body is never grounded and would otherwise read as
+        /// jump - and never in water, where the body is never grounded and would otherwise read as
         /// a permanent fall.
         /// </summary>
         private void UpdatePose(bool moving, bool sprinting, bool jogging)

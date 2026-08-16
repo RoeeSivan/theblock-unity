@@ -8,7 +8,7 @@ using UnityEngine;
 namespace TheBlock.EditorTools
 {
     /// <summary>
-    /// Bakes the rooftops U23's rescue strands people on — <b>The Block → Bake Roof Spots</b>.
+    /// Bakes the rooftops U23's rescue strands people on - <b>The Block → Bake Roof Spots</b>.
     ///
     /// The web finds them at runtime with up to 400 random raycasts per run; this finds them once
     /// and writes a ScriptableObject, the same move U17 made for the traffic graph and U19 for the
@@ -18,7 +18,7 @@ namespace TheBlock.EditorTools
     /// it wrong.</b> <c>lowest-raycast-hit-is-the-ground-plate</c>: there is a plate at −0.05 under
     /// every street, so the LOWEST hit is never what you want. <c>groundy-lowest-hit-can-be-a-roof</c>:
     /// where a district has no street mesh, the building overhead is the lowest non-plate hit. Here
-    /// the answer is the opposite of both — cast down from above the city and take the FIRST hit,
+    /// the answer is the opposite of both - cast down from above the city and take the FIRST hit,
     /// which is by definition the topmost surface, then keep it only if it is high enough to be a
     /// roof rather than a street.
     /// </summary>
@@ -42,13 +42,13 @@ namespace TheBlock.EditorTools
 
             // Read the districts out of the SCENE, not out of MapRegistry: the registry is filled
             // at runtime and is empty in the editor, and the scene objects are the very geometry the
-            // raycasts below will hit — so this measures the thing it is about to sample.
+            // raycasts below will hit - so this measures the thing it is about to sample.
             var districts = SceneDistricts();
             if (districts.Count == 0)
             {
                 Debug.LogError(
                     "BakeRoofSpots: no District_* objects under World/Districts. Run " +
-                    "The Block → Build World first — this bake reads the placed city.");
+                    "The Block → Build World first - this bake reads the placed city.");
                 return;
             }
 
@@ -62,7 +62,7 @@ namespace TheBlock.EditorTools
             //
             // The quota is PER DISTRICT, not global, and that is not a detail. A global cap is what
             // the first bake used, and it filled up on the first four districts it walked and left
-            // Procedural City 5, 6, 7 and Reichman with zero — so every rescue would have sent the
+            // Procedural City 5, 6, 7 and Reichman with zero - so every rescue would have sent the
             // player to the same corner of the map. A rescue that never crosses the city is not the
             // mission.
             var attempts = rescue.SampleAttempts * 8;
@@ -135,7 +135,7 @@ namespace TheBlock.EditorTools
             }
 
             report.AppendLine(
-                $"  TOTAL {spots.Count} spots, height {min:0.0}–{max:0.0} m, " +
+                $"  TOTAL {spots.Count} spots, height {min:0.0}-{max:0.0} m, " +
                 $"≥{minHeight} m and ≥{separation} m apart, ≤30° slope → {RoofAssetPath}");
             Debug.Log(report.ToString());
         }

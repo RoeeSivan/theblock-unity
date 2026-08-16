@@ -12,13 +12,13 @@ namespace TheBlock.Police
     ///
     /// <b>It invents no new way to take control.</b> The project already has exactly three, and this
     /// uses two of them: <c>VehicleEnterExit</c>'s "disable the controller and the capsule" while on
-    /// foot, and <c>CarController.Teleport</c>'s four-step body move while driving — stop the body
+    /// foot, and <c>CarController.Teleport</c>'s four-step body move while driving - stop the body
     /// before moving it, sync the transforms, brake all four wheels (a WheelCollider latches its last
     /// torque), re-pose. A cutscene controller for a 2.2 s red screen would be a whole mechanism
     /// nothing else wants.
     ///
     /// <b>What you lose depends on whether you were driving, and that is the user's call.</b> Caught
-    /// in a vehicle, the car is impounded and you are both moved to the station — you lose where you
+    /// in a vehicle, the car is impounded and you are both moved to the station - you lose where you
     /// were, which in a city this size is the real cost. Caught on foot, you are cuffed where you
     /// stand and lose only the money and the time: there is no car to impound, and hauling a
     /// pedestrian across town for a hit-and-run they committed on foot is a punishment with no
@@ -63,7 +63,7 @@ namespace TheBlock.Police
 
             // The heavy "you're caught" sting. The sirens need no explicit cut here: clearing the
             // stars sends every cop home, `Siren.Wanted` goes false with the mode, and the
-            // arbitration stops them on the same frame — which is the web's
+            // arbitration stops them on the same frame - which is the web's
             // `pursuitAudio.setChaseActive(false)` arriving as a consequence rather than a call.
             TheBlock.Audio.GameAudio.Cue(TheBlock.Audio.SfxCue.Busted);
 
@@ -109,7 +109,7 @@ namespace TheBlock.Police
             }
             else if (driving != null)
             {
-                // The bike has no Teleport of its own, so it rides along by hand — in the order
+                // The bike has no Teleport of its own, so it rides along by hand - in the order
                 // CarController documents, because the reason for that order is the physics and not
                 // the class: stop the body, move it, then sync.
                 var root = driving.GetTransform();

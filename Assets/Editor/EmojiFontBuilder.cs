@@ -8,7 +8,7 @@ using UnityEngine.UIElements;
 namespace TheBlock.EditorTools
 {
     /// <summary>
-    /// Gives the HUD a font that can draw emoji — <b>The Block → Build Emoji Font</b>.
+    /// Gives the HUD a font that can draw emoji - <b>The Block → Build Emoji Font</b>.
     ///
     /// <b>The fault this closes.</b> The campaign's copy, the map's POI pins and the whole 7-Eleven
     /// catalogue lead with emoji, because the web build renders in a browser where the system emoji
@@ -17,7 +17,7 @@ namespace TheBlock.EditorTools
     /// was the stop-gap: keep the words, drop the pictures, at the point of DRAWING so that the day a
     /// font arrived the fix would be a deletion rather than a re-import. This is that day.
     ///
-    /// <b>How UI Toolkit finds a fallback.</b> Not through <c>TMP_Settings</c> — that is uGUI's, and
+    /// <b>How UI Toolkit finds a fallback.</b> Not through <c>TMP_Settings</c> - that is uGUI's, and
     /// setting it does nothing here. A <see cref="PanelSettings"/> carries a
     /// <see cref="PanelTextSettings"/>, whose <c>fallbackFontAssets</c> list is what TextCore walks
     /// when the primary font has no glyph for a character. So the chain is: font file → dynamic
@@ -27,7 +27,7 @@ namespace TheBlock.EditorTools
     /// bitmap font: its glyphs are little PNGs, not outlines, so every SDF mode has nothing to trace
     /// and rasterises empty. COLOR asks FreeType for the bitmap and gives the atlas an RGBA texture.
     /// If a future Unity stops supporting it the fallback is the MONOCHROME Noto Emoji at
-    /// <see cref="GlyphRenderMode.SMOOTH"/> — a grey 🍕 beats a blank box — and the only change is the
+    /// <see cref="GlyphRenderMode.SMOOTH"/> - a grey 🍕 beats a blank box - and the only change is the
     /// file this points at.
     /// </summary>
     public static class EmojiFontBuilder
@@ -78,7 +78,7 @@ namespace TheBlock.EditorTools
         /// <summary>
         /// A DYNAMIC font asset: glyphs are rasterised into the atlas the first time something asks
         /// for them, so the 3,600-glyph font costs one texture page and the dozen characters this
-        /// game uses, not 3,600. The .ttf still ships — it is the source the atlas is populated from
+        /// game uses, not 3,600. The .ttf still ships - it is the source the atlas is populated from
         /// at runtime.
         /// </summary>
         private static FontAsset BuildFontAsset(Font font)
@@ -89,7 +89,7 @@ namespace TheBlock.EditorTools
 
             if (fontAsset == null)
             {
-                Debug.LogError("EmojiFontBuilder: CreateFontAsset returned null — the .ttf did not load.");
+                Debug.LogError("EmojiFontBuilder: CreateFontAsset returned null - the .ttf did not load.");
                 return null;
             }
 
@@ -124,7 +124,7 @@ namespace TheBlock.EditorTools
 
         /// <summary>
         /// The panel's text settings, with the emoji font in the FALLBACK list rather than as the
-        /// default — the HUD's Latin copy must keep coming from Unity's own font, and only the
+        /// default - the HUD's Latin copy must keep coming from Unity's own font, and only the
         /// characters it has no glyph for should walk the chain.
         /// </summary>
         private static PanelTextSettings BuildTextSettings(FontAsset fontAsset)
@@ -145,8 +145,8 @@ namespace TheBlock.EditorTools
             // Also the emoji-specific chain. TextCore consults this first for characters in the emoji
             // ranges, and leaving it empty makes a variation selector (the "draw this as emoji" mark
             // that follows ⛽ and ✅) miss even when the fallback above has the glyph.
-            // Fully qualified: `TextAsset` is ambiguous here. TextCore has its own — the base class of
-            // FontAsset and SpriteAsset — and `UnityEngine.TextAsset` is the .txt importer's type.
+            // Fully qualified: `TextAsset` is ambiguous here. TextCore has its own - the base class of
+            // FontAsset and SpriteAsset - and `UnityEngine.TextAsset` is the .txt importer's type.
             settings.emojiFallbackTextAssets ??= new List<UnityEngine.TextCore.Text.TextAsset>();
             settings.emojiFallbackTextAssets.RemoveAll(a => a == null || a == fontAsset);
             settings.emojiFallbackTextAssets.Insert(0, fontAsset);
@@ -160,7 +160,7 @@ namespace TheBlock.EditorTools
             var panel = AssetDatabase.LoadAssetAtPath<PanelSettings>(PanelSettingsPath);
             if (panel == null)
             {
-                Debug.LogWarning($"EmojiFontBuilder: no {PanelSettingsPath} — run The Block → Build HUD " +
+                Debug.LogWarning($"EmojiFontBuilder: no {PanelSettingsPath} - run The Block → Build HUD " +
                                  "first, then this again. The font asset is built either way.");
                 return;
             }
@@ -188,7 +188,7 @@ namespace TheBlock.EditorTools
 
             var line = $"  glyphs: {have.Count}/{Probe.Length} present";
             if (miss.Count > 0)
-                line += $" — MISSING {string.Join(" ", miss)}. If they are all missing, the render mode " +
+                line += $" - MISSING {string.Join(" ", miss)}. If they are all missing, the render mode " +
                         "cannot read this font's bitmaps: switch to monochrome Noto Emoji at SMOOTH.";
             return line;
         }

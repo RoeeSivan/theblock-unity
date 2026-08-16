@@ -10,7 +10,7 @@ namespace TheBlock.World
     /// up to any of them, press <c>E</c>, and the filler is replaced by the drivable prefab of the
     /// same model wearing the same paint, in the same stall, facing the same way. The web build does
     /// exactly this (<c>lot-cars.ts</c> <c>claim</c> → <c>transitions.ts promoteLotCar</c>), and it
-    /// is the same mechanism as the carjack — the difference is only where the car came from.
+    /// is the same mechanism as the carjack - the difference is only where the car came from.
     ///
     /// <b>And it takes a hit.</b> U13 gave these a box collider and nothing else, which made 101 of
     /// them immovable walls in the middle of the one place in the city you are most likely to be
@@ -27,17 +27,17 @@ namespace TheBlock.World
     [DisallowMultipleComponent]
     public class LotCar : MonoBehaviour
     {
-        [Tooltip("The config.vehicle.cars name of the drivable twin of this model — Tesla, Audi, Avenger.")]
+        [Tooltip("The config.vehicle.cars name of the drivable twin of this model - Tesla, Audi, Avenger.")]
         [SerializeField] private string modelName;
 
         [Tooltip("The generated palette material this car was painted with, so the promoted copy keeps it.")]
         [SerializeField] private Material paint;
 
-        [Tooltip("World rotation for the drivable copy, baked at build time — see the property.")]
+        [Tooltip("World rotation for the drivable copy, baked at build time - see the property.")]
         [SerializeField] private Quaternion driveRotation = Quaternion.identity;
 
         [Header("Getting hit")]
-        [Tooltip("Off makes this filler an immovable wall for good — U13's contract.")]
+        [Tooltip("Off makes this filler an immovable wall for good - U13's contract.")]
         [SerializeField] private bool wreckOnImpact = true;
 
         [Tooltip("Relative speed, m/s, below which a bump is just a bump. The same 3 m/s a street " +
@@ -63,7 +63,7 @@ namespace TheBlock.World
         /// True once this filler has been hit hard enough to become a real body. It is still an
         /// obstacle; it is no longer a car anyone is walking up to and driving away, which is
         /// <c>TrafficSystem.NearestStopped</c>'s rule for a street wreck and has to be this one's
-        /// too — promoting a wreck would swap a shunted, spinning car for a pristine one standing
+        /// too - promoting a wreck would swap a shunted, spinning car for a pristine one standing
         /// neatly in its stall.
         /// </summary>
         public bool Wrecked { get; private set; }
@@ -94,7 +94,7 @@ namespace TheBlock.World
         /// in Y, which is the origin every car prefab in this project is built around.
         ///
         /// Measured off the renderers rather than read off the transform, because a filler's origin
-        /// is the artist's pivot and nothing has moved it — <c>WorldBuilder</c> places these by
+        /// is the artist's pivot and nothing has moved it - <c>WorldBuilder</c> places these by
         /// subtracting the model's own <c>min.y</c> instead of re-pivoting them. Asking the meshes
         /// where the car actually is needs no assumption about where that pivot ended up.
         /// </summary>
@@ -129,7 +129,7 @@ namespace TheBlock.World
         /// Hands this one filler over to PhysX.
         ///
         /// The push direction is taken from the CONTACT POINT, not from <c>Collision.impulse</c> or
-        /// <c>relativeVelocity</c> — both of those carry a sign that depends on which body the
+        /// <c>relativeVelocity</c> - both of those carry a sign that depends on which body the
         /// callback fired on, and getting it backwards drives the car through whatever hit it.
         /// "Away from where I was struck" cannot be backwards. This is <c>TrafficCar.Wreck</c>'s
         /// argument and its arithmetic; what differs is only that there is no body here yet and no
@@ -175,7 +175,7 @@ namespace TheBlock.World
 
         /// <summary>
         /// The nearest filler within <paramref name="radius"/> of a point, measured on the ground
-        /// plane so standing on a kerb beside one still counts — the same test
+        /// plane so standing on a kerb beside one still counts - the same test
         /// <c>VehicleEnterExit.Nearest</c> uses for real vehicles, and it has to be, because the two
         /// answers are compared against each other when <c>E</c> is pressed.
         ///

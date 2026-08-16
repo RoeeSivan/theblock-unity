@@ -5,19 +5,19 @@ using UnityEngine.UIElements;
 namespace TheBlock.Boot
 {
     /// <summary>
-    /// The boot bar — the port of <c>src/ui/loading-screen.ts</c> and <c>styles/loading.css</c>.
+    /// The boot bar - the port of <c>src/ui/loading-screen.ts</c> and <c>styles/loading.css</c>.
     ///
     /// <b>The bar finally measures something.</b> That file's long comment is an apology: three.js's
     /// <c>DefaultLoadingManager</c> reports <c>itemsLoaded / itemsTotal</c>, the web build loads
     /// sequentially, so the first file to finish reports 1/1 and the bar sits pinned at 100% for the
-    /// entire remaining download — "the worst possible lie to tell someone waiting". Its answer is a
+    /// entire remaining download - "the worst possible lie to tell someone waiting". Its answer is a
     /// hand-counted list of milestones that must be kept in sync with <c>main.ts</c> by hand. Unity
     /// hands us <c>AsyncOperation.progress</c> over the whole scene, which is the number that file
     /// wanted and could not have.
     ///
     /// <b>There is no Play button.</b> <c>waitForPlay()</c> exists to harvest a user gesture,
-    /// because a browser will not start an <c>AudioContext</c> without one — its own comment says
-    /// so at the click handler ("first user gesture — also primes the shared AudioContext"). Unity
+    /// because a browser will not start an <c>AudioContext</c> without one - its own comment says
+    /// so at the click handler ("first user gesture - also primes the shared AudioContext"). Unity
     /// has no autoplay policy, so the button is scar tissue and the bar simply finishes.
     ///
     /// <see cref="Fail"/> survives, unchanged in spirit: a boot that dies has to read as an error
@@ -67,7 +67,7 @@ namespace TheBlock.Boot
             screen.Add(_status);
         }
 
-        /// <summary>Paints the bar. <paramref name="fraction"/> is 0–1; the label sits under it.</summary>
+        /// <summary>Paints the bar. <paramref name="fraction"/> is 0-1; the label sits under it.</summary>
         public void SetProgress(float fraction, string label)
         {
             if (_failed) return; // a dead boot must not keep animating as if it were fine
@@ -79,7 +79,7 @@ namespace TheBlock.Boot
         }
 
         /// <summary>
-        /// Boot died. The bar goes red and full and the reason replaces the percentage — the web's
+        /// Boot died. The bar goes red and full and the reason replaces the percentage - the web's
         /// <c>#loading-screen.failed</c>, and the first error wins so a cascade cannot overwrite the
         /// cause.
         /// </summary>

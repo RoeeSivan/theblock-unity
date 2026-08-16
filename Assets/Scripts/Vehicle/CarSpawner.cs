@@ -13,7 +13,7 @@ namespace TheBlock.Vehicles
     /// it was copied from. WorldBuilder owns the static world; this owns the things that drive away
     /// from where they started. U13's parking-lot cars and U17's traffic both grow from here.
     ///
-    /// A car's config spawn carries no Y — the web build ray-cast for the road every frame. Here it
+    /// A car's config spawn carries no Y - the web build ray-cast for the road every frame. Here it
     /// is a one-off probe at spawn and the suspension takes over, so a car lands correctly whether
     /// it is standing on lot asphalt, a district street, or nothing at all.
     /// </summary>
@@ -55,11 +55,11 @@ namespace TheBlock.Vehicles
         }
 
         /// <summary>
-        /// Puts a drivable car exactly where something else was standing, wearing its paint — the
+        /// Puts a drivable car exactly where something else was standing, wearing its paint - the
         /// GTA-style promotion, shared by the parking lot and the street.
         ///
         /// <paramref name="position"/> is a CONTACT PATCH, not a body centre. Every car prefab in
-        /// this project — drivable, ambient, filler — has its origin on the ground under the tyres,
+        /// this project - drivable, ambient, filler - has its origin on the ground under the tyres,
         /// so a pose taken off one of the others drops in here with no ride-height arithmetic and
         /// nothing to get wrong by half a car.
         ///
@@ -73,7 +73,7 @@ namespace TheBlock.Vehicles
             if (prefab == null)
             {
                 Debug.LogError(
-                    $"CarSpawner: nothing to promote — no drivable prefab named '{carName}'. Run " +
+                    $"CarSpawner: nothing to promote - no drivable prefab named '{carName}'. Run " +
                     "The Block → Build Drivable Cars.", this);
                 return null;
             }
@@ -152,7 +152,7 @@ namespace TheBlock.Vehicles
         /// under it, plus a gap so it settles onto its springs instead of starting inside the road.
         ///
         /// Static and shared because <see cref="CarController.Respawn"/> needs the same answer. It
-        /// used to teleport to the raw config point, which carries NO Y — so R dropped the car to
+        /// used to teleport to the raw config point, which carries NO Y - so R dropped the car to
         /// y = 0, under the road surface, every time.
         /// </summary>
         public static Vector3 Settle(
@@ -162,7 +162,7 @@ namespace TheBlock.Vehicles
             var y = spec.RoadSurfaceY;
 
             // staticOnly is not a thing for a single raycast, so this can in principle hit another
-            // car — but spawns are metres apart and at boot none of them has moved.
+            // car - but spawns are metres apart and at boot none of them has moved.
             var from = new Vector3(ground.x, probeHeight, ground.z);
             if (Physics.Raycast(from, Vector3.down, out var hit, probeHeight * 2f))
             {
@@ -171,7 +171,7 @@ namespace TheBlock.Vehicles
             else
             {
                 Debug.LogWarning(
-                    $"CarSpawner: nothing under {spec.Name}'s spawn {Fmt(ground)} — " +
+                    $"CarSpawner: nothing under {spec.Name}'s spawn {Fmt(ground)} - " +
                     $"dropped at config roadSurfaceY {spec.RoadSurfaceY:0.##} instead.", context);
             }
 

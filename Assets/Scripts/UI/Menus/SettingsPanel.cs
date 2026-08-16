@@ -8,12 +8,12 @@ namespace TheBlock.UI.Menus
 {
     /// <summary>
     /// Settings → Display. <b>The web build has no settings screen at all</b>, so nothing here is a
-    /// port — it exists because the user asked for a Radar toggle on 2026-08-15 and because the
+    /// port - it exists because the user asked for a Radar toggle on 2026-08-15 and because the
     /// mechanism was already built: <see cref="GameMap.SetMinimapVisible"/> landed early, explicitly
     /// labelled as this menu's.
     ///
-    /// It is three rows, in two sections. Per-bus volume sliders are still the obvious next tenant —
-    /// U27 exposed seven mixer parameters for exactly that — but the mix has not been balanced by ear
+    /// It is three rows, in two sections. Per-bus volume sliders are still the obvious next tenant -
+    /// U27 exposed seven mixer parameters for exactly that - but the mix has not been balanced by ear
     /// yet, and a slider over an unbalanced mix hides the imbalance instead of reporting it. A mute
     /// needs no balance to be correct, which is why it could land first.
     ///
@@ -22,7 +22,7 @@ namespace TheBlock.UI.Menus
     /// off state has to remain provably the look and the cost the rest of the game was built against.
     ///
     /// <b>The preference now outranks the scene.</b> <c>GameMap.showMinimap</c> is a serialized
-    /// field, and a serialized value beats a C# default — but this reads
+    /// field, and a serialized value beats a C# default - but this reads
     /// <see cref="Progress.RadarOn"/> in <c>Start</c> and writes it into the map, so from U26 on the
     /// scene checkbox is only what a profile that has never touched this screen inherits.
     /// </summary>
@@ -70,7 +70,7 @@ namespace TheBlock.UI.Menus
             overlay.Add(_dayNightButton);
 
             var dayNightNote = MenuStyle.Body(
-                "Cycle moves the sun through a 24-minute day — dawn, noon, dusk, night. " +
+                "Cycle moves the sun through a 24-minute day - dawn, noon, dusk, night. " +
                 "Fixed is the daylight the game was built in, and costs nothing.");
             dayNightNote.style.maxWidth = 420f;
             dayNightNote.style.marginBottom = 22f;
@@ -82,7 +82,7 @@ namespace TheBlock.UI.Menus
             _soundButton.style.marginBottom = 12f;
             overlay.Add(_soundButton);
 
-            var soundNote = MenuStyle.Body("Silences everything — engines, sirens, music, voices. N toggles it in play.");
+            var soundNote = MenuStyle.Body("Silences everything - engines, sirens, music, voices. N toggles it in play.");
             soundNote.style.maxWidth = 420f;
             soundNote.style.marginBottom = 22f;
             overlay.Add(soundNote);
@@ -119,7 +119,7 @@ namespace TheBlock.UI.Menus
         ///
         /// <b>No boot-time push from <c>Start</c>, and for the opposite reason to the day/night
         /// row:</b> <see cref="Mute"/> applies the preference itself at
-        /// <c>RuntimeInitializeOnLoadMethod</c> time, before any scene object exists — this method
+        /// <c>RuntimeInitializeOnLoadMethod</c> time, before any scene object exists - this method
         /// only relabels the button after a press, and the label is also refreshed in
         /// <see cref="Open"/> because <c>N</c> can flip the flag while the panel is closed.
         /// </summary>

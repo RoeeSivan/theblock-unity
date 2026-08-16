@@ -6,16 +6,16 @@ namespace TheBlock.Core
     /// <summary>
     /// U28's half of the config: the 7-Eleven's own geometry, and the power-up catalogue.
     ///
-    /// Split out of <c>TheBlockConfig.cs</c> for the same reason Tier 5's mission specs were — the
+    /// Split out of <c>TheBlockConfig.cs</c> for the same reason Tier 5's mission specs were - the
     /// store has nothing to say about the world, and the main file is already the longest in the
     /// project.
     ///
     /// <b>The numbers here are a cross-check, not the source.</b> Everything in
-    /// <see cref="StoreSpec"/> that names a POINT — the entrance, the cashier's stand, the ten
-    /// power-up slots — is also an empty node inside <c>seven-eleven-lot.glb</c>, carrying the same
+    /// <see cref="StoreSpec"/> that names a POINT - the entrance, the cashier's stand, the ten
+    /// power-up slots - is also an empty node inside <c>seven-eleven-lot.glb</c>, carrying the same
     /// value, and glTFast has already converted those nodes into Unity's frame on import. Reading
     /// the node is therefore exact and free, while converting the config's copy means picking the
-    /// right one of three handedness rules for a MODEL-LOCAL coordinate — the trap variant, not the
+    /// right one of three handedness rules for a MODEL-LOCAL coordinate - the trap variant, not the
     /// famous one. <see cref="World.SevenEleven"/> reads the nodes; the builder asserts the two
     /// agree and reports the delta. What is left here is what has no node: distances, durations, and
     /// the floor rectangle.
@@ -23,7 +23,7 @@ namespace TheBlock.Core
     public static partial class TheBlockConfig
     {
         /// <summary>
-        /// <c>config.sevenEleven</c> — a <see cref="PlaceSpec"/> plus the sales floor.
+        /// <c>config.sevenEleven</c> - a <see cref="PlaceSpec"/> plus the sales floor.
         ///
         /// Subclasses rather than replaces, so <c>WorldBuilder.BuildPlace</c> keeps placing it as
         /// the ordinary static prop it also is.
@@ -40,7 +40,7 @@ namespace TheBlock.Core
             /// The sales floor, MODEL-LOCAL, as min/max in X and Z.
             ///
             /// The one part of this block with no node to read, so it is the one part that must be
-            /// converted by hand — and a rectangle is where that bites: <see cref="Convert"/>'s
+            /// converted by hand - and a rectangle is where that bites: <see cref="Convert"/>'s
             /// model-local rule negates Z, which turns a min into a max. Re-sort after converting.
             /// </summary>
             public StoreFloorSpec Floor;
@@ -50,8 +50,8 @@ namespace TheBlock.Core
 
             /// <summary>
             /// The ten fixtures a power-up can be parked on, MODEL-LOCAL, keyed by fixture name.
-            /// Nodes <c>pu_slot_*</c>. Nothing consumes these — the web build's own comment says the
-            /// same — but they are the only record of where the shelves are.
+            /// Nodes <c>pu_slot_*</c>. Nothing consumes these - the web build's own comment says the
+            /// same - but they are the only record of where the shelves are.
             /// </summary>
             public Dictionary<string, Vec3> Slots;
 
@@ -62,7 +62,7 @@ namespace TheBlock.Core
         /// <summary>
         /// The sliding leaves. <see cref="Slide"/> is a DISPLACEMENT in the model's own frame, and
         /// its sign is not portable: glTFast negates X on import, so the leaf named
-        /// <c>SevenEleven_DoorL</c> arrives on the RIGHT. Only the magnitude carries — the direction
+        /// <c>SevenEleven_DoorL</c> arrives on the RIGHT. Only the magnitude carries - the direction
         /// is measured from the two leaves' imported positions.
         /// </summary>
         public class StoreDoorSpec
@@ -70,7 +70,7 @@ namespace TheBlock.Core
             public string LeftNode;
             public string RightNode;
 
-            /// <summary>How far each leaf travels, model-local. Magnitude only — see the class note.</summary>
+            /// <summary>How far each leaf travels, model-local. Magnitude only - see the class note.</summary>
             public Vec3 Slide;
 
             /// <summary>Metres from <see cref="StoreSpec.Entrance"/> that open the doors.</summary>
@@ -94,8 +94,8 @@ namespace TheBlock.Core
 
         /// <summary>
         /// The shopkeeper. <see cref="Url"/> is the web build's dedicated <c>idle-woman.glb</c>; this
-        /// port stands a crowd prefab there instead, which idles for free and — because it is never
-        /// bound to a seed — is invisible to <c>RunOverSystem</c>, so she cannot be killed and the
+        /// port stands a crowd prefab there instead, which idles for free and - because it is never
+        /// bound to a seed - is invisible to <c>RunOverSystem</c>, so she cannot be killed and the
         /// shop cannot be made unreachable. U21 proved the pattern on the delivery customers.
         /// </summary>
         public class StoreClerkSpec
@@ -112,7 +112,7 @@ namespace TheBlock.Core
         }
 
         /// <summary>
-        /// <c>src/powerup/powerup.config.ts</c> — the 7-Eleven catalogue.
+        /// <c>src/powerup/powerup.config.ts</c> - the 7-Eleven catalogue.
         ///
         /// <b>The price arithmetic is closed and must stay closed.</b> The campaign pays
         /// 80 + 120 + 200 + 300 = $700, once per New Game, and a bust docks $100. One of each item is
@@ -124,7 +124,7 @@ namespace TheBlock.Core
             /// <summary>Shop and HUD order. The array IS the order; the hotkey is its 1-based index.</summary>
             public List<PowerUpSpec> Items;
 
-            /// <summary>☕'s multiplier on the vehicle speed clamp. Cars, bike, jetski — never the heli.</summary>
+            /// <summary>☕'s multiplier on the vehicle speed clamp. Cars, bike, jetski - never the heli.</summary>
             public float SpeedBoost = 1.25f;
 
             /// <summary>The web build's <c>?stock=N</c> ceiling. Kept for the debug filler.</summary>
@@ -148,7 +148,7 @@ namespace TheBlock.Core
             public int Price;
 
             /// <summary>
-            /// Seconds the effect runs. <b>0 means it is not timed</b> — the bag ARMS instead, and is
+            /// Seconds the effect runs. <b>0 means it is not timed</b> - the bag ARMS instead, and is
             /// spent by the next mission that completes. Every "is this a clock?" test in the port
             /// gates on <c>DurationSec &gt; 0</c>, exactly as the web build's does.
             /// </summary>

@@ -5,17 +5,17 @@ namespace TheBlock.World
 {
     /// <summary>
     /// The 7-Eleven: automatic sliding doors, a sales floor you walk onto, and the counter that
-    /// opens the shop — the port of <c>src/world/seven-eleven.ts</c>.
+    /// opens the shop - the port of <c>src/world/seven-eleven.ts</c>.
     ///
     /// <b>This is not <see cref="Interior"/>.</b> The pizzeria is a room a kilometre from the city
     /// that you teleport into behind a fade; the 7-Eleven is one model whose storefront and sales
     /// floor are the same geometry, so going in is an ordinary walk through a door. Nothing here
-    /// fades, teleports, or swaps the fog and ambient palette — borrowing that would darken the
+    /// fades, teleports, or swaps the fog and ambient palette - borrowing that would darken the
     /// whole street the moment you stepped over the threshold.
     ///
     /// <b>The geometry comes off the model, not out of the config.</b> <c>seven-eleven-lot.glb</c>
-    /// carries an empty node for every point this needs — <c>se_door_trigger</c>,
-    /// <c>se_cashier_stand</c>, the two door leaves, the ten <c>pu_slot_*</c> fixtures — each holding
+    /// carries an empty node for every point this needs - <c>se_door_trigger</c>,
+    /// <c>se_cashier_stand</c>, the two door leaves, the ten <c>pu_slot_*</c> fixtures - each holding
     /// the same number <c>config.sevenEleven</c> holds, and glTFast has already converted the whole
     /// hierarchy into Unity's frame on import. Reading a node is exact and free; converting the
     /// config's copy means choosing correctly between three handedness rules for a MODEL-LOCAL
@@ -24,21 +24,21 @@ namespace TheBlock.World
     /// </summary>
     public class SevenEleven : MonoBehaviour
     {
-        [Header("Model nodes — bound by WorldBuilder")]
+        [Header("Model nodes - bound by WorldBuilder")]
         [Tooltip("SevenEleven_DoorL. Note the NAME is from the glTF: after import it is on the right.")]
         [SerializeField] private Transform doorLeft;
 
         [Tooltip("SevenEleven_DoorR.")]
         [SerializeField] private Transform doorRight;
 
-        [Tooltip("se_door_trigger — the doorway centre the doors open on.")]
+        [Tooltip("se_door_trigger - the doorway centre the doors open on.")]
         [SerializeField] private Transform entrance;
 
-        [Tooltip("se_cashier_stand — where the shopkeeper stands and where E opens the shop.")]
+        [Tooltip("se_cashier_stand - where the shopkeeper stands and where E opens the shop.")]
         [SerializeField] private Transform cashier;
 
-        [Header("Doors — config.sevenEleven.door")]
-        [Tooltip("How far each leaf travels apart, metres. MAGNITUDE only — the direction is measured.")]
+        [Header("Doors - config.sevenEleven.door")]
+        [Tooltip("How far each leaf travels apart, metres. MAGNITUDE only - the direction is measured.")]
         [SerializeField] private float slideDistance = 1.14f;
 
         [Tooltip("The small shared Z shift both leaves take as they part. glTFast leaves Z alone, so " +
@@ -49,13 +49,13 @@ namespace TheBlock.World
         [SerializeField] private float openSec = 0.5f;
         [SerializeField] private float holdSec = 1.2f;
 
-        [Header("Sales floor — config.sevenEleven.floor, already converted to model-local Unity space")]
+        [Header("Sales floor - config.sevenEleven.floor, already converted to model-local Unity space")]
         [SerializeField] private float floorMinX = -6.78f;
         [SerializeField] private float floorMaxX = 6.78f;
         [SerializeField] private float floorMinZ = -5.28f;
         [SerializeField] private float floorMaxZ = 5.3f;
 
-        [Tooltip("Keeps the roof from counting as inside — the shelves are all under 3.4 m.")]
+        [Tooltip("Keeps the roof from counting as inside - the shelves are all under 3.4 m.")]
         [SerializeField] private float ceilingY = 3.4f;
 
         [SerializeField] private float floorY = -0.5f;
@@ -64,7 +64,7 @@ namespace TheBlock.World
         [Tooltip("Metres from the cashier's stand that count as at the counter.")]
         [SerializeField] private float talkRadius = 2.8f;
 
-        [Header("Scene — found automatically when left empty")]
+        [Header("Scene - found automatically when left empty")]
         [SerializeField] private Player.PlayerController player;
         [SerializeField] private Vehicles.VehicleEnterExit vehicles;
 
@@ -101,12 +101,12 @@ namespace TheBlock.World
 
         /// <summary>
         /// Whatever pose the model was authored in IS the closed pose, so it is measured rather than
-        /// configured — re-exporting the store with the leaves moved needs no config change.
+        /// configured - re-exporting the store with the leaves moved needs no config change.
         ///
         /// The parting direction is measured at the same time, and that is not fussiness: glTFast
         /// negates X on import, so the leaf the glTF calls <c>DoorL</c> arrives on the RIGHT. Taking
         /// the sign from <c>config.door.slide.x</c> would drive both leaves into each other, and the
-        /// symptom — a door that shuts harder when you approach — reads as a physics bug.
+        /// symptom - a door that shuts harder when you approach - reads as a physics bug.
         /// </summary>
         private void CachePoses()
         {
@@ -139,7 +139,7 @@ namespace TheBlock.World
         }
 
         /// <summary>
-        /// At the counter. XZ only — the till is at floor level and there is nothing above it.
+        /// At the counter. XZ only - the till is at floor level and there is nothing above it.
         ///
         /// <b>The one predicate behind both the prompt and the action</b>, so a prompt that says
         /// "Press E" cannot appear anywhere E does nothing. The web build calls this out as the wart
@@ -153,7 +153,7 @@ namespace TheBlock.World
             return d.sqrMagnitude <= talkRadius * talkRadius;
         }
 
-        /// <summary>On the threshold, either side — what the doors trigger on.</summary>
+        /// <summary>On the threshold, either side - what the doors trigger on.</summary>
         public bool NearEntrance(Vector3 worldPos)
         {
             if (entrance == null) return false;
@@ -164,7 +164,7 @@ namespace TheBlock.World
 
         /// <summary>
         /// Can the player shop right now? On foot, on the floor, at the counter. Driving in opens the
-        /// doors and counts as inside — it does not let you shop through a windscreen.
+        /// doors and counts as inside - it does not let you shop through a windscreen.
         /// </summary>
         public bool CanShop()
         {
@@ -190,7 +190,7 @@ namespace TheBlock.World
 
             DriveDoors(focus, Time.deltaTime);
 
-            // Drawn from the same predicate GameFlow acts on, at the doorway's own priority — a
+            // Drawn from the same predicate GameFlow acts on, at the doorway's own priority - a
             // prompt that offers a key which does nothing is the fault this shares its priority
             // band with Interior's to avoid.
             if (CanShop()) hud?.SetPrompt("Press E to shop", UI.MissionHud.PromptDoor);
@@ -198,7 +198,7 @@ namespace TheBlock.World
 
         /// <summary>
         /// One point stands for the player whether they are walking or driving, exactly as the web
-        /// build's <c>(fx, fz)</c> does — a car nosing onto the forecourt has to open the doors too.
+        /// build's <c>(fx, fz)</c> does - a car nosing onto the forecourt has to open the doors too.
         /// </summary>
         private Vector3 FocusPoint()
         {

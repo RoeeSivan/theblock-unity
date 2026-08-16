@@ -4,7 +4,7 @@ using UnityEngine;
 namespace TheBlock.Audio
 {
     /// <summary>
-    /// The mute. One flag, one owner — nothing else in the project may write
+    /// The mute. One flag, one owner - nothing else in the project may write
     /// <c>AudioListener.volume</c>.
     ///
     /// <b>It mutes at the listener, not at the mixer</b>, for the reason <see cref="TheBlock.Core.Pause"/>
@@ -15,7 +15,7 @@ namespace TheBlock.Audio
     /// sources that never route through a group at all.
     ///
     /// <b>It is separate from the pause.</b> <c>AudioListener.pause</c> is a state the pause menu
-    /// takes and gives back; this is a preference that outlives the session, and the two compose —
+    /// takes and gives back; this is a preference that outlives the session, and the two compose -
     /// muted-and-paused unpauses back to muted. This is also why the hotkey deliberately ignores
     /// <c>Pause.Frozen</c>: silencing the game from inside the pause menu is the one place a player
     /// is most likely to want it.
@@ -50,7 +50,7 @@ namespace TheBlock.Audio
 
         /// <summary>
         /// Boot. <c>RuntimeInitializeOnLoadMethod</c> runs once per SESSION, not once per scene load
-        /// — but <c>AudioListener.volume</c> is not a static of ours, it is engine state that Play
+        /// - but <c>AudioListener.volume</c> is not a static of ours, it is engine state that Play
         /// mode leaves exactly as the last session set it, so a single apply at load is both
         /// necessary and enough. <see cref="_applied"/> exists only so a domain reload mid-Play can
         /// be told apart from a cold boot by anything that asks.

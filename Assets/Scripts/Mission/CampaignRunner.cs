@@ -11,7 +11,7 @@ using UnityEngine.InputSystem;
 namespace TheBlock.Missions
 {
     /// <summary>
-    /// The campaign's frame loop — the port of the mission block in the web build's <c>main.ts</c>.
+    /// The campaign's frame loop - the port of the mission block in the web build's <c>main.ts</c>.
     ///
     /// The web keeps this in one place on purpose, and the reason is written into its own comments:
     /// the payout, the card, the sting and the teardown all used to be scattered across each
@@ -22,7 +22,7 @@ namespace TheBlock.Missions
     ///  1. the cursor (<see cref="CampaignDirector.Tick"/>) and the unlock record,
     ///  2. the police rules a mission changes,
     ///  3. the retry key,
-    ///  4. the completion/failure reactor — teardown, payout, card,
+    ///  4. the completion/failure reactor - teardown, payout, card,
     ///  5. the HUD's objective line, clock and counter.
     ///
     /// It owns no gameplay. A mission spawns its own actors and runs its own clock; this only ever
@@ -30,7 +30,7 @@ namespace TheBlock.Missions
     /// </summary>
     public class CampaignRunner : MonoBehaviour
     {
-        [Header("Scene — found automatically when left empty")]
+        [Header("Scene - found automatically when left empty")]
         [SerializeField] private Campaign campaign;
         [SerializeField] private CampaignDirector director;
         [SerializeField] private MissionHud hud;
@@ -46,7 +46,7 @@ namespace TheBlock.Missions
         [Tooltip("Jump the cursor to this mission index on Play, skipping the title screen's choice. " +
                  "−1 leaves the opening cursor to the title menu (New Game / Continue / Mission " +
                  "Select). This is the port of the web build's ?mission= URL flag, and like it, it " +
-                 "runs the REAL entry path — it selects the step, it does not fake completing the " +
+                 "runs the REAL entry path - it selects the step, it does not fake completing the " +
                  "ones before it.")]
         [SerializeField] private int debugStartMission = -1;
 
@@ -56,7 +56,7 @@ namespace TheBlock.Missions
         private readonly MissionFeedback _feedback = new();
         private TheBlockConfig.Snapshot _snapshot;
 
-        // The queued card. Edges are rare — at most one mission resolves at a time — so one slot is
+        // The queued card. Edges are rare - at most one mission resolves at a time - so one slot is
         // enough, which is the web build's own reasoning for a single pending slot.
         private struct Pending
         {
@@ -118,7 +118,7 @@ namespace TheBlock.Missions
             _snapshot = TheBlockConfig.Load();
             if (_snapshot == null)
             {
-                Debug.LogError("CampaignRunner: no config snapshot — the campaign cannot start.");
+                Debug.LogError("CampaignRunner: no config snapshot - the campaign cannot start.");
                 enabled = false;
                 return;
             }
@@ -129,7 +129,7 @@ namespace TheBlock.Missions
             // reports complete fires its handoff card on frame one.
             _feedback.Prime(campaign?.Missions);
 
-            // WHERE THE CURSOR OPENS IS NOT DECIDED HERE ANY MORE — see BeginRun.
+            // WHERE THE CURSOR OPENS IS NOT DECIDED HERE ANY MORE - see BeginRun.
             //
             // U20 opened on `Progress.UnlockedIndex` and the play-test found what that feels like: a
             // finished save opens on the FINAL mission's objective over a fresh $0 wallet, with no
@@ -147,11 +147,11 @@ namespace TheBlock.Missions
         /// Continue / Mission Select, and by <c>debugStartMission</c>.
         ///
         /// <paramref name="fresh"/> is New Game: it is what shows the intro card. A Continue or a
-        /// Mission Select jump must NOT re-show it — the player has read it, and the card is a
+        /// Mission Select jump must NOT re-show it - the player has read it, and the card is a
         /// modal over a world they asked to be dropped into.
         ///
         /// <b>Call this UNFROZEN.</b> The intro card is dismissed by SPACE or a click, and the space
-        /// key is one of the things <see cref="Core.Pause"/> gates — a card raised while the title
+        /// key is one of the things <see cref="Core.Pause"/> gates - a card raised while the title
         /// screen still holds the freeze would be dismissable by mouse only.
         /// </summary>
         public void BeginRun(int index, bool fresh)
@@ -165,7 +165,7 @@ namespace TheBlock.Missions
 
             // EVERY New Game, not once per profile. U20 gated it on Onboarding because there was no
             // menu then and the card was the only thing marking a start; with a New Game button
-            // there IS an explicit request, and the web build answers it unconditionally —
+            // there IS an explicit request, and the web build answers it unconditionally -
             // `await briefing.show(introLines)` sits directly in its New Game branch.
             if (fresh && campaign.Index == 0 && _snapshot.Campaign?.IntroLines != null)
                 card?.Show(_snapshot.Campaign.IntroLines);
@@ -208,14 +208,14 @@ namespace TheBlock.Missions
         /// scripted run.
         ///
         /// <b>Crash heat is off inside a mission.</b> The only mission you drive through is the
-        /// pizza run, on a motorcycle in Florentin's alleys, where clipping a wall is constant —
+        /// pizza run, on a motorcycle in Florentin's alleys, where clipping a wall is constant -
         /// minting stars for it punishes the route rather than the driving. Running someone over
         /// stays a crime everywhere, because that is always a choice.
         ///
         /// <b>Heat never carries INTO a mission.</b> The rising edge wipes it, so a run can never
         /// open already doomed by stars earned in free roam. It deliberately does carry OUT: finish
         /// the deliveries with a cop on your bumper and he is still there afterwards. A retry gets
-        /// the same treatment for free — a failed mission is not active, so restarting it is itself
+        /// the same treatment for free - a failed mission is not active, so restarting it is itself
         /// a false→true edge.
         /// </summary>
         private void ApplyPoliceRules()
@@ -233,7 +233,7 @@ namespace TheBlock.Missions
 
         private void OnBusted()
         {
-            // The bust is a mission-failure edge and nothing more — it calls Fail(), which lands in
+            // The bust is a mission-failure edge and nothing more - it calls Fail(), which lands in
             // the same state the clock does, and the reactor below does the rest.
             var active = campaign != null ? campaign.Active : null;
             if (active == null) return;
@@ -247,7 +247,7 @@ namespace TheBlock.Missions
         /// F retries a failed mission, from anywhere, so a fail can never strand the player.
         ///
         /// <b>F, not R</b>, and that is not a preference: R is every vehicle's own respawn/flip, and
-        /// they poll it themselves while driven — an R-retry fired twice, restarting the shift AND
+        /// they poll it themselves while driven - an R-retry fired twice, restarting the shift AND
         /// teleporting the bike out from under you. F is free, because a failed mission has no
         /// delivery target to hand a pizza to, so the two uses of the key cannot collide.
         /// </summary>
@@ -287,7 +287,7 @@ namespace TheBlock.Missions
                 campaign.Find(edge.Id)?.Cleanup();
 
                 // A completion whose payout is ALREADY BANKED is a replay of a cleared step, not a
-                // first clear — U28 opened the dance to be danced again, and nothing else can reach
+                // first clear - U28 opened the dance to be danced again, and nothing else can reach
                 // this twice. The campaign owes a replay no sting, no card and no cash; the mission's
                 // own result panel is the feedback. It is read here, before the sting, because a
                 // replay that flopped still reports Complete (a replay cannot un-clear a step) and
@@ -313,14 +313,14 @@ namespace TheBlock.Missions
                 }
 
                 // Pay once per run, and only ever announce a FIRST clear. The guard behind `replay`
-                // has to be PERSISTED — the web build shipped it in memory beside a persisted wallet
-                // and every mission paid again after a reload — and a handoff card is the other half
+                // has to be PERSISTED - the web build shipped it in memory beside a persisted wallet
+                // and every mission paid again after a reload - and a handoff card is the other half
                 // of the same rule: "now get to the helicopter", re-read every time someone dances
                 // for fun, is the campaign talking over free roam. The replay stops here, having had
                 // its teardown above, which is all it was owed.
                 if (replay)
                 {
-                    if (verbose) Debug.Log($"[campaign] '{edge.Id}' replayed — no payout, no card");
+                    if (verbose) Debug.Log($"[campaign] '{edge.Id}' replayed - no payout, no card");
                     continue;
                 }
 
@@ -329,14 +329,14 @@ namespace TheBlock.Missions
                 // 🎒 Thermal bag doubles this payout and is spent by it. Consumed HERE and nowhere
                 // else, which is what makes it impossible to burn on a run that failed or on a
                 // replay of a cleared step: both of those returned above, before this line. The bag
-                // is the only item that can pay for itself, and only from mission 2 on — $75 against
-                // a +$120..+$300 — so the pull is to save it for the finale.
+                // is the only item that can pay for itself, and only from mission 2 on - $75 against
+                // a +$120..+$300 - so the pull is to save it for the finale.
                 var doubled = powerups != null && powerups.ConsumeDoublePay();
                 var reward = doubled ? text.Reward * 2 : text.Reward;
 
                 wallet?.Add(reward);
                 var payLine = doubled
-                    ? $"{text.Done}  (+${reward} — 🎒 double pay)"
+                    ? $"{text.Done}  (+${reward} - 🎒 double pay)"
                     : $"{text.Done}  (+${reward})";
                 if (verbose) Debug.Log($"[campaign] '{edge.Id}' paid ${reward}{(doubled ? " (doubled)" : "")} → ${wallet?.Balance}");
 
@@ -352,7 +352,7 @@ namespace TheBlock.Missions
             var lines = new List<string> { payLine };
             if (_snapshot.Campaign?.WinLine != null) lines.Add(_snapshot.Campaign.WinLine);
 
-            // `endingLine` is a function in campaign.config.ts, so the exporter cannot carry it —
+            // `endingLine` is a function in campaign.config.ts, so the exporter cannot carry it -
             // this is the one string in the campaign's copy that is re-implemented rather than read.
             lines.Add($"💵 You banked ${wallet?.Balance ?? 0} driving for The Block. Roll credits.");
             return new Pending { Lines = lines, Win = true, Final = true };
@@ -375,7 +375,7 @@ namespace TheBlock.Missions
         /// <summary>
         /// Shows the queued card once nothing else owns the screen.
         ///
-        /// The card does not pause the loop, so this is fine mid-drive — the gate only avoids
+        /// The card does not pause the loop, so this is fine mid-drive - the gate only avoids
         /// clobbering another card that is still up.
         /// </summary>
         private void PresentPendingCard()
@@ -421,7 +421,7 @@ namespace TheBlock.Missions
             }
 
             // THE RUNNING MISSION WINS OVER THE CURSOR when the two differ. Normally they are the
-            // same object, because a mission is entered from the step it belongs to — but a
+            // same object, because a mission is entered from the step it belongs to - but a
             // REPLAYED step is not: U28 left the dance danceable after it is cleared, and by then
             // the cursor has moved to the helicopter. Reading the cursor there puts "Get to the
             // helicopter", or the win line on a finished save, over a routine the player is dancing
@@ -440,7 +440,7 @@ namespace TheBlock.Missions
             {
                 var text = TextFor(current.Id);
                 hud.SetObjective(text?.Fail ?? "Press F to retry");
-                hud.SetTimer(0f, true); // frozen at 0:00, still red — the fail is legible at a glance
+                hud.SetTimer(0f, true); // frozen at 0:00, still red - the fail is legible at a glance
                 return;
             }
 

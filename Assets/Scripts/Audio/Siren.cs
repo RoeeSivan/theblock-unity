@@ -9,14 +9,14 @@ namespace TheBlock.Audio
     ///
     /// <b>This is the clearest "Unity wins" in U27, and the web's own comment is the evidence.</b>
     /// <c>pursuit-audio.ts</c> fires ONE wail on the false→true edge of the chase and says why:
-    /// "a continuous loop was unbearable". It was unbearable because it could not be anything else —
+    /// "a continuous loop was unbearable". It was unbearable because it could not be anything else -
     /// three.js has no <c>AudioListener</c> in that build, so every sound in the game plays at a
     /// constant gain regardless of where it is. A siren that is exactly as loud when the cruiser is
     /// 300 m away as when it is on your bumper is not a siren, it is an alarm.
     ///
     /// With a listener and rolloff it becomes the opposite: the thing that tells you the response is
-    /// coming, from which direction, and how close it has got. U19 gave the police a real 15–60 s
-    /// drive from the station and called that "a mechanic rather than a cost" — this is what makes
+    /// coming, from which direction, and how close it has got. U19 gave the police a real 15-60 s
+    /// drive from the station and called that "a mechanic rather than a cost" - this is what makes
     /// that drive perceptible instead of a number in the ledger.
     ///
     /// <b>Linear rolloff, not Unity's logarithmic default.</b> Logarithmic falls off so steeply that
@@ -82,7 +82,7 @@ namespace TheBlock.Audio
 
             _source.playOnAwake = false;
             _source.loop = true;
-            _source.spatialBlend = 1f; // fully 3D — the entire reason this component exists
+            _source.spatialBlend = 1f; // fully 3D - the entire reason this component exists
             _source.rolloffMode = AudioRolloffMode.Linear;
             _source.minDistance = MinDistance;
             _source.maxDistance = MaxDistance;
@@ -106,7 +106,7 @@ namespace TheBlock.Audio
         /// other one off. Called once a frame by <see cref="GameAudio"/>.
         ///
         /// The city can only field one cruiser per star, so three is already the ceiling the police
-        /// system imposes — this is the belt to that pair of braces, and it is also what makes the
+        /// system imposes - this is the belt to that pair of braces, and it is also what makes the
         /// mix predictable if a future unit ever deploys more.
         /// </summary>
         public static void Arbitrate(Vector3 listener, int cap)

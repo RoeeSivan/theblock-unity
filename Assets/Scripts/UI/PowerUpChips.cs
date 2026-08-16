@@ -9,19 +9,19 @@ namespace TheBlock.UI
     /// <summary>
     /// The power-up strip: what you are carrying, what is running, and how long it has left.
     ///
-    /// <b>On the one shared document</b>, like everything else here — U14 built it, and the ledger's
+    /// <b>On the one shared document</b>, like everything else here - U14 built it, and the ledger's
     /// U25 row is explicit that a second <c>UIDocument</c> means a second <c>PanelSettings</c> and an
     /// argument about z-order.
     ///
     /// It sits under the cash readout on the right, because the two are the same subject: what you
     /// have, and what you spent it on. A chip appears when you own the item and lights when it is
-    /// running; 🎒 reads ARMED rather than counting down, because it has no clock — it is spent by
+    /// running; 🎒 reads ARMED rather than counting down, because it has no clock - it is spent by
     /// the next mission that pays.
     ///
     /// <b>The empty strip hides with <c>display</c>, and that is the opposite of what it looks like
     /// it should be.</b> <see cref="Menus.GameFlow.SetGameplayHudVisible"/> takes the whole gameplay
     /// HUD off the screen behind a menu using <c>visibility</c>, chosen precisely because no gameplay
-    /// component writes that property — the radar toggle was silently broken once by a component that
+    /// component writes that property - the radar toggle was silently broken once by a component that
     /// did. So <c>visibility</c> belongs to the menu layer and <c>display</c> belongs to the owner,
     /// and the two compose: a strip with nothing in it stays down behind a menu and after it.
     /// </summary>
@@ -143,7 +143,7 @@ namespace TheBlock.UI
                 anyVisible = true;
 
                 // Through MenuStyle.Ui, because UI Toolkit takes a Color as LINEAR and these are
-                // written as sRGB — the same conversion every colour in the menus goes through.
+                // written as sRGB - the same conversion every colour in the menus goes through.
                 chip.Root.style.backgroundColor = active
                     ? Menus.MenuStyle.Ui(1f, 0.58f, 0.28f, 0.85f)
                     : Menus.MenuStyle.Ui(0f, 0f, 0f, 0.45f);

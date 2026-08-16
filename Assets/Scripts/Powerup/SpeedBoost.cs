@@ -3,7 +3,7 @@ using UnityEngine;
 namespace TheBlock.Powerup
 {
     /// <summary>
-    /// ☕ Nitro coffee's multiplier on every drivable speed clamp — the port of
+    /// ☕ Nitro coffee's multiplier on every drivable speed clamp - the port of
     /// <c>src/powerup/boost.ts</c>.
     ///
     /// <b>A static, and not a field on <see cref="PowerUps"/>, for the reason the web build gives:</b>
@@ -12,7 +12,7 @@ namespace TheBlock.Powerup
     /// vehicles stay unaware that a shop was ever added.
     ///
     /// <b>It multiplies; it does not win.</b> U28b's fuel tank will put its own factor on the same
-    /// clamp, and a dry tank at full boost must still limp — so both are factors of one product
+    /// clamp, and a dry tank at full boost must still limp - so both are factors of one product
     /// rather than two candidates for a <c>Max</c>. This is also why it is NOT
     /// <c>CarController.SpeedLimitOverride</c>: that seam is absolute, cop-owned, and exists to raise
     /// a cruiser's ceiling ABOVE <c>config.vehicle.maxSpeed</c> during a pursuit (U19d). Routing the
@@ -32,7 +32,7 @@ namespace TheBlock.Powerup
         /// <summary>
         /// Entering Play with the static left over from the last session must not start the game
         /// boosted. <c>RuntimeInitializeOnLoadMethod</c> runs once per session rather than per scene
-        /// load, which is exactly the guarantee needed here — see <c>Core.Pause</c>, which resets for
+        /// load, which is exactly the guarantee needed here - see <c>Core.Pause</c>, which resets for
         /// the same reason.
         /// </summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]

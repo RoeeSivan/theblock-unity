@@ -8,17 +8,17 @@ using UnityEngine;
 namespace TheBlock.EditorTools
 {
     /// <summary>
-    /// Builds the six pedestrian prefabs — <b>The Block → Build Pedestrians</b>.
+    /// Builds the six pedestrian prefabs - <b>The Block → Build Pedestrians</b>.
     ///
     /// One per character imported by <see cref="PeopleImporter"/>: the body, its own animator
     /// override, the capsule <c>npc.config.ts</c> specifies, and nothing else.
     ///
     /// <b>What this file no longer does is the whole point of U16b.</b> The vendor pack it used to
-    /// build from shipped six body parts at five LOD levels — 33 SkinnedMeshRenderers per person —
+    /// build from shipped six body parts at five LOD levels - 33 SkinnedMeshRenderers per person -
     /// and every one of them was posed every frame whether or not it was drawn. Stripping that back
     /// to two levels was U16's perf fix, and the leftover mechanism was still the "exploding
     /// pedestrian": a renderer that had never been posed, swapped in by a LOD change, drawing its
-    /// first frame at bind pose against a skeleton that had walked off — a fan of black triangles
+    /// first frame at bind pose against a skeleton that had walked off - a fan of black triangles
     /// reaching for the horizon. <b>These rigs have no LODGroup and one or two renderers each, so
     /// that cannot happen.</b> Do not add LODs back without reading this paragraph twice.
     ///
@@ -30,7 +30,7 @@ namespace TheBlock.EditorTools
     ///  - <b>No appearance randomiser.</b> The vendor pack had one head mesh and swappable faces;
     ///    these are six different people, which is what the original ships.
     ///  - <b>No scale on the root.</b> A character that did not import at 1.70 m is corrected on the
-    ///    VISUAL CHILD, because scaling the root scales the physics capsule with it — and the capsule
+    ///    VISUAL CHILD, because scaling the root scales the physics capsule with it - and the capsule
     ///    is the one dimension the config actually specifies.
     /// </summary>
     public static class NpcBuilder
@@ -70,7 +70,7 @@ namespace TheBlock.EditorTools
             AssetDatabase.SaveAssets();
 
             var report =
-                $"NpcBuilder — {built}/{PeopleImporter.Names.Length} pedestrian prefab(s)\n{log}" +
+                $"NpcBuilder - {built}/{PeopleImporter.Names.Length} pedestrian prefab(s)\n{log}" +
                 $"  capsule r {npc.Collider.Radius:0.##} h {2f * (npc.Collider.HalfHeight + npc.Collider.Radius):0.##} " +
                 $"on layer '{PedestrianLayer}' ({layer})\n" +
                 "  Drag these onto the Crowd object's Pedestrian Prefabs list, or run Bake Crowd Seeds";
@@ -84,7 +84,7 @@ namespace TheBlock.EditorTools
             var model = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
             if (model == null)
             {
-                log.AppendLine($"{name,-11} SKIPPED — no {modelPath}. Run Import People (slow) first.");
+                log.AppendLine($"{name,-11} SKIPPED - no {modelPath}. Run Import People (slow) first.");
                 return false;
             }
 
@@ -92,7 +92,7 @@ namespace TheBlock.EditorTools
                 NpcAnimatorBuilder.OverridePath(name));
             if (over == null)
             {
-                log.AppendLine($"{name,-11} SKIPPED — no override controller. Run Build NPC Animator first.");
+                log.AppendLine($"{name,-11} SKIPPED - no override controller. Run Build NPC Animator first.");
                 return false;
             }
 
@@ -108,7 +108,7 @@ namespace TheBlock.EditorTools
                 visual.transform.localRotation = Quaternion.identity;
 
                 // Mixamo characters already face +Z in both engines, and these are FBX read by
-                // Unity's own importer rather than glTFast — so no ModelFacing and no X negation.
+                // Unity's own importer rather than glTFast - so no ModelFacing and no X negation.
                 // The handedness rule governs hand-authored config numbers and .glb mesh data.
                 float measured = PeopleImporter.MeasureHeight(modelPath);
                 float scale = PeopleImporter.HeightScale(measured);
@@ -119,20 +119,20 @@ namespace TheBlock.EditorTools
                 var animator = visual.GetComponentInChildren<Animator>(true);
                 if (animator == null)
                 {
-                    log.AppendLine($"{name,-11} SKIPPED — the imported model has no Animator");
+                    log.AppendLine($"{name,-11} SKIPPED - the imported model has no Animator");
                     return false;
                 }
 
                 animator.runtimeAnimatorController = over;
 
-                // The crowd script owns movement, so the clip's travel is discarded — the same
+                // The crowd script owns movement, so the clip's travel is discarded - the same
                 // arrangement PlayerAnimator uses. Baked into the pose it would fight the script.
                 animator.applyRootMotion = false;
 
                 // Off-screen, stop posing entirely. The pedestrian keeps walking because its
                 // transform is script-driven, so it is in the right place when it comes back into
                 // view; only the limbs pause. U16 tried AlwaysAnimate as a fix for the exploding
-                // pedestrian, doubled the cost and fixed nothing — the fault was elsewhere.
+                // pedestrian, doubled the cost and fixed nothing - the fault was elsewhere.
                 animator.cullingMode = AnimatorCullingMode.CullCompletely;
 
                 var capsule = root.AddComponent<CapsuleCollider>();
@@ -142,7 +142,7 @@ namespace TheBlock.EditorTools
 
                 // The port of the web's kinematicPositionBased body. A moving collider with NO
                 // Rigidbody is a moving STATIC collider, and PhysX rebuilds its static tree for every
-                // one of them every frame — across a live crowd that is the most expensive thing in
+                // one of them every frame - across a live crowd that is the most expensive thing in
                 // the unit. (U16's comment forbidding a Rigidbody protected Crossing.IsClearOfTraffic,
                 // which U17 deleted.)
                 var body = root.AddComponent<Rigidbody>();
@@ -160,13 +160,13 @@ namespace TheBlock.EditorTools
                 var pedestrian = root.AddComponent<Pedestrian>();
                 pedestrian.Configure(animator, clipSpeed);
 
-                // npcConfig's `gender` reads to exactly one thing in the original — which pool this
-                // face screams from when a car hits it — and this is where it gets baked in. The six
+                // npcConfig's `gender` reads to exactly one thing in the original - which pool this
+                // face screams from when a car hits it - and this is where it gets baked in. The six
                 // names in PeopleImporter.Names and the six in npcConfig.people are the same six, so
                 // the match is by name and a miss is worth saying out loud.
                 var person = npc.People?.FirstOrDefault(p => p != null && p.Name == name);
                 if (person == null)
-                    log.AppendLine($"{name,-11} note — no npcConfig.people entry, so it screams male");
+                    log.AppendLine($"{name,-11} note - no npcConfig.people entry, so it screams male");
                 pedestrian.SetVoice(person != null && person.Gender == "f"
                     ? TheBlock.Audio.ScreamVoice.Female
                     : TheBlock.Audio.ScreamVoice.Male);
@@ -189,7 +189,7 @@ namespace TheBlock.EditorTools
         /// <summary>
         /// Finds or creates a project layer by name.
         ///
-        /// The crowd needs one so its ground probe can ignore other pedestrians — without it people
+        /// The crowd needs one so its ground probe can ignore other pedestrians - without it people
         /// sample each other's capsules and stack up.
         /// </summary>
         private static int EnsureLayer(string name)

@@ -15,7 +15,7 @@ namespace TheBlock.Traffic
     /// One pole at one approach. All it does is paint three lamps.
     ///
     /// <b>The model's own lamps are unusable and are deleted at build.</b> The GLB animates coloured
-    /// discs sliding behind a semi-transparent lens — the whole model is one BLEND material — which
+    /// discs sliding behind a semi-transparent lens - the whole model is one BLEND material - which
     /// three.js could not sort and which here would put 230 transparent poles in the transparent
     /// queue for nothing. <c>WorldBuilder.Traffic</c> destroys those three nodes and plants a single
     /// three-submesh quad on the housing face instead, measured from the original lamps' own bounds
@@ -24,7 +24,7 @@ namespace TheBlock.Traffic
     /// <b>One renderer, three submeshes, not three renderers.</b> Switching a light is then an
     /// assignment into a three-element shared-material array, and the poles showing the same state
     /// still batch together because they are literally the same material asset. A
-    /// <c>MaterialPropertyBlock</c> would have been the obvious reach and is the wrong one — it
+    /// <c>MaterialPropertyBlock</c> would have been the obvious reach and is the wrong one - it
     /// gives every pole its own draw call, which is the same mistake U13 avoided on the lot cars'
     /// paint.
     /// </summary>
@@ -62,7 +62,7 @@ namespace TheBlock.Traffic
             greenOff = greenDark;
         }
 
-        /// <summary>Paints a state. Cheap to call every frame — it returns immediately unless it changed.</summary>
+        /// <summary>Paints a state. Cheap to call every frame - it returns immediately unless it changed.</summary>
         public void Apply(LampState state)
         {
             if (lamps == null) return;

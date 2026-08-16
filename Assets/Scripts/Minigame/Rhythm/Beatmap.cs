@@ -5,7 +5,7 @@ using UnityEngine;
 namespace TheBlock.Minigame.Rhythm
 {
     /// <summary>
-    /// Builds the note chart from a BPM and a difficulty ramp — the port of
+    /// Builds the note chart from a BPM and a difficulty ramp - the port of
     /// <c>src/minigame/rhythm/beatmap.ts</c>.
     ///
     /// <b>There is no authored chart in either build, and that is a design decision, not a shortcut.</b>
@@ -26,7 +26,7 @@ namespace TheBlock.Minigame.Rhythm
         /// Generates the run's notes, in time order.
         ///
         /// <paramref name="rng"/> is passed in rather than using <see cref="Random"/> so a chart can
-        /// be regenerated identically — which is the only way to compare two runs of a test.
+        /// be regenerated identically - which is the only way to compare two runs of a test.
         /// </summary>
         public static List<Note> Generate(
             TheBlockConfig.RhythmSongSpec song, TheBlockConfig.RhythmBeatmapSpec map, System.Random rng)
@@ -51,7 +51,7 @@ namespace TheBlock.Minigame.Rhythm
                 notes.Add(new Note(t, Dirs[previous]));
 
                 // An extra eighth between beats, for short bursts. Unset everywhere in the shipped
-                // config — carried because the field is real and someone may want it back.
+                // config - carried because the field is real and someone may want it back.
                 if (phase.DoubleChance > 0f && rng.NextDouble() < phase.DoubleChance)
                 {
                     previous = NextDir(previous, rng);
@@ -82,7 +82,7 @@ namespace TheBlock.Minigame.Rhythm
             return active;
         }
 
-        /// <summary>A random arrow that is never the one before it — the web's own variety rule.</summary>
+        /// <summary>A random arrow that is never the one before it - the web's own variety rule.</summary>
         private static int NextDir(int previous, System.Random rng)
         {
             if (previous < 0) return rng.Next(Dirs.Length);

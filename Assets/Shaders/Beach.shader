@@ -1,6 +1,6 @@
 // The sand, ported from the web build's createBeachMaterial in world/sea.ts.
 //
-// A normal lit PBR surface — shadows, fog, ambient — with the colour and roughness replaced by the
+// A normal lit PBR surface - shadows, fog, ambient - with the colour and roughness replaced by the
 // original's procedural sand: cheap value-noise grain, coarser blotches breaking up the flat gold,
 // and a wet band keyed to the SAME seabed ramp the water shader and the mesh itself use, so the
 // tide line lands exactly at the waterline rather than near it. No textures.
@@ -146,7 +146,7 @@ Shader "TheBlock/Beach"
             ENDHLSL
         }
 
-        // Sand takes shadows and casts them — the wall of a dune reads wrong without this.
+        // Sand takes shadows and casts them - the wall of a dune reads wrong without this.
         UsePass "Universal Render Pipeline/Lit/ShadowCaster"
         UsePass "Universal Render Pipeline/Lit/DepthOnly"
     }

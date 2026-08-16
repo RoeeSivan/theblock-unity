@@ -8,7 +8,7 @@ namespace TheBlock.Traffic
     ///
     /// <b>This is the thing the web build gave up on</b>, and the reason it could be picked back up
     /// is measured rather than hoped: the network stitches from five components down to two, with
-    /// 97.9% of the city — and the police station — inside the larger one. Routing failed there
+    /// 97.9% of the city - and the police station - inside the larger one. Routing failed there
     /// because it was asked to plan across islands; asked only within a component, it cannot.
     ///
     /// One instance per pursuer, reused. Nothing allocates after the first plan: the three A* arrays
@@ -17,7 +17,7 @@ namespace TheBlock.Traffic
     /// once a second without anyone budgeting for it.
     ///
     /// The heuristic is straight-line XZ distance, which is admissible because a link's cost is its
-    /// arc length and an arc is never shorter than its chord — so the first route found is the
+    /// arc length and an arc is never shorter than its chord - so the first route found is the
     /// shortest one.
     /// </summary>
     public class RoutePlanner
@@ -27,7 +27,7 @@ namespace TheBlock.Traffic
 
         /// <summary>
         /// What turning round is worth, in metres of route. A U-turn costs a cop a few seconds, so a
-        /// route has to be at least this much shorter to be worth one — otherwise a cop dithers at
+        /// route has to be at least this much shorter to be worth one - otherwise a cop dithers at
         /// every replan as the two options trade places.
         /// </summary>
         private const float UTurnPenalty = 25f;
@@ -105,7 +105,7 @@ namespace TheBlock.Traffic
         /// faces is what stops every replan from ordering an immediate U-turn.
         ///
         /// The target's own position is appended last, so the final few metres lead off the graph and
-        /// onto whatever is actually being chased — the driver takes over there anyway.
+        /// onto whatever is actually being chased - the driver takes over there anyway.
         /// </summary>
         public Result Plan(Vector3 from, Vector3 heading, Vector3 to, List<Vector3> waypoints)
         {
@@ -130,8 +130,8 @@ namespace TheBlock.Traffic
 
             // BOTH ends of the span under the car, not just the one it happens to face.
             //
-            // Committing to finish the current span is what a car has to do — it cannot turn through
-            // a building — but choosing that end because the nose points at it is how a cop drives
+            // Committing to finish the current span is what a car has to do - it cannot turn through
+            // a building - but choosing that end because the nose points at it is how a cop drives
             // 500 m the wrong way: one of this city's edges is 1,364 m long, so "carry on to the end
             // and then route" can be most of a minute in the wrong direction. Measured: cops holding
             // a clean 100% on-road line while their distance to the player climbed from 81 m to 149.
@@ -262,7 +262,7 @@ namespace TheBlock.Traffic
         /// Lays lane-centre points along one span and returns the metres covered.
         ///
         /// Through <see cref="RouteGraph.SampleLink"/> rather than the raw polyline, so the route is
-        /// the RIGHT-HAND LANE — the same offset, the same side and the same baked road height the
+        /// the RIGHT-HAND LANE - the same offset, the same side and the same baked road height the
         /// traffic uses. A cop steering down the centreline drives through the oncoming cars.
         /// </summary>
         private float SampleSpan(int link, float s0, float s1, List<Vector3> waypoints)

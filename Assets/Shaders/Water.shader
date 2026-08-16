@@ -12,7 +12,7 @@
 //
 // HANDEDNESS: _ShoreX is already in Unity space and the sea lies at LARGER x than the shore. The
 // web version's comparison is the other way round because its sea is at negative x. See
-// TheBlock.World.SeaGeometry — the flip happens there, once, and this shader just matches it.
+// TheBlock.World.SeaGeometry - the flip happens there, once, and this shader just matches it.
 Shader "TheBlock/Water"
 {
     Properties
@@ -29,7 +29,7 @@ Shader "TheBlock/Water"
         _RippleStrength ("Ripple strength", Range(0, 2)) = 0.35
         _SpecPower ("Specular power", Range(1, 512)) = 180
 
-        // Shoreline ramp — must match SeaGeometry.SeabedHeight exactly.
+        // Shoreline ramp - must match SeaGeometry.SeabedHeight exactly.
         _ShoreX ("Shore X (Unity space)", Float) = 430
         _WadeRun ("Wade run", Float) = 35
         _DeepY ("Seabed depth", Float) = -3
@@ -98,7 +98,7 @@ Shader "TheBlock/Water"
                 UNITY_VERTEX_OUTPUT_STEREO
             };
 
-            // Seabed height at a Unity world X — the shader's copy of SeaGeometry.SeabedHeight.
+            // Seabed height at a Unity world X - the shader's copy of SeaGeometry.SeabedHeight.
             float Seabed(float x)
             {
                 return x <= _ShoreX ? 0.0 : _DeepY * min((x - _ShoreX) / _WadeRun, 1.0);

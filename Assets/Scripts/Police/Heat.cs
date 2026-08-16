@@ -6,7 +6,7 @@ namespace TheBlock.Police
     /// The wanted meter: a whole number of stars, one per crime, one police car per star.
     ///
     /// <b>This was a continuous meter and it is a counter again, deliberately.</b> The meter version
-    /// argued that a scrape should be worth less than a body, and it was right about that — but it
+    /// argued that a scrape should be worth less than a body, and it was right about that - but it
     /// bled unconditionally, and U19 then put every cruiser in a station bay a hundred to nine
     /// hundred metres away. Those two are incompatible and the arithmetic says so: a run-over gave
     /// 1.05, the star went out at 0.90, and at 0.030/s (0.250/s once out of contact) it survived
@@ -30,7 +30,7 @@ namespace TheBlock.Police
 
         /// <summary>
         /// Serialized run state, hidden. A mid-Play recompile reloads the domain, clears every
-        /// ordinary private field and does not re-run Awake — losing your stars mid-chase.
+        /// ordinary private field and does not re-run Awake - losing your stars mid-chase.
         /// </summary>
         [SerializeField, HideInInspector] private int stars;
 
@@ -57,13 +57,13 @@ namespace TheBlock.Police
         public bool Engaged => engaged;
 
         /// <summary>
-        /// Seconds of ENGAGED pursuit since the last crime — it does not advance while the cars are
+        /// Seconds of ENGAGED pursuit since the last crime - it does not advance while the cars are
         /// still driving in. The hard give-up cap counts this.
         /// </summary>
         public float SinceCrime => sinceCrime;
 
         /// <summary>
-        /// The evade arc, 0..1 — how far through losing them you are.
+        /// The evade arc, 0..1 - how far through losing them you are.
         ///
         /// Two phases in one number, which is the web's own readout: before <c>BreakContact</c> it
         /// fills as you stay out of sight, and after it, it fills as the top star drains. The HUD
@@ -109,12 +109,12 @@ namespace TheBlock.Police
         /// <b>Deliberately a second flag rather than a reuse of <see cref="Frozen"/>.</b>
         /// <see cref="CrimeWatch"/> assigns <c>Frozen = interior.Inside</c> on EVERY frame, so a
         /// second owner would be overwritten within one frame and the power-up would do nothing
-        /// anywhere except inside the pizzeria — a bug that reads as "the item is broken" and traces
+        /// anywhere except inside the pizzeria - a bug that reads as "the item is broken" and traces
         /// to neither file on its own. One flag, one owner.
         ///
         /// It gates gain only, not the pursuit: the phone CLEARS heat at ignition
         /// (<see cref="Clear"/>), and cops stand down off a zero star count by themselves. That is
-        /// the web build's split too — <c>heatImmune()</c> guards the bump and nothing else.
+        /// the web build's split too - <c>heatImmune()</c> guards the bump and nothing else.
         /// </summary>
         public bool Immune { get; set; }
 
@@ -149,7 +149,7 @@ namespace TheBlock.Police
 
         /// <summary>
         /// Called by <see cref="PoliceSystem"/> on any step a cop is within sight RANGE, line of
-        /// sight or not. This is what latches <c>engaged</c> — arriving is the event, not seeing.
+        /// sight or not. This is what latches <c>engaged</c> - arriving is the event, not seeing.
         /// </summary>
         public void ReportInSight() => _inSightThisFrame = true;
 
@@ -175,14 +175,14 @@ namespace TheBlock.Police
 
             // The give-up clock only runs while a cop has actually got to you, and that is the same
             // lesson as the latch, found the same way. Measured: a cruiser left the station 127 m
-            // away, drove a real route at 95% on-road — and the 45 s cap expired with it still 112 m
+            // away, drove a real route at 95% on-road - and the 45 s cap expired with it still 112 m
             // out, so the pursuit ended before the pursuit started. "The cops eventually stop even if
             // you never lose them" presupposes they reached you; the inbound phase is bounded by
             // InboundGrace instead, which is the whole reason that number exists.
             if (engaged) sinceCrime += dt;
 
             // Bound the latch. If nobody has arrived after InboundGrace the pursuit is structurally
-            // stuck — an unreachable spot, or the orphaned downtown avenue — and the player should
+            // stuck - an unreachable spot, or the orphaned downtown avenue - and the player should
             // be able to cool off rather than wear stars with no cop on screen. A cop arriving later
             // still resets noContact below, so this only ever costs a star on a genuinely broken one.
             if (!engaged)
@@ -213,7 +213,7 @@ namespace TheBlock.Police
         }
 
         /// <summary>
-        /// Drops exactly one star — the only place heat goes down on its own, and therefore the only
+        /// Drops exactly one star - the only place heat goes down on its own, and therefore the only
         /// place the zero crossing is handled.
         /// </summary>
         private void ShedStar()
@@ -236,7 +236,7 @@ namespace TheBlock.Police
         }
 
         /// <summary>
-        /// Reads a per-star table by the star being shed, clamped — so a table someone shortens in
+        /// Reads a per-star table by the star being shed, clamped - so a table someone shortens in
         /// the inspector falls back to its last entry instead of throwing.
         /// </summary>
         private static float Step(float[] table, int star)

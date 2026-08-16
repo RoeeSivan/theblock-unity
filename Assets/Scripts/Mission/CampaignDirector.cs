@@ -6,7 +6,7 @@ using UnityEngine;
 namespace TheBlock.Missions
 {
     /// <summary>
-    /// Drives the campaign cursor against the world — the port of
+    /// Drives the campaign cursor against the world - the port of
     /// <c>src/mission/campaign-director.ts</c>.
     ///
     /// It paints the "go here next" objective as a single moving map marker, advances the cursor
@@ -18,7 +18,7 @@ namespace TheBlock.Missions
     /// coordinate snapshot, so its director must remove and re-add the pin every time anything
     /// moves. <see cref="MapPoi.Follow"/> holds a Transform the map reads at DRAW time, so an
     /// objective can ride a walking NPC or a fleeing thief for nothing. The pin is created once per
-    /// cursor move rather than per frame either way — but where the web CANNOT track a mover, this
+    /// cursor move rather than per frame either way - but where the web CANNOT track a mover, this
     /// simply does.
     /// </summary>
     public class CampaignDirector : MonoBehaviour
@@ -38,14 +38,14 @@ namespace TheBlock.Missions
         /// <summary>
         /// A campaign step with its waypoint resolved. The COPY comes from
         /// <c>campaign.config.ts</c>; the coordinates come from the live world config, so a location
-        /// stays single-sourced — the pizzeria's pin and the pizzeria are the same number.
+        /// stays single-sourced - the pizzeria's pin and the pizzeria are the same number.
         /// </summary>
         private class Step
         {
             public string Objective;
 
             /// <summary>
-            /// The step's map glyph — 🍕 🕺 🚁 🛟, straight out of <c>campaign.config.ts</c>. The web
+            /// The step's map glyph - 🍕 🕺 🚁 🛟, straight out of <c>campaign.config.ts</c>. The web
             /// draws it in place of the objective dot, and until now the port dropped it on the
             /// floor: every landmark and the one place you actually had to go were the same green
             /// circle, which is unreadable exactly when it matters.
@@ -100,8 +100,8 @@ namespace TheBlock.Missions
         /// Where a step begins, in Unity space. U26's Mission Select drops the player here.
         ///
         /// <b>Deliberately the same number the objective pin uses</b>, not a second table. The web
-        /// build has two — <c>stepCoords</c> for the marker and a hand-written block inside
-        /// <c>campaign-launch.ts</c> for the jump — and they agree only because nobody has moved
+        /// build has two - <c>stepCoords</c> for the marker and a hand-written block inside
+        /// <c>campaign-launch.ts</c> for the jump - and they agree only because nobody has moved
         /// anything yet. One dictionary, read twice, cannot drift.
         /// </summary>
         public bool TryStepPosition(string id, out Vector3 position)
@@ -114,7 +114,7 @@ namespace TheBlock.Missions
 
         /// <summary>
         /// Hands a step a live Transform to track instead of its fixed waypoint. Nothing needs it in
-        /// Tier 5 — every giver stands still — but it is the reason the pin holds a Transform at
+        /// Tier 5 - every giver stands still - but it is the reason the pin holds a Transform at
         /// all, and it costs one method.
         /// </summary>
         public void TrackStep(string id, Transform follow)
@@ -148,7 +148,7 @@ namespace TheBlock.Missions
             if (campaign.AdvanceIfComplete()) Refresh();
 
             // The last step completing does not advance the cursor, so the final marker is cleared
-            // here instead — otherwise the finale's pin outlives the campaign.
+            // here instead - otherwise the finale's pin outlives the campaign.
             if (!_cleared && campaign.IsComplete)
             {
                 _cleared = true;
@@ -160,7 +160,7 @@ namespace TheBlock.Missions
         public bool IsCurrent(string id) => campaign != null && campaign.IsCurrent(id);
 
         /// <summary>
-        /// True once the cursor has REACHED or passed <paramref name="id"/> — which is what gates
+        /// True once the cursor has REACHED or passed <paramref name="id"/> - which is what gates
         /// that step's vehicle. The helicopter is unenterable until the dance is won, and this is
         /// the test that says so.
         /// </summary>

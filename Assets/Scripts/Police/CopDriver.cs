@@ -6,7 +6,7 @@ using UnityEngine;
 namespace TheBlock.Police
 {
     /// <summary>
-    /// Drives a police cruiser along a route — the only file in the project that knows steering
+    /// Drives a police cruiser along a route - the only file in the project that knows steering
     /// geometry.
     ///
     /// <b>It drives the same car the player does.</b> Everything here ends in
@@ -14,12 +14,12 @@ namespace TheBlock.Police
     /// and the identical <c>ApplySteering</c> / <c>ApplyDrive</c> turn those into torque. Same
     /// 120°/s rate limit, same speed-sensitive lock, same rear-wheel drive, same 1400 kg. A cop
     /// therefore cannot corner in a way the player's car could not, which is the whole reason the
-    /// input seam exists — and it is what makes "good driving wins" true by construction rather than
+    /// input seam exists - and it is what makes "good driving wins" true by construction rather than
     /// by tuning.
     ///
     /// <b>Pure pursuit</b> for the steering: aim at a point a speed-dependent distance ahead on the
     /// route and turn the wheels toward it. It is the standard method for exactly this problem and
-    /// it degrades gracefully — a route that is stale by a second still produces sane steering,
+    /// it degrades gracefully - a route that is stale by a second still produces sane steering,
     /// where a waypoint-chasing controller snaps.
     ///
     /// The web build's pursuit had no acceleration model at all: its commanded speed WAS its speed,
@@ -70,7 +70,7 @@ namespace TheBlock.Police
         /// <summary>Whether the target is visible, which is what allows the straight final run.</summary>
         public bool HasLineOfSight { get; set; }
 
-        /// <summary>Stops the car dead and holds it there — the arrest, and the spawn grace.</summary>
+        /// <summary>Stops the car dead and holds it there - the arrest, and the spawn grace.</summary>
         public bool Halt { get; set; }
 
         // --- anti-stuck ---------------------------------------------------------------------------
@@ -92,7 +92,7 @@ namespace TheBlock.Police
             _stuckFrom = transform.position;
 
             // U28: the ☕ boost is the PLAYER's. This component is added at runtime, after the car's
-            // own Awake has already run, so the car cannot work out on its own that it is a cruiser —
+            // own Awake has already run, so the car cannot work out on its own that it is a cruiser -
             // and a police force that speeds up when you drink coffee to escape it is the opposite of
             // what the item is sold as.
             if (_car != null) _car.MarkAsPolice();
@@ -157,14 +157,14 @@ namespace TheBlock.Police
             TargetSpeed = ChooseSpeed(position, speed, straightRun);
 
             // The blue-light allowance, handed to the car itself: asking for 29 m/s means nothing
-            // while ApplyDrive is cutting the torque at the config's 20. Dropped to 0 — the config
-            // cap — the moment this stops being a run to the scene, so the chase you can still win
+            // while ApplyDrive is cutting the torque at the config's 20. Dropped to 0 - the config
+            // cap - the moment this stops being a run to the scene, so the chase you can still win
             // is fought on exactly the numbers the play-test signed off.
             _car.SpeedLimitOverride = Responding(position) ? _tuning.ResponseSpeed : 0f;
 
             // Proportional on the speed error: 3 m/s off target is full pedal either way. Negative
             // throttle is the brake while rolling forward and becomes reverse once stopped, which is
-            // the arcade convention the player's car already has — and doubles as the way out of a
+            // the arcade convention the player's car already has - and doubles as the way out of a
             // nose-in.
             float throttle = Mathf.Clamp((TargetSpeed - speed) / 3f, -1f, 1f);
             _car.SetInput(new CarInput(throttle, steer));
@@ -207,7 +207,7 @@ namespace TheBlock.Police
         /// enough to see it.
         ///
         /// The flank offset is what makes the end of a chase read as being pulled over rather than
-        /// rammed — the cop comes alongside instead of aiming at your boot. It is ported design, and
+        /// rammed - the cop comes alongside instead of aiming at your boot. It is ported design, and
         /// it is also the only reason a cop stops beside you at all.
         /// </summary>
         private Vector3 ChooseAim(Vector3 position, Vector3 forward, float speed, out bool straightRun)
@@ -261,7 +261,7 @@ namespace TheBlock.Police
         /// Swings the aim point out of the lane so the cop passes whatever is standing in it.
         ///
         /// <b>A police car does not queue.</b> Traffic pulls over for one, but a queue stopped at a
-        /// red light has nowhere to pull TO — measured, six cars around a cruiser all at 0.0 m/s, one
+        /// red light has nowhere to pull TO - measured, six cars around a cruiser all at 0.0 m/s, one
         /// of them yielding its full shift and still nose-to-nose with it, and the junction cost 12
         /// seconds of a response. When the traffic cannot move, the cop is what has to.
         ///
@@ -287,7 +287,7 @@ namespace TheBlock.Police
         /// Decides when the cop has been standing still long enough to pull out and pass.
         ///
         /// The test is "asking to move and not moving", which is deliberately the same shape as the
-        /// wedge detector — but this one fires in a second and a half rather than two, and answers
+        /// wedge detector - but this one fires in a second and a half rather than two, and answers
         /// sideways instead of in reverse, because a queue is not a wall you back off from.
         /// </summary>
         private void TrackBlocked(float dt, float speed)
@@ -333,12 +333,12 @@ namespace TheBlock.Police
         /// <summary>
         /// The slowest of what the chase wants, what the corner allows, and what the arrival needs.
         ///
-        /// The rubber band is ported design — far away it presses, close in it settles — but the top
+        /// The rubber band is ported design - far away it presses, close in it settles - but the top
         /// of the band is <see cref="PoliceTuning.MaxSpeed"/>, which is 2.5% over the player's rather
         /// than the web build's 15%. Cornering is where a cop is actually beaten.
         ///
         /// <b>Except on the way TO you.</b> A cop past <see cref="PoliceTuning.BandFar"/> with no
-        /// line of sight is not chasing anybody yet — it is answering a call across the city, and
+        /// line of sight is not chasing anybody yet - it is answering a call across the city, and
         /// holding it to chase numbers is what made the response feel slack. Measured on the drive
         /// in: it asked for the full 20.5 and delivered **13.7 m/s**, so the binding constraint was
         /// never the top speed, it was <see cref="CornerSpeed"/>. Both are raised for that phase and
@@ -371,7 +371,7 @@ namespace TheBlock.Police
             // An arrival ramp on the final approach, one metre per second per metre left.
             //
             // Without it there is a dead band between ArriveDistance and BandNear where the rubber
-            // band's own floor, MinSpeed, is the answer — so a cop eleven metres from a stationary
+            // band's own floor, MinSpeed, is the answer - so a cop eleven metres from a stationary
             // player asks for 8 m/s, overshoots the flank it is aiming at, and has to come round for
             // another pass. Measured at exactly that: 8 m/s commanded, 1.5 m/s delivered, and the
             // 4 m arrest radius never reached before the pursuit expired.
@@ -384,10 +384,10 @@ namespace TheBlock.Police
         /// <summary>
         /// The tightest corner in the next stretch of route, as a speed.
         ///
-        /// <c>v = sqrt(a / k)</c> — the speed at which a curvature <c>k</c> costs a lateral
+        /// <c>v = sqrt(a / k)</c> - the speed at which a curvature <c>k</c> costs a lateral
         /// acceleration <c>a</c>. The grip is the dial: raise it and cops take corners flat, lower it
         /// and a bend is a real place to lose one. It is a parameter rather than a field read because
-        /// the run to the scene and the chase itself want different answers — see
+        /// the run to the scene and the chase itself want different answers - see
         /// <see cref="ChooseSpeed"/>.
         /// </summary>
         private float CornerSpeed(Vector3 position, float grip)
@@ -428,8 +428,8 @@ namespace TheBlock.Police
         /// <b>Not the web build's fix.</b> That one stepped the kinematic body straight through the
         /// geometry when collide-and-slide gave up, on the grounds that a pursuer which can enter an
         /// unrecoverable state is worse than one which clips a corner. A dynamic Rigidbody has an
-        /// honest way out — reverse, with the steering mirrored so the nose swings off whatever it is
-        /// against — so the clipping does not carry over. Three of these in a short window means this
+        /// honest way out - reverse, with the steering mirrored so the nose swings off whatever it is
+        /// against - so the clipping does not carry over. Three of these in a short window means this
         /// cop is not getting out, and <see cref="PoliceSystem"/> retires it.
         /// </summary>
         private bool Unwedging(float dt, Vector3 position, float speed)

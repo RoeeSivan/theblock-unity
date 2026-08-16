@@ -9,31 +9,31 @@ using UnityEngine.InputSystem;
 namespace TheBlock.Vehicles
 {
     /// <summary>
-    /// Getting in and out of a vehicle — the port of the <c>onFoot → entering → driving → exiting</c>
+    /// Getting in and out of a vehicle - the port of the <c>onFoot → entering → driving → exiting</c>
     /// loop that lives in <c>src/main.ts</c> and <c>src/game/transitions.ts</c>.
     ///
     /// It replaces U8's <c>DebugVehicleSwitch</c>, and keeps the one thing that was worth keeping:
     /// the shape of the swap. Switch off the controller you are leaving, switch on the one you are
     /// taking, and point the camera at the new <see cref="IChaseTarget"/>. Everything else here is
-    /// what that scaffolding faked — a proximity test, a door that swings, a driver who is actually
+    /// what that scaffolding faked - a proximity test, a door that swings, a driver who is actually
     /// visible in the seat, and two frozen states so nothing can fire mid-teleport.
     ///
     /// There are two ways in, and the web build has both. A vehicle that wants the ENTRY ANIMATION
     /// gets it: the driver walks up, opens the door and sits, and the clip's own progress drives the
-    /// door. Everything else gets the QUICK mount, which is not a placeholder — it is what every
+    /// door. Everything else gets the QUICK mount, which is not a placeholder - it is what every
     /// untuned car and every door-less vehicle in the game uses. U10 added no third path; it added
     /// two flags on <see cref="IEnterable"/> so the quick mount can also seat a rider who stays
     /// visible, which is what a motorcycle needs.
     ///
     /// Unity-idiomatic difference worth knowing: the web build hides the walking player and mounts a
     /// SECOND skinned body into the vehicle, because three.js had no cheap way to hand one skeleton
-    /// between two animation graphs. Here it is the same Joe throughout — parented to the vehicle's
+    /// between two animation graphs. Here it is the same Joe throughout - parented to the vehicle's
     /// rider anchor, with his controller switched off. One body, one animator, and the character
     /// roster (U29) reaches the seat for free.
     /// </summary>
     public class VehicleEnterExit : MonoBehaviour
     {
-        [Header("Scene — found automatically when left empty")]
+        [Header("Scene - found automatically when left empty")]
         [SerializeField] private PlayerController player;
         [SerializeField] private PlayerAnimator playerAnimator;
         [SerializeField] private FollowCamera followCamera;
@@ -48,7 +48,7 @@ namespace TheBlock.Vehicles
         [Tooltip("Where 'Press E to enter' is drawn. Optional: without it E still works, silently.")]
         [SerializeField] private MissionHud hud;
 
-        [Header("Exit placement — Unity-side, not in config.ts")]
+        [Header("Exit placement - Unity-side, not in config.ts")]
         [Tooltip("How far above the vehicle the ground probe starts. Must clear the roof.")]
         [SerializeField] private float exitProbeHeight = 5f;
 
@@ -64,14 +64,14 @@ namespace TheBlock.Vehicles
         // --- run state -----------------------------------------------------------------------
         // Serialized on purpose, and NOT because anyone edits it. A script recompile while the
         // Editor is in Play mode reloads the domain and clears every non-serialized field, but the
-        // SCENE survives — so Joe would stay parented inside the car with his controller off while
+        // SCENE survives - so Joe would stay parented inside the car with his controller off while
         // this machine came back believing it was on foot. That is an unrecoverable soft lock.
         // Unity preserves serialized fields across the reload, so the machine wakes up where it was.
 
         [SerializeField, HideInInspector] private GameMode mode = GameMode.OnFoot;
 
         // As a MonoBehaviour, not as an IEnterable. Unity's serializer cannot write an interface
-        // field at all — it silently stores nothing — so the guard above was quietly doing nothing
+        // field at all - it silently stores nothing - so the guard above was quietly doing nothing
         // for the vehicle reference itself, which is the one piece of state that cannot be
         // recovered by looking at the scene.
         [SerializeField, HideInInspector] private MonoBehaviour activeVehicleObject;
@@ -90,12 +90,12 @@ namespace TheBlock.Vehicles
         public GameMode Mode => mode;
 
         /// <summary>
-        /// True when pressing E right now would get the player into something — a real vehicle, a
+        /// True when pressing E right now would get the player into something - a real vehicle, a
         /// promotable parked filler, or a stealable street car.
         ///
         /// E is shared with the pizzeria doorway, and a car parked outside the storefront puts both
         /// in range at once. This is how the doorway defers rather than the two racing on Update
-        /// order — the vehicle wins, which is the web build's precedence too, and all three car
+        /// order - the vehicle wins, which is the web build's precedence too, and all three car
         /// sources outrank the door there for the same reason.
         /// </summary>
         public bool HasVehicleInReach => InReach(NearestStopped());
@@ -125,7 +125,7 @@ namespace TheBlock.Vehicles
 
         /// <summary>
         /// Resolves the scene references and the config. Called from Awake, and again from Update if
-        /// the spec has gone null after a mid-Play recompile — the same guard PlayerController and
+        /// the spec has gone null after a mid-Play recompile - the same guard PlayerController and
         /// CarController carry.
         /// </summary>
         private void Bind()
@@ -149,7 +149,7 @@ namespace TheBlock.Vehicles
 
             // U29: the driver's renderers belong to a body a menu can replace mid-drive, so the
             // cache has to be invalidated rather than taken once. A stale array leaves the OLD
-            // body's renderers being switched — which reads as a driver visible through the
+            // body's renderers being switched - which reads as a driver visible through the
             // windscreen of a car that is meant to look empty, and the new body never hidden.
             if (playerBody == null && player != null)
                 playerBody = player.GetComponent<TheBlock.Player.CharacterBody>();
@@ -174,7 +174,7 @@ namespace TheBlock.Vehicles
 
         private void Update()
         {
-            // Frozen: no E, and the door timer does not advance either — a pause taken mid-swing
+            // Frozen: no E, and the door timer does not advance either - a pause taken mid-swing
             // resumes where it left off rather than finishing behind the menu. See Core.Pause.
             if (Core.Pause.Frozen) return;
 
@@ -190,14 +190,14 @@ namespace TheBlock.Vehicles
             {
                 case GameMode.OnFoot:
                     // Every frame, not only on the frame E is pressed. A stopped car within reach
-                    // is frozen for `hijack.holdSec` so it waits while you walk over — otherwise its
+                    // is frozen for `hijack.holdSec` so it waits while you walk over - otherwise its
                     // light goes green mid-approach and the car you were heading for drives off.
                     var stopped = NearestStopped();
                     if (stopped != null) traffic.Hold(stopped);
 
                     // One predicate behind both the prompt and the action, which is the arrangement
                     // the web build settled on after its cashier offered a key that did nothing.
-                    // A vehicle you can see the prompt for is one E will get you into — and one that
+                    // A vehicle you can see the prompt for is one E will get you into - and one that
                     // would refuse says WHY instead, in the same line, from its own EntryRefusal.
                     var refusal = Nearest()?.EntryRefusal;
                     if (refusal != null) hud?.SetPrompt(refusal, MissionHud.PromptVehicle);
@@ -225,7 +225,7 @@ namespace TheBlock.Vehicles
                     break;
 
                 case GameMode.Rhythm:
-                    // A modal minigame owns the screen and the keyboard. Nothing here runs — no E,
+                    // A modal minigame owns the screen and the keyboard. Nothing here runs - no E,
                     // no R, and no stopped-car hold, which would otherwise keep freezing traffic
                     // beside a player who is not standing there any more.
                     break;
@@ -253,7 +253,7 @@ namespace TheBlock.Vehicles
         }
 
         /// <summary>
-        /// Steps off immediately, skipping the door-close wait — the same two halves the E exit runs,
+        /// Steps off immediately, skipping the door-close wait - the same two halves the E exit runs,
         /// back to back.
         ///
         /// For a scripted exit rather than a player's: U21's retry has to have the rider on foot
@@ -304,7 +304,7 @@ namespace TheBlock.Vehicles
 
             if (usingEntryClip)
             {
-                // The anchor is where the clip STARTS — beside the door, at road level. Its own
+                // The anchor is where the clip STARTS - beside the door, at road level. Its own
                 // baked hip travel is what carries Joe from there into the seat, so his transform
                 // never has to move again until he gets out.
                 SetDriverVisible(true);
@@ -344,7 +344,7 @@ namespace TheBlock.Vehicles
 
         /// <summary>
         /// The other path, and what every untuned car and every door-less vehicle uses: no
-        /// animation, so nothing to wait on except the door — and a bike has no door, so it waits
+        /// animation, so nothing to wait on except the door - and a bike has no door, so it waits
         /// only <see cref="doorlessMountSeconds"/> rather than the 1.05 s a door swing costs.
         ///
         /// The rider is either hidden (a car: the cabin looks empty from outside, as the web build's
@@ -376,7 +376,7 @@ namespace TheBlock.Vehicles
         /// <summary>
         /// Parents Joe to a seat and drops him onto it exactly.
         ///
-        /// <c>worldPositionStays: false</c> is the whole point — the anchor carries the config's
+        /// <c>worldPositionStays: false</c> is the whole point - the anchor carries the config's
         /// rider scale and yaw, and preserving the world transform would throw both away.
         /// </summary>
         private void Mount(Transform seat)
@@ -412,7 +412,7 @@ namespace TheBlock.Vehicles
 
             // worldPositionStays MUST be false. The seat anchor carries the config's rider scale
             // (0.95 on the Mustang, 1.1 on the bike), and preserving the world transform on the way
-            // out would bake that into Joe's own localScale — he would walk away permanently 5%
+            // out would bake that into Joe's own localScale - he would walk away permanently 5%
             // shorter, a little more so with every vehicle he got out of.
             player.transform.SetParent(null, worldPositionStays: false);
             player.transform.SetPositionAndRotation(ExitSpot(vehicle), vehicle.GetTransform().rotation);
@@ -429,7 +429,7 @@ namespace TheBlock.Vehicles
         /// The probe matters more than it looks: hard-coding the road height drops anyone stepping
         /// out of a car parked on lot asphalt through the tarmac, and would put U23's helicopter
         /// pilot at street level the moment he lands on a roof. The vehicle's own colliders are
-        /// skipped — otherwise the first thing the ray finds is the chassis box it just left.
+        /// skipped - otherwise the first thing the ray finds is the chassis box it just left.
         /// </summary>
         private Vector3 ExitSpot(IEnterable vehicle)
         {
@@ -469,7 +469,7 @@ namespace TheBlock.Vehicles
         // --- promotion: turning something that is not a vehicle into one -------------------------
 
         /// <summary>
-        /// Swaps the parked filler you are standing beside for a real drivable car — U13's deferred
+        /// Swaps the parked filler you are standing beside for a real drivable car - U13's deferred
         /// lot-car promotion, and the port of <c>transitions.ts promoteLotCar</c>.
         ///
         /// Same model, same colour, same stall, same heading, and then you get in. The filler is
@@ -490,12 +490,12 @@ namespace TheBlock.Vehicles
         }
 
         /// <summary>
-        /// Steals the stopped street car — the port of <c>transitions.ts hijackTrafficCar</c>.
+        /// Steals the stopped street car - the port of <c>transitions.ts hijackTrafficCar</c>.
         ///
         /// The claim comes first and it retires the sim car, so for one instant the lane is empty;
         /// the drivable copy is then put at the pose the claim recorded. Doing it the other way round
         /// would spawn a car inside the one it replaces and hand PhysX two overlapping boxes to
-        /// resolve — which it does by throwing them apart.
+        /// resolve - which it does by throwing them apart.
         /// </summary>
         private IEnterable Hijack(TrafficCar stopped)
         {
@@ -528,7 +528,7 @@ namespace TheBlock.Vehicles
         /// The nearest enterable vehicle within <c>enterRadius</c>, measured on the ground plane so
         /// standing on a kerb beside one still counts.
         ///
-        /// The bike spawns 8 m from the Mustang, both on the lot, so this genuinely has to choose —
+        /// The bike spawns 8 m from the Mustang, both on the lot, so this genuinely has to choose -
         /// which is why it walks <see cref="EnterableRegistry"/> rather than the car spawner's list.
         /// </summary>
         private IEnterable Nearest()
@@ -559,7 +559,7 @@ namespace TheBlock.Vehicles
         /// <summary>
         /// A fresh body starts visible, so the hidden-driver state has to be re-imposed on it. The
         /// only mode where the driver is hidden is a quick mount into something that does not show
-        /// its rider — a car — which is exactly the case the stale cache used to break.
+        /// its rider - a car - which is exactly the case the stale cache used to break.
         /// </summary>
         private void OnDriverBodySwapped()
         {

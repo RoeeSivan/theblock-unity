@@ -12,25 +12,25 @@ namespace TheBlock.World
     ///
     /// <b>This is an addition, not a port.</b> The web build has no time of day: its sky is a
     /// constant <c>config.background</c> and its sun never moves. Everything here is new, which is
-    /// why it ships behind a Setting that defaults to OFF — Fixed mode is not "close to" the look
+    /// why it ships behind a Setting that defaults to OFF - Fixed mode is not "close to" the look
     /// every unit from U11 to U27 was play-tested against, it is that look, reproduced field for
     /// field. See <see cref="SkyPalette.AnchorHour"/> for how.
     ///
-    /// <b>Cost, because that was the requirement.</b> Rotating a directional light is free — URP
-    /// re-renders all four cascades every frame whatever the angle — and there is no baked GI in this
+    /// <b>Cost, because that was the requirement.</b> Rotating a directional light is free - URP
+    /// re-renders all four cascades every frame whatever the angle - and there is no baked GI in this
     /// project to invalidate (no lightmaps, every light Realtime, every renderer non-static). The
-    /// two things that WOULD cost are both refused: <c>DynamicGI.UpdateEnvironment</c> (1–3 ms a
+    /// two things that WOULD cost are both refused: <c>DynamicGI.UpdateEnvironment</c> (1-3 ms a
     /// call, re-convolving the skybox into spherical harmonics) is replaced by
     /// <c>AmbientMode.Trilight</c> and three lerped colours; and Bloom, which is six to eight blur
     /// passes, is not in the profile. What is left is one fullscreen grading pass, and when the
-    /// setting is Fixed even that is not scheduled — <see cref="SetEnabled"/> turns
+    /// setting is Fixed even that is not scheduled - <see cref="SetEnabled"/> turns
     /// <c>renderPostProcessing</c> off, so the default configuration costs literally nothing.
     /// Night costs LESS than day: below the horizon the light's shadows are switched off and the
     /// 4×2048 cascade render goes with them.
     ///
     /// <b>On the snapshot in this class, given that Interior's snapshot is being deleted in the same
     /// change.</b> They are not the same thing. Interior's fault was saving state a SECOND live
-    /// writer also owns, so its restore handed back a value that had moved on underneath it — the
+    /// writer also owns, so its restore handed back a value that had moved on underneath it - the
     /// same shape as U26's Radar/<c>display</c> bug. This snapshot is taken in <c>Awake</c>, before
     /// anything has written those fields, and is replayed only when the setting is switched off.
     /// While the cycle is running it is the sole owner of every field it touches; nothing else has a
@@ -49,13 +49,13 @@ namespace TheBlock.World
         [Tooltip("Compass direction of the sun's arc. The scene's stock light sits at −30°.")]
         [SerializeField, Range(-180f, 180f)] private float azimuth = -30f;
 
-        [Header("Scene — found automatically when left empty")]
+        [Header("Scene - found automatically when left empty")]
         [SerializeField] private Light sun;
         [SerializeField] private Volume grade;
         [SerializeField] private Camera view;
         [SerializeField] private Campaign campaign;
 
-        [Header("Testing — a scene left in these is a trap. The on-screen banner is the guard.")]
+        [Header("Testing - a scene left in these is a trap. The on-screen banner is the guard.")]
         [Tooltip("Turn the cycle on regardless of the Settings preference, and run the clock behind " +
                  "the title screen. Press Play and the sky moves; nothing to click.")]
         [SerializeField] private bool testMode;
@@ -70,7 +70,7 @@ namespace TheBlock.World
 
         // --- the world's clock ----------------------------------------------------------------
 
-        /// <summary>Hour of day, 0.0–24.0. Anything that wants to know what time it is reads this.</summary>
+        /// <summary>Hour of day, 0.0-24.0. Anything that wants to know what time it is reads this.</summary>
         public static float TimeOfDay { get; private set; }
 
         /// <summary>Is the cycle actually advancing? False on a Fixed profile, which is the default.</summary>
@@ -81,7 +81,7 @@ namespace TheBlock.World
 
         /// <summary>
         /// Raised by <see cref="Interior"/> while the player is in the room. The cycle keeps running
-        /// the clock and the sun, but stops writing fog and ambient — the interior owns those for as
+        /// the clock and the sun, but stops writing fog and ambient - the interior owns those for as
         /// long as you are inside, and it hands them back by calling <see cref="ReassertNow"/> rather
         /// than by restoring a copy it took on the way in.
         /// </summary>
@@ -157,7 +157,7 @@ namespace TheBlock.World
                 var hoursPerSecond = length <= 0f ? 0f : 24f / length;
 
                 // Unscaled in Test Mode, because the whole point is that the sky moves behind the
-                // title screen — and the title screen sets Time.timeScale to 0, which would leave
+                // title screen - and the title screen sets Time.timeScale to 0, which would leave
                 // deltaTime at zero and the sun exactly where it started.
                 var dt = testMode ? Time.unscaledDeltaTime : Time.deltaTime;
                 TimeOfDay = Mathf.Repeat(TimeOfDay + dt * hoursPerSecond, 24f);
@@ -169,7 +169,7 @@ namespace TheBlock.World
         /// <summary>
         /// The test keys. Brackets step an hour, backslash holds the clock where it is.
         ///
-        /// <c>[</c> <c>]</c> <c>\</c> are chosen because nothing else in this project reads them —
+        /// <c>[</c> <c>]</c> <c>\</c> are chosen because nothing else in this project reads them -
         /// seventeen scripts poll <see cref="Keyboard"/> every frame and a collision here would look
         /// like the cycle breaking the game rather than like a key clash. Live only in Test Mode, so
         /// a shipped build has no bindings to collide with at all.
@@ -196,13 +196,13 @@ namespace TheBlock.World
         }
 
         /// <summary>
-        /// Is the clock held? Three reasons, and none of them stops the cycle from RENDERING — the
+        /// Is the clock held? Three reasons, and none of them stops the cycle from RENDERING - the
         /// sky still has to be written every frame, it just must not advance.
         ///
         /// The mission hold is the user's call: a mission runs four to fifteen minutes against a
         /// 24-minute day, so a sea chase begun at dusk would finish in the dark, and U23 and U24 were
         /// tuned and confirmed in daylight. It is a poll of <see cref="Campaign.Current"/> rather
-        /// than a hook, deliberately — nothing under <c>Assets/Scripts/Mission/</c> is touched by this
+        /// than a hook, deliberately - nothing under <c>Assets/Scripts/Mission/</c> is touched by this
         /// unit, so a mission cannot forget to release a latch it never took.
         /// </summary>
         private bool Holding()
@@ -217,7 +217,7 @@ namespace TheBlock.World
         /// <summary>
         /// Turns the cycle on or off. Called by Settings → Display, and once on boot.
         ///
-        /// Off is not "neutral values through the same path" — it is the path switched out. Ambient
+        /// Off is not "neutral values through the same path" - it is the path switched out. Ambient
         /// goes back to Skybox mode, the built-in sky material goes back, the light returns to the
         /// angle the scene stores, and <c>renderPostProcessing</c> goes false so URP schedules no
         /// post pass at all. That is what makes the default cost zero rather than nearly zero.
@@ -243,7 +243,7 @@ namespace TheBlock.World
                 if (grade != null) grade.enabled = false;
                 IsNight = false;
 
-                // Fixed mode is defined by the SCENE, not by the palette — RestoreBuilt replays the
+                // Fixed mode is defined by the SCENE, not by the palette - RestoreBuilt replays the
                 // light and sky exactly as WorldBuilder left them, which is the strongest possible
                 // guarantee that off is a no-op. TimeOfDay still has to answer, though: anything
                 // asking what time it is gets the hour that scene corresponds to.
@@ -253,7 +253,7 @@ namespace TheBlock.World
 
         /// <summary>
         /// Re-writes fog and ambient at the current hour. <see cref="Interior"/> calls this on the way
-        /// out instead of restoring a snapshot it took on the way in — the difference between one
+        /// out instead of restoring a snapshot it took on the way in - the difference between one
         /// owner and two, and the whole reason that snapshot is being deleted.
         /// </summary>
         public void ReassertNow()
@@ -304,7 +304,7 @@ namespace TheBlock.World
 
             sun.color = stop.Sun;
 
-            // Fade through the crossing so the mirror is invisible — see SkyPalette.HorizonFadeBand.
+            // Fade through the crossing so the mirror is invisible - see SkyPalette.HorizonFadeBand.
             var horizon = Mathf.InverseLerp(0f, SkyPalette.HorizonFadeBand, Mathf.Abs(elevation));
             sun.intensity = stop.SunIntensity * horizon;
 
@@ -312,7 +312,7 @@ namespace TheBlock.World
             {
                 // The refund, and the reason night runs cheaper than day: no main-light shadows means
                 // URP skips the four 2048² cascades, which are the most expensive thing this camera
-                // draws. The light itself stays ENABLED — the procedural skybox reads its direction,
+                // draws. The light itself stays ENABLED - the procedural skybox reads its direction,
                 // and a disabled key light would leave the night sky lit from nowhere.
                 sun.shadows = LightShadows.None;
                 return;
@@ -321,7 +321,7 @@ namespace TheBlock.World
             sun.shadows = LightShadows.Soft;
 
             // Fade shadows in off the horizon. At 3° the cascades stretch far enough that this
-            // project's 0.1 depth / 0.5 normal bias — tuned against a 50° sun — shows acne and
+            // project's 0.1 depth / 0.5 normal bias - tuned against a 50° sun - shows acne and
             // peter-panning. The ramp hides it under the dimming that is happening anyway.
             sun.shadowStrength = Mathf.InverseLerp(0f, SkyPalette.ShadowFadeElevation, elevation);
         }
@@ -339,7 +339,7 @@ namespace TheBlock.World
             RenderSettings.ambientEquatorColor = stop.AmbientEquator;
             RenderSettings.ambientGroundColor = stop.AmbientGround;
 
-            // Fog RANGE never moves — it is Atmosphere's ratio against the 1500 m draw distance and
+            // Fog RANGE never moves - it is Atmosphere's ratio against the 1500 m draw distance and
             // has nothing to do with the hour. Only the colour tracks the sky, and it must, or the
             // far plane reappears as a hard arc. See SkyStop.
             RenderSettings.fogColor = stop.Fog;
@@ -419,7 +419,7 @@ namespace TheBlock.World
 
         private void ResolveGrading()
         {
-            // The Main Camera has no UniversalAdditionalCameraData in the scene at all — URP adds one
+            // The Main Camera has no UniversalAdditionalCameraData in the scene at all - URP adds one
             // on demand, and this is the demand. Done in Awake so it lands at runtime and never
             // dirties the saved scene.
             if (view != null) _viewData = view.GetUniversalAdditionalCameraData();
@@ -440,7 +440,7 @@ namespace TheBlock.World
         /// The clock, on screen, whenever Test Mode is on.
         ///
         /// <b>This is the guard, not a convenience.</b> The ledger's standing warning is that a scene
-        /// left in a test setting is a trap — and Test Mode overrides the player's own preference, so
+        /// left in a test setting is a trap - and Test Mode overrides the player's own preference, so
         /// it is exactly that kind of setting. It cannot be left on quietly: it says so, in the
         /// corner, for as long as it is on. Editor only; a player build has no banner because it has
         /// no Test Mode to announce.
@@ -463,7 +463,7 @@ namespace TheBlock.World
 
             GUI.Box(new Rect(10f, 10f, 430f, 62f), GUIContent.none);
             GUI.Label(new Rect(20f, 14f, 420f, 26f),
-                $"DAY/NIGHT TEST MODE — {hour:00}:{minute:00} · {phase} · {clock}", style);
+                $"DAY/NIGHT TEST MODE - {hour:00}:{minute:00} · {phase} · {clock}", style);
             GUI.Label(new Rect(20f, 40f, 420f, 24f),
                 "[ and ]  step an hour     \\  hold / release the clock");
         }

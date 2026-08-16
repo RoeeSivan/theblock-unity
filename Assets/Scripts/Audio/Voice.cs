@@ -4,7 +4,7 @@ using UnityEngine;
 namespace TheBlock.Audio
 {
     /// <summary>
-    /// Spoken lines — the port of <c>src/audio/voice.ts</c>. The briefings, the customers' thank-yous
+    /// Spoken lines - the port of <c>src/audio/voice.ts</c>. The briefings, the customers' thank-yous
     /// and Remy's dance hype.
     ///
     /// <b>It arrived early, in U20/U22</b>, because the dance minigame's clock IS its music and a
@@ -16,7 +16,7 @@ namespace TheBlock.Audio
     /// <b>Non-positional, one voice at a time.</b> A line is narration, not a sound in the world: it
     /// belongs at the same volume wherever the player is standing, and a second line starting while
     /// the first is still going is two people talking over each other. Both are the web build's
-    /// behaviour — its <c>voice.ts</c> is one reused <c>HTMLAudioElement</c> for exactly this reason.
+    /// behaviour - its <c>voice.ts</c> is one reused <c>HTMLAudioElement</c> for exactly this reason.
     ///
     /// Clips are addressed by the web URL the config already holds ("/audio/thanks-remy.mp3"), keyed
     /// on the FILE NAME. That way nothing has to re-type a path that the exporter is already
@@ -39,7 +39,7 @@ namespace TheBlock.Audio
             // A source of its OWN, on a child, and deliberately never TryGetComponent.
             //
             // Voice and Conductor both live on the Campaign object, and Conductor is
-            // [RequireComponent(typeof(AudioSource))] — so that object has exactly one AudioSource
+            // [RequireComponent(typeof(AudioSource))] - so that object has exactly one AudioSource
             // and both components used to grab it. Every line therefore played THROUGH the song:
             // Play() calls Stop() first, so Remy's cheer silenced the dance's own soundtrack and the
             // routine ran on in silence with the DSP clock still counting.
@@ -63,7 +63,7 @@ namespace TheBlock.Audio
 
         /// <summary>
         /// Speaks the line at this web URL, cutting off whatever was playing. A URL with no clip is
-        /// silent and says so once — U27 will fill the gaps, and a missing line must never be the
+        /// silent and says so once - U27 will fill the gaps, and a missing line must never be the
         /// thing that stops a mission starting.
         /// </summary>
         public void Play(string url, float gain = 1f)
@@ -73,7 +73,7 @@ namespace TheBlock.Audio
             var clip = library != null ? library.Resolve(url) : null;
             if (clip == null)
             {
-                Debug.LogWarning($"Voice: no clip for '{url}' — the line plays silently.");
+                Debug.LogWarning($"Voice: no clip for '{url}' - the line plays silently.");
                 return;
             }
 
@@ -82,7 +82,7 @@ namespace TheBlock.Audio
 
             // The web build pushes Remy's cheers past unity gain (1.6) so he is louder than the
             // other lines. Unity clamps an AudioSource at 1, so the loud one is the baseline and
-            // everything else sits under it — same relationship, legal numbers.
+            // everything else sits under it - same relationship, legal numbers.
             source.volume = Mathf.Clamp01(volume * gain);
             source.Play();
         }
@@ -94,7 +94,7 @@ namespace TheBlock.Audio
             Play(urls[Random.Range(0, urls.Count)], gain);
         }
 
-        /// <summary>Cuts the line off — what happens when a player dismisses a briefing early.</summary>
+        /// <summary>Cuts the line off - what happens when a player dismisses a briefing early.</summary>
         public void Stop()
         {
             if (source != null) source.Stop();

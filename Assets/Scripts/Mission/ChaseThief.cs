@@ -5,7 +5,7 @@ using UnityEngine;
 namespace TheBlock.Missions
 {
     /// <summary>
-    /// The fleeing thief — the port of <c>src/mission/chase-thief.ts</c>. One character, two bodies:
+    /// The fleeing thief - the port of <c>src/mission/chase-thief.ts</c>. One character, two bodies:
     /// a jetski he rides along the authored route, and a runner he becomes when he beaches.
     ///
     /// <b>He cannot be lost on distance, and that is the user's own call in the original.</b> Both
@@ -16,7 +16,7 @@ namespace TheBlock.Missions
     ///
     /// <b>He has no body at all</b>, exactly as the web's does not: nothing ever collides with the
     /// thief, so physics would be cost with no purchase. He skims the buoys through
-    /// <see cref="BuoyField"/> — the web's own radial push-out, which this port shares with the
+    /// <see cref="BuoyField"/> - the web's own radial push-out, which this port shares with the
     /// PLAYER's ski instead of writing twice. See that file for why the collider-based version the
     /// plan wanted does not work.
     /// </summary>
@@ -74,7 +74,7 @@ namespace TheBlock.Missions
             _position.y = _seaLevel + _floatY;
 
             // Facing the first waypoint. Convert.Pos has already mirrored both points, so the angle
-            // between them is a Unity angle — this must NOT re-apply the web's own atan2 sign trick.
+            // between them is a Unity angle - this must NOT re-apply the web's own atan2 sign trick.
             var first = Convert.Pos(_spec.Route[0].Raw);
             _yaw = Mathf.Atan2(first.x - _position.x, first.z - _position.z) * Mathf.Rad2Deg;
 
@@ -124,7 +124,7 @@ namespace TheBlock.Missions
 
         /// <summary>
         /// The pre-chase loop: constant forward speed plus a constant yaw rate (speed / radius)
-        /// traces a circle. He is cruising, not frozen — a thief idling dead still on open water
+        /// traces a circle. He is cruising, not frozen - a thief idling dead still on open water
         /// reads as a prop.
         /// </summary>
         private void TickIdle(float dt)
@@ -178,7 +178,7 @@ namespace TheBlock.Missions
             if (_spec.RunPath.Count == 0) return;
 
             // Clamped on the way IN, not only on the way out. The two phases share `_waypoint` and
-            // they index different lists — an 18-point route and a 3-point sand path — so any state
+            // they index different lists - an 18-point route and a 3-point sand path - so any state
             // that survives the hand-off indexes the short one with a long one's cursor and throws
             // every frame. Found exactly that way: a forced phase change during a measurement left
             // the cursor at 17 and the mission threw from Update until Play stopped.
@@ -216,7 +216,7 @@ namespace TheBlock.Missions
             // `run.baseSpeed` by ThiefBuilder. So the parameter only has to answer "is he running",
             // measured against his SLOW speed rather than his base one: at 1.2 m/s and above he is
             // fleeing and gets the whole clip, and only a genuine stop settles him back to idle.
-            // Normalising by baseSpeed instead — which is what the crowd tree wanted — would blend
+            // Normalising by baseSpeed instead - which is what the crowd tree wanted - would blend
             // 60% idle into his eased approach and leave him wading up the beach.
             if (runnerAnimator != null)
                 runnerAnimator.SetFloat(

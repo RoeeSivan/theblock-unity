@@ -10,7 +10,7 @@ using Convert = TheBlock.Core.Convert;
 namespace TheBlock.EditorTools
 {
     /// <summary>
-    /// Builds the two mission vehicles and the buoy — <b>The Block → Build Mission Vehicles</b>.
+    /// Builds the two mission vehicles and the buoy - <b>The Block → Build Mission Vehicles</b>.
     /// The helicopter U23's rescue flies and the jetski U24's chase rides, plus the gate marker the
     /// chase spawns nine of.
     ///
@@ -18,7 +18,7 @@ namespace TheBlock.EditorTools
     /// <c>sketchfab-root-matrices-swap-yz</c> memory, and it does not care whether the file has a
     /// cancelling Rx±90 pair: the jetski has one (Rx 90 at scale 0.01, Rx 270 at scale 100) and
     /// still comes in with its 3.79 m length on Y. So each gets <c>Euler(-90, 0, 0)</c> and then the
-    /// result is MEASURED and logged, the way the police car's correction was — a stated axis is a
+    /// result is MEASURED and logged, the way the police car's correction was - a stated axis is a
     /// guess until a bounding box agrees with it.
     ///
     /// Two of them also ship geometry that is not the model: the Huey sits on a black display disc
@@ -33,7 +33,7 @@ namespace TheBlock.EditorTools
         private const string JetskiPath = "Assets/Models/Vehicles/jetski.glb";
         private const string BuoyPath = "Assets/Models/Props/buoy.glb";
 
-        /// <summary>The Sketchfab correction. Measured, not assumed — see the class comment.</summary>
+        /// <summary>The Sketchfab correction. Measured, not assumed - see the class comment.</summary>
         private static readonly Quaternion Upright = Quaternion.Euler(-90f, 0f, 0f);
 
         [MenuItem("The Block/Build Mission Vehicles", priority = 27)]
@@ -74,7 +74,7 @@ namespace TheBlock.EditorTools
             var box = MeasureLocal(root);
             log.AppendLine($"  huey measured: {box.size:F2} m, centre {box.center:F2}, bottom {box.min.y:F2}");
 
-            // Sit the model so its lowest point — the skids — is at the prefab origin. Every vehicle
+            // Sit the model so its lowest point - the skids - is at the prefab origin. Every vehicle
             // prefab in this project shares that origin (body centre in XZ, contact patch in Y), and
             // it is what lets a spawner place one with no ride-height arithmetic.
             visual.localPosition -= new Vector3(box.center.x, box.min.y, box.center.z);
@@ -109,7 +109,7 @@ namespace TheBlock.EditorTools
         /// <summary>
         /// Wraps each rotor node in a pivot at its own hub.
         ///
-        /// <b>Both nodes have their origin at the MODEL centre, not at their hub</b> — measured, and
+        /// <b>Both nodes have their origin at the MODEL centre, not at their hub</b> - measured, and
         /// it is what the web build's <c>rotor.ts</c> found too. Spin such a node directly and the
         /// blades orbit the fuselage. So the pivot goes at the node's bounding-box centre, the node
         /// is re-parented under it with its world pose preserved, and the pivot spins.
@@ -127,7 +127,7 @@ namespace TheBlock.EditorTools
                 var node = Find(visual, nodeName);
                 if (node == null)
                 {
-                    log.AppendLine($"  ⚠ no '{nodeName}' node — that rotor will not spin");
+                    log.AppendLine($"  ⚠ no '{nodeName}' node - that rotor will not spin");
                     continue;
                 }
 
@@ -139,7 +139,7 @@ namespace TheBlock.EditorTools
                 pivot.position = hub.Value;
 
                 // ROOT-ALIGNED, not node-aligned. The spin axes are stated in the craft's own frame
-                // — the main disc turns about its up, the tail about its right — and the visual
+                // - the main disc turns about its up, the tail about its right - and the visual
                 // subtree carries the Sketchfab Rx(−90) plus the config's yaw flip, so a pivot
                 // inheriting the NODE's rotation would spin the main rotor about the fuselage's
                 // length. The root is unrotated at build time, so identity here IS the craft's frame,
@@ -204,7 +204,7 @@ namespace TheBlock.EditorTools
             visual.localPosition -= new Vector3(box.center.x, box.min.y, box.center.z);
             log.AppendLine($"  buoy measured: {box.size:F2} m (the 27 m sea plane is gone)");
 
-            // A fixed cylinder the player's ski steers around. The thief has one too — in the web he
+            // A fixed cylinder the player's ski steers around. The thief has one too - in the web he
             // needs a hand-written radial push-out because he has no physics body at all; here both
             // bodies just collide, and that code is never written.
             var collider = root.AddComponent<CapsuleCollider>();
@@ -226,7 +226,7 @@ namespace TheBlock.EditorTools
             var model = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
             if (model == null)
             {
-                log.AppendLine($"  {name}: {modelPath} is missing — skipped");
+                log.AppendLine($"  {name}: {modelPath} is missing - skipped");
                 return null;
             }
 
@@ -242,7 +242,7 @@ namespace TheBlock.EditorTools
             // <b>ModelFacing was missing until 2026-08-16 and both craft flew tail-first.</b> Every
             // other vehicle builder here composes `RotFromRadians(modelYaw) * ModelFacing`; this one
             // composed `RotFromRadians(modelYaw) * Upright` and the omission is invisible in a
-            // bounding box — a Huey the right size and the right way up, with its nose at −Z.
+            // bounding box - a Huey the right size and the right way up, with its nose at −Z.
             // Measured in the built prefab: tail rotor at z +5.25 against a cockpit at z −2.77, and
             // the ski's handlebars at −1.10 against its rear bar at +2.11. Both drive along +Z.
             visual.localRotation = Convert.RotFromRadians(modelYaw) * Convert.ModelFacing * Upright;

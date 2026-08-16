@@ -12,14 +12,14 @@ namespace TheBlock.Audio
     ///
     /// <b>It is the port of <c>audio-context.ts</c>'s job, not its mechanism.</b> That file exists
     /// because browsers cap the number of <c>AudioContext</c>s and charge an audio render thread for
-    /// each — the web build had grown SIX and was killing the tab on an iPad at the exact moment of
+    /// each - the web build had grown SIX and was killing the tab on an iPad at the exact moment of
     /// getting into a car. Unity has one audio system and no such cap, so nothing here is
     /// rationing contexts. What it inherits is the OTHER half of that file's value: one place that
     /// every sound goes through, so the mix is a thing you can reason about rather than a set of
     /// call sites that each chose a gain.
     ///
     /// <b>The state machine drives snapshots, and it POLLS.</b> Four enum comparisons a frame is
-    /// free, and an event would give the game two ways to say where the player is — the same
+    /// free, and an event would give the game two ways to say where the player is - the same
     /// argument <c>MissionFeedback</c> makes for the same reason. Driving, the interior and the
     /// dance each duck the Ambient bus by <c>config.ambientAudio.duck</c>, which is now one mixer
     /// parameter rather than a multiply at every ambient call site.
@@ -49,14 +49,14 @@ namespace TheBlock.Audio
         private static int _searchedFrame = -1;
 
         /// <summary>
-        /// The one in the scene, or null. Null is a legitimate answer — an editor tool or a test
+        /// The one in the scene, or null. Null is a legitimate answer - an editor tool or a test
         /// scene has no audio host, and a missing sound must never be what stops a mission starting.
         ///
         /// <b>It re-finds itself, and that is not defensive padding.</b> A script recompile while the
         /// editor is in Play triggers a domain reload: every static field is wiped and
         /// <c>Awake</c> does NOT run again, so a plain <c>_instance</c> is null for the rest of the
         /// session and every <see cref="Cue"/> in the game silently stops making a sound. That was
-        /// measured here mid-build — the whole mix went quiet with no error to explain it. The
+        /// measured here mid-build - the whole mix went quiet with no error to explain it. The
         /// re-find costs one <c>FindAnyObjectByType</c> per FRAME at worst, guarded so a scene with
         /// genuinely no host does not search on every call.
         /// </summary>
@@ -91,7 +91,7 @@ namespace TheBlock.Audio
         [SerializeField] private VehicleEnterExit vehicles;
         [SerializeField] private Interior interior;
 
-        [Header("Tuning — Unity-side, no web equivalent")]
+        [Header("Tuning - Unity-side, no web equivalent")]
         [Tooltip("Sirens allowed to sound at once. The police can only field one car per star.")]
         [SerializeField] private int maxSirens = 3;
 
@@ -183,7 +183,7 @@ namespace TheBlock.Audio
         }
 
         /// <summary>
-        /// <c>N</c> — mute / unmute. It lives here because this is the one always-present audio
+        /// <c>N</c> - mute / unmute. It lives here because this is the one always-present audio
         /// object, and it is the one key in the game that does NOT stand down on
         /// <see cref="Pause.Frozen"/>: a paused game is exactly when someone reaches for the mute.
         /// </summary>
@@ -210,7 +210,7 @@ namespace TheBlock.Audio
         /// Which snapshot the world is in, and the linear gain that implies for the Ambient bus.
         ///
         /// The interior wins over the dance and the dance over driving, which is the web's own
-        /// <c>duckFor</c> order — and it matters: you cannot be in a car inside the pizzeria, but a
+        /// <c>duckFor</c> order - and it matters: you cannot be in a car inside the pizzeria, but a
         /// mode and an area are separate axes and one of them has to be asked first.
         /// </summary>
         private string CurrentSnapshot(out float duck)
@@ -296,7 +296,7 @@ namespace TheBlock.Audio
                 else
                 {
                     // The blades already ramp their own throttle (Rotor.Throttle, which exists for
-                    // exactly this) — the sound follows the geometry rather than re-deriving it.
+                    // exactly this) - the sound follows the geometry rather than re-deriving it.
                     var blades = driving.GetTransform().GetComponentInChildren<TheBlock.Vehicles.Rotor>();
                     if (blades != null) rotor.SetThrottle(blades.Throttle);
                 }
@@ -330,7 +330,7 @@ namespace TheBlock.Audio
             if (vehicle == null) return 20f;
             return type switch
             {
-                // The bike has no cap of its own — it shares the car's, which is what
+                // The bike has no cap of its own - it shares the car's, which is what
                 // MotorcycleController reads. Only the jetski carries one, on its handling block.
                 EngineSound.Jetski => vehicle.Jetski?.Handling?.MaxSpeed ?? vehicle.MaxSpeed,
                 _ => vehicle.MaxSpeed,
@@ -338,13 +338,13 @@ namespace TheBlock.Audio
         }
 
         /// <summary>
-        /// The crash thump, from <see cref="CrashSensor"/>'s own event — the one U27 was promised in
+        /// The crash thump, from <see cref="CrashSensor"/>'s own event - the one U27 was promised in
         /// that class's comment.
         ///
         /// <b>Only the vehicle the player is in.</b> The sensor fires for every car in the city:
         /// thirty traffic cars and three cruisers, all colliding out of frame. The web can only ever
         /// crash the player because its detector is on the player's own vehicle, so this is parity
-        /// and not a preference — a city that thumps whenever a cop clips a kerb is not the same
+        /// and not a preference - a city that thumps whenever a cop clips a kerb is not the same
         /// game.
         ///
         /// The floor is 3 m/s rather than the sensor's own 0.5: that threshold exists to decide

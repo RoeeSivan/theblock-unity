@@ -9,11 +9,11 @@ namespace TheBlock.UI
 {
     /// <summary>
     /// The two meters the player reads about themselves: how fast they are going, and how much sprint
-    /// they have left — the port of <c>hud.ts</c>'s <c>setSpeed</c> and <c>setStamina</c>.
+    /// they have left - the port of <c>hud.ts</c>'s <c>setSpeed</c> and <c>setStamina</c>.
     ///
     /// Both were missed. U25 called the HUD done on the strength of what U14, U19 and U20 had already
     /// put on the panel, and these two are the only surfaces of <c>hud.ts</c> that nothing else
-    /// happened to build — which is why <see cref="PlayerController.StaminaFraction"/> has carried
+    /// happened to build - which is why <see cref="PlayerController.StaminaFraction"/> has carried
     /// the comment "for the U25 HUD" since U6 with no reader.
     ///
     /// <b>They are mutually exclusive by mode, exactly as the web build has them.</b> The bar is on
@@ -34,7 +34,7 @@ namespace TheBlock.UI
     public class PlayerMeters : MonoBehaviour
     {
         /// <summary>
-        /// Radar edge and inset, from <see cref="GameMap"/> — the web's `#map { 200px; 12px }`. The
+        /// Radar edge and inset, from <see cref="GameMap"/> - the web's `#map { 200px; 12px }`. The
         /// bar sits a hair above it and matches its width, so the two read as one corner cluster.
         /// </summary>
         internal const float RadarSizePx = 200f;
@@ -44,7 +44,7 @@ namespace TheBlock.UI
         internal const float BarHeightPx = 8f;
 
         /// <summary>
-        /// The bottom edge of the shared bar slot — this bar, and <see cref="FuelGauge"/>'s.
+        /// The bottom edge of the shared bar slot - this bar, and <see cref="FuelGauge"/>'s.
         ///
         /// <b>Named rather than duplicated</b> because it is the one number the two components must
         /// agree on and neither owns: they are mutually exclusive by mode, so a drift between them
@@ -55,7 +55,7 @@ namespace TheBlock.UI
         /// <summary>Below this the bar goes red, matching `hud-driver.ts`'s own threshold.</summary>
         private const float LowFraction = 0.25f;
 
-        [Header("Scene — found automatically when left empty")]
+        [Header("Scene - found automatically when left empty")]
         [SerializeField] private PlayerController player;
         [SerializeField] private VehicleEnterExit vehicles;
 
@@ -64,7 +64,7 @@ namespace TheBlock.UI
                  "at all was the thing that read as missing. Off matches the web exactly.")]
         [SerializeField] private bool showSpeedOnFoot = true;
 
-        [Tooltip("Hide the sprint bar while it is full and nothing is draining it. Off — the web " +
+        [Tooltip("Hide the sprint bar while it is full and nothing is draining it. Off - the web " +
                  "build keeps it on screen the whole time you are on foot, and a meter that vanishes " +
                  "when healthy is a meter you cannot find when you need it.")]
         [SerializeField] private bool hideFullBar;
@@ -78,7 +78,7 @@ namespace TheBlock.UI
 
         /// <summary>
         /// Nullable on purpose. A plain <c>bool</c> starts false, which is also what <c>low</c> is on
-        /// a full bar — so the edge check below never fired on the first frame and the fill was left
+        /// a full bar - so the edge check below never fired on the first frame and the fill was left
         /// at its default TRANSPARENT. Measured: the bar drew as an empty track over a healthy
         /// player. Every "only write on a change" cache needs a value the first comparison cannot
         /// match.
@@ -187,7 +187,7 @@ namespace TheBlock.UI
 
             _barTrack.style.display = DisplayStyle.Flex;
 
-            // Red once it is spent or nearly spent — the same two conditions hud-driver.ts uses, so
+            // Red once it is spent or nearly spent - the same two conditions hud-driver.ts uses, so
             // the warning arrives at the same moment in both builds.
             var low = player.Exhausted || fraction < LowFraction;
 

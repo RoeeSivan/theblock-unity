@@ -7,7 +7,7 @@ using UnityEngine.UIElements;
 namespace TheBlock.UI.Menus
 {
     /// <summary>
-    /// The 7-Eleven counter — the port of <c>src/ui/shop-menu.ts</c>.
+    /// The 7-Eleven counter - the port of <c>src/ui/shop-menu.ts</c>.
     ///
     /// Four rows, a balance, and a Done button. Rows are built ONCE from the catalogue and repainted
     /// on every open, which is the same idiom the mission list and the character roster use here: no
@@ -16,7 +16,7 @@ namespace TheBlock.UI.Menus
     /// <b>The scrim is translucent, like the pause menu's.</b> You are standing in the shop, and
     /// seeing the shop behind the counter is the difference between "shopping" and "left the game".
     ///
-    /// <b>It owns no money rules.</b> The buy handler returns a bool and this asks for it — the
+    /// <b>It owns no money rules.</b> The buy handler returns a bool and this asks for it - the
     /// wallet, the price and the stock all live outside, which is the division the web build made so
     /// a row could stay inert without the overlay knowing what an item costs.
     /// </summary>
@@ -65,7 +65,7 @@ namespace TheBlock.UI.Menus
             if (catalogue?.Items == null || catalogue.Items.Count == 0)
             {
                 MenuStyle.Stack(column, MenuStyle.Body(
-                    "The catalogue is missing — re-run tools/export-config.sh."));
+                    "The catalogue is missing - re-run tools/export-config.sh."));
                 MenuStyle.Stack(column, MenuStyle.Secondary("Done", Close));
                 return;
             }
@@ -73,12 +73,12 @@ namespace TheBlock.UI.Menus
             foreach (var item in catalogue.Items) MenuStyle.Stack(column, BuildRow(item));
 
             MenuStyle.Stack(column, MenuStyle.Body(
-                "1 – 4 uses what you bought, anywhere in the city.", 13f));
+                "1 - 4 uses what you bought, anywhere in the city.", 13f));
             MenuStyle.Stack(column, MenuStyle.Secondary("Done", Close));
         }
 
         /// <summary>
-        /// One shelf. The button carries the whole row so a click lands anywhere on it — the web's
+        /// One shelf. The button carries the whole row so a click lands anywhere on it - the web's
         /// rows are <c>&lt;button&gt;</c>s for exactly this reason.
         /// </summary>
         private VisualElement BuildRow(TheBlockConfig.PowerUpSpec item)

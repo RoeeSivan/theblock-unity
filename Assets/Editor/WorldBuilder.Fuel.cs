@@ -18,7 +18,7 @@ namespace TheBlock.EditorTools
     /// report numbers.</b> <c>seven-eleven-lot.glb</c> ships purpose-built marker empties carrying
     /// the config's own coordinates, so that pass can assert node-versus-config and get 0.0 cm.
     /// <c>gas-station.glb</c> ships none: 119 nodes and every one of them is geometry. The anchors
-    /// here are RENDER-MESH PIVOTS — wherever the Sketchfab author left them — so there is nothing
+    /// here are RENDER-MESH PIVOTS - wherever the Sketchfab author left them - so there is nothing
     /// to check them against except each other, the station origin, and the two forecourt points
     /// <c>config.traffic.gasStops</c> already exports for the traffic AI. This pass prints all
     /// three comparisons, and machine-checks the one property that actually matters: that the new
@@ -33,14 +33,14 @@ namespace TheBlock.EditorTools
         private const int SupersetSamples = 64;
 
         /// <summary>
-        /// Re-wires just the gas station, against the world already in the scene — <b>The Block →
+        /// Re-wires just the gas station, against the world already in the scene - <b>The Block →
         /// Build Gas Station</b>.
         ///
         /// A full <b>Build World</b> does this too, and would also re-instantiate nine districts, the
-        /// roads, the traffic graph and the NavMesh bake to configure three components — the same
+        /// roads, the traffic graph and the NavMesh bake to configure three components - the same
         /// argument U28's <b>Build Store</b> made.
         ///
-        /// <b>It also installs the HUD gauge, and that is not tidiness — it is a safety rail.</b>
+        /// <b>It also installs the HUD gauge, and that is not tidiness - it is a safety rail.</b>
         /// <see cref="HudBuilder"/> destroys the <c>HUD</c> GameObject before rebuilding it, and
         /// U26's <c>MenuBuilder</c> puts every menu component on that same object. So running
         /// <b>Build Map HUD</b> to pick up one new HUD element would delete the entire title/pause/
@@ -75,7 +75,7 @@ namespace TheBlock.EditorTools
             EnsureFuel(root.transform, report);
 
             // A component add does not dirty the scene by itself, and an unmarked scene is not
-            // written by Save — the station would live in memory until the next domain reload.
+            // written by Save - the station would live in memory until the next domain reload.
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(
                 UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene());
 
@@ -83,7 +83,7 @@ namespace TheBlock.EditorTools
             // this pass reported a failing superset check and printed no WARNING line at all, and
             // there was no way to tell a silent warning list from an empty one by reading the log.
             var text = new System.Text.StringBuilder(
-                $"Build Gas Station — {report.Warnings.Count} warning(s)\n");
+                $"Build Gas Station - {report.Warnings.Count} warning(s)\n");
             foreach (var line in report.Placed) text.AppendLine("  " + line);
             foreach (var line in report.Notes) text.AppendLine("  " + line);
             foreach (var line in report.Warnings) text.AppendLine("  WARNING " + line);
@@ -108,12 +108,12 @@ namespace TheBlock.EditorTools
             EditorUtility.SetDirty(station);
 
             var centre = instance.transform.position;
-            report.Placed.Add($"gas station — GasStation on '{instance.name}' at " +
+            report.Placed.Add($"gas station - GasStation on '{instance.name}' at " +
                               $"({centre.x:0.00}, {centre.y:0.00}, {centre.z:0.00}), " +
                               $"stationRadius {snapshot.Fuel.PumpRadius:0.0} m, {pumps.Length} pump(s)");
 
             if (pumps.Length != 3)
-                report.Warnings.Add($"gas station — expected 3 '{PumpNodePrefix}*' nodes, found {pumps.Length}. " +
+                report.Warnings.Add($"gas station - expected 3 '{PumpNodePrefix}*' nodes, found {pumps.Length}. " +
                                     "A re-export may have renamed them; the station circle still works alone.");
 
             MeasurePumps(pumps, centre, report);
@@ -127,7 +127,7 @@ namespace TheBlock.EditorTools
         ///
         /// <b>Matched by PREFIX, never by full name.</b> The nodes import as <c>gas pump_7</c>,
         /// <c>gas pump.001_11</c> and <c>gas pump.002_15</c>, and those trailing numbers are glTF
-        /// NODE INDICES — a re-export that adds or removes a single node renumbers them all. The
+        /// NODE INDICES - a re-export that adds or removes a single node renumbers them all. The
         /// prefix is stable and unambiguous here: the pumps' own children are <c>Object_NN</c> and
         /// the nozzle groups are <c>gas_handles*</c>, with an underscore, so neither can match.
         /// </summary>
@@ -140,8 +140,8 @@ namespace TheBlock.EditorTools
         }
 
         /// <summary>
-        /// Prints each pump's position, its XZ distance from the station centre, and — the part that
-        /// catches a re-export — how far its own origin sits from the centre of the geometry hanging
+        /// Prints each pump's position, its XZ distance from the station centre, and - the part that
+        /// catches a re-export - how far its own origin sits from the centre of the geometry hanging
         /// off it. A pivot far from its mesh means the anchor is not where the nozzle is.
         /// </summary>
         private static void MeasurePumps(IReadOnlyList<Transform> pumps, Vector3 centre, Report report)
@@ -160,12 +160,12 @@ namespace TheBlock.EditorTools
                     pivotDelta = FlatDistance(pump.position, bounds.center);
                 }
 
-                report.Notes.Add($"gas station — pump {i} '{pump.name}' at " +
+                report.Notes.Add($"gas station - pump {i} '{pump.name}' at " +
                                  $"({pump.position.x:0.000}, {pump.position.y:0.000}, {pump.position.z:0.000}), " +
                                  $"{flat:0.00} m from centre, pivot↔bounds {pivotDelta:0.00} m");
 
                 if (pivotDelta > 1.5f)
-                    report.Warnings.Add($"gas station — pump {i} pivot is {pivotDelta:0.00} m from its own " +
+                    report.Warnings.Add($"gas station - pump {i} pivot is {pivotDelta:0.00} m from its own " +
                                         "geometry. A re-export may have moved it; check the anchor by eye.");
             }
         }
@@ -173,8 +173,8 @@ namespace TheBlock.EditorTools
         /// <summary>
         /// A free sanity check on the anchors: <c>config.traffic.gasStops.points</c> are where the
         /// TRAFFIC AI pulls in, already exported and already in the right frame. They are not the
-        /// player's trigger — the web build's own source calls their 4 m radius "far too tight" for
-        /// a person — but they are two independently-authored points on this forecourt, so both must
+        /// player's trigger - the web build's own source calls their 4 m radius "far too tight" for
+        /// a person - but they are two independently-authored points on this forecourt, so both must
         /// fall inside the predicate.
         /// </summary>
         private static void CrossCheckTrafficStops(GasStation station, TheBlockConfig.Snapshot snapshot, Report report)
@@ -182,7 +182,7 @@ namespace TheBlock.EditorTools
             var stops = snapshot.Config?.Traffic?.GasStops?.Points;
             if (stops == null || stops.Count == 0)
             {
-                report.Notes.Add("gas station — no traffic.gasStops to cross-check against");
+                report.Notes.Add("gas station - no traffic.gasStops to cross-check against");
                 return;
             }
 
@@ -190,7 +190,7 @@ namespace TheBlock.EditorTools
             {
                 var point = Convert.Pos(stops[i].X, station.Centre.y, stops[i].Z);
                 var inside = station.AtPump(point);
-                var line = $"gas station — traffic stop {i} at ({point.x:0.0}, {point.z:0.0}) " +
+                var line = $"gas station - traffic stop {i} at ({point.x:0.0}, {point.z:0.0}) " +
                            $"{(inside ? "inside" : "OUTSIDE")} the refuel area";
                 if (inside) report.Notes.Add(line);
                 else report.Warnings.Add(line);
@@ -206,7 +206,7 @@ namespace TheBlock.EditorTools
         ///
         /// <b>Sampled at 0.999 of the radius, and that 0.001 is not a fudge.</b> Measured: a point
         /// built as <c>centre + (cos θ, sin θ) · 9</c> comes back at squared distance
-        /// <c>81.000160</c> against a threshold of <c>81</c> — <c>Mathf.Cos</c>/<c>Sin</c> rounding
+        /// <c>81.000160</c> against a threshold of <c>81</c> - <c>Mathf.Cos</c>/<c>Sin</c> rounding
         /// puts 12 of 64 rim samples microscopically OUTSIDE the very circle they were generated on,
         /// and the first run of this check reported 52/64 for it. The boundary itself is measure-zero
         /// and both builds compare it the same way; the area is what the claim is about.
@@ -236,20 +236,20 @@ namespace TheBlock.EditorTools
             var outside = centre + new Vector3(0f, 0f, stationRadius + 0.1f);
             var refused = !station.AtPump(outside);
 
-            report.Notes.Add($"gas station — superset check {accepted}/{total} across the " +
+            report.Notes.Add($"gas station - superset check {accepted}/{total} across the " +
                              $"{stationRadius:0.0} m disc, and the point past it is {(refused ? "refused" : "ACCEPTED")}");
 
             if (accepted < total)
-                report.Warnings.Add($"gas station — the per-pump area is NOT a superset of the web's circle " +
+                report.Warnings.Add($"gas station - the per-pump area is NOT a superset of the web's circle " +
                                     $"({accepted}/{total}). The station clause must stay in AtPump.");
             if (!refused)
-                report.Warnings.Add("gas station — a point outside every circle was accepted. AtPump is wrong.");
+                report.Warnings.Add("gas station - a point outside every circle was accepted. AtPump is wrong.");
         }
 
         /// <summary>
         /// Makes sure the fuel economy has a component to live on, and the HUD has its gauge.
         ///
-        /// <see cref="FuelSystem"/> goes wherever <c>PowerUps</c> already is — they are the same
+        /// <see cref="FuelSystem"/> goes wherever <c>PowerUps</c> already is - they are the same
         /// concern, both outlive the building you are standing in, and U28 already argued the case
         /// for that group. <b>Only calls <c>NewGroup</c> as a last resort</b>: it always creates a
         /// fresh object, so calling it after <c>EnsureEconomy</c> has just made <c>Game</c> would
@@ -260,7 +260,7 @@ namespace TheBlock.EditorTools
             var existing = Object.FindAnyObjectByType<FuelSystem>();
             if (existing != null)
             {
-                report.Notes.Add($"fuel — FuelSystem already on '{existing.gameObject.name}'");
+                report.Notes.Add($"fuel - FuelSystem already on '{existing.gameObject.name}'");
             }
             else
             {
@@ -268,7 +268,7 @@ namespace TheBlock.EditorTools
                            ?? root.Find("Game")
                            ?? NewGroup("Game", root);
                 host.gameObject.AddComponent<FuelSystem>();
-                report.Placed.Add($"fuel — FuelSystem on {host.name}");
+                report.Placed.Add($"fuel - FuelSystem on {host.name}");
             }
 
             EnsureFuelGauge(report);
@@ -279,27 +279,27 @@ namespace TheBlock.EditorTools
         ///
         /// <b>This exists so nobody has to run The Block → Build Map HUD.</b> That item calls
         /// <c>DestroyImmediate</c> on the <c>HUD</c> GameObject, and every U26 menu component lives
-        /// on it — running it to pick up one new element would take the title screen with it.
+        /// on it - running it to pick up one new element would take the title screen with it.
         /// </summary>
         private static void EnsureFuelGauge(Report report)
         {
             var hud = GameObject.Find("HUD");
             if (hud == null)
             {
-                report.Warnings.Add("fuel — no HUD object in the scene; the fuel bar has nowhere to go. " +
+                report.Warnings.Add("fuel - no HUD object in the scene; the fuel bar has nowhere to go. " +
                                     "Run The Block → Build Map HUD (and then Build Menus, which it deletes).");
                 return;
             }
 
             if (hud.GetComponent<FuelGauge>() != null)
             {
-                report.Notes.Add("fuel — FuelGauge already on HUD");
+                report.Notes.Add("fuel - FuelGauge already on HUD");
                 return;
             }
 
             hud.AddComponent<FuelGauge>();
             EditorUtility.SetDirty(hud);
-            report.Placed.Add("fuel — FuelGauge on HUD");
+            report.Placed.Add("fuel - FuelGauge on HUD");
         }
 
         private static float FlatDistance(Vector3 a, Vector3 b)

@@ -5,7 +5,7 @@ using UnityEngine;
 namespace TheBlock.Traffic
 {
     /// <summary>
-    /// Every traffic light in the city, on one timer each — the port of <c>traffic-lights.ts</c>.
+    /// Every traffic light in the city, on one timer each - the port of <c>traffic-lights.ts</c>.
     ///
     /// A node is LIT when three or more streets meet at it. Its approaches are split into two phase
     /// groups by the axis they arrive on (mostly-X against mostly-Z), and the controller alternates
@@ -14,15 +14,15 @@ namespace TheBlock.Traffic
     /// <b>The phase timer is the single source of truth.</b> Cars ask <see cref="MayEnter"/>,
     /// pedestrians ask <see cref="PedMayCross"/> and the lamps are painted from the same state in
     /// the same pass, so what a driver sees and what the sim believes cannot drift apart. That is
-    /// the web build's design and it is worth keeping verbatim: the alternative — lights animating
-    /// on their own clock — is a bug you can only find by standing at a junction.
+    /// the web build's design and it is worth keeping verbatim: the alternative - lights animating
+    /// on their own clock - is a bug you can only find by standing at a junction.
     ///
     /// <b>This is where U16's seam closes.</b> <c>Crossing.Gate</c> was left as a
     /// <c>Func&lt;bool&gt;</c> so this unit could fill it, and <see cref="AssignGates"/> is that one
     /// line: every crossing keyed by its node and edge now answers to its own light instead of to
     /// U16's "is anything driving over it" stand-in, which is deleted.
     ///
-    /// <b>A pedestrian crosses on FULL red only.</b> Red+yellow is excluded on purpose — those cars
+    /// <b>A pedestrian crosses on FULL red only.</b> Red+yellow is excluded on purpose - those cars
     /// are a second and a half from launching.
     /// </summary>
     [DisallowMultipleComponent]
@@ -136,11 +136,11 @@ namespace TheBlock.Traffic
             if (orphaned > 0)
             {
                 // A crossing whose node and edge this system has never heard of means the graph the
-                // crossings were built from is not the graph the lights were built from — which is
+                // crossings were built from is not the graph the lights were built from - which is
                 // what happens if the Crossings group is a leftover from an older build. Say so
                 // loudly: the symptom otherwise is a handful of zebras nobody ever waits at.
                 Debug.LogWarning(
-                    $"TrafficLightSystem: {orphaned} crossing(s) have no light for their (node, edge) — " +
+                    $"TrafficLightSystem: {orphaned} crossing(s) have no light for their (node, edge) - " +
                     "they are from an older graph. Re-run The Block → Build World + NavMesh (slow).",
                     this);
             }
@@ -197,7 +197,7 @@ namespace TheBlock.Traffic
         }
 
         /// <summary>
-        /// May a pedestrian cross this edge's road here right now? FULL red only — red+amber means
+        /// May a pedestrian cross this edge's road here right now? FULL red only - red+amber means
         /// the cars are about to go.
         /// </summary>
         public bool PedMayCross(int nodeId, int edgeId)

@@ -13,7 +13,7 @@ namespace TheBlock.EditorTools
     /// becomes when he beaches.
     ///
     /// <b>He is Peter, and that is a deliberate substitution.</b> The web ships two dedicated 52 MB
-    /// Mixamo downloads for him — <c>driving-thief.fbx</c> and <c>Running.fbx</c> — 104 MB of body
+    /// Mixamo downloads for him - <c>driving-thief.fbx</c> and <c>Running.fbx</c> - 104 MB of body
     /// for one man who appears in one mission, against an LFS store already at GitHub's 1 GiB free
     /// ceiling. Peter is the sixth crowd character and the ONE the delivery run does not use as a
     /// customer, so he is already imported, already URP-bound, already height-normalised, and he is
@@ -22,7 +22,7 @@ namespace TheBlock.EditorTools
     ///
     /// His ski is a tinted clone of the player's, exactly as the web tints its own: same hull, dark
     /// red paint, so the two read apart at speed on open water. It carries no body and no collider
-    /// at all — nothing ever hits the thief, and the buoys he skims are handled by
+    /// at all - nothing ever hits the thief, and the buoys he skims are handled by
     /// <see cref="Missions.BuoyField"/>, which that file explains.
     /// </summary>
     public static class ThiefBuilder
@@ -33,7 +33,7 @@ namespace TheBlock.EditorTools
         private const string JoeRideClip = "Joe_Ride";
         private const string JoePath = "Assets/Models/Characters/Joe_Driving.fbx";
 
-        // The run. Joe's own clips — Humanoid, so they retarget onto Peter with nothing imported.
+        // The run. Joe's own clips - Humanoid, so they retarget onto Peter with nothing imported.
         private const string RunControllerPath = "Assets/Animation/ThiefRun.controller";
         private const string JoeIdlePath = "Assets/Models/Characters/Joe.fbx";
         private const string JoeIdleClip = "Joe_Idle";
@@ -67,7 +67,7 @@ namespace TheBlock.EditorTools
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(SkiPrefab);
             if (prefab == null)
             {
-                log.AppendLine("  thief: no Jetski.prefab — run The Block → Build Mission Vehicles.");
+                log.AppendLine("  thief: no Jetski.prefab - run The Block → Build Mission Vehicles.");
                 return null;
             }
 
@@ -78,7 +78,7 @@ namespace TheBlock.EditorTools
             // Strip it down to visuals. The CONTROLLER goes first and on its own: it carries
             // [RequireComponent(typeof(Rigidbody))], so removing the body while it is still attached
             // fails silently ("Can't remove Rigidbody because JetskiController depends on it") and
-            // leaves a half-stripped object behind — which is exactly what the first run of this did.
+            // leaves a half-stripped object behind - which is exactly what the first run of this did.
             if (instance.TryGetComponent<TheBlock.Vehicles.JetskiController>(out var controller))
                 Object.DestroyImmediate(controller);
 
@@ -95,7 +95,7 @@ namespace TheBlock.EditorTools
 
         /// <summary>
         /// Repaints the hull so the two skis read apart. Clones the material first, because it is
-        /// shared with the player's ski through the prefab — writing the shared asset would paint
+        /// shared with the player's ski through the prefab - writing the shared asset would paint
         /// BOTH of them dark red, which is the version of this bug that looks like it works until
         /// the chase starts.
         /// </summary>
@@ -118,7 +118,7 @@ namespace TheBlock.EditorTools
                     var clone = new Material(material) { name = $"{material.name}_Thief" };
 
                     // baseColorFactor first: glTFast's imported shader has neither _BaseColor nor
-                    // _Color, and writing a property a shader lacks is a SILENT no-op — the fault
+                    // _Color, and writing a property a shader lacks is a SILENT no-op - the fault
                     // that left the Mustang the wrong colour for four units.
                     var wrote = false;
                     foreach (var property in new[] { "baseColorFactor", "_BaseColor", "_Color" })
@@ -129,7 +129,7 @@ namespace TheBlock.EditorTools
                     }
 
                     if (!wrote)
-                        log.AppendLine($"  ⚠ '{material.name}' has no colour property — hull not tinted");
+                        log.AppendLine($"  ⚠ '{material.name}' has no colour property - hull not tinted");
 
                     materials[i] = clone;
                     changed = true;
@@ -145,8 +145,8 @@ namespace TheBlock.EditorTools
         /// <summary>
         /// Sits Peter on the ski in the shared riding pose.
         ///
-        /// <c>Joe_Ride</c> is the clip the motorcycle and the jetski both use — the web keeps it in
-        /// a file of its own for exactly that reason — and it is Humanoid, so it retargets onto
+        /// <c>Joe_Ride</c> is the clip the motorcycle and the jetski both use - the web keeps it in
+        /// a file of its own for exactly that reason - and it is Humanoid, so it retargets onto
         /// Peter without a second import. A driverless ski fleeing across the bay is the bug the
         /// jetski's own config comment names.
         /// </summary>
@@ -199,12 +199,12 @@ namespace TheBlock.EditorTools
         // ── the running body ──────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// The beach run. Peter again — but on <b>Joe's sprint</b>, not on the crowd's tree.
+        /// The beach run. Peter again - but on <b>Joe's sprint</b>, not on the crowd's tree.
         ///
         /// He shipped on the crowd's locomotion graph, which is the right instinct and the wrong
         /// graph: every motion in it is <c>Sophie_Walk</c>, because a pedestrian has never had
         /// anywhere to be. So a man fleeing a jetski chase strolled up the beach. Joe's clips are
-        /// Humanoid, so <c>Joe_Sprint</c> retargets onto Peter for nothing — no import, no LFS.
+        /// Humanoid, so <c>Joe_Sprint</c> retargets onto Peter for nothing - no import, no LFS.
         ///
         /// <b>The stride is matched to his ground speed, and that is the whole trick.</b>
         /// <c>Joe_Sprint</c> carries 5.58 m/s of root motion and the thief flees at
@@ -218,7 +218,7 @@ namespace TheBlock.EditorTools
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(ThiefPrefab);
             if (prefab == null)
             {
-                log.AppendLine($"  thief: {ThiefPrefab} is missing — run Build Pedestrians. No runner.");
+                log.AppendLine($"  thief: {ThiefPrefab} is missing - run Build Pedestrians. No runner.");
                 return (null, null);
             }
 
@@ -257,7 +257,7 @@ namespace TheBlock.EditorTools
             var sprint = Clip(JoeSprintPath, JoeSprintClip);
             if (idle == null || sprint == null)
             {
-                log.AppendLine($"  ⚠ thief runner: idle={idle != null} sprint={sprint != null} — " +
+                log.AppendLine($"  ⚠ thief runner: idle={idle != null} sprint={sprint != null} - " +
                                "left on the crowd's walk tree");
                 return null;
             }
@@ -295,7 +295,7 @@ namespace TheBlock.EditorTools
             AssetDatabase.SaveAssets();
 
             log.AppendLine($"  thief runner: Joe_Sprint retargeted onto Peter, clip {clipSpeed:0.00} m/s " +
-                           $"× {stride:0.000} = {spec.Run.BaseSpeed:0.00} m/s — stride matches the ground");
+                           $"× {stride:0.000} = {spec.Run.BaseSpeed:0.00} m/s - stride matches the ground");
             return controller;
         }
 

@@ -4,7 +4,7 @@ using UnityEngine.Audio;
 namespace TheBlock.Audio
 {
     /// <summary>
-    /// The helicopter's rotor — the port of <c>src/audio/rotor-sound.ts</c>, and the one place in
+    /// The helicopter's rotor - the port of <c>src/audio/rotor-sound.ts</c>, and the one place in
     /// this project where Unity has a genuine one-for-one answer to the Web Audio API.
     ///
     /// The "whomp-whomp" blade slap is a low band of noise whose amplitude is chopped by an LFO at
@@ -13,7 +13,7 @@ namespace TheBlock.Audio
     /// up and down rather than fading a fixed recording in.
     ///
     /// <b><see cref="OnAudioFilterRead"/> is why this is a port and not an approximation.</b> The
-    /// obvious Unity route — bake one loop and drive <c>AudioSource.pitch</c> — cannot reproduce it,
+    /// obvious Unity route - bake one loop and drive <c>AudioSource.pitch</c> - cannot reproduce it,
     /// because the three rates move by DIFFERENT factors as the throttle opens: the chop goes 7→17
     /// Hz (2.43×), the engine hum 0.7→1.2 (1.71×), the whine 0.6→1.3 (2.17×). One pitch knob
     /// collapses all three into one ratio and the spin-up stops sounding like a rotor. Unity's DSP
@@ -22,12 +22,12 @@ namespace TheBlock.Audio
     ///
     /// <b>Rules of the audio thread, and they are not optional:</b> no allocation, no Unity API, no
     /// logging. Every buffer is filled from fields that were already there. The main thread writes
-    /// only two floats, and a torn read of either is one buffer of very slightly wrong pitch —
+    /// only two floats, and a torn read of either is one buffer of very slightly wrong pitch -
     /// inaudible, and cheaper than a lock on a callback that runs hundreds of times a second.
     ///
     /// <b>Naive saw and triangle, deliberately</b>, unlike <see cref="SfxSynth"/>: the hum is 70 Hz
     /// into a 420 Hz lowpass and the whine is a 230 Hz triangle, so the aliased partials are 1/n and
-    /// 1/n² terms around n ≈ 600 — sixty decibels under the blade noise they sit beneath. PolyBLEP
+    /// 1/n² terms around n ≈ 600 - sixty decibels under the blade noise they sit beneath. PolyBLEP
     /// here would be arithmetic nobody can hear.
     /// </summary>
     [RequireComponent(typeof(AudioSource))]
@@ -67,7 +67,7 @@ namespace TheBlock.Audio
         private int _rate = 44100;
         private bool _built;
 
-        /// <summary>Current smoothed throttle. Diagnostic — the measurement pass reads it.</summary>
+        /// <summary>Current smoothed throttle. Diagnostic - the measurement pass reads it.</summary>
         public float Throttle => _throttle;
 
         private void Awake()
@@ -79,7 +79,7 @@ namespace TheBlock.Audio
             _source.outputAudioMixerGroup = output;
 
             // A filter only runs while its source is producing audio, so the source needs SOMETHING
-            // to play. A second of silence, looped, is the whole trick — every sample of it is
+            // to play. A second of silence, looped, is the whole trick - every sample of it is
             // overwritten in OnAudioFilterRead before anyone hears it.
             _rate = AudioSettings.outputSampleRate > 0 ? AudioSettings.outputSampleRate : 44100;
             var silence = AudioClip.Create("rotor-carrier", _rate, 1, _rate, false);

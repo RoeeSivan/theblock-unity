@@ -5,11 +5,11 @@ namespace TheBlock.Traffic
     /// <summary>
     /// One ambient street car. The state is here; the decisions are in <see cref="TrafficSystem"/>.
     ///
-    /// <b>Kinematic while it drives, dynamic when it is hit — and that split is this unit's answer to
+    /// <b>Kinematic while it drives, dynamic when it is hit - and that split is this unit's answer to
     /// the standing "can Unity do this better?" question.</b> The web build's traffic is kinematic
     /// full stop (<c>traffic-cars.ts</c>: "the player collides with them but can never push them off
     /// the road"), because thirty Rapier vehicles solving contacts every frame was never on the
-    /// table. Kinematic is still the right default here for exactly that reason — a car following a
+    /// table. Kinematic is still the right default here for exactly that reason - a car following a
     /// baked lane costs a <c>MovePosition</c> and nothing else. But Unity can afford the exception
     /// the web build could not: hit one hard enough and <em>that one car</em> becomes a real
     /// Rigidbody, takes the blow, and stays a wreck the rest of the traffic queues behind until you
@@ -25,7 +25,7 @@ namespace TheBlock.Traffic
     {
         public enum State
         {
-            /// <summary>Pooled and hidden — not in the world.</summary>
+            /// <summary>Pooled and hidden - not in the world.</summary>
             Idle,
 
             /// <summary>Following its lane under script control.</summary>
@@ -37,12 +37,12 @@ namespace TheBlock.Traffic
 
         // --- built by TrafficCarBuilder ------------------------------------------------------
 
-        [Tooltip("Which drivable car this model IS — the config.vehicle.cars name. U17b's carjack " +
+        [Tooltip("Which drivable car this model IS - the config.vehicle.cars name. U17b's carjack " +
                  "swaps this car for that prefab, and reading it off the instance name would mean " +
                  "parsing 'TrafficCar_07' back into 'Tesla', which it does not contain.")]
         [SerializeField] private string modelName;
 
-        [Tooltip("Turns this car's rotation into the drivable prefab's — baked, see DriveRotation.")]
+        [Tooltip("Turns this car's rotation into the drivable prefab's - baked, see DriveRotation.")]
         [SerializeField] private Quaternion driveRotationOffset = Quaternion.identity;
 
         [Tooltip("Half the body length, metres. Bumper-gap arithmetic.")]
@@ -63,10 +63,10 @@ namespace TheBlock.Traffic
 
         // --- tuning ---------------------------------------------------------------------------
 
-        [Tooltip("Off makes a traffic car an immovable wall for good — the web build's contract.")]
+        [Tooltip("Off makes a traffic car an immovable wall for good - the web build's contract.")]
         [SerializeField] private bool wreckOnImpact = true;
 
-        [Tooltip("Relative speed, m/s, below which a bump is just a bump. 3 is about 11 km/h — a " +
+        [Tooltip("Relative speed, m/s, below which a bump is just a bump. 3 is about 11 km/h - a " +
                  "shunt you meant. It was 6, and 6 is faster than most of a queue ever moves, so " +
                  "every collision inside a jam was a car hitting a wall.")]
         [SerializeField] private float wreckSpeed = 3f;
@@ -118,7 +118,7 @@ namespace TheBlock.Traffic
 
         /// <summary>
         /// Metres this car is currently shifted OUTWARD from its lane centre to let a pursuing
-        /// police car past. Eased, never snapped — a car that jumps two metres sideways reads as a
+        /// police car past. Eased, never snapped - a car that jumps two metres sideways reads as a
         /// glitch, and a car that drifts over reads as pulling in.
         /// </summary>
         [System.NonSerialized] public float Yield;
@@ -157,8 +157,8 @@ namespace TheBlock.Traffic
         /// Not this transform's rotation, and this is the one place in the port where those two
         /// really do differ rather than only looking as though they might.
         /// <c>config.traffic.models[].modelYaw</c> is authored in the OPPOSITE convention to
-        /// <c>vehicle.cars[].modelYaw</c> — the traffic one turns the nose to the travel direction,
-        /// the car one turns it to three.js's -Z — and the same model is π apart between them. Steal
+        /// <c>vehicle.cars[].modelYaw</c> - the traffic one turns the nose to the travel direction,
+        /// the car one turns it to three.js's -Z - and the same model is π apart between them. Steal
         /// a car with the rotation copied straight across and you drive away facing backwards. The
         /// offset is baked by <c>TrafficCarBuilder</c>, where both numbers are visible at once.
         /// </summary>
@@ -194,7 +194,7 @@ namespace TheBlock.Traffic
 
             // One materials array per paint renderer, allocated once. `sharedMaterials` returns a
             // fresh array on every read, so re-painting through the property directly would allocate
-            // twice per renderer per recycle — sixty times a minute, forever.
+            // twice per renderer per recycle - sixty times a minute, forever.
             _slotScratch = new Material[paintRenderers.Length][];
             for (int i = 0; i < paintRenderers.Length; i++)
                 _slotScratch[i] = paintRenderers[i] != null
@@ -287,7 +287,7 @@ namespace TheBlock.Traffic
             gameObject.SetActive(false);
         }
 
-        /// <summary>Stops a wreck dead. A no-op on a car that is already kinematic — deliberately.</summary>
+        /// <summary>Stops a wreck dead. A no-op on a car that is already kinematic - deliberately.</summary>
         private void ClearMotion()
         {
             if (_body.isKinematic) return;

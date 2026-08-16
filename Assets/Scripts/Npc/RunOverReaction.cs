@@ -5,13 +5,13 @@ namespace TheBlock.Npc
 {
     /// <summary>
     /// One pedestrian's run-over: launched, lands, lies there, fades out. The port of the original's
-    /// <c>npc/run-over.ts</c>, and the same split of responsibilities — <see cref="Pedestrian"/> owns
+    /// <c>npc/run-over.ts</c>, and the same split of responsibilities - <see cref="Pedestrian"/> owns
     /// the body, the animator and the lifecycle; this owns the MOTION and the CLOCK, and touches
     /// nothing it was not handed.
     ///
     /// <b>The motion is split between the clip and the code, and the split is the design.</b> The
-    /// clip supplies the pose and its own authored horizontal travel — as real Unity root motion, see
-    /// <c>HitClipImporter</c> — so the limbs and the landing are frame-exact by construction and
+    /// clip supplies the pose and its own authored horizontal travel - as real Unity root motion, see
+    /// <c>HitClipImporter</c> - so the limbs and the landing are frame-exact by construction and
     /// there is no code-side pose clock to drift against. The code supplies only the two things the
     /// clip lacks: a vertical arc (the clip's own vertical is flat, measured at +3 mm in the web
     /// build) and a speed-scaled extra shove, so a hit at 100 km/h throws further than one at 15.
@@ -61,7 +61,7 @@ namespace TheBlock.Npc
 
         private Tuning _tuning;
         private Transform _body;
-        private Vector3 _throw;      // unit, horizontal — the direction the vehicle was travelling
+        private Vector3 _throw;      // unit, horizontal - the direction the vehicle was travelling
         private float _groundY;      // the street under the victim at the moment of impact
         private float _push;         // total extra metres this hit is worth
         private float _pushed;       // how much of it has been applied
@@ -80,7 +80,7 @@ namespace TheBlock.Npc
         /// <summary>0..1, applied to the body's materials by <see cref="Pedestrian"/>.</summary>
         public float Opacity { get; private set; } = 1f;
 
-        /// <summary>How long this reaction lasts in total — the stain's budget, and the cull check's.</summary>
+        /// <summary>How long this reaction lasts in total - the stain's budget, and the cull check's.</summary>
         public float Duration => _fadeUntil;
 
         public void Begin(
@@ -108,7 +108,7 @@ namespace TheBlock.Npc
         }
 
         /// <summary>
-        /// One step, called from <see cref="CrowdSpawner"/>'s LateUpdate — <b>after</b> the animator
+        /// One step, called from <see cref="CrowdSpawner"/>'s LateUpdate - <b>after</b> the animator
         /// has run and after <see cref="Pedestrian"/> has harvested the clip's root motion onto the
         /// transform. The order matters: this adds to where the clip has already put the body.
         /// </summary>
@@ -142,7 +142,7 @@ namespace TheBlock.Npc
 
             _body.position = position;
 
-            // The stain belongs where the body STOPS, not where the car hit it — those are metres
+            // The stain belongs where the body STOPS, not where the car hit it - those are metres
             // apart. Its budget is exactly the time left before this person gets up and walks away,
             // so it can never still be on the road while its own victim strolls past it.
             if (!_stained && _t >= _tuning.FlightTime)

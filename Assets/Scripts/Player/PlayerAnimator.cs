@@ -17,7 +17,7 @@ namespace TheBlock.Player
     /// <see cref="CharacterBody"/> and re-resolves whenever it swaps.
     ///
     /// Root motion stays OFF. The controller owns position; the clips only supply pose. The sprint
-    /// clip does carry root motion, which the Animator ignores — the builder corrects its playback
+    /// clip does carry root motion, which the Animator ignores - the builder corrects its playback
     /// rate instead so the cadence matches the speed the controller actually moves at.
     ///
     /// Build the graph this expects with **The Block → Build Joe Animator**.
@@ -44,7 +44,7 @@ namespace TheBlock.Player
         private Animator _animator;
         private float _blendedSpeed;
 
-        /// <summary>Mounted in anything — a car or a bike. Owns the gait blend's freeze.</summary>
+        /// <summary>Mounted in anything - a car or a bike. Owns the gait blend's freeze.</summary>
         private bool _inCar;
 
         // The two raw flags behind _inCar, kept apart from it so a body swap can re-push exactly
@@ -66,7 +66,7 @@ namespace TheBlock.Player
 
         /// <summary>
         /// Caches the Animator and measures the entry clip. Called from Awake, and again from Update
-        /// if the Animator has gone null — which is what a script recompile during Play does: the
+        /// if the Animator has gone null - which is what a script recompile during Play does: the
         /// domain reloads, non-serialized fields clear, and Awake does not run again. The other
         /// components carry the same guard; without it this one throws once a frame forever.
         /// </summary>
@@ -152,14 +152,14 @@ namespace TheBlock.Player
         private void OnJumped() => _animator.SetTrigger(JumpId);
 
         /// <summary>
-        /// Starts the entry animation. It plays once and holds its last frame — the seated pose —
+        /// Starts the entry animation. It plays once and holds its last frame - the seated pose -
         /// for as long as the flag stays set, which is the whole drive.
         /// </summary>
         public void SeatIn() => Seat(inCar: true, riding: false);
 
         /// <summary>
         /// Straight into the riding pose, with no walk-up. This is the bike: you do not enter a
-        /// motorcycle, you sit on it, so there is no clip to play through first — the pose is
+        /// motorcycle, you sit on it, so there is no clip to play through first - the pose is
         /// simply held for the whole ride.
         /// </summary>
         public void RideOn() => Seat(inCar: false, riding: true);

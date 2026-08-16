@@ -7,8 +7,8 @@ namespace TheBlock.Vehicles
     /// Spawns the motorcycle at runtime from its prefab and its config spec.
     ///
     /// Unlike <c>CarSpawner</c>, this is a one-shot: there is only one motorcycle in the game, and
-    /// it spawns once at startup. It finds ground the way the cars do — one raycast at spawn, then
-    /// the suspension takes over — so the bike lands correctly on lot asphalt, a district street, or
+    /// it spawns once at startup. It finds ground the way the cars do - one raycast at spawn, then
+    /// the suspension takes over - so the bike lands correctly on lot asphalt, a district street, or
     /// nothing at all.
     ///
     /// It does NOT put the bike on the enterable list; the controller does that itself in
@@ -64,20 +64,20 @@ namespace TheBlock.Vehicles
             else
             {
                 Debug.LogWarning(
-                    $"MotorcycleSpawner: nothing under motorcycle's spawn {Fmt(ground)} — " +
+                    $"MotorcycleSpawner: nothing under motorcycle's spawn {Fmt(ground)} - " +
                     $"dropped at config roadSurfaceY {spec.RoadSurfaceY:0.##} instead.", this);
             }
 
             var position = new Vector3(ground.x, y + settleGap, ground.z);
 
-            // config.vehicle.motorcycle has no spawn yaw, and the web build leaves the bike at 0 —
+            // config.vehicle.motorcycle has no spawn yaw, and the web build leaves the bike at 0 -
             // which is its -Z, and Unity's +Z, so identity is the converted equivalent, not a stub.
             var bike = Instantiate(motorcyclePrefab, position, Quaternion.identity, transform);
             bike.name = "Motorcycle";
 
             if (bike.TryGetComponent<MotorcycleController>(out var controller)) _bike = controller;
             else Debug.LogError(
-                "MotorcycleSpawner: the assigned prefab has no MotorcycleController — this is almost " +
+                "MotorcycleSpawner: the assigned prefab has no MotorcycleController - this is almost " +
                 "always the raw imported model rather than the one The Block → Build Motorcycle makes.",
                 bike);
         }

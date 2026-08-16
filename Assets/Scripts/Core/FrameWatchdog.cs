@@ -15,14 +15,14 @@ namespace TheBlock.Core
     ///
     /// The toolbar detail is the tell: the Editor's own chrome is not drawn by this game, so
     /// corruption that reaches it is the graphics DEVICE, not game code. On a 16 GB unified-memory
-    /// Mac that means one thing — the machine ran out of memory to give Metal, and a failed texture
+    /// Mac that means one thing - the machine ran out of memory to give Metal, and a failed texture
     /// allocation renders as whatever was in that memory before. So the numbers worth having at the
     /// moment of the fault are the memory ones, and they must be recorded by something resident
     /// rather than reconstructed afterwards.
     ///
     /// <see cref="SkinWatchdog"/> made the same argument for the wedge and it worked: name it,
     /// measure it, pause on the frame. This is the same instrument pointed at memory. It is
-    /// deliberately general — every unit after this one gets it for free.
+    /// deliberately general - every unit after this one gets it for free.
     ///
     /// Editor-only by construction: the auto-install is compiled out of a player build.
     /// </summary>
@@ -41,7 +41,7 @@ namespace TheBlock.Core
                  "Loading a district is the honest cause; anything else is worth knowing about.")]
         [SerializeField] private float textureJumpMb = 128f;
 
-        [Tooltip("Pause the editor on a hitch. Off by default — a hitch is not a wedge, and pausing " +
+        [Tooltip("Pause the editor on a hitch. Off by default - a hitch is not a wedge, and pausing " +
                  "the first time the crowd streams in would be noise.")]
         [SerializeField] private bool pauseOnHitch;
 
@@ -87,7 +87,7 @@ namespace TheBlock.Core
             if (dt >= hitchSeconds)
             {
                 _hitches++;
-                Debug.LogWarning($"FrameWatchdog: HITCH {dt * 1000f:0} ms — {Census("hitch")}");
+                Debug.LogWarning($"FrameWatchdog: HITCH {dt * 1000f:0} ms - {Census("hitch")}");
 
 #if UNITY_EDITOR
                 if (pauseOnHitch) UnityEditor.EditorApplication.isPaused = true;

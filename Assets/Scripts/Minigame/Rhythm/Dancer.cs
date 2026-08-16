@@ -4,18 +4,18 @@ using UnityEngine;
 namespace TheBlock.Minigame.Rhythm
 {
     /// <summary>
-    /// The body on stage — the port of <c>src/minigame/rhythm/dancer.ts</c>.
+    /// The body on stage - the port of <c>src/minigame/rhythm/dancer.ts</c>.
     ///
     /// One skeleton, one Animator, eight clips cross-faded between: a base groove, four flourishes
     /// cycled one per successful hit, and three reactions. The cross-fade is doing real work, not
-    /// polish — these are arbitrary stock Mixamo clips whose start and end poses have nothing to do
+    /// polish - these are arbitrary stock Mixamo clips whose start and end poses have nothing to do
     /// with each other, and 0.2 s of blend is what turns a snap into a move.
     ///
     /// <b>Two of the web's three hard problems here simply do not exist in Unity.</b> Its dancer has
     /// to strip the hips' X/Z tracks by hand so the routine does not wander off the stage, and it
     /// has to rebind every clip onto the chosen body by bone name because Mixamo stamps a per-upload
     /// counter into its namespace. Here Bake Into Pose does the first at import time and Humanoid
-    /// retargeting does the second for free — see <c>DanceClipImporter</c>. What is left is the
+    /// retargeting does the second for free - see <c>DanceClipImporter</c>. What is left is the
     /// state machine, which is this file.
     ///
     /// <b>Win and Fail are terminal.</b> They clamp on their last frame and must not slide back to
@@ -37,10 +37,10 @@ namespace TheBlock.Minigame.Rhythm
         [SerializeField] private Animator animator;
 
         [Tooltip("Whose body is on the stage. U29: the dancer IS the player, so it wears the roster " +
-                 "pick — and this is the one place the swap had to reach beyond the player himself.")]
+                 "pick - and this is the one place the swap had to reach beyond the player himself.")]
         [SerializeField] private TheBlock.Player.CharacterBody body;
 
-        [Tooltip("Seconds of blend between clips — rhythmConfig.dancer.crossFadeSec.")]
+        [Tooltip("Seconds of blend between clips - rhythmConfig.dancer.crossFadeSec.")]
         [SerializeField] private float crossFade = 0.2f;
 
         private int _hitIndex;
@@ -54,7 +54,7 @@ namespace TheBlock.Minigame.Rhythm
 
             // Re-bound on every enable, not only in Awake. The stage stands DISABLED between
             // routines, so a character picked from the menu swaps a body this component was not
-            // listening for — OnDisable had already unsubscribed. Taking the animator again on the
+            // listening for - OnDisable had already unsubscribed. Taking the animator again on the
             // way in covers exactly that window.
             Bind();
         }
@@ -103,7 +103,7 @@ namespace TheBlock.Minigame.Rhythm
         public void PlayIdle() => Fade(IdleState);
 
         /// <summary>
-        /// The next flourish, cycled rather than random — so four hits in a row are four different
+        /// The next flourish, cycled rather than random - so four hits in a row are four different
         /// moves, which random selection would not guarantee. Each returns to the groove on its own.
         /// </summary>
         public void PlayHit()
@@ -139,7 +139,7 @@ namespace TheBlock.Minigame.Rhythm
         // ── IChaseTarget ──────────────────────────────────────────────────────────────────────
         //
         // The dancer IS a chase target, which is what lets the existing FollowCamera frame the
-        // routine with no dance-specific camera code at all — `Follow(dancer)` to take the stage and
+        // routine with no dance-specific camera code at all - `Follow(dancer)` to take the stage and
         // `FollowPlayer()` to leave it. U9 built that swap for getting into a car and the split it
         // chose (the camera owns the smoothing, the target owns where the boom hangs) is exactly
         // what makes a third kind of target free.
@@ -151,7 +151,7 @@ namespace TheBlock.Minigame.Rhythm
 
         /// <summary>
         /// Already in Unity's frame. The config's offset is authored in the DANCER's local space, so
-        /// it goes through <see cref="Convert.ModelOffset"/> at build time — the same rule the
+        /// it goes through <see cref="Convert.ModelOffset"/> at build time - the same rule the
         /// player's own boom follows, and for the same reason: through <c>Pos</c> the camera ends up
         /// in the dancer's face.
         /// </summary>

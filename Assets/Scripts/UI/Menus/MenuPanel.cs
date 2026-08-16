@@ -7,7 +7,7 @@ namespace TheBlock.UI.Menus
     /// What every screen in this namespace has in common: one full-screen overlay on the shared HUD
     /// document, built once, shown and hidden by name.
     ///
-    /// The web build says this five times over — each of <c>title-menu.ts</c>, <c>pause-menu.ts</c>,
+    /// The web build says this five times over - each of <c>title-menu.ts</c>, <c>pause-menu.ts</c>,
     /// <c>controls-guide.ts</c>, <c>character-select.ts</c> and <c>shop-menu.ts</c> opens with the
     /// same paragraph about querying by id and toggling <c>.hidden</c>, and each re-implements the
     /// same three lines. There is no markup file here to hold the structure, so the shared part is a
@@ -56,7 +56,7 @@ namespace TheBlock.UI.Menus
             Overlay = MenuStyle.Overlay(PanelName, Opaque);
 
             // Swallow clicks that miss a button. Without this a click on the empty part of the
-            // title screen falls through to whatever U14 put underneath — the map panel registers a
+            // title screen falls through to whatever U14 put underneath - the map panel registers a
             // ClickEvent of its own and would expand behind an opaque overlay.
             Overlay.RegisterCallback<PointerDownEvent>(evt => evt.StopPropagation());
 

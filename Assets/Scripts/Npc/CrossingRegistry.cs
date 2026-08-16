@@ -22,7 +22,7 @@ namespace TheBlock.Npc
 
         public static void Unregister(Crossing crossing) => Crossings.Remove(crossing);
 
-        /// <summary>Every live crossing. Dead entries swept on the way out — the list is static.</summary>
+        /// <summary>Every live crossing. Dead entries swept on the way out - the list is static.</summary>
         public static IReadOnlyList<Crossing> All
         {
             get

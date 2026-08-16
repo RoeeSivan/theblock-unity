@@ -4,13 +4,13 @@ using UnityEngine;
 namespace TheBlock.Missions
 {
     /// <summary>
-    /// Keeps a hull out of the buoys — the port of <c>chase-thief.ts</c>'s radial push-out, shared
+    /// Keeps a hull out of the buoys - the port of <c>chase-thief.ts</c>'s radial push-out, shared
     /// by BOTH skis.
     ///
     /// <b>This exists because the obvious Unity answer does not work, and the ledger's rule is that
     /// "can Unity do this better?" has to be allowed to answer NO.</b> The plan for this unit said
-    /// the web needs two separate avoidance mechanisms — a Rapier cylinder for the player and a
-    /// hand-written push-out for its body-less thief — and that Unity would delete both because the
+    /// the web needs two separate avoidance mechanisms - a Rapier cylinder for the player and a
+    /// hand-written push-out for its body-less thief - and that Unity would delete both because the
     /// buoys are colliders. That was wrong, and measuring it is what showed why: both skis are
     /// KINEMATIC rigidbodies (their motion is scripted onto a water plane, because U12 built the sea
     /// as a shader surface with no volume to be buoyant in), and a kinematic body does not collide
@@ -28,7 +28,7 @@ namespace TheBlock.Missions
     public static class BuoyField
     {
         /// <summary>
-        /// Buoy collider radius (1.0) plus half a ski hull plus a margin — the web's own number,
+        /// Buoy collider radius (1.0) plus half a ski hull plus a margin - the web's own number,
         /// and it holds here because the hull is the same 1.47 m wide model.
         /// </summary>
         public const float Clearance = 2.6f;
@@ -77,7 +77,7 @@ namespace TheBlock.Missions
         }
 
         /// <summary>
-        /// Static state and Play mode do not mix by default — the same guard
+        /// Static state and Play mode do not mix by default - the same guard
         /// <see cref="UI.MapRegistry"/> keeps. A field left over from a previous session would have
         /// the player bouncing off buoys that are not there.
         /// </summary>

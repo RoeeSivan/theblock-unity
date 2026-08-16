@@ -6,11 +6,11 @@ Why this exists
 The web build's optimized assets store textures as WebP, which the exporter writes into
 `extensionsRequired: ["EXT_texture_webp"]`. glTFast cannot read that extension, and because it is
 *required* it rejects the whole file: Unity imports the .glb as a DefaultAsset and WorldBuilder can
-only report the place as "missing" — the real reason hides in the Inspector.
+only report the place as "missing" - the real reason hides in the Inspector.
 
 Blender exports get `export_image_webp_fallback=True` for the same reason (U8 decision). These lot
 car models come from `public/models/optimized/lod/`, have no source asset anywhere, and cannot be
-re-exported — so the transcode happens here instead, once, and the result is committed.
+re-exported - so the transcode happens here instead, once, and the result is committed.
 
 The geometry is untouched: Draco stays compressed, accessors and bufferViews other than the image
 ones are copied byte for byte. Only the image payloads change, plus the texture indirection the
@@ -99,7 +99,7 @@ def transcode(src, dst):
         webp_views[image["bufferView"]] = buffer.getvalue()
 
     if not webp_views:
-        print(f"{src}: no embedded WebP — nothing to do")
+        print(f"{src}: no embedded WebP - nothing to do")
 
     rebuilt = bytearray()
     for index, view in enumerate(views):

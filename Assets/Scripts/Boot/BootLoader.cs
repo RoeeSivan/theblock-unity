@@ -9,7 +9,7 @@ namespace TheBlock.Boot
     /// The first scene. It clears the session's statics, loads the world asynchronously, and drives
     /// the bar off the load's own progress.
     ///
-    /// It holds nothing else — no audio host, no campaign, no Joe. The title screen deliberately
+    /// It holds nothing else - no audio host, no campaign, no Joe. The title screen deliberately
     /// lives in the world scene (see <c>GameFlow</c>), so this scene's whole job is the two seconds
     /// before that one exists.
     ///
@@ -23,7 +23,7 @@ namespace TheBlock.Boot
     {
         [SerializeField] private LoadingScreen screen;
 
-        [Tooltip("The scene to load. Must be in File → Build Settings — Build Menus puts it there.")]
+        [Tooltip("The scene to load. Must be in File → Build Settings - Build Menus puts it there.")]
         [SerializeField] private string worldScene = "World";
 
         [Tooltip("Seconds the finished bar is left on screen before the world appears. Without it " +

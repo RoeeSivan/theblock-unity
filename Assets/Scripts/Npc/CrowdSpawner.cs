@@ -8,11 +8,11 @@ using UnityEngine;
 namespace TheBlock.Npc
 {
     /// <summary>
-    /// The street crowd — U16b's population, as opposed to <see cref="Pedestrian"/>'s behaviour.
+    /// The street crowd - U16b's population, as opposed to <see cref="Pedestrian"/>'s behaviour.
     ///
     /// <b>Placement is the original's, verbatim.</b> 33 painted rectangles at nine people each, 38
     /// sidewalk strips split into two opposing lanes, a per-district fallback, and two gated
-    /// crossers per zebra — baked into <see cref="CrowdSeedTable"/> by <c>CrowdBuilder</c>. U16
+    /// crossers per zebra - baked into <see cref="CrowdSeedTable"/> by <c>CrowdBuilder</c>. U16
     /// replaced all of that with a spawn ring that follows the player; this puts the authored
     /// pavements back, because they are where the game's streets actually look inhabited.
     ///
@@ -20,7 +20,7 @@ namespace TheBlock.Npc
     /// the far ones. Here the far ones do not exist: a seed is a struct, and the nearest
     /// <see cref="liveCap"/> of them inside <see cref="cullDistance"/> are handed a prefab instance.
     /// This is the unit's one deliberate deviation from "literal", and it is the deviation U16
-    /// measured the case for — the crowd's steady cost was zero and the whole stutter was ninety
+    /// measured the case for - the crowd's steady cost was zero and the whole stutter was ninety
     /// <c>Instantiate</c> calls in a single frame. Nothing about a person is lost by it: the seed
     /// carries their position, target, pace, path position and face, so walking away and back finds
     /// them mid-stride where you left them.
@@ -74,7 +74,7 @@ namespace TheBlock.Npc
                  "standing exactly on the boundary does not flicker in and out.")]
         [SerializeField] private float cullHysteresis = 5f;
 
-        [Tooltip("Seconds between binder sweeps. Every frame is pointless — nobody walks 90 m in one.")]
+        [Tooltip("Seconds between binder sweeps. Every frame is pointless - nobody walks 90 m in one.")]
         [SerializeField] private float sweepInterval = 0.25f;
 
         [Tooltip("Seeds bound per sweep. Trickled for the reason U16 measured: the burst IS the hitch.")]
@@ -96,7 +96,7 @@ namespace TheBlock.Npc
         [Tooltip("What counts as ground. Leave the Pedestrian layer OUT or people stand on each other.")]
         [SerializeField] private LayerMask groundMask = ~0;
 
-        [Tooltip("Seeded, so a run is reproducible — the same call WorldBuilder makes.")]
+        [Tooltip("Seeded, so a run is reproducible - the same call WorldBuilder makes.")]
         [SerializeField] private int seed = 20260816;
 
         [Header("Crossings")]
@@ -148,7 +148,7 @@ namespace TheBlock.Npc
         /// <summary>
         /// Builds the runtime copy of the table.
         ///
-        /// Called from Awake and again from Update if a mid-Play recompile wiped it — the domain
+        /// Called from Awake and again from Update if a mid-Play recompile wiped it - the domain
         /// reloads, non-serialized fields come back null, and Awake does not run again. Without the
         /// guard the crowd silently stops existing for the rest of the session.
         /// </summary>
@@ -165,7 +165,7 @@ namespace TheBlock.Npc
             for (int i = 0; i < pedestrianPrefabs.Count; i++) _pool.Add(new List<Pedestrian>());
             PoolSize = 0;
 
-            // Anything left over from a previous bind — after a domain reload the children are still
+            // Anything left over from a previous bind - after a domain reload the children are still
             // in the scene but every reference to them is gone.
             //
             // PEDESTRIANS ONLY, and that qualifier is load-bearing: this used to wipe every child,
@@ -211,7 +211,7 @@ namespace TheBlock.Npc
         /// <summary>
         /// Crossers are built here rather than baked: they hold a reference to the live
         /// <see cref="Crossing"/> whose <c>Gate</c> <c>TrafficLightSystem</c> fills in at ITS Start.
-        /// Ordering between the two does not matter — <see cref="Crossing.MayCross"/> reads open
+        /// Ordering between the two does not matter - <see cref="Crossing.MayCross"/> reads open
         /// while the gate is null, so the worst case is one frame of a green light.
         /// </summary>
         private void Start() => AddCrossers();
@@ -318,7 +318,7 @@ namespace TheBlock.Npc
         ///
         /// <b>Late, and that is the whole reason this method exists.</b> A knocked-down pedestrian is
         /// the one place in the project where an animation clip moves a transform, and root motion is
-        /// applied between Update and LateUpdate — so the reaction has to run after it to add its arc
+        /// applied between Update and LateUpdate - so the reaction has to run after it to add its arc
         /// on top rather than have the animator overwrite it. Iterating <see cref="_live"/> costs one
         /// pass over at most a few dozen people and keeps the per-MonoBehaviour dispatch off the
         /// crowd, which is the same reason <see cref="Pedestrian"/> has no Update either.
@@ -352,7 +352,7 @@ namespace TheBlock.Npc
         /// <summary>
         /// What the crowd is arranged around: the player on foot, or the vehicle they are driving.
         ///
-        /// Same resolution as the map's (U14) — and it has to be, or the crowd empties out around the
+        /// Same resolution as the map's (U14) - and it has to be, or the crowd empties out around the
         /// player's abandoned body the moment they get into a car.
         /// </summary>
         private Transform Focus()
@@ -368,7 +368,7 @@ namespace TheBlock.Npc
 
         /// <summary>
         /// Release whoever has walked out of range, then bind the nearest unbound seeds that are in
-        /// it. Linear over the whole table — about 1,600 distance compares, which is ~0.01 ms and
+        /// it. Linear over the whole table - about 1,600 distance compares, which is ~0.01 ms and
         /// needs no spatial index. If the table ever grows past a few thousand, a uniform bucket grid
         /// belongs in the ASSET, not here.
         /// </summary>
@@ -444,7 +444,7 @@ namespace TheBlock.Npc
 
         private void Release(Pedestrian body)
         {
-            // Culled mid-flight — the player drove off and the body is behind the camera. Stand them
+            // Culled mid-flight - the player drove off and the body is behind the camera. Stand them
             // up where they were hit and hand the seed back, rather than holding a whole reaction
             // alive for four seconds to animate a fade nobody is looking at.
             body.AbortRunOver();
@@ -519,7 +519,7 @@ namespace TheBlock.Npc
         /// <c>mayCross() &amp;&amp; crossingClear()</c>, but the geometry makes those two fight: the
         /// zebra is 10 m from the junction and cars stop at 8 m, so a legitimately queued car covers
         /// the crossing exactly when the light is red for it. U16 already deleted a version of this
-        /// check for a related reason — it could not tell a stopped car from a parked one. The cap is
+        /// check for a related reason - it could not tell a stopped car from a parked one. The cap is
         /// the compromise: wait, then go anyway, which is safe because a metre from the kerb the
         /// crosser is <see cref="Pedestrian.IsCrossing"/> and U17's traffic brakes for it.
         /// </summary>

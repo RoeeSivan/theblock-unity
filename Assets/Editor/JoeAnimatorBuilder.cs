@@ -20,13 +20,13 @@ namespace TheBlock.EditorTools
         private const string ControllerPath = "Assets/Animation/Joe.controller";
         private const string CharactersPath = "Assets/Models/Characters";
 
-        /// <summary>Gait blend thresholds, in gameplay m/s — the same numbers PlayerController moves at.</summary>
+        /// <summary>Gait blend thresholds, in gameplay m/s - the same numbers PlayerController moves at.</summary>
         private const float WalkSpeed = 2.0f;
         private const float SprintSpeed = 7.0f;
 
         /// <summary>
-        /// Root-motion speed the sprint clip was authored at. Root motion is off — the controller
-        /// drives movement — so the clip's own travel is ignored and only its cadence matters. Played
+        /// Root-motion speed the sprint clip was authored at. Root motion is off - the controller
+        /// drives movement - so the clip's own travel is ignored and only its cadence matters. Played
         /// at 1.0 the feet would skate, because the legs cycle for 5.58 m/s while the body covers 7.
         /// </summary>
         private const float SprintClipSpeed = 5.58f;
@@ -67,7 +67,7 @@ namespace TheBlock.EditorTools
             var ride = FindClip("Joe_Driving.fbx", "Joe_Ride", optional: true);
 
             // Optional as well: without it deep water is swum in a running pose, which is silly but
-            // not broken — the buoyancy and the speed change are the controller's, not the clip's.
+            // not broken - the buoyancy and the speed change are the controller's, not the clip's.
             var swim = FindClip("Joe_Swim.fbx", "Joe_Swim", optional: true);
 
             var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath)
@@ -111,7 +111,7 @@ namespace TheBlock.EditorTools
             toJump.AddCondition(AnimatorConditionMode.IfNot, 0f, "EnterCar");
             toJump.AddCondition(AnimatorConditionMode.IfNot, 0f, "Ride");
             // ...nor in the water. The controller makes Space inert while swimming, so this only
-            // catches a trigger set on the last dry frame — but that is exactly the frame you wade
+            // catches a trigger set on the last dry frame - but that is exactly the frame you wade
             // in on, and a hop mid-stroke would read as a bug.
             toJump.AddCondition(AnimatorConditionMode.IfNot, 0f, "Swim");
             toJump.hasExitTime = false;
@@ -128,7 +128,7 @@ namespace TheBlock.EditorTools
             toLocomotion.hasFixedDuration = true;
             toLocomotion.duration = CrossfadeSec;
 
-            // Getting into a car. One state, played once, holding its last frame — which IS the
+            // Getting into a car. One state, played once, holding its last frame - which IS the
             // seated pose, so the whole drive is the tail of the entry animation. That is the web
             // build's arrangement too (`clampWhenFinished`), and it means no separate driving clip.
             if (enterCar != null)
@@ -140,7 +140,7 @@ namespace TheBlock.EditorTools
                 toEnter.AddCondition(AnimatorConditionMode.If, 0f, "EnterCar");
                 toEnter.hasExitTime = false;
                 toEnter.hasFixedDuration = true;
-                // Short, so the clip's first frame — standing at the door — is reached before the
+                // Short, so the clip's first frame - standing at the door - is reached before the
                 // door starts to swing at 25% progress.
                 toEnter.duration = 0.1f;
                 toEnter.canTransitionToSelf = false;
@@ -148,7 +148,7 @@ namespace TheBlock.EditorTools
                 var outOfCar = enterState.AddTransition(locomotion);
                 outOfCar.AddCondition(AnimatorConditionMode.IfNot, 0f, "EnterCar");
                 // No exit time: leaving is a key press part-way through a held pose, not the clip
-                // running out. It never runs out — that is the point of holding the last frame.
+                // running out. It never runs out - that is the point of holding the last frame.
                 outOfCar.hasExitTime = false;
                 outOfCar.hasFixedDuration = true;
                 outOfCar.duration = CrossfadeSec;
@@ -156,7 +156,7 @@ namespace TheBlock.EditorTools
 
             // Riding. No walk-up clip and nothing to play through: the pose is simply held, looping,
             // for as long as the rider is on the bike. That is the difference between a car and a
-            // motorcycle stated in one state — and the jetski (U24) reuses this exact one.
+            // motorcycle stated in one state - and the jetski (U24) reuses this exact one.
             if (ride != null)
             {
                 var rideState = stateMachine.AddState("Ride");
@@ -176,7 +176,7 @@ namespace TheBlock.EditorTools
                 offBike.duration = CrossfadeSec;
             }
 
-            // Swimming. A looping cycle held for as long as the water is deep, same shape as Ride —
+            // Swimming. A looping cycle held for as long as the water is deep, same shape as Ride -
             // but entered by where the body IS rather than by a key press, so the crossfade is what
             // sells wading out into it. Longer than the gait crossfade on purpose: standing up out
             // of the water is a slower change of posture than walk → jog.
@@ -203,22 +203,22 @@ namespace TheBlock.EditorTools
             EditorUtility.SetDirty(controller);
             AssetDatabase.SaveAssets();
             Debug.Log(
-                $"JoeAnimatorBuilder — rebuilt {ControllerPath}\n" +
+                $"JoeAnimatorBuilder - rebuilt {ControllerPath}\n" +
                 $"  Locomotion blend: idle 0 / walk {WalkSpeed} / sprint {SprintSpeed} m/s " +
                 $"(sprint plays at {SprintSpeed / SprintClipSpeed:0.00}x so its cadence matches)\n" +
                 "  Jump: Any State on the Jump trigger, back to Locomotion on Grounded\n" +
                 (enterCar == null
-                    ? "  EnterCar: NO CLIP — enter/exit falls back to config's quick-enter timings\n"
+                    ? "  EnterCar: NO CLIP - enter/exit falls back to config's quick-enter timings\n"
                     : $"  EnterCar: {enterCar.length:0.00}s, Any State on the EnterCar bool, holds " +
                       "its last frame as the seated pose\n") +
                 (ride == null
-                    ? "  Ride: NO CLIP — the bike gets ridden by a standing Joe\n"
+                    ? "  Ride: NO CLIP - the bike gets ridden by a standing Joe\n"
                     : $"  Ride: {ride.length:0.00}s looping, Any State on the Ride bool\n") +
                 (swim == null
-                    ? "  Swim: NO CLIP — deep water is swum in a running pose\n"
+                    ? "  Swim: NO CLIP - deep water is swum in a running pose\n"
                     : $"  Swim: {swim.length:0.00}s looping at {SwimClipSpeed:0.00}x, Any State on " +
                       $"the Swim bool, {SwimCrossfadeSec:0.00}s both ways\n") +
-                "  No clip yet for exhausted or falling — both fall through to the states above",
+                "  No clip yet for exhausted or falling - both fall through to the states above",
                 controller);
         }
 

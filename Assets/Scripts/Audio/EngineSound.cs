@@ -6,13 +6,13 @@ using TheBlock.Core;
 namespace TheBlock.Audio
 {
     /// <summary>
-    /// The engine of whatever the player is driving — the port of <c>src/audio/engine-sound.ts</c>.
+    /// The engine of whatever the player is driving - the port of <c>src/audio/engine-sound.ts</c>.
     /// One short looped recording per vehicle type, pitch and gain tracking throttle.
     ///
     /// <b>2D, and one instance, because the web is right about this one.</b> Only the vehicle you
     /// are sitting in gets an engine; the street's traffic is carried by the ambient bed. A spatial
-    /// source on your own bumper buys nothing — the listener is two metres away and never moves
-    /// relative to it — and thirty of them on the traffic would be a mix nobody has voiced.
+    /// source on your own bumper buys nothing - the listener is two metres away and never moves
+    /// relative to it - and thirty of them on the traffic would be a mix nobody has voiced.
     ///
     /// <b>THE LOOP SEAM IS THE WHOLE PROBLEM HERE, and it is not solved by a Unity feature.</b>
     /// Web Audio has <c>source.loopEnd</c>; the web pins it to the original ogg's duration because
@@ -27,7 +27,7 @@ namespace TheBlock.Audio
     /// </code>
     ///
     /// 17 ms on a 0.86 s loop is an audible tick <b>every cycle</b>, for as long as the car is
-    /// running. So each clip is copied into a trimmed one at first use — which is also why the
+    /// running. So each clip is copied into a trimmed one at first use - which is also why the
     /// engine folder imports as uncompressed PCM: <see cref="AudioClip.GetData"/> on a Vorbis clip
     /// hands back nothing to trim.
     /// </summary>
@@ -145,7 +145,7 @@ namespace TheBlock.Audio
         /// <summary>
         /// The trimmed loop for a type, cut once and cached.
         ///
-        /// Returns the untrimmed clip rather than nothing if the samples cannot be read — a tick
+        /// Returns the untrimmed clip rather than nothing if the samples cannot be read - a tick
         /// once a second is a worse engine, but no engine at all is a broken one.
         /// </summary>
         private AudioClip Load(string type)
@@ -157,7 +157,7 @@ namespace TheBlock.Audio
             var raw = library.Resolve(typeSpec.File);
             if (raw == null)
             {
-                Debug.LogWarning($"EngineSound: no clip for '{typeSpec.File}' — {type} runs silent.");
+                Debug.LogWarning($"EngineSound: no clip for '{typeSpec.File}' - {type} runs silent.");
                 return null;
             }
 
@@ -181,7 +181,7 @@ namespace TheBlock.Audio
             if (!raw.GetData(data, 0))
             {
                 Debug.LogWarning(
-                    $"EngineSound: could not read '{raw.name}' — it must import as PCM with " +
+                    $"EngineSound: could not read '{raw.name}' - it must import as PCM with " +
                     "Decompress On Load (see GameAudioImporter). The loop keeps its seam.");
                 return raw;
             }

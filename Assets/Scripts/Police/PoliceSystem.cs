@@ -11,9 +11,9 @@ namespace TheBlock.Police
     /// The pursuit director: how many cops there are, where they come from, what they know, and when
     /// one of them has caught you.
     ///
-    /// It is deliberately shaped like <c>TrafficSystem</c> — a pool created once and reused, a focus
+    /// It is deliberately shaped like <c>TrafficSystem</c> - a pool created once and reused, a focus
     /// point that is the driven vehicle or the player, a sweep that retires what has fallen out of
-    /// range — because that shape has already been measured on this project twice: the cost is the
+    /// range - because that shape has already been measured on this project twice: the cost is the
     /// <c>Instantiate</c> burst, never the population.
     ///
     /// <b>The bays are the pool.</b> Three cruisers sit parked at the station and those same three
@@ -22,13 +22,13 @@ namespace TheBlock.Police
     /// hidden car's collider left standing as an invisible wall in the forecourt.
     ///
     /// <b>Spawning out of sight is a rule here, not an accident.</b> The web samples eight headings
-    /// behind the player and takes the first with a CLEAR line to them — which is exactly why its
+    /// behind the player and takes the first with a CLEAR line to them - which is exactly why its
     /// cops pop into existence in plain view at 70 m. This prefers a spot with NO line of sight, so
     /// a cop drives into view instead of appearing in it.
     /// </summary>
     public class PoliceSystem : MonoBehaviour
     {
-        [Header("Wiring — found automatically when left empty")]
+        [Header("Wiring - found automatically when left empty")]
         [SerializeField] private Heat heat;
         [SerializeField] private RouteGraph routeGraph;
         [SerializeField] private GameObject copPrefab;
@@ -115,10 +115,10 @@ namespace TheBlock.Police
                 cop.Configure(_tuning, routeGraph, _laneGap);
 
                 // U27's siren rides on the car itself, so it is a sound in the WORLD with real
-                // distance and direction — the thing the web could not have, because that build has
+                // distance and direction - the thing the web could not have, because that build has
                 // no AudioListener and every sound in it plays at a constant gain. Added here rather
                 // than on the prefab because the pool is built at runtime and there is no prefab step
-                // to fill a field in. TryGetComponent, never `??` — see the memory file.
+                // to fill a field in. TryGetComponent, never `??` - see the memory file.
                 if (!instance.TryGetComponent<TheBlock.Audio.Siren>(out _))
                     instance.AddComponent<TheBlock.Audio.Siren>();
 
@@ -139,7 +139,7 @@ namespace TheBlock.Police
         ///
         /// <b>Both halves are optional and the failure is loud but not fatal.</b> No prefab means
         /// U19's cruisers, which arrest by themselves; a prefab with no <c>DriverAnchor</c> on the
-        /// car means the seat was never built, which is a rebuild of the car away — and saying so
+        /// car means the seat was never built, which is a rebuild of the car away - and saying so
         /// once at Start beats three invisible officers standing at the world origin.
         /// </summary>
         private void Seat(CopCar cop)
@@ -150,7 +150,7 @@ namespace TheBlock.Police
             if (seat == null)
             {
                 Debug.LogWarning(
-                    $"PoliceSystem: {cop.name} has no DriverAnchor — run The Block → Build Police Car. " +
+                    $"PoliceSystem: {cop.name} has no DriverAnchor - run The Block → Build Police Car. " +
                     "No officer will get out of it.", cop);
                 return;
             }
@@ -161,7 +161,7 @@ namespace TheBlock.Police
             officer.name = $"{cop.name} Officer";
 
             // Before BindSeat, because the setter writes the agent's stopping distance and BindSeat
-            // is what switches the agent off — an assignment either side of that is the same, but
+            // is what switches the agent off - an assignment either side of that is the same, but
             // "configure, then place" is the order every other Configure call in this file uses.
             officer.Standoff = _tuning.OfficerStandoff;
 
@@ -187,7 +187,7 @@ namespace TheBlock.Police
 
             foreach (var cop in _cops)
             {
-                // The siren, every frame, from the same State the driver reads — so it cannot say
+                // The siren, every frame, from the same State the driver reads - so it cannot say
                 // one thing while the car does another. A parked, returning or wrecked cruiser is
                 // silent; only a car actually coming for you sounds. Which of them are AUDIBLE is
                 // Siren.Arbitrate's call, not this one's: "the three nearest" is not a fact any
@@ -202,14 +202,14 @@ namespace TheBlock.Police
 
                 if (cop.State == CopCar.Mode.Wrecked)
                 {
-                    // A wrecked cop goes home the short way — it is on its roof or in the sea, so
+                    // A wrecked cop goes home the short way - it is on its roof or in the sea, so
                     // there is nothing to drive back.
                     if (Time.time - cop.WreckedAt > _tuning.ReplaceDelay) SendHome(cop, true);
                     continue;
                 }
 
                 // Handed to the traffic every step so ambient cars can pull over rather than stand
-                // in the way — a traffic car is kinematic, so to a cop it is a wall, not a nudge.
+                // in the way - a traffic car is kinematic, so to a cop it is a wall, not a nudge.
                 // A cop driving itself home is in the list too: it is still a car in the street and
                 // still worth clearing, even though nobody is being chased.
                 _positions.Add(new TrafficSystem.Pursuer(
@@ -222,7 +222,7 @@ namespace TheBlock.Police
             if (traffic != null) traffic.SetPursuitObstacles(_positions);
         }
 
-        /// <summary>The driven vehicle if there is one, else the player — as the crowd and map do.</summary>
+        /// <summary>The driven vehicle if there is one, else the player - as the crowd and map do.</summary>
         private Transform Focus()
         {
             if (vehicles != null && vehicles.Mode == GameMode.Driving && vehicles.ActiveVehicle != null)
@@ -236,7 +236,7 @@ namespace TheBlock.Police
         /// Brings the number of live cops to the number of stars, one per second.
         ///
         /// <b>A cop driving home is not live and is not idle either.</b> It does not count toward the
-        /// star, so a fresh crime deploys again immediately — and the car it deploys is preferably
+        /// star, so a fresh crime deploys again immediately - and the car it deploys is preferably
         /// that same one, already out on the road, rather than a cold start from the bays.
         /// </summary>
         private void Reconcile(int wanted, Transform focus)
@@ -299,8 +299,8 @@ namespace TheBlock.Police
         }
 
         /// <summary>
-        /// Sends one cop after the player: out of its bay, off the road it was driving home on, or —
-        /// only for a car with no bay of its own — placed on a street you cannot see.
+        /// Sends one cop after the player: out of its bay, off the road it was driving home on, or -
+        /// only for a car with no bay of its own - placed on a street you cannot see.
         /// </summary>
         private bool Deploy(CopCar cop, Transform focus)
         {
@@ -311,7 +311,7 @@ namespace TheBlock.Police
             // The web deploys from the station only within 120 m and otherwise places a cop on a
             // street near the player, because its cops could not reliably drive anywhere. Ours can:
             // 97.9% of the city is one connected component and the station is inside it. So the
-            // cars sit at the station until a crime, then drive — which is what a police car does,
+            // cars sit at the station until a crime, then drive - which is what a police car does,
             // and it also means the response has a TRAVEL TIME. Getting away before they arrive is
             // a real thing you can do, and none of it needed a new mechanism.
             bool fromBay = cop.Bay >= 0 && cop.Bay < bayPositions.Length;
@@ -338,7 +338,7 @@ namespace TheBlock.Police
             cop.OnGraphSamples = cop.TotalSamples = 0;
             cop.WorstOffRoute = 0f;
 
-            // The blip follows the car rather than being rewritten every frame — see MapPoi.Follow.
+            // The blip follows the car rather than being rewritten every frame - see MapPoi.Follow.
             UI.MapRegistry.AddPoi(new UI.MapPoi
             {
                 Name = cop.name,
@@ -353,7 +353,7 @@ namespace TheBlock.Police
         /// <summary>
         /// Picks a street point in the ring behind the action that the player cannot see.
         ///
-        /// Blocked line of sight is what is WANTED here — it is the difference between a cop arriving
+        /// Blocked line of sight is what is WANTED here - it is the difference between a cop arriving
         /// and a cop appearing. The component test matters just as much: a spawn on an unreachable
         /// street is a cop that will drive at a kerb forever, and 265 m of this city is exactly that.
         /// </summary>
@@ -380,7 +380,7 @@ namespace TheBlock.Police
                 if (TooCloseToTraffic(hit.Position)) continue;
                 if (TooCloseToCops(hit.Position)) continue;
 
-                // Out of sight is preferred, not required — in an open plaza there may be no such
+                // Out of sight is preferred, not required - in an open plaza there may be no such
                 // point, and a late cop is worse than a visible one.
                 bool visible = HasClearLine(hit.Position + Vector3.up * _tuning.LosEyeHeight,
                     at + Vector3.up * _tuning.LosTargetHeight, null);
@@ -408,8 +408,8 @@ namespace TheBlock.Police
         ///
         /// <b>Being off-street is not an error.</b> The player spawns in a car park 80 m from the
         /// nearest road, and requiring THEM to be on the graph is what stopped the first cop of every
-        /// session from ever deploying. So the lookup is generous, and when even that finds nothing —
-        /// deep inside a plaza, or on the beach — it falls back to the city, which is component 0 by
+        /// session from ever deploying. So the lookup is generous, and when even that finds nothing -
+        /// deep inside a plaza, or on the beach - it falls back to the city, which is component 0 by
         /// construction: <c>WorldBuilder.Police</c> renumbers components largest-first.
         /// </summary>
         private int ReferenceComponent(Vector3 at) =>
@@ -418,7 +418,7 @@ namespace TheBlock.Police
         /// <summary>
         /// Keeps cops apart at spawn.
         ///
-        /// Three pursuers run the same solo pursuit — the web build's do too — so two placed near
+        /// Three pursuers run the same solo pursuit - the web build's do too - so two placed near
         /// each other take the same route to the same person and spend the chase shoving one another
         /// instead of driving. Measured: spawned 5 m apart, both hit the unwedge limit within
         /// seconds and retired themselves.
@@ -492,7 +492,7 @@ namespace TheBlock.Police
         }
 
         /// <summary>
-        /// One step of a cop driving itself home. No line of sight, no arrest, no contact report —
+        /// One step of a cop driving itself home. No line of sight, no arrest, no contact report -
         /// it is not chasing anybody, and reporting contact from here would hold the player's heat up
         /// with a car that is leaving.
         /// </summary>
@@ -523,7 +523,7 @@ namespace TheBlock.Police
                 return;
             }
 
-            // A cop that cannot get home is not worth a rescue mechanism — it is already off duty.
+            // A cop that cannot get home is not worth a rescue mechanism - it is already off duty.
             if (cop.Driver.Unwedges >= _tuning.UnwedgeLimit)
             {
                 cop.State = CopCar.Mode.Idle;
@@ -541,7 +541,7 @@ namespace TheBlock.Police
         /// Puts a cruiser back in its bay with the handbrake on.
         ///
         /// <b>The hold is not decoration.</b> A parked car still runs its driver every physics step,
-        /// and a driver with no route aims at whatever its target says — which at startup is
+        /// and a driver with no route aims at whatever its target says - which at startup is
         /// <c>Vector3.zero</c>, the middle of the map. Without this the three cruisers quietly drove
         /// out of the station before the player had committed any crime at all.
         /// </summary>
@@ -582,7 +582,7 @@ namespace TheBlock.Police
         /// <b>Those two facts are different and the difference is the whole fix.</b> ARRIVING is
         /// being inside <see cref="PoliceTuning.SightRadius"/> at all, which latches the meter and
         /// lets it start bleeding; CONTACT is being inside it with a clear line, which holds the
-        /// meter still. Only the second existed before, so nothing could ever latch — which meant
+        /// meter still. Only the second existed before, so nothing could ever latch - which meant
         /// heat bled from the moment of the crime while the cars were still hundreds of metres away
         /// driving in, and the stars were gone before anyone arrived.
         /// </summary>
@@ -605,7 +605,7 @@ namespace TheBlock.Police
 
             // Repeatedly wedged is not the same as wrecked, and treating it as such is how a cop
             // that met a fence around a car park retired itself, was replaced, and the replacement
-            // met the same fence. Back off, throw the route away and plan a fresh one instead —
+            // met the same fence. Back off, throw the route away and plan a fresh one instead -
             // which reads as a cop looking for another way in, because that is what it is.
             if (cop.Driver.Unwedges >= _tuning.UnwedgeLimit)
             {
@@ -671,7 +671,7 @@ namespace TheBlock.Police
         /// <summary>
         /// The capture test: close, slow, stopped, and held.
         ///
-        /// The speed condition is a port addition and it earns its place — the web's cop halted to
+        /// The speed condition is a port addition and it earns its place - the web's cop halted to
         /// arrest as a side effect of being kinematic, while a physics cop can genuinely sit on your
         /// bumper at 70 km/h, and being arrested at that speed reads as a bug rather than as an
         /// arrest.
@@ -682,7 +682,7 @@ namespace TheBlock.Police
             bool slow = Mathf.Abs(cop.Car.ForwardSpeed) <= _tuning.ArrestMaxSpeed && TargetSpeed() <= _tuning.ArrestMaxSpeed;
             bool grace = Time.time - cop.SpawnedAt < _tuning.SpawnGrace;
 
-            // ON FOOT, the officer is the arrest. IN A VEHICLE, the car is — she would never catch
+            // ON FOOT, the officer is the arrest. IN A VEHICLE, the car is - she would never catch
             // you, and a cruiser pulling up to a stopped getaway car is the arrest the web build has.
             bool onFoot = vehicles == null || vehicles.Mode != GameMode.Driving;
             if (_tuning.OfficerChase && cop.Officer != null && onFoot)
@@ -692,7 +692,7 @@ namespace TheBlock.Police
             }
 
             // Back in a car while she was out of hers: she walks back, and the cruiser takes the
-            // arrest over from exactly where U19 left it — but not until she is IN it. A cruiser
+            // arrest over from exactly where U19 left it - but not until she is IN it. A cruiser
             // that drives off leaving its own driver on the pavement is the version of this bug
             // that looks fine right up until you watch the car.
             if (cop.Officer != null && cop.Officer.Deployed)
@@ -735,13 +735,13 @@ namespace TheBlock.Police
         ///
         /// <b>Why the car stops at all.</b> Two metres of pavement is not a chase, so the cruiser
         /// gives up its own arrest radius and halts at <see cref="PoliceTuning.OfficerDeployRadius"/>
-        /// — far enough that the run is the interesting part, close enough that she is a threat
+        /// - far enough that the run is the interesting part, close enough that she is a threat
         /// rather than a jogger in the distance. It waits there with its lights on until she is
         /// back in, which is also what makes giving up legible: the cruiser is still parked where
         /// you last saw it.
         ///
         /// <b>Why she can lose you.</b> She runs at 6.2 m/s against a 7 m/s sprint, so a player
-        /// with stamina left outruns her and a player without does not — and at 60 m she stops,
+        /// with stamina left outruns her and a player without does not - and at 60 m she stops,
         /// walks back and the CAR takes over again. The pursuit does not end; only her run does.
         /// </summary>
         private void FootArrest(CopCar cop, Vector3 target, float distance, float dt, bool grace)
@@ -768,7 +768,7 @@ namespace TheBlock.Police
                 return;
             }
 
-            // She is out, so the car is parked for the duration — including while she walks back.
+            // She is out, so the car is parked for the duration - including while she walks back.
             cop.State = CopCar.Mode.Arresting;
             cop.Driver.Halt = true;
 
@@ -816,8 +816,8 @@ namespace TheBlock.Police
         /// <summary>
         /// Caught. The fine is CHARGED now, and whatever the wallet could not cover stays owed.
         ///
-        /// The web build has no such split — its wallet floors at zero and the shortfall simply
-        /// evaporates — but this port already had a <see cref="FinesOwed"/> tally waiting for a
+        /// The web build has no such split - its wallet floors at zero and the shortfall simply
+        /// evaporates - but this port already had a <see cref="FinesOwed"/> tally waiting for a
         /// wallet that did not exist, and a debt is the honest thing for it to become. It also means
         /// being broke is not a free pass: the third bust with $0 still costs you the street you
         /// were on and puts another $100 on the slate.
@@ -828,7 +828,7 @@ namespace TheBlock.Police
             FinesOwed += _tuning.BustFine - taken;
 
             // Everyone home the short way. A busted street should be clear at once, and on foot the
-            // player stays where they are — so a cruiser driving off would be the last thing they
+            // player stays where they are - so a cruiser driving off would be the last thing they
             // watch instead of the arrest.
             foreach (var cop in _cops)
                 if (cop.State != CopCar.Mode.Idle) SendHome(cop, true);

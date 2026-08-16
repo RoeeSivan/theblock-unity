@@ -11,20 +11,20 @@ using Debug = UnityEngine.Debug;
 namespace TheBlock.EditorTools
 {
     /// <summary>
-    /// Builds the officer who drives the cruiser — <b>The Block → Build Cop Officer</b>.
+    /// Builds the officer who drives the cruiser - <b>The Block → Build Cop Officer</b>.
     ///
     /// <b>The asset is a free Asset Store character and it arrives in three pieces of trouble.</b>
     /// Its 459 MB of 2048² .tga is LFS-bound in a repo whose free quota is already shared with the
     /// original project (see the note in <c>.gitignore</c>), its materials are built-in Standard and
     /// therefore magenta under URP (memory <c>asset-store-prefabs-ship-built-in-materials</c>), and
-    /// it ships no animation at all. So this builder reads a SLIM copy — the 2.3 MB FBX and 1024²
-    /// PNG twins of its textures, both committable — rebinds every material onto URP/Lit, and
+    /// it ships no animation at all. So this builder reads a SLIM copy - the 2.3 MB FBX and 1024²
+    /// PNG twins of its textures, both committable - rebinds every material onto URP/Lit, and
     /// borrows Joe's clips, which retarget because both rigs are Humanoid. Nothing is downloaded and
     /// nothing new goes into LFS.
     ///
     /// <b>Two clips do the whole job.</b> <c>Joe_EnterCar</c> held at its last frame IS the seated
-    /// pose — the same trick the player's own driving uses, and the reason no car in this project
-    /// needs a driving clip — and <c>Joe_Sprint</c>, retimed to her ground speed exactly as
+    /// pose - the same trick the player's own driving uses, and the reason no car in this project
+    /// needs a driving clip - and <c>Joe_Sprint</c>, retimed to her ground speed exactly as
     /// <see cref="ThiefBuilder"/> retimes it for the thief, is the run.
     /// </summary>
     public static class CopOfficerBuilder
@@ -45,7 +45,7 @@ namespace TheBlock.EditorTools
         private const string JoeEnterPath = "Assets/Models/Characters/Joe_EnterCar.fbx";
         private const string JoeEnterClip = "Joe_EnterCar";
 
-        /// <summary>Her ground speed. Must match <c>PoliceTuning.OfficerSpeed</c> — the stride is cut to it.</summary>
+        /// <summary>Her ground speed. Must match <c>PoliceTuning.OfficerSpeed</c> - the stride is cut to it.</summary>
         private const float RunSpeed = 6.2f;
 
         /// <summary>Body capsule. A person, not a barrel: the crowd's own is 0.3 m at 1.7 m tall.</summary>
@@ -104,7 +104,7 @@ namespace TheBlock.EditorTools
                 "T_policeofficerl_torso_MetallicSmoothness", true),
 
             // The pack ships the eye as Fade at queue 3000. It is a ball inside a head that never
-            // shows its back — transparent buys nothing and sorts against the hair every frame.
+            // shows its back - transparent buys nothing and sorts against the hair every frame.
             ["M_policeofficerl_Eye"] = new Skin(
                 "T_policeofficer_Eye_AlbedoTransparency", "T_policeofficer_Eye_Normal", null, false),
 
@@ -130,7 +130,7 @@ namespace TheBlock.EditorTools
             var model = AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath);
             if (model == null)
             {
-                var missing = $"CopOfficerBuilder — FAILED: no model at {ModelPath}.";
+                var missing = $"CopOfficerBuilder - FAILED: no model at {ModelPath}.";
                 Debug.LogError(missing);
                 return missing;
             }
@@ -143,7 +143,7 @@ namespace TheBlock.EditorTools
 
             AssetDatabase.SaveAssets();
 
-            var report = $"CopOfficerBuilder — {(prefab == null ? "FAILED" : PrefabPath)}\n{log}";
+            var report = $"CopOfficerBuilder - {(prefab == null ? "FAILED" : PrefabPath)}\n{log}";
             if (prefab == null) Debug.LogError(report);
             else Debug.Log(report, prefab);
             return report;
@@ -155,7 +155,7 @@ namespace TheBlock.EditorTools
         /// Humanoid, its own avatar, and no materials of its own.
         ///
         /// <b>Its own avatar, never a copy of Joe's.</b> Copy From Other needs identical bone names
-        /// and hers are not Mixamo's (memory <c>copy-avatar-needs-same-bone-names</c>) — but two
+        /// and hers are not Mixamo's (memory <c>copy-avatar-needs-same-bone-names</c>) - but two
         /// valid Humanoid avatars retarget to each other regardless, which is the whole reason
         /// Joe's clips work on her. <c>materialImportMode = None</c> because the pack's are built-in
         /// Standard; the URP twins below are bound by name onto the renderers instead.
@@ -201,7 +201,7 @@ namespace TheBlock.EditorTools
 
             var avatar = AssetDatabase.LoadAllAssetsAtPath(ModelPath).OfType<Avatar>().FirstOrDefault();
             log.AppendLine(avatar == null
-                ? "        CHECK   NO AVATAR — Joe's clips cannot retarget onto her"
+                ? "        CHECK   NO AVATAR - Joe's clips cannot retarget onto her"
                 : $"        CHECK   avatar '{avatar.name}' valid={avatar.isValid} human={avatar.isHuman}");
         }
 
@@ -266,7 +266,7 @@ namespace TheBlock.EditorTools
 
             if (lit == null)
             {
-                log.AppendLine("        MISSING URP/Lit shader — nothing rebound, she will be magenta");
+                log.AppendLine("        MISSING URP/Lit shader - nothing rebound, she will be magenta");
                 return built;
             }
 
@@ -304,7 +304,7 @@ namespace TheBlock.EditorTools
 
             if (mask != null)
             {
-                // Metallic in R, smoothness in A — the Standard packing the pack authored to, and
+                // Metallic in R, smoothness in A - the Standard packing the pack authored to, and
                 // URP/Lit reads the same one as long as the channel is left on metallic alpha.
                 material.EnableKeyword("_METALLICSPECGLOSSMAP");
                 material.SetFloat("_SmoothnessTextureChannel", 0f);
@@ -364,7 +364,7 @@ namespace TheBlock.EditorTools
             if (idle == null || sprint == null || enter == null)
             {
                 log.AppendLine($"        MISSING clips: idle={idle != null} sprint={sprint != null} " +
-                               $"enterCar={enter != null} — no controller written");
+                               $"enterCar={enter != null} - no controller written");
                 return null;
             }
 
@@ -450,7 +450,7 @@ namespace TheBlock.EditorTools
 
                 // ⚠ MEASURED, and it cost the first build. Under the FBX's own default
                 // (CullUpdateTransforms) an Animator whose renderers are INVISIBLE evaluates but
-                // does not write the pose to the bones — and the cruisers are parked at the station,
+                // does not write the pose to the bones - and the cruisers are parked at the station,
                 // off-camera, at the exact moment PoliceSystem seats her. So the sit pose silently
                 // did nothing: her hips read car-local x -2.30, standing beside the door, when the
                 // seat is at -0.38. Under AlwaysAnimate the same call writes it. It costs nothing
@@ -506,7 +506,7 @@ namespace TheBlock.EditorTools
         /// Points every renderer at its URP twin, matched on the pack's own material names.
         ///
         /// With <c>materialImportMode = None</c> the imported slots are NULL, and a null slot draws
-        /// magenta with no error of any kind — the same silence the districts' empty glTF slots
+        /// magenta with no error of any kind - the same silence the districts' empty glTF slots
         /// produce (memory <c>gltf-empty-material-slot-magenta</c>). So a miss is counted and said
         /// out loud rather than left to the play-test.
         /// </summary>
@@ -526,7 +526,7 @@ namespace TheBlock.EditorTools
                     var wanted = Match(renderer.name, i);
                     if (wanted == null || !materials.TryGetValue(wanted, out var material))
                     {
-                        log.AppendLine($"        MISS    {renderer.name}[{i}] — no material matched");
+                        log.AppendLine($"        MISS    {renderer.name}[{i}] - no material matched");
                         continue;
                     }
 
@@ -543,7 +543,7 @@ namespace TheBlock.EditorTools
         /// <summary>
         /// Which of the seven materials a renderer's slot wants.
         ///
-        /// The head is the only renderer with two, and its second is the eye — that is the whole
+        /// The head is the only renderer with two, and its second is the eye - that is the whole
         /// special case, and it is stated rather than guessed at.
         /// </summary>
         private static string Match(string rendererName, int slot)

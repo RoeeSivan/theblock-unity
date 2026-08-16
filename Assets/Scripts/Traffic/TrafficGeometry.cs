@@ -3,12 +3,12 @@ using UnityEngine;
 namespace TheBlock.Traffic
 {
     /// <summary>
-    /// Pure decision geometry for ambient traffic — the port of <c>traffic-ai.ts</c>, plus
+    /// Pure decision geometry for ambient traffic - the port of <c>traffic-ai.ts</c>, plus
     /// <c>buildCorner</c> from <c>traffic-graph.ts</c>.
     ///
     /// No <c>MonoBehaviour</c>, no scene access, no allocation: everything takes the caller's
     /// scratch and returns a number or writes into a buffer the caller owns. The web build split
-    /// these out so they were unit-testable in isolation, and the same split is worth keeping —
+    /// these out so they were unit-testable in isolation, and the same split is worth keeping -
     /// this is the part of the traffic sim that is easy to get subtly wrong and easy to check.
     /// </summary>
     public static class TrafficGeometry
@@ -33,7 +33,7 @@ namespace TheBlock.Traffic
 
         /// <summary>
         /// Is a point inside this car's forward obstacle cone? <paramref name="otherHalf"/> is the
-        /// obstacle's own half-size — another car's half-length, the player radius, a pedestrian
+        /// obstacle's own half-size - another car's half-length, the player radius, a pedestrian
         /// radius. Mirrors the follow gate: ahead of the bumper, within a lane width laterally, and
         /// inside the follow distance.
         /// </summary>
@@ -61,7 +61,7 @@ namespace TheBlock.Traffic
         /// side of: <c>crowd.ts</c>'s <c>avoidCar</c>, which a pedestrian uses to decide not to walk
         /// into a car that is simply in the way. It lives here rather than in the crowd because it is
         /// the same box arithmetic, against the same <see cref="Box"/> the traffic already keeps up
-        /// to date — no traffic code changes to support it.
+        /// to date - no traffic code changes to support it.
         /// </summary>
         public static bool PointInBox(in Box car, float px, float pz, float pad)
         {
@@ -77,7 +77,7 @@ namespace TheBlock.Traffic
         /// box axes.
         ///
         /// Unlike the forward cone this fires from ANY angle, which is what catches a car turning
-        /// across another one inside a junction — a case where neither is "ahead in lane" and both
+        /// across another one inside a junction - a case where neither is "ahead in lane" and both
         /// would otherwise drive straight through each other.
         /// </summary>
         public static bool BoxesOverlap(in Box a, in Box b, float margin)
@@ -106,7 +106,7 @@ namespace TheBlock.Traffic
         /// <summary>
         /// Builds a one-shot smooth turn through an intersection into the caller's buffer: a
         /// quadratic bezier from the incoming lane point to the outgoing one, with the control point
-        /// at the intersection of the two lane lines — so a right turn arcs tight and a left turn
+        /// at the intersection of the two lane lines - so a right turn arcs tight and a left turn
         /// arcs wide, which is what a real one does.
         ///
         /// The buffer is the car's own, reused for every turn it ever makes, so a city's worth of
@@ -131,7 +131,7 @@ namespace TheBlock.Traffic
                 cx = from.x + fromTangent.x * t;
                 cz = from.z + fromTangent.z * t;
 
-                // A wild intersection point — near-parallel lines — would loop the car off the map.
+                // A wild intersection point - near-parallel lines - would loop the car off the map.
                 float dx = cx - nodeFallback.x;
                 float dz = cz - nodeFallback.z;
                 if (t < 0f || dx * dx + dz * dz > 625f)

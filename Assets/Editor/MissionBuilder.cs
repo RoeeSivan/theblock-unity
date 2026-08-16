@@ -15,13 +15,13 @@ using UnityEngine;
 namespace TheBlock.EditorTools
 {
     /// <summary>
-    /// Wires the campaign into the scene — <b>The Block → Build Campaign</b> — and gives the port
-    /// the New Game it has no menu for yet — <b>The Block → Reset Campaign</b>.
+    /// Wires the campaign into the scene - <b>The Block → Build Campaign</b> - and gives the port
+    /// the New Game it has no menu for yet - <b>The Block → Reset Campaign</b>.
     ///
     /// Idempotent, like <see cref="WorldBuilder"/> and <see cref="HudBuilder"/>: it finds or creates
     /// the <c>Campaign</c> object, collects every <see cref="MissionBehaviour"/> in the scene,
     /// orders them by <c>campaign.config.ts</c>, and rebinds the references. Running it after
-    /// building a new mission is how that mission joins the campaign — there is no list to hand-edit
+    /// building a new mission is how that mission joins the campaign - there is no list to hand-edit
     /// and forget.
     ///
     /// <b>It marks the scene dirty and does not save it</b>, the same contract every other builder
@@ -104,7 +104,7 @@ namespace TheBlock.EditorTools
             // Every mission that SPEAKS resolves its lines through the one Voice. Rebinding here
             // rather than in each mission's own builder means a mission cannot be built holding a
             // dangling reference to a bank that has not been filled yet. Two of the four have no
-            // voice field at all — the rescue and the chase brief on a card and say nothing aloud —
+            // voice field at all - the rescue and the chase brief on a card and say nothing aloud -
             // so a missing field is expected here, not a warning.
             foreach (var mission in ordered) BindOptional(mission, "voice", voice);
 
@@ -120,7 +120,7 @@ namespace TheBlock.EditorTools
                 report += $" ⚠ In the scene with no campaignText row: {string.Join(", ", found.Keys)}.";
 
             if (Object.FindAnyObjectByType<MissionHud>() == null)
-                report += " ⚠ No MissionHud — run The Block → Build Map HUD.";
+                report += " ⚠ No MissionHud - run The Block → Build Map HUD.";
 
             Debug.Log(report);
         }
@@ -132,7 +132,7 @@ namespace TheBlock.EditorTools
                     "Reset Campaign",
                     "Wipes the saved campaign: unlocked missions back to the first, every mission " +
                     "pays again, the wallet back to its starting balance, and the one-time hints " +
-                    "forgotten.\n\nThe picked character is kept — New Game restarts the campaign, " +
+                    "forgotten.\n\nThe picked character is kept - New Game restarts the campaign, " +
                     "not who you are.\n\nThis cannot be undone.",
                     "Reset", "Cancel"))
                 return;
@@ -144,19 +144,19 @@ namespace TheBlock.EditorTools
             Onboarding.Reset();
 
             // The wallet's zero lives on the component, because its starting balance is serialized.
-            // With no scene wallet — a fresh scene, or Play not yet run — clear the key directly so
+            // With no scene wallet - a fresh scene, or Play not yet run - clear the key directly so
             // a reset is a reset either way.
             var wallet = Object.FindAnyObjectByType<Wallet>();
             if (wallet != null) wallet.Reset();
             else PlayerPrefs.DeleteKey("theblock.cash");
             PlayerPrefs.Save();
 
-            Debug.Log("MissionBuilder: campaign reset — mission 1, no payouts, wallet cleared, hints forgotten.");
+            Debug.Log("MissionBuilder: campaign reset - mission 1, no payouts, wallet cleared, hints forgotten.");
         }
 
         /// <summary>
         /// M1. Its five customers are the crowd's own prefabs, resolved from the NAMES in
-        /// <c>missionConfig.npcSpecs</c> — Sophie, Remy, Elizabeth, Chinese, Lewis — so the port
+        /// <c>missionConfig.npcSpecs</c> - Sophie, Remy, Elizabeth, Chinese, Lewis - so the port
         /// cycles the same five faces in the same order the shipped game does, without a second
         /// character import. Peter is the sixth in the crowd and is not one of them, in both builds.
         /// </summary>
@@ -179,7 +179,7 @@ namespace TheBlock.EditorTools
             EditorUtility.SetDirty(mission);
 
             if (missing.Count > 0)
-                Debug.LogWarning($"MissionBuilder: no Ped prefab for {string.Join(", ", missing)} — " +
+                Debug.LogWarning($"MissionBuilder: no Ped prefab for {string.Join(", ", missing)} - " +
                                  "run The Block → Build Pedestrians. Those faces will not appear.");
 
             Bind(mission,
@@ -199,7 +199,7 @@ namespace TheBlock.EditorTools
             var spec = snapshot.Rhythm;
             if (spec == null)
             {
-                Debug.LogWarning("MissionBuilder: no rhythmConfig — the dance is not built.");
+                Debug.LogWarning("MissionBuilder: no rhythmConfig - the dance is not built.");
                 return;
             }
 
@@ -216,7 +216,7 @@ namespace TheBlock.EditorTools
             EditorUtility.SetDirty(conductor);
 
             log.AppendLine(song == null
-                ? $"  ⚠ no song clip for '{spec.Song?.Url}' in {MusicFolder} — the routine has no clock"
+                ? $"  ⚠ no song clip for '{spec.Song?.Url}' in {MusicFolder} - the routine has no clock"
                 : $"  song: {song.name} {song.length:0.0}s @ {spec.Song.Bpm} BPM, offset {spec.Song.Offset}s");
 
             Bind(mission,
@@ -228,12 +228,12 @@ namespace TheBlock.EditorTools
                 ("conductor", conductor),
                 ("hudDocument", Object.FindAnyObjectByType<UnityEngine.UIElements.UIDocument>()));
 
-            Debug.Log("MissionBuilder — dance\n" + log);
+            Debug.Log("MissionBuilder - dance\n" + log);
         }
 
         /// <summary>
         /// M3. Places the Huey at its config spawn, points the mission at the baked roof pool, and
-        /// reuses the delivery run's faces as survivors — the ORIGINAL's own choice, and its
+        /// reuses the delivery run's faces as survivors - the ORIGINAL's own choice, and its
         /// <c>rescue.config.ts</c> says why: one source for those five assets.
         /// </summary>
         private static void BuildRescue(GameObject root, TheBlockConfig.Snapshot snapshot)
@@ -241,7 +241,7 @@ namespace TheBlock.EditorTools
             var spec = snapshot.Config?.Vehicle?.Helicopter;
             if (spec == null || snapshot.Rescue == null)
             {
-                Debug.LogWarning("MissionBuilder: no helicopter or rescueConfig — M3 is not built.");
+                Debug.LogWarning("MissionBuilder: no helicopter or rescueConfig - M3 is not built.");
                 return;
             }
 
@@ -259,8 +259,8 @@ namespace TheBlock.EditorTools
                 ("vehicles", Object.FindAnyObjectByType<VehicleEnterExit>()),
                 ("hud", Object.FindAnyObjectByType<MissionHud>()));
 
-            Debug.Log($"MissionBuilder — rescue: Huey at {(heli == null ? "MISSING" : heli.transform.position.ToString("F1"))}, " +
-                      $"{(roofs == null ? "⚠ NO ROOF SPOTS — run The Block → Bake Roof Spots" : roofs.Count + " baked roof spots")}");
+            Debug.Log($"MissionBuilder - rescue: Huey at {(heli == null ? "MISSING" : heli.transform.position.ToString("F1"))}, " +
+                      $"{(roofs == null ? "⚠ NO ROOF SPOTS - run The Block → Bake Roof Spots" : roofs.Count + " baked roof spots")}");
         }
 
         /// <summary>
@@ -272,7 +272,7 @@ namespace TheBlock.EditorTools
             var spec = snapshot.Config?.Vehicle?.Jetski;
             if (spec == null || snapshot.Chase == null)
             {
-                Debug.LogWarning("MissionBuilder: no jetski or chaseConfig — M4 is not built.");
+                Debug.LogWarning("MissionBuilder: no jetski or chaseConfig - M4 is not built.");
                 return;
             }
 
@@ -294,7 +294,7 @@ namespace TheBlock.EditorTools
                 ("hud", Object.FindAnyObjectByType<MissionHud>()),
                 ("player", Object.FindAnyObjectByType<TheBlock.Player.PlayerController>()));
 
-            Debug.Log($"MissionBuilder — chase: jetski at {(ski == null ? "MISSING" : ski.transform.position.ToString("F1"))} " +
+            Debug.Log($"MissionBuilder - chase: jetski at {(ski == null ? "MISSING" : ski.transform.position.ToString("F1"))} " +
                       $"(shore is Unity x {TheBlock.World.SeaGeometry.ShoreX(snapshot.Config.Sea):F1}; the ski must be SEAWARD of it), " +
                       $"buoy prefab {(buoy == null ? "MISSING" : "ok")}\n{log}");
         }
@@ -328,7 +328,7 @@ namespace TheBlock.EditorTools
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefabs/Vehicles/{name}.prefab");
             if (prefab == null)
             {
-                Debug.LogWarning($"MissionBuilder: no {name}.prefab — run The Block → Build Mission Vehicles.");
+                Debug.LogWarning($"MissionBuilder: no {name}.prefab - run The Block → Build Mission Vehicles.");
                 return null;
             }
 
@@ -366,7 +366,7 @@ namespace TheBlock.EditorTools
         ///
         /// It used to own a private list of its own, filled from <c>Assets/Audio/Voice</c>. U27 gave
         /// the project an <see cref="AudioLibrary"/> covering all five audio folders, and two
-        /// resolvers for the same question is how the two disagree later — so this now DELEGATES.
+        /// resolvers for the same question is how the two disagree later - so this now DELEGATES.
         /// The mixer group is left alone here: Build Audio owns the routing, and a null group is the
         /// master output, which is what this was before U27 anyway.
         /// </summary>
@@ -380,7 +380,7 @@ namespace TheBlock.EditorTools
 
         private static T Component<T>(GameObject go, out T _) where T : Component
         {
-            // TryGetComponent, never `GetComponent() ?? AddComponent()` — a missing component comes
+            // TryGetComponent, never `GetComponent() ?? AddComponent()` - a missing component comes
             // back as Unity's fake-null, which `??` treats as a real object.
             if (!go.TryGetComponent<T>(out var component)) component = go.AddComponent<T>();
             _ = component;

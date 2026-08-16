@@ -13,21 +13,21 @@ namespace TheBlock.Vehicles
     /// tank, the hold-to-fill loop with its tick clock, and the per-tank reminder state. The tank is
     /// arithmetic; this is the interaction.
     ///
-    /// <b>One predicate behind the prompt and the action</b> — <see cref="CanFuel"/> — which is this
+    /// <b>One predicate behind the prompt and the action</b> - <see cref="CanFuel"/> - which is this
     /// project's most-repeated invariant and the reason a locked Huey never offered "Press E".
     /// </summary>
     [DisallowMultipleComponent]
     public class FuelSystem : MonoBehaviour
     {
-        [Header("Debug — the ports of the web's ?fuel= and ?drain=")]
-        [Tooltip("Starting tank fraction. Below zero means the config's StartFrac (0.5). Debug — leave at -1.")]
+        [Header("Debug - the ports of the web's ?fuel= and ?drain=")]
+        [Tooltip("Starting tank fraction. Below zero means the config's StartFrac (0.5). Debug - leave at -1.")]
         [SerializeField] private float debugStartFrac = -1f;
 
         [Tooltip("Multiplies the DISTANCE burn only. 20 turns an 8-minute range into 24 seconds, " +
-                 "which is what makes the burn measurable in one Play session. Debug — leave at 1.")]
+                 "which is what makes the burn measurable in one Play session. Debug - leave at 1.")]
         [SerializeField] private float debugDrainScale = 1f;
 
-        [Header("Scene — found automatically when left empty")]
+        [Header("Scene - found automatically when left empty")]
         [SerializeField] private VehicleEnterExit vehicles;
         [SerializeField] private World.GasStation station;
         [SerializeField] private UI.MissionHud hud;
@@ -77,7 +77,7 @@ namespace TheBlock.Vehicles
             if (briefing == null) briefing = FindAnyObjectByType<UI.BriefingCard>();
 
             if (station == null)
-                Debug.LogWarning("FuelSystem: no GasStation in the scene — nothing to refuel at. " +
+                Debug.LogWarning("FuelSystem: no GasStation in the scene - nothing to refuel at. " +
                                  "Run The Block → Build Gas Station.", this);
 
             if (debugStartFrac >= 0f) Debug.Log($"[fuel] debugStartFrac {debugStartFrac:0.##}");
@@ -114,7 +114,7 @@ namespace TheBlock.Vehicles
             var eligible = CanFuel(vehicle, tank, here);
 
             // isPressed, not wasPressedThisFrame: this is a HELD key. Space is also the brake, which
-            // the web build calls helpful rather than a conflict — it pins you on the forecourt, and
+            // the web build calls helpful rather than a conflict - it pins you on the forecourt, and
             // you have to be under 2 km/h to fuel anyway.
             //
             // The briefing clause is load-bearing: the card reads Space as its own dismiss key and
@@ -130,7 +130,7 @@ namespace TheBlock.Vehicles
                 if (tank.Fill(dt))
                 {
                     GameAudio.Cue(SfxCue.FuelDone);
-                    hud?.ShowHint("⛽ Tank full — go!");
+                    hud?.ShowHint("⛽ Tank full - go!");
                     _lowWarned = false;
                     _halfWarned = false;
                 }
@@ -159,7 +159,7 @@ namespace TheBlock.Vehicles
                     Filling ? $"⛽ Fuelling… {Mathf.RoundToInt(tank.Fraction * 100f)}%" : "⛽ Hold SPACE to refuel",
                     UI.MissionHud.PromptVehicle);
 
-            // Per TANK, and NOT through Onboarding.FirstTime — that is once-ever and PlayerPrefs
+            // Per TANK, and NOT through Onboarding.FirstTime - that is once-ever and PlayerPrefs
             // backed, which would spend both of these on the first car of the first session. These
             // re-arm on a change of vehicle and on a completed fill, exactly as the web's do.
             if (tank != null && _tankTime >= _spec.RemindDelaySec)
@@ -171,18 +171,18 @@ namespace TheBlock.Vehicles
                     // Low supersedes half: firing it marks half as warned too, so one tank is worth
                     // at most one hint.
                     _halfWarned = true;
-                    hud?.ShowHint("⛽ Low fuel — the ⛽ pin on the map (M) is the gas station");
+                    hud?.ShowHint("⛽ Low fuel - the ⛽ pin on the map (M) is the gas station");
                 }
                 else if (!_halfWarned && tank.Fraction <= _spec.RemindFrac)
                 {
                     _halfWarned = true;
-                    hud?.ShowHint("⛽ Half a tank — fill up at the Paz station (⛽ on the map)");
+                    hud?.ShowHint("⛽ Half a tank - fill up at the Paz station (⛽ on the map)");
                 }
             }
         }
 
         /// <summary>
-        /// The one predicate. <b><c>IsFull</c> is in it, and the web build's is not</b> — over there
+        /// The one predicate. <b><c>IsFull</c> is in it, and the web build's is not</b> - over there
         /// the prompt is drawn from <c>canFuel</c> alone while the fill bails separately on full, so
         /// parking with a brimmed tank offers "Hold SPACE to refuel" for a key that does nothing.
         /// That is precisely the disagreement this project states three times that it will not have,
@@ -201,8 +201,8 @@ namespace TheBlock.Vehicles
         ///
         /// <b>This is where the helicopter, the jetski and every cruiser fall out</b>, and they fall
         /// out by never being handed a component rather than by appearing on a list. The
-        /// <c>IsPolice</c> clause is a second, redundant lock — a cruiser is not enterable, so
-        /// <see cref="VehicleEnterExit"/> can never hand one over — and redundancy is cheap where
+        /// <c>IsPolice</c> clause is a second, redundant lock - a cruiser is not enterable, so
+        /// <see cref="VehicleEnterExit"/> can never hand one over - and redundancy is cheap where
         /// U28 already paid once for an exemption that did not latch.
         /// </summary>
         private FuelTank TankFor(IEnterable vehicle)

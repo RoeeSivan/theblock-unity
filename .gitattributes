@@ -1,4 +1,4 @@
-# Unity text assets — force LF and treat as text so diffs/merges work
+# Unity text assets - force LF and treat as text so diffs/merges work
 *.cs        text diff=csharp
 *.shader    text
 *.shadergraph text
@@ -10,7 +10,7 @@
 *.uxml      text
 *.uss       text
 
-# Unity YAML — needs UnityYAMLMerge, never binary
+# Unity YAML - needs UnityYAMLMerge, never binary
 *.unity     text merge=unityyamlmerge eol=lf
 *.prefab    text merge=unityyamlmerge eol=lf
 *.asset     text merge=unityyamlmerge eol=lf
@@ -19,7 +19,7 @@
 *.controller text merge=unityyamlmerge eol=lf
 *.meta      text eol=lf
 
-# Binaries via Git LFS — add a new type HERE before its first commit
+# Binaries via Git LFS - add a new type HERE before its first commit
 *.fbx    filter=lfs diff=lfs merge=lfs -text
 *.glb    filter=lfs diff=lfs merge=lfs -text
 *.gltf   filter=lfs diff=lfs merge=lfs -text

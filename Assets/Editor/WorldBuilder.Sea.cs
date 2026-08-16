@@ -7,7 +7,7 @@ using Convert = TheBlock.Core.Convert;
 namespace TheBlock.EditorTools
 {
     /// <summary>
-    /// The sea, from <c>config.sea</c> — U12. Three parts, in the order they matter:
+    /// The sea, from <c>config.sea</c> - U12. Three parts, in the order they matter:
     ///
     ///  1. the water surface: one subdivided plane running the whole 2400 m out from the shore,
     ///     drawn by <c>TheBlock/Water</c>, which does the swells as a vertex displacement;
@@ -15,7 +15,7 @@ namespace TheBlock.EditorTools
     ///     so the beach is a real floor a player walks DOWN into the water rather than a picture;
     ///  3. the shore wall: an invisible box at the waterline, the world's boundary on that side.
     ///
-    /// HANDEDNESS. <c>config.sea.shoreX</c> is -430 and its water extends to more negative x — in
+    /// HANDEDNESS. <c>config.sea.shoreX</c> is -430 and its water extends to more negative x - in
     /// three.js the sea is WEST. Under <see cref="Convert"/> that whole span mirrors: the shore is
     /// Unity <c>x +430</c> and the sea runs to LARGER x. Every derived edge here is produced by
     /// converting the config's own expression rather than by re-deriving it with a sign flipped by
@@ -34,7 +34,7 @@ namespace TheBlock.EditorTools
         {
             if (sea?.Beach == null || sea.Surface == null)
             {
-                report.Warnings.Add("sea skipped — config has no `sea` section");
+                report.Warnings.Add("sea skipped - config has no `sea` section");
                 return;
             }
 
@@ -51,14 +51,14 @@ namespace TheBlock.EditorTools
             var shader = Shader.Find(WaterShaderName);
             if (shader == null)
             {
-                report.Warnings.Add($"water skipped — shader `{WaterShaderName}` not found");
+                report.Warnings.Add($"water skipped - shader `{WaterShaderName}` not found");
                 return;
             }
 
             if (sea.Surface.Waves == null || sea.Surface.Waves.Count != 3)
             {
                 report.Warnings.Add(
-                    $"water: config has {sea.Surface.Waves?.Count ?? 0} waves, the shader takes exactly 3 — " +
+                    $"water: config has {sea.Surface.Waves?.Count ?? 0} waves, the shader takes exactly 3 - " +
                     "extras ignored, missing ones flat");
             }
 
@@ -93,10 +93,10 @@ namespace TheBlock.EditorTools
             var material = new Material(shader) { name = "Water" };
 
             var normalMap = AssetDatabase.LoadAssetAtPath<Texture2D>(WaterNormalMapPath);
-            if (normalMap == null) report.Warnings.Add($"water: {WaterNormalMapPath} missing — ripple flat");
+            if (normalMap == null) report.Warnings.Add($"water: {WaterNormalMapPath} missing - ripple flat");
             else material.SetTexture("_NormalMap", normalMap);
 
-            // sRGB, never .linear — the same trap as glTFast's baseColorFactor.
+            // sRGB, never .linear - the same trap as glTFast's baseColorFactor.
             material.SetColor("_DeepColor", TheBlockConfig.ColorFromHex(s.DeepColor));
             material.SetColor("_ShallowColor", TheBlockConfig.ColorFromHex(s.ShallowColor));
             material.SetColor("_SkyColor", TheBlockConfig.ColorFromHex(s.SkyColor));
@@ -137,7 +137,7 @@ namespace TheBlock.EditorTools
 
         /// <summary>
         /// The sand: a grid displaced to the seabed ramp, and the floor the player descends into the
-        /// water on. Solid — a MeshCollider — because the alternative is walking on the sea.
+        /// water on. Solid - a MeshCollider - because the alternative is walking on the sea.
         /// </summary>
         private static void BuildBeach(Transform parent, TheBlockConfig.SeaSpec sea, Options options, Report report)
         {
@@ -180,7 +180,7 @@ namespace TheBlock.EditorTools
             var shader = Shader.Find(BeachShaderName);
             if (shader == null)
             {
-                report.Warnings.Add($"beach: shader `{BeachShaderName}` not found — falling back to flat sand");
+                report.Warnings.Add($"beach: shader `{BeachShaderName}` not found - falling back to flat sand");
                 shader = Shader.Find("Universal Render Pipeline/Lit");
                 if (shader == null) return null;
                 var flat = new Material(shader) { name = "Beach" };
@@ -220,8 +220,8 @@ namespace TheBlock.EditorTools
         /// stops here instead of driving out to sea.
         ///
         /// It sits on <b>Ignore Raycast</b>, which is Unity's answer to the web build's
-        /// <c>markNonGround</c>. A wall is not a floor, and a downward probe started inside it — the
-        /// side probe in the exit-a-vehicle path does exactly that — reads its top as ground and
+        /// <c>markNonGround</c>. A wall is not a floor, and a downward probe started inside it - the
+        /// side probe in the exit-a-vehicle path does exactly that - reads its top as ground and
         /// lifts the caller 8 m into the air. The layer is excluded from the default raycast mask,
         /// so probes miss it while collision is untouched.
         /// </summary>
@@ -230,7 +230,7 @@ namespace TheBlock.EditorTools
             var wallSpec = sea.Wall;
             if (wallSpec == null)
             {
-                report.Warnings.Add("shore wall skipped — config has no `sea.wall`");
+                report.Warnings.Add("shore wall skipped - config has no `sea.wall`");
                 return;
             }
 
@@ -252,7 +252,7 @@ namespace TheBlock.EditorTools
 
         /// <summary>
         /// Writes the shoreline ramp onto a material. The water and the sand both shade from it and
-        /// the sand mesh is built from it, so all three have to be given the same four numbers — a
+        /// the sand mesh is built from it, so all three have to be given the same four numbers - a
         /// mismatch is a tide line that does not sit on the waterline.
         /// </summary>
         private static void ApplyShoreRamp(Material material, TheBlockConfig.SeaSpec sea)
@@ -265,7 +265,7 @@ namespace TheBlock.EditorTools
 
         /// <summary>
         /// A flat XZ grid centred on <paramref name="centre"/>, optionally displaced in Y by a
-        /// function of world X — which is all the seabed ever depends on.
+        /// function of world X - which is all the seabed ever depends on.
         /// </summary>
         private static Mesh BuildGrid(
             string name, Vector3 centre, float width, float length, int segX, int segZ,

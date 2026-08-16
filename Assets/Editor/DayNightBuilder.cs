@@ -35,7 +35,7 @@ namespace TheBlock.EditorTools
         /// 2026-08-16 after play-testing the 24-minute version.
         ///
         /// <b>Written here rather than left to the C# field initialiser</b>, because the scene has
-        /// already serialized a value for that field and a serialized value beats the default —
+        /// already serialized a value for that field and a serialized value beats the default -
         /// re-tuning the initialiser would change nothing and report nothing
         /// (memory: <c>scene-serialized-value-beats-cs-default</c>).
         /// </summary>
@@ -51,7 +51,7 @@ namespace TheBlock.EditorTools
         /// <summary>
         /// Builds the rig ready to LOOK AT: cycle forced on, a full day in two minutes, the clock
         /// running behind the title screen, and a banner in the corner saying so. Press Play and the
-        /// sky moves — nothing to click, no Settings, no Boot scene.
+        /// sky moves - nothing to click, no Settings, no Boot scene.
         ///
         /// Run <b>Build Day-Night</b> again to put it back before committing. The banner exists so
         /// that "left in a test setting" cannot happen silently.
@@ -64,7 +64,7 @@ namespace TheBlock.EditorTools
             // Unity discards scene and component edits made during Play, silently and on Stop
             // (the same class of trap as PlayerSettings edits during Play). Building from inside a
             // Play session would report success, look right for as long as the session lasted, and
-            // revert the moment it ended — which is the worst way for this to fail, because the log
+            // revert the moment it ended - which is the worst way for this to fail, because the log
             // line says it worked.
             if (EditorApplication.isPlayingOrWillChangePlaymode)
             {
@@ -81,7 +81,7 @@ namespace TheBlock.EditorTools
             {
                 EditorUtility.DisplayDialog(
                     "Build Day-Night",
-                    "Open Assets/Scenes/World.unity first — the clock goes on that scene's " +
+                    "Open Assets/Scenes/World.unity first - the clock goes on that scene's " +
                     "directional light.",
                     "OK");
                 return;
@@ -102,7 +102,7 @@ namespace TheBlock.EditorTools
             var camera = Camera.main;
             var campaign = Object.FindAnyObjectByType<Campaign>();
 
-            // Never `?? AddComponent` — a destroyed component reads as non-null
+            // Never `?? AddComponent` - a destroyed component reads as non-null
             // (memory: unity-null-coalescing-fake-null).
             foreach (var existing in sun.GetComponents<DayNightCycle>()) Object.DestroyImmediate(existing);
             var cycle = sun.gameObject.AddComponent<DayNightCycle>();
@@ -118,7 +118,7 @@ namespace TheBlock.EditorTools
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
             // Test Mode turns post-processing on from Start, but the SAVED scene must still be the
-            // shipped state — see BuildCameraData.
+            // shipped state - see BuildCameraData.
             var cameraNote = BuildCameraData(camera);
 
             // `new GameObject` and AddComponent do not dirty a scene, and an unmarked scene is not
@@ -126,19 +126,19 @@ namespace TheBlock.EditorTools
             EditorSceneManager.MarkSceneDirty(scene);
 
             var tail = testMode
-                ? "TEST MODE: press Play from World.unity and the sky moves behind the title — " +
+                ? "TEST MODE: press Play from World.unity and the sky moves behind the title - " +
                   "a full day in 2 minutes, [ and ] step an hour, \\ holds the clock. " +
                   "Run The Block → Build Day-Night to put it back before committing."
                 : "The setting defaults to Fixed, so nothing changes until a player turns it on.";
 
             Debug.Log(
                 $"DayNightBuilder: clock on '{sun.name}', volume '{VolumeRootName}' → {ProfilePath}, " +
-                $"{cameraNote} Campaign {(campaign == null ? "NOT found — the mission hold is off" : "wired")}. " +
+                $"{cameraNote} Campaign {(campaign == null ? "NOT found - the mission hold is off" : "wired")}. " +
                 $"Save the scene. {tail}");
         }
 
         /// <summary>
-        /// The scene's key light. Found by TYPE rather than by name — the object is called
+        /// The scene's key light. Found by TYPE rather than by name - the object is called
         /// "Directional Light" today, but a rename would silently produce a cycle with nothing to
         /// rotate, and that failure looks like "the setting does nothing".
         /// </summary>
@@ -192,7 +192,7 @@ namespace TheBlock.EditorTools
         }
 
         /// <summary>
-        /// <c>VolumeProfile.Add</c> builds the component but does not make it a sub-asset — that is
+        /// <c>VolumeProfile.Add</c> builds the component but does not make it a sub-asset - that is
         /// the profile inspector's job, and without it the overrides are lost on the next import.
         /// </summary>
         private static T Add<T>(VolumeProfile profile) where T : VolumeComponent
@@ -204,7 +204,7 @@ namespace TheBlock.EditorTools
         }
 
         /// <summary>
-        /// A global Volume at the scene root — root because everything under <c>World</c> is
+        /// A global Volume at the scene root - root because everything under <c>World</c> is
         /// WorldBuilder's output and is destroyed on every build.
         /// </summary>
         private static Volume BuildVolume(VolumeProfile profile)
@@ -231,7 +231,7 @@ namespace TheBlock.EditorTools
         /// </summary>
         private static string BuildCameraData(Camera camera)
         {
-            if (camera == null) return "no Main Camera found — grading will not render;";
+            if (camera == null) return "no Main Camera found - grading will not render;";
 
             var data = camera.GetUniversalAdditionalCameraData();
             data.renderPostProcessing = false;

@@ -13,7 +13,7 @@ namespace TheBlock.Missions
     /// survivors instead of four, and nobody can look at the result before playing.
     ///
     /// Unity bakes it, the way U17 bakes the traffic graph and U19 bakes the police route graph. The
-    /// candidates are found once by <c>WorldBuilder.Rescue</c>, written here, and drawn as gizmos —
+    /// candidates are found once by <c>WorldBuilder.Rescue</c>, written here, and drawn as gizmos -
     /// so "are the roofs sensible?" is a question with an answer before anyone flies anywhere, and
     /// the runtime casts nothing at all.
     /// </summary>

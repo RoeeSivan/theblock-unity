@@ -5,7 +5,7 @@ using TheBlock.Core;
 namespace TheBlock.Audio
 {
     /// <summary>
-    /// The city's soundscape — the port of <c>src/audio/ambient.ts</c>. Two looped beds, a street
+    /// The city's soundscape - the port of <c>src/audio/ambient.ts</c>. Two looped beds, a street
     /// murmur and an ocean bed, crossfaded by where the player is standing relative to the shore, so
     /// downtown bleeds into the beach as you walk west. Over them, a sparse layer of spot sounds
     /// (a honk, a dog, gulls) fires on a jittered timer so a 30-second loop never sounds like one.
@@ -13,13 +13,13 @@ namespace TheBlock.Audio
     /// <b>The one thing that moved: the ducking.</b> The web multiplies <c>ambientAudio.duck</c>
     /// into both bed gains AND every one-shot's gain at every call site, because it has no bus to
     /// put it on. Here the duck is the Ambient mixer group's volume in a snapshot, so driving,
-    /// stepping inside and starting the dance each move ONE number and the whole bed follows —
+    /// stepping inside and starting the dance each move ONE number and the whole bed follows -
     /// including a one-shot already in the air, which the web's version cannot catch. The duck
     /// factor is still passed in here for one purpose only: skipping the spot-sound ROLL while
     /// the bus is silent, so a honk is not spent on a room nobody can hear it in.
     ///
     /// <b>Beachness runs in the WEB's frame, on purpose.</b> <c>config.sea.shoreX</c> is −430 in a
-    /// right-handed world, and the crossfade is an inequality against it — the kind of expression
+    /// right-handed world, and the crossfade is an inequality against it - the kind of expression
     /// that is silently mirrored by a missed sign and then "almost" works. Rather than re-derive the
     /// formula for a left-handed X, the player's position is converted BACK
     /// (<see cref="Convert.Pos(Vector3)"/> is its own inverse) and the web's arithmetic is used
@@ -71,7 +71,7 @@ namespace TheBlock.Audio
 
         private void Start() => StartBeds();
 
-        /// <summary>Starts both beds at silence. Idempotent — the update ramps them up from there.</summary>
+        /// <summary>Starts both beds at silence. Idempotent - the update ramps them up from there.</summary>
         public void StartBeds()
         {
             if (_started || _spec?.Beds == null || library == null) return;
@@ -95,7 +95,7 @@ namespace TheBlock.Audio
             {
                 // Non-critical, exactly as the web has it: a missing bed is half a soundscape, not a
                 // broken game. It is said once, here, rather than every frame.
-                Debug.LogWarning($"Ambient: no clip for '{url}' — that bed stays silent.");
+                Debug.LogWarning($"Ambient: no clip for '{url}' - that bed stays silent.");
                 return null;
             }
 
@@ -114,7 +114,7 @@ namespace TheBlock.Audio
 
         /// <summary>
         /// Per frame: crossfade the beds by the player's position and roll the spot-sound timer.
-        /// <paramref name="duck"/> is the linear gain the Ambient bus is currently ducked to — it
+        /// <paramref name="duck"/> is the linear gain the Ambient bus is currently ducked to - it
         /// gates the roll only; the mixer applies the level.
         /// </summary>
         public void Tick(float dt, Vector3 playerPosition, float duck)
@@ -124,7 +124,7 @@ namespace TheBlock.Audio
             float b = Beachness(playerPosition);
             Beachness01 = b;
 
-            // The config's time-constant, applied as an exponential approach — the same curve Web
+            // The config's time-constant, applied as an exponential approach - the same curve Web
             // Audio's setTargetAtTime draws, so the crossfade is as slow as it was tuned to be.
             float k = 1f - Mathf.Exp(-dt / Mathf.Max(0.0001f, _spec.Smooth));
 
@@ -148,7 +148,7 @@ namespace TheBlock.Audio
             if (clip == null) return;
 
             // The web swells each spot sound in and out with its own envelope because a hard onset
-            // felt startling — most of all on the gulls, which get a 0.45 s attack. Unity has no
+            // felt startling - most of all on the gulls, which get a 0.45 s attack. Unity has no
             // per-source ramp, so the envelope is a coroutine over the source's own volume.
             if (_swell != null) StopCoroutine(_swell);
             _shot.clip = clip;
@@ -159,7 +159,7 @@ namespace TheBlock.Audio
 
         private System.Collections.IEnumerator Swell(float attack, float release, float gain, float length)
         {
-            // Cap the fades so attack + release can never overrun a short clip — the web's own guard.
+            // Cap the fades so attack + release can never overrun a short clip - the web's own guard.
             float atk = Mathf.Min(attack, length * 0.45f);
             float rel = Mathf.Min(release, length * 0.45f);
             float t = 0f;

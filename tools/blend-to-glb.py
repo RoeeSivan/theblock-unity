@@ -1,7 +1,7 @@
 """Blender-side half of tools/blend-to-glb.sh. Run headless, never by hand.
 
 Exports the whole scene to one GLB with glTF's own axis convention, which is exactly what
-the web build's assets were made with — so a model exported here lands at the same
+the web build's assets were made with - so a model exported here lands at the same
 coordinates `config.ts` already documents, and Convert handles the rest on import.
 
 Usage (via the wrapper):
@@ -41,17 +41,17 @@ def main() -> None:
         # Bake modifiers into the exported mesh. Without it an unapplied Array/Mirror on the
         # stall lines exports as the single pre-modifier tile.
         export_apply=True,
-        # Whole scene, not a selection — nothing is selected in a headless run.
+        # Whole scene, not a selection - nothing is selected in a headless run.
         use_selection=False,
         export_materials="EXPORT",
         # A texture that is a .webp inside the .blend exports as one under AUTO, and that writes
         # EXT_texture_webp into extensionsREQUIRED. glTFast cannot read that extension, and because
-        # it is required it refuses the whole file — the model imports as a plain DefaultAsset and
+        # it is required it refuses the whole file - the model imports as a plain DefaultAsset and
         # WorldBuilder then reports it missing, with the real reason only in the Inspector.
         #
         # This writes a PNG beside each webp, which demotes the extension to extensionsUsed and lets
         # glTFast fall back. Forcing JPEG instead would be smaller but drops alpha, and Reichman's
-        # flag is an alpha decal — it would import as an opaque rectangle.
+        # flag is an alpha decal - it would import as an opaque rectangle.
         export_image_webp_fallback=True,
         # No rig, no animation, no camera or lamp in a static prop; leaving them on writes
         # empty nodes that then show up in Unity's hierarchy as clutter.

@@ -9,7 +9,7 @@ using Convert = TheBlock.Core.Convert;
 namespace TheBlock.EditorTools
 {
     /// <summary>
-    /// Roads, from <c>config.roads</c> — U12.
+    /// Roads, from <c>config.roads</c> - U12.
     ///
     /// The web build cloned one 8 m tile per A→B segment and rotated it: all three.js offered, and
     /// it shows at every bend, where two quads overlap in a hard V. Unity gets a spline through the
@@ -44,7 +44,7 @@ namespace TheBlock.EditorTools
         {
             if (roads?.Paths == null || roads.Paths.Count == 0)
             {
-                report.Warnings.Add("roads skipped — config has no `roads.paths`");
+                report.Warnings.Add("roads skipped - config has no `roads.paths`");
                 return;
             }
 
@@ -58,7 +58,7 @@ namespace TheBlock.EditorTools
                 var points = ToUnityPath(roads.Paths[i], roads.Y);
                 if (points.Count < 2)
                 {
-                    report.Warnings.Add($"road {i} skipped — fewer than 2 usable points");
+                    report.Warnings.Add($"road {i} skipped - fewer than 2 usable points");
                     continue;
                 }
 
@@ -73,7 +73,7 @@ namespace TheBlock.EditorTools
                 var mesh = BuildRibbon(container.Spline, out float length);
                 if (mesh == null)
                 {
-                    report.Warnings.Add($"road {i} skipped — spline came out shorter than one step");
+                    report.Warnings.Add($"road {i} skipped - spline came out shorter than one step");
                     Object.DestroyImmediate(road);
                     continue;
                 }
@@ -128,7 +128,7 @@ namespace TheBlock.EditorTools
         ///
         /// U runs across the road (0 at the right edge, 1 at the left) so the material's painted
         /// lines land at fixed distances from the centreline; V runs along it in metres/tile, so the
-        /// markings keep a constant pitch whatever the segment's length — the thing the web build's
+        /// markings keep a constant pitch whatever the segment's length - the thing the web build's
         /// stretched tile could not do, since scaling it stretched the paint too.
         /// </summary>
         private static Mesh BuildRibbon(Spline spline, out float length)
@@ -169,7 +169,7 @@ namespace TheBlock.EditorTools
                 int v = i * 2;
                 int t = i * 6;
                 // Wound so the face looks up: verified by the sign of (C-A)x(D-A), which is -Y for
-                // the other order — a road you can only see from underneath.
+                // the other order - a road you can only see from underneath.
                 triangles[t] = v;
                 triangles[t + 1] = v + 3;
                 triangles[t + 2] = v + 2;
@@ -189,7 +189,7 @@ namespace TheBlock.EditorTools
 
         /// <summary>
         /// Asphalt with a double-yellow centre line and white edge lines, generated rather than
-        /// imported — the web build's <c>road-straight.glb</c> is a 6 KB tile whose paint is
+        /// imported - the web build's <c>road-straight.glb</c> is a 6 KB tile whose paint is
         /// geometry, which does not survive being stretched along a curve.
         /// </summary>
         private static Material CreateRoadMaterial(Report report)
@@ -197,7 +197,7 @@ namespace TheBlock.EditorTools
             var shader = Shader.Find("Universal Render Pipeline/Lit");
             if (shader == null)
             {
-                report.Warnings.Add("road material skipped — URP/Lit shader not found");
+                report.Warnings.Add("road material skipped - URP/Lit shader not found");
                 return null;
             }
 
@@ -219,7 +219,7 @@ namespace TheBlock.EditorTools
 
         /// <summary>
         /// The road cross-section as pixels. U is across the road, so every marking is a band in X
-        /// and the texture is uniform in Y apart from grain — which is what lets it tile along a
+        /// and the texture is uniform in Y apart from grain - which is what lets it tile along a
         /// curve without the paint wobbling.
         /// </summary>
         private static Texture2D CreateRoadTexture()

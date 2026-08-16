@@ -17,20 +17,20 @@ namespace TheBlock.EditorTools
     /// audio while only the campaign made noise; there are five now, and the profiles below differ
     /// for reasons that are each a real constraint rather than a preference:
     ///
-    ///  - <c>Assets/Audio/Voice</c> — short lines, a second or two. Decompressed and preloaded, so
+    ///  - <c>Assets/Audio/Voice</c> - short lines, a second or two. Decompressed and preloaded, so
     ///    a customer's thank-you fires on the frame the pizza lands rather than after a hitch.
-    ///  - <c>Assets/Audio/Music</c> — the dance track. STREAMED, and that matters twice over: it
+    ///  - <c>Assets/Audio/Music</c> - the dance track. STREAMED, and that matters twice over: it
     ///    keeps the memory down, and a streamed clip advances its own DSP position, which is what
     ///    <c>Conductor</c>'s clock is read against.
-    ///  - <c>Assets/Audio/Engine</c> — the three engine loops. <b>PCM, decompressed, NOT mono.</b>
+    ///  - <c>Assets/Audio/Engine</c> - the three engine loops. <b>PCM, decompressed, NOT mono.</b>
     ///    <see cref="TheBlock.Audio.EngineSound"/> reads their samples with <c>GetData</c> to trim
     ///    the decoder tail off the loop point, and a compressed clip has no samples to read. They
     ///    total 400 KB; a lossy pass on a sub-second loop that plays for the whole game would be a
     ///    strange place to save it.
-    ///  - <c>Assets/Audio/Ambient</c> — split by LENGTH, not by folder. The two beds are 30 s and
+    ///  - <c>Assets/Audio/Ambient</c> - split by LENGTH, not by folder. The two beds are 30 s and
     ///    22 s of continuous murmur and stream; the one-shot honks and gulls must fire on the frame
     ///    they are rolled, so they preload like voice.
-    ///  - <c>Assets/Audio/Sfx</c> — screams and the siren. Preloaded: the first person you run over
+    ///  - <c>Assets/Audio/Sfx</c> - screams and the siren. Preloaded: the first person you run over
     ///    must not be the one who pays for the decode.
     /// </summary>
     public class GameAudioImporter : AssetPostprocessor
@@ -55,7 +55,7 @@ namespace TheBlock.EditorTools
             var importer = (AudioImporter)assetImporter;
 
             // Only on the FIRST import. After that the .meta is the truth and a hand-tuned setting
-            // must survive — the same contract the generated-texture importer keeps.
+            // must survive - the same contract the generated-texture importer keeps.
             if (!string.IsNullOrEmpty(importer.userData)) return;
 
             var path = assetPath.Replace('\\', '/');

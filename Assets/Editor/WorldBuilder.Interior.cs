@@ -5,14 +5,14 @@ using Convert = TheBlock.Core.Convert;
 namespace TheBlock.EditorTools
 {
     /// <summary>
-    /// Builds the pizzeria's interior cell (U13) — the room, its lamps, and the
+    /// Builds the pizzeria's interior cell (U13) - the room, its lamps, and the
     /// <see cref="World.Interior"/> component that owns the doorway.
     ///
     /// U13 built the place and left its MISSION mechanics open, by the user's call. U21 settles them
     /// and they are here, because they are geometry: the cashier behind the counter, and the
     /// <see cref="World.Interior.NearCounter"/> circle that is the shift's start button.
     ///
-    /// <b>The pizza-box stack is deliberately NOT built.</b> It is set dressing with no mechanic —
+    /// <b>The pizza-box stack is deliberately NOT built.</b> It is set dressing with no mechanic -
     /// the pizzas you carry are a HUD count, and no version of this game ever picks a box up. Its
     /// raw asset is 23 MB for a 30 cm prop (a 14.7 MB normal map alone), and the shipped 417 KB copy
     /// needs Draco, which this project has no importer for. Wiring it properly means extending U15's
@@ -27,7 +27,7 @@ namespace TheBlock.EditorTools
         /// A pure re-derivation, like every other number that crosses a renderer boundary (port rule
         /// 2): three's intensity means something different in every version and none of those
         /// meanings is URP's. The config's 40 and 30 become 4 and 3, which is a warm ceiling lamp in
-        /// a 3.6 m room — the shape of the lighting (one bright lamp over the counter, two dimmer
+        /// a 3.6 m room - the shape of the lighting (one bright lamp over the counter, two dimmer
         /// ones flanking it) is what carries, not the scalar.
         /// </summary>
         private const float InteriorLightScale = 0.1f;
@@ -62,7 +62,7 @@ namespace TheBlock.EditorTools
         }
 
         /// <summary>
-        /// The cashier behind the counter — the person you press T on to start a shift.
+        /// The cashier behind the counter - the person you press T on to start a shift.
         ///
         /// <b>She is one of the crowd's six, not a seventh import.</b> The web build loads a
         /// dedicated <c>idle-woman.glb</c> for her; that FBX is 52 MB, this project's LFS store is
@@ -75,7 +75,7 @@ namespace TheBlock.EditorTools
         ///
         /// <b><paramref name="parent"/> is the Places group and NOT the room</b>, which is the whole
         /// reason it is a parameter. <c>pizza-interior.glb</c>'s root node carries a scale of
-        /// <c>(5, 0.025, 4)</c> — the room is a scaled box — and a character parented under it
+        /// <c>(5, 0.025, 4)</c> - the room is a scaled box - and a character parented under it
         /// inherits that: measured, she rendered 3.5 m wide and <b>2 cm tall</b>, a smear on the
         /// floor that reads as "there is no cashier". A skinned body has to hang off something with
         /// an honest scale. She is placed in world space either way, so nothing else changes.
@@ -86,7 +86,7 @@ namespace TheBlock.EditorTools
             var npc = cfg?.Npc;
             if (npc == null)
             {
-                report.Warnings.Add("interior cashier skipped — config has no `interior.npc`");
+                report.Warnings.Add("interior cashier skipped - config has no `interior.npc`");
                 return;
             }
 
@@ -95,7 +95,7 @@ namespace TheBlock.EditorTools
             if (prefab == null)
             {
                 report.Warnings.Add(
-                    $"interior cashier skipped — {prefabPath} is missing. Run Build Pedestrians.");
+                    $"interior cashier skipped - {prefabPath} is missing. Run Build Pedestrians.");
                 return;
             }
 
@@ -119,7 +119,7 @@ namespace TheBlock.EditorTools
         /// <summary>
         /// The room's warm lamps.
         ///
-        /// They stay ON, unlike the web build's, which switch off the moment the player steps out —
+        /// They stay ON, unlike the web build's, which switch off the moment the player steps out -
         /// three's forward renderer charges every light against every shaded fragment in the scene,
         /// so a lamp in a room a kilometre away still costs the whole city. URP culls per object, so
         /// three point lights nobody can see cost nothing and the switching is dead code here.
@@ -136,7 +136,7 @@ namespace TheBlock.EditorTools
                 var go = new GameObject($"Lamp_{i}");
                 go.transform.SetParent(group, false);
                 // A light position inside the room is a world position in the same right-handed
-                // frame as the offset — it is stated relative to the room, but it is not a
+                // frame as the offset - it is stated relative to the room, but it is not a
                 // model-local offset, so it takes the world conversion and not ModelOffset.
                 go.transform.position = offset + Convert.Pos(spec.Raw);
 
@@ -178,7 +178,7 @@ namespace TheBlock.EditorTools
                 so.FindProperty("counterTalkRadius").floatValue = cfg.Npc.TalkRadius;
             }
             // Stepping back out lands at the player's own spawn height, which is what the web build
-            // uses too — the doorway's config carries no y of its own.
+            // uses too - the doorway's config carries no y of its own.
             if (player != null) so.FindProperty("streetY").floatValue = player.Spawn.Y;
 
             if (palette?.Fog != null)

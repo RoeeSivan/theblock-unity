@@ -6,17 +6,17 @@ using UnityEngine.InputSystem.Controls;
 namespace TheBlock.Vehicles
 {
     /// <summary>
-    /// The rescue Huey — the port of <c>src/vehicle/helicopter.ts</c>, and U23's answer to the
+    /// The rescue Huey - the port of <c>src/vehicle/helicopter.ts</c>, and U23's answer to the
     /// standing "can Unity do this better?" question.
     ///
     /// <b>The web's craft is a kinematic Rapier character controller with gravity switched off
     /// forever.</b> It never falls, it never rests on anything, and "landing" means its
-    /// collide-and-slide happened to stop. It also has to hand-write its own free-fall —
+    /// collide-and-slide happened to stop. It also has to hand-write its own free-fall -
     /// <c>fallGravity</c> and <c>fallMaxSpeed</c> exist purely because a craft abandoned in mid-air
     /// had to be made to drop by arithmetic.
     ///
     /// Here it is a real <see cref="Rigidbody"/>. Flown, gravity is off and the intended velocity is
-    /// written straight in, which keeps the arcade feel exactly — you do not fight a spring to
+    /// written straight in, which keeps the arcade feel exactly - you do not fight a spring to
     /// hover. Vacated in the air, <c>useGravity</c> goes true and PhysX does the fall, so those two
     /// config numbers become a shape to check the result against rather than code. And a craft set
     /// down on a rooftop RESTS on it, under contact, which is what the rescue mission needs from
@@ -28,11 +28,11 @@ namespace TheBlock.Vehicles
     ///
     /// <b>Yaw is an angular VELOCITY, written every step, and that is not a style choice.</b> The
     /// craft used to compose <c>MoveRotation</c> onto the body only while the stick was off centre,
-    /// which left nothing at all in charge of rotation the rest of the time — so any yaw a contact
+    /// which left nothing at all in charge of rotation the rest of the time - so any yaw a contact
     /// imparted simply stayed. Measured: a 3 rad/s knock still reads <b>1.82 rad/s after ten
     /// seconds</b> under PhysX's default 0.05 angular damping, and <c>MoveRotation</c> composed on
     /// top does not clear it. With <c>_planar</c> pushed along a nose that is turning on its own,
-    /// that is the spin the play-test found — and it is a spiral rather than a pirouette because
+    /// that is the spin the play-test found - and it is a spiral rather than a pirouette because
     /// held throttle keeps thrusting along the rotating forward.
     ///
     /// Controls: W/S or ↑/↓ fly · A/D or ←/→ turn · Space climb · Shift descend · R respawn · E out.
@@ -54,13 +54,13 @@ namespace TheBlock.Vehicles
         [SerializeField] private float vertAccel = 14f;
         [SerializeField] private float vertFriction = 12f;
 
-        [Header("Camera — config.vehicle.helicopter.camera")]
+        [Header("Camera - config.vehicle.helicopter.camera")]
         [SerializeField] private Vector3 boom = new(0f, 6f, -16f);
         [SerializeField] private float lookYOffset = 2f;
         [SerializeField] private float followLerp = 0.08f;
 
         /// <summary>
-        /// How fast an unflown craft's yaw bleeds off, in rad/s². Not a config number — the config
+        /// How fast an unflown craft's yaw bleeds off, in rad/s². Not a config number - the config
         /// has no such term, because the web's craft is kinematic and cannot be spun at all.
         /// </summary>
         private const float YawSettle = 6f;
@@ -83,7 +83,7 @@ namespace TheBlock.Vehicles
             body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
 
             // Upright, always. A helicopter that can be tipped by clipping a parapet is a
-            // helicopter you cannot land, and the web's kinematic craft could not tip at all — that
+            // helicopter you cannot land, and the web's kinematic craft could not tip at all - that
             // part of its feel is design, not a Rapier limitation.
             body.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
 
@@ -105,8 +105,8 @@ namespace TheBlock.Vehicles
 
             if (!Driven)
             {
-                // Nobody aboard. Gravity has it — this is the web's hand-written free-fall, done by
-                // the engine — and once it is resting the velocity it kept from the last frame of
+                // Nobody aboard. Gravity has it - this is the web's hand-written free-fall, done by
+                // the engine - and once it is resting the velocity it kept from the last frame of
                 // flight must not carry it off sideways.
                 body.useGravity = true;
                 _planar = Vector3.zero;
@@ -142,7 +142,7 @@ namespace TheBlock.Vehicles
             // Written as a velocity EVERY step, including the zero. That is what makes the stick
             // authoritative: a centred stick now means "not turning" rather than "not asking", so a
             // clipped parapet cannot leave the craft rotating. `yawRate` is rad/s in the config,
-            // which is exactly what `angularVelocity` wants — the old Rad2Deg × dt was there only
+            // which is exactly what `angularVelocity` wants - the old Rad2Deg × dt was there only
             // to build a per-step Euler delta.
             body.angularVelocity = new Vector3(0f, steer * yawRate, 0f);
 
@@ -152,7 +152,7 @@ namespace TheBlock.Vehicles
             _planar = Vector3.ClampMagnitude(_planar, maxSpeed);
 
             // Vertical: the collective. Releasing it decays toward zero rather than dropping the
-            // craft, and THAT is the hover — the single most important number in the block.
+            // craft, and THAT is the hover - the single most important number in the block.
             if (Mathf.Abs(collective) > 0.01f) _vertical += collective * vertAccel * dt;
             else _vertical = Mathf.MoveTowards(_vertical, 0f, vertFriction * dt);
             _vertical = Mathf.Clamp(_vertical, -maxVertSpeed, maxVertSpeed);
@@ -164,7 +164,7 @@ namespace TheBlock.Vehicles
         /// Keeps the steering state honest after a collision.
         ///
         /// Writing <c>linearVelocity</c> every step would otherwise drive the craft straight back
-        /// into whatever it just hit, at full speed, forever — the wall wins the contact and the
+        /// into whatever it just hit, at full speed, forever - the wall wins the contact and the
         /// next FixedUpdate re-asserts the same velocity. Reading the body back means a wall
         /// actually stops it.
         /// </summary>
@@ -188,7 +188,7 @@ namespace TheBlock.Vehicles
 
         /// <summary>
         /// Higher and further back than the car boom, to frame the craft AND its altitude. Already
-        /// converted at build time — three.js hangs a chase camera at +Z, Unity at −Z, the same flip
+        /// converted at build time - three.js hangs a chase camera at +Z, Unity at −Z, the same flip
         /// the car and the bike make.
         /// </summary>
         public Vector3 LocalBoom => boom;
@@ -209,8 +209,8 @@ namespace TheBlock.Vehicles
         public bool UsesEntryAnimation => false;
 
         /// <summary>
-        /// Hidden, like a car's driver. The config carries no rider block for the helicopter — the
-        /// jetski and the bike both do — so there is no seated pose authored for it, and an empty
+        /// Hidden, like a car's driver. The config carries no rider block for the helicopter - the
+        /// jetski and the bike both do - so there is no seated pose authored for it, and an empty
         /// cockpit is better than a man floating in the wrong one.
         /// </summary>
         public bool ShowRiderOnQuickMount => false;
@@ -226,7 +226,7 @@ namespace TheBlock.Vehicles
         public bool Driven { get; set; }
 
         /// <summary>
-        /// Locked until the campaign reaches its step — the port of <c>heliUnlocked</c>.
+        /// Locked until the campaign reaches its step - the port of <c>heliUnlocked</c>.
         ///
         /// This is the one place a vehicle refuses <c>E</c>, and it is why <see cref="IEnterable"/>
         /// has a <see cref="TryEnter"/> that can say no at all. Remy gates the chopper behind the
@@ -265,7 +265,7 @@ namespace TheBlock.Vehicles
             CaptureSpawn();
             if (body == null) return;
 
-            // Stop the body BEFORE moving it and sync the transforms after — the four-step move
+            // Stop the body BEFORE moving it and sync the transforms after - the four-step move
             // CarController.Teleport already documents. A craft moved while carrying 25 m/s arrives
             // at its pad still travelling.
             body.linearVelocity = Vector3.zero;

@@ -3,7 +3,7 @@ using UnityEngine;
 namespace TheBlock.Vehicles
 {
     /// <summary>
-    /// Swings one rigged joint of a car — the driver's door.
+    /// Swings one rigged joint of a car - the driver's door.
     ///
     /// The GLB ships a real armature whose joints already sit at the correct hinge positions, so
     /// this rotates the bone directly and the skinned mesh follows. There is no pivot wrapper and
@@ -26,7 +26,7 @@ namespace TheBlock.Vehicles
         [Tooltip("How far it swings, in degrees, from the rig's rest pose.")]
         [SerializeField] private float openAngle = -65f;
 
-        [Tooltip("Exponential smoothing rate — higher is snappier. Frame-rate independent.")]
+        [Tooltip("Exponential smoothing rate - higher is snappier. Frame-rate independent.")]
         [SerializeField] private float lerpRate = 8f;
 
         private Quaternion _rest;
@@ -42,7 +42,7 @@ namespace TheBlock.Vehicles
         /// Captures the rest pose and precomputes the open pose.
         ///
         /// Called from Awake and again from Update if a mid-Play recompile wiped the cached
-        /// quaternions — the same guard <c>CarController</c> and <c>PlayerController</c> carry, for
+        /// quaternions - the same guard <c>CarController</c> and <c>PlayerController</c> carry, for
         /// the same reason: the domain reloads, non-serialized fields come back empty, and Awake
         /// does not run again. Here that would leave the door lerping toward an identity rotation
         /// and tearing the door off the car.

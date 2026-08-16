@@ -5,7 +5,7 @@ using UnityEngine.UIElements;
 namespace TheBlock.UI.Menus
 {
     /// <summary>
-    /// The menus' shared look, in one place — the port of <c>src/styles/title.css</c> and
+    /// The menus' shared look, in one place - the port of <c>src/styles/title.css</c> and
     /// <c>src/styles/loading.css</c>.
     ///
     /// Every colour here is read off those two files rather than re-picked, because the title
@@ -28,7 +28,7 @@ namespace TheBlock.UI.Menus
         //
         // EVERY colour goes through Ui(), and that is not decoration. This project renders in
         // LINEAR colour space (URP's default), and a runtime UI Toolkit panel hands the Color
-        // straight to its shader as a vertex colour — so a value written as sRGB is drawn as if it
+        // straight to its shader as a vertex colour - so a value written as sRGB is drawn as if it
         // were already linear, which lightens it. Measured on the first title screen: a 0.90-alpha
         // near-black scrim came out as a pale blue-grey haze that the city read straight through,
         // and the #ff9440 buttons came out peach. Nothing logs; it just looks wrong in a way that
@@ -69,12 +69,12 @@ namespace TheBlock.UI.Menus
         public static readonly Color Rim = Ui(1f, 1f, 1f, 0.18f);
 
         /// <summary>
-        /// An sRGB colour, as the runtime panel needs it. Alpha is untouched — only the three
+        /// An sRGB colour, as the runtime panel needs it. Alpha is untouched - only the three
         /// channels are a gamma quantity.
         ///
         /// <b>A compile-time define, not <c>QualitySettings.activeColorSpace</c>.</b> Every colour
         /// above is a <c>static readonly</c>, so its initialiser runs the first time the type is
-        /// touched — which is inside a MonoBehaviour constructor, where Unity forbids that call
+        /// touched - which is inside a MonoBehaviour constructor, where Unity forbids that call
         /// outright: "get_activeColorSpace is not allowed to be called from a MonoBehaviour
         /// constructor". <c>UNITY_COLORSPACE_GAMMA</c> is the same answer with no call at all.
         /// </summary>
@@ -103,7 +103,7 @@ namespace TheBlock.UI.Menus
             element.style.right = 0f;
         }
 
-        /// <summary>One border on all four sides — UI Toolkit has no shorthand at the style level.</summary>
+        /// <summary>One border on all four sides - UI Toolkit has no shorthand at the style level.</summary>
         public static void SetBorder(VisualElement element, Color color, float width, float radius)
         {
             element.style.borderTopColor = color;
@@ -136,7 +136,7 @@ namespace TheBlock.UI.Menus
             return overlay;
         }
 
-        /// <summary>A vertical stack of buttons — `#title-root`, `#pause-root`, the mission list.</summary>
+        /// <summary>A vertical stack of buttons - `#title-root`, `#pause-root`, the mission list.</summary>
         public static VisualElement Column(string name, float gap = 12f)
         {
             var column = new VisualElement { name = name };
@@ -171,7 +171,7 @@ namespace TheBlock.UI.Menus
             return label;
         }
 
-        /// <summary>A sub-panel heading — `#title-character-heading`, the controls-guide columns.</summary>
+        /// <summary>A sub-panel heading - `#title-character-heading`, the controls-guide columns.</summary>
         public static Label Heading(string text, float size = 22f)
         {
             var label = new Label(text);
@@ -184,7 +184,7 @@ namespace TheBlock.UI.Menus
             return label;
         }
 
-        /// <summary>Quiet body copy — the tagline, a status line, a blurb.</summary>
+        /// <summary>Quiet body copy - the tagline, a status line, a blurb.</summary>
         public static Label Body(string text, float size = 15f)
         {
             var label = new Label(text);
@@ -198,7 +198,7 @@ namespace TheBlock.UI.Menus
         // ── buttons ───────────────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// The orange primary. <b>The click sound is in the factory, not at the call sites</b> — the
+        /// The orange primary. <b>The click sound is in the factory, not at the call sites</b> - the
         /// web calls <c>playUiClick()</c> by hand in all twenty of its handlers and one of them will
         /// eventually be the one that forgets.
         /// </summary>
@@ -209,7 +209,7 @@ namespace TheBlock.UI.Menus
         public static Button Secondary(string text, System.Action onClick) =>
             Make(text, onClick, SecondaryFill, SecondaryInk, FontStyle.Normal, 18f);
 
-        /// <summary>Repaints a live button between the two treatments — a picked character row.</summary>
+        /// <summary>Repaints a live button between the two treatments - a picked character row.</summary>
         public static void Paint(Button button, bool primary)
         {
             button.style.backgroundColor = primary ? Accent : SecondaryFill;
@@ -244,8 +244,8 @@ namespace TheBlock.UI.Menus
             };
 
             // A FIXED width, not the CSS's `min(340px, 78vw)`. A percentage max-width resolves
-            // against the parent's definite size, and these columns have none — their width comes
-            // from their children — so the percentage came back undefined and the button collapsed
+            // against the parent's definite size, and these columns have none - their width comes
+            // from their children - so the percentage came back undefined and the button collapsed
             // to its text (measured: 162 px instead of 340). The viewport clamp was a phone guard on
             // a build that had to run in a browser window; this one is desktop-first.
             button.style.width = ButtonWidth;

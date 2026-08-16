@@ -7,7 +7,7 @@ namespace TheBlock.Vehicles
     ///
     /// <b>This component is the fix for "the police were too sensitive".</b> The web build detects a
     /// crash as <i>"collide-and-slide delivered less than 25% of the commanded motion while moving
-    /// faster than 4 m/s"</i> (<c>vehicle.ts:309</c>, <c>config.ts blockedRatio 0.25</c>) — a probe
+    /// faster than 4 m/s"</i> (<c>vehicle.ts:309</c>, <c>config.ts blockedRatio 0.25</c>) - a probe
     /// that already existed for another purpose and was reused. In a dense city that fires on a wall
     /// scrape, a kerb, a bollard and a parked car, each worth a full star on a 3 s cooldown, which is
     /// how a clumsy ten seconds becomes three stars.
@@ -15,7 +15,7 @@ namespace TheBlock.Vehicles
     /// Here the reading is <b>closing speed along the contact normal</b>:
     /// <code>vClose = |Dot(collision.relativeVelocity, contact.normal)|</code>
     /// A scrape carries the car's whole speed but its contact normal is perpendicular to travel, so
-    /// vClose is near zero — the discrimination is geometric, not a threshold someone picked. A
+    /// vClose is near zero - the discrimination is geometric, not a threshold someone picked. A
     /// head-on gives back the car's speed. It is also mass-free, and it does not depend on which body
     /// the callback fired on, which <c>Collision.impulse</c>'s direction does (the same trap
     /// <c>TrafficCar</c> works around). The impulse is still read, and reported, as a cross-check.
@@ -26,7 +26,7 @@ namespace TheBlock.Vehicles
     ///
     /// <b>Attached at runtime, by the vehicle itself.</b> <see cref="CarController.Bind"/> and
     /// <see cref="MotorcycleController.Bind"/> both call <see cref="Ensure"/>. This class shipped in
-    /// U19 and sat on NOTHING — no prefab, no scene object, no <c>AddComponent</c> anywhere — so
+    /// U19 and sat on NOTHING - no prefab, no scene object, no <c>AddComponent</c> anywhere - so
     /// both listeners were subscribed to an event that could never fire: a crash was worth no heat
     /// and made no sound, for every unit since. A prefab field would have been dropped again the
     /// next time <c>The Block → Build Drivable Cars</c> regenerated them, which is the likeliest
@@ -46,14 +46,14 @@ namespace TheBlock.Vehicles
             /// <summary>Closing speed along the contact normal, m/s. The severity.</summary>
             public readonly float ClosingSpeed;
 
-            /// <summary>Impulse magnitude over mass, m/s — the cross-check, logged not used.</summary>
+            /// <summary>Impulse magnitude over mass, m/s - the cross-check, logged not used.</summary>
             public readonly float ImpulseOverMass;
 
             /// <summary>What was hit, for weighting. Null when it was the static world.</summary>
             public readonly Rigidbody Other;
 
             /// <summary>
-            /// Was the thing hit another VEHICLE — a traffic car, a parked filler, a cruiser, a
+            /// Was the thing hit another VEHICLE - a traffic car, a parked filler, a cruiser, a
             /// drivable car or a bike?
             ///
             /// <see cref="Other"/> cannot answer this and never could: a parked lot filler is a
@@ -81,12 +81,12 @@ namespace TheBlock.Vehicles
 
         /// <summary>
         /// Raised for every impact that survives the filters. Static because the listener is a single
-        /// system that does not know which cars exist — and because U27 wants this exact event for
+        /// system that does not know which cars exist - and because U27 wants this exact event for
         /// the crash thump, from the same frame.
         /// </summary>
         public static event System.Action<Impact> Crashed;
 
-        [Tooltip("Contacts flatter than this are the road, a kerb or a landing — never a crash.")]
+        [Tooltip("Contacts flatter than this are the road, a kerb or a landing - never a crash.")]
         [Range(0.1f, 0.99f)]
         [SerializeField] private float groundNormalY = 0.7f;
 
@@ -165,7 +165,7 @@ namespace TheBlock.Vehicles
 
             var probe = other.attachedRigidbody != null ? other.attachedRigidbody.transform : other.transform;
 
-            // A CRUISER is not a civilian vehicle, and the exclusion is not politeness — it is the
+            // A CRUISER is not a civilian vehicle, and the exclusion is not politeness - it is the
             // feedback loop U19 already paid for once. Cops crowd you and touch you constantly, so a
             // low bar against police contact mints a crime every cooldown, which spawns another cop
             // and resets the give-up clock: a pursuit that can never end because it is happening.

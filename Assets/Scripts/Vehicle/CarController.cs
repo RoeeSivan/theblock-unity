@@ -7,7 +7,7 @@ namespace TheBlock.Vehicles
     /// <summary>
     /// A drivable car: a Rigidbody on four WheelColliders.
     ///
-    /// This is NOT a port of <c>src/vehicle/vehicle.ts</c>. That car is kinematic — a scalar speed
+    /// This is NOT a port of <c>src/vehicle/vehicle.ts</c>. That car is kinematic - a scalar speed
     /// and a heading, pushed through a Rapier character controller, with a ray under it snapping the
     /// body to the road every frame. It is a workaround for Rapier's vehicle controller being
     /// unusable in that project, and CLAUDE.md port rule 5 says scar tissue does not carry over.
@@ -16,7 +16,7 @@ namespace TheBlock.Vehicles
     ///
     /// What DOES carry over is gameplay: the 20 m/s cap, the 7 m/s reverse, the ~34° steering lock,
     /// and tank-free steering that only bites while the car is rolling. Everything else on this
-    /// component is a PhysX number derived by feel, per port rule 2 — none of it came from config.ts,
+    /// component is a PhysX number derived by feel, per port rule 2 - none of it came from config.ts,
     /// and none of it should be compared against config.ts.
     ///
     /// Its forward is <c>+Z</c>. The imported GLB's is not; see <see cref="Convert.ModelFacing"/>.
@@ -24,15 +24,15 @@ namespace TheBlock.Vehicles
     [RequireComponent(typeof(Rigidbody))]
     public class CarController : MonoBehaviour, IEnterable
     {
-        [Header("Wheels — front pair steers, rear pair drives")]
+        [Header("Wheels - front pair steers, rear pair drives")]
         [SerializeField] private WheelCollider frontLeft;
         [SerializeField] private WheelCollider frontRight;
         [SerializeField] private WheelCollider rearLeft;
         [SerializeField] private WheelCollider rearRight;
 
-        [Header("Drive — PhysX numbers, derived by feel (port rule 2)")]
+        [Header("Drive - PhysX numbers, derived by feel (port rule 2)")]
         [Tooltip("Nm per driven wheel. 1600 over a 0.38 m wheel is ~8.4 kN of thrust, ~6 m/s^2 " +
-                 "on a 1400 kg car — 0-72 km/h in about 3.5 s.")]
+                 "on a 1400 kg car - 0-72 km/h in about 3.5 s.")]
         [SerializeField] private float motorTorque = 1600f;
 
         [Tooltip("Nm per wheel when braking. Well above motor torque so S beats W.")]
@@ -69,7 +69,7 @@ namespace TheBlock.Vehicles
                  "loaded over crests so it does not take off on a curb.")]
         [SerializeField] private float downforce = 0.6f;
 
-        [Header("Cabin — wired by CarBuilder from config.vehicle.driver / .cars[].door")]
+        [Header("Cabin - wired by CarBuilder from config.vehicle.driver / .cars[].door")]
         [Tooltip("Where the driver's entry animation starts: beside the door, at road level. The " +
                  "clip's own travel carries him from here into the seat.")]
         [SerializeField] private Transform driverAnchor;
@@ -77,7 +77,7 @@ namespace TheBlock.Vehicles
         [SerializeField] private CarDoor door;
 
         [Header("Who may take the wheel")]
-        [Tooltip("Whether E can enter this car. Off for police cruisers — see OnEnable.")]
+        [Tooltip("Whether E can enter this car. Off for police cruisers - see OnEnable.")]
         [SerializeField] private bool enterable = true;
 
         [Header("Camera")]
@@ -98,13 +98,13 @@ namespace TheBlock.Vehicles
 
         /// <summary>
         /// Raises this car's forward speed ceiling above <c>config.vehicle.maxSpeed</c>. Zero, the
-        /// default, means the config's own limit — which is what every player-driven car uses.
+        /// default, means the config's own limit - which is what every player-driven car uses.
         ///
         /// <b>It exists for one caller.</b> A police car answering a call is allowed to cover ground
         /// faster than traffic; a police car ON you is not, because "a cop cannot corner or accelerate
         /// in a way your car could not" is the whole reason the AI writes <see cref="CarInput"/>
-        /// instead of moving a transform. <c>CopDriver</c> raises it only while responding — beyond
-        /// the rubber band with no line of sight — and drops it the moment it can see you.
+        /// instead of moving a transform. <c>CopDriver</c> raises it only while responding - beyond
+        /// the rubber band with no line of sight - and drops it the moment it can see you.
         ///
         /// Worth knowing before touching this: the config cap is <b>20 m/s for every car in the
         /// game</b>, so <c>PoliceTuning.MaxSpeed</c>'s documented "20.5, a 2.5% edge over the player"
@@ -116,7 +116,7 @@ namespace TheBlock.Vehicles
         /// True on a police cruiser, which is exempt from the ☕ boost below.
         ///
         /// <b>Serialized, and it only ever goes from false to true.</b> Both halves were paid for by
-        /// a measurement. The cruiser PREFAB carries no <c>CopDriver</c> — <c>PoliceSystem.FillPool</c>
+        /// a measurement. The cruiser PREFAB carries no <c>CopDriver</c> - <c>PoliceSystem.FillPool</c>
         /// adds <see cref="Police.CopCar"/> at runtime and its <c>[RequireComponent]</c> brings the
         /// driver with it, which happens AFTER this component's <c>Awake</c> has already run. So a
         /// flag cached once at bind time is false on every police car in the game, and the player's
@@ -138,7 +138,7 @@ namespace TheBlock.Vehicles
         public bool IsPolice => boostExempt;
 
         /// <summary>
-        /// U28b's tank, or null on a car that has never been driven — and on every cruiser, which is
+        /// U28b's tank, or null on a car that has never been driven - and on every cruiser, which is
         /// the point. Serialized for the same reason <see cref="boostExempt"/> is: a recompile
         /// mid-Play reloads the domain without re-running Awake, and a tank that silently detached
         /// would hand a dry car its full speed back in the middle of a limp home.
@@ -156,7 +156,7 @@ namespace TheBlock.Vehicles
         /// by whatever ☕ Nitro coffee is doing.
         ///
         /// <b>The cop exclusion is the point.</b> Every car in the game shares this component, cruisers
-        /// included, so a bare multiply here would hand the player's power-up to the police as well —
+        /// included, so a bare multiply here would hand the player's power-up to the police as well -
         /// a +25% chase that gets FASTER the moment you drink to escape it. The boost is the player's,
         /// so a cruiser opts out by identity, not by hoping <see cref="Driven"/> happens to be false.
         ///
@@ -166,7 +166,7 @@ namespace TheBlock.Vehicles
         ///
         /// <b>Two exemptions, two mechanisms, and the difference is worth understanding before
         /// touching either.</b> The BOOST is a global static that cannot tell one car from another,
-        /// so a cruiser has to opt out by identity — the flag above. FUEL is per-car state a cruiser
+        /// so a cruiser has to opt out by identity - the flag above. FUEL is per-car state a cruiser
         /// never receives at all, so it needs no exemption and no flag: <see cref="FuelFactor"/> is
         /// 1 because there is no tank. A flag you do not have cannot be forgotten.
         /// </summary>
@@ -182,7 +182,7 @@ namespace TheBlock.Vehicles
         }
 
         /// <summary>
-        /// The reverse ceiling. <b>Fuel scales it; the boost does not</b> — ☕ says "+25% top speed
+        /// The reverse ceiling. <b>Fuel scales it; the boost does not</b> - ☕ says "+25% top speed
         /// on any ride" and nobody buys a power-up to back out of a driveway faster, but an empty
         /// tank is empty in both directions, which is how the web build clamps it too.
         /// </summary>
@@ -198,7 +198,7 @@ namespace TheBlock.Vehicles
         private float _sinceInput = float.MaxValue;
 
         /// <summary>
-        /// Drive this car from something other than the keyboard — U19's <c>CopDriver</c>, and
+        /// Drive this car from something other than the keyboard - U19's <c>CopDriver</c>, and
         /// anything else that ever needs to. Call it every FixedUpdate: it expires (see
         /// <see cref="ExternalInputTimeout"/>) so a driver that goes away leaves a coasting car and
         /// not a runaway one.
@@ -217,7 +217,7 @@ namespace TheBlock.Vehicles
 
         /// <summary>
         /// Where the driver is parented on the way in, or null on a car with no seat block in
-        /// <c>config.vehicle.driver.seats</c> — which is the signal to use the quick enter instead.
+        /// <c>config.vehicle.driver.seats</c> - which is the signal to use the quick enter instead.
         /// </summary>
         public Transform DriverAnchor => driverAnchor;
 
@@ -258,7 +258,7 @@ namespace TheBlock.Vehicles
         /// <summary>
         /// Reads the config and caches what the drive loop needs.
         ///
-        /// Called from Awake, and again from FixedUpdate if the spec has gone null — which happens
+        /// Called from Awake, and again from FixedUpdate if the spec has gone null - which happens
         /// when scripts recompile while the Editor is in Play mode: the domain reloads, every field
         /// that is not serializable comes back null, and Awake does NOT run again. PlayerController
         /// carries the same guard for the same reason.
@@ -269,17 +269,17 @@ namespace TheBlock.Vehicles
             _body.centerOfMass = centerOfMass;
             if (TryGetComponent<Police.CopDriver>(out _)) boostExempt = true;
 
-            // Every car in the game reports its own impacts — that is what CrimeWatch and the crash
+            // Every car in the game reports its own impacts - that is what CrimeWatch and the crash
             // thump were both written against, and neither had ever received one, because the
             // component was on no prefab at all. See CrashSensor's own comment.
             CrashSensor.Ensure(gameObject);
 
             // The belt to FuelTank.Configure's braces: the tank pushes itself onto us as it
-            // attaches, and this catches the one case the push cannot — a reload that brought the
+            // attaches, and this catches the one case the push cannot - a reload that brought the
             // component back but not the reference. Correct by then, harmless before.
             if (fuelTank == null) TryGetComponent(out fuelTank);
 
-            // Non-serialized, so a mid-Play recompile brings it back as 0 — which would read as
+            // Non-serialized, so a mid-Play recompile brings it back as 0 - which would read as
             // "an AI wrote input this instant" and lock out the keyboard for half a second.
             _sinceInput = float.MaxValue;
 
@@ -310,13 +310,13 @@ namespace TheBlock.Vehicles
             {
                 // Cut the drive before giving up. A WheelCollider HOLDS the last torque it was
                 // given, so simply returning here leaves full throttle latched on and the car
-                // accelerates away with nothing left running to cap it — which is exactly what a
+                // accelerates away with nothing left running to cap it - which is exactly what a
                 // mid-Play recompile produced: a 161 km/h Mustang against a 72 km/h limit.
                 Coast();
                 return;
             }
 
-            // Whoever wrote last, wins — but only while their input is FRESH. An AI driver that
+            // Whoever wrote last, wins - but only while their input is FRESH. An AI driver that
             // stops writing (its component destroyed, the cop despawned mid-corner) falls back to
             // CarInput.None, which is the coast brake, rather than leaving the last throttle latched
             // in the WheelColliders. That failure is not hypothetical: it is the 161 km/h Mustang
@@ -337,7 +337,7 @@ namespace TheBlock.Vehicles
         ///
         /// The web build reached the same place from the other end: it turned the heading by
         /// <c>distance travelled * wheel angle</c>, so standing still it could not turn at all. Here
-        /// the tyres do that part on their own — a stationary wheel generates no side force — and
+        /// the tyres do that part on their own - a stationary wheel generates no side force - and
         /// the falloff exists only to stop full lock at 72 km/h from spinning the car.
         /// </summary>
         private void ApplySteering(float steer, float dt)
@@ -354,7 +354,7 @@ namespace TheBlock.Vehicles
         {
             var speed = ForwardSpeed;
 
-            // S means brake while rolling forward and reverse once stopped — one key doing what a
+            // S means brake while rolling forward and reverse once stopped - one key doing what a
             // brake pedal and a gear selector do, which is the arcade convention the web build had.
             var braking = throttle < 0f && speed > 0.5f || throttle > 0f && speed < -0.5f;
 
@@ -366,7 +366,7 @@ namespace TheBlock.Vehicles
 
             // `capped` gets the coast brake too, and U28b is what made that necessary. A
             // WheelCollider has no rolling resistance and there is no aero at this scale, so cutting
-            // the motor alone leaves whatever overshoot the last step produced sitting there — the
+            // the motor alone leaves whatever overshoot the last step produced sitting there - the
             // bike measured a 20 m/s cap holding at 22.6. It never mattered here because a boost
             // only ever RAISES a ceiling. A dry tank COLLAPSES it, from 20 to 5 under a car already
             // doing 20, and without this line the car coasts at 20 and the limp is invisible.
@@ -391,7 +391,7 @@ namespace TheBlock.Vehicles
             _body.AddForce(-transform.up * (downforce * fraction * fraction * _body.mass * -Physics.gravity.y));
         }
 
-        /// <summary>Motor off, gentle brake on — the safe state when there is nobody to ask.</summary>
+        /// <summary>Motor off, gentle brake on - the safe state when there is nobody to ask.</summary>
         private void Coast()
         {
             SetTorque(frontLeft, 0f, coastBrake);
@@ -427,7 +427,7 @@ namespace TheBlock.Vehicles
         public Transform Anchor => transform;
 
         /// <summary>
-        /// <c>config.camera.localOffset</c> — the VEHICLE boom, not the on-foot one, which lives
+        /// <c>config.camera.localOffset</c> - the VEHICLE boom, not the on-foot one, which lives
         /// under <c>config.player.camera</c>. ModelOffset for the usual reason: three.js hangs a
         /// chase camera at <c>+Z</c> because it drives down <c>-Z</c>.
         /// </summary>
@@ -471,18 +471,18 @@ namespace TheBlock.Vehicles
         /// <summary>
         /// Teleport back to this car's own spawn, upright and stopped.
         ///
-        /// <b>Its own.</b> This used to take <c>cars.FirstOrDefault()</c> — the first entry in the
-        /// config, whichever car pressed R — and to teleport to the raw config point, which carries
+        /// <b>Its own.</b> This used to take <c>cars.FirstOrDefault()</c> - the first entry in the
+        /// config, whichever car pressed R - and to teleport to the raw config point, which carries
         /// no Y, dropping the car through the road to y = 0. The spawn position is now the same
         /// ground-probed answer <see cref="CarSpawner"/> computed, handed over at spawn.
         ///
         /// The order below is the whole point:
         ///  1. stop the body BEFORE moving it, or the old velocity is still applied on the next step;
-        ///  2. <c>Physics.SyncTransforms</c> — without it the WheelColliders keep their pre-teleport
+        ///  2. <c>Physics.SyncTransforms</c> - without it the WheelColliders keep their pre-teleport
         ///     world poses for a frame, and <see cref="CarWheel"/> then poses four bones at the place
         ///     the car just left while the body is here. On one skin that draws as a wedge stretched
         ///     between the two positions, which is exactly the artefact R was reported for;
-        ///  3. brake all four, not just zero the motor — a WheelCollider LATCHES the last brake
+        ///  3. brake all four, not just zero the motor - a WheelCollider LATCHES the last brake
         ///     torque it was given, so zeroing the motor alone can leave the car held or rolling;
         ///  4. re-pose the wheels now that the colliders agree with the body.
         /// </summary>
@@ -494,7 +494,7 @@ namespace TheBlock.Vehicles
             if (!hasHome)
             {
                 // Never spawned by CarSpawner (dropped into the scene by hand, or a test). Ask the
-                // config for the entry that matches this object's name — never "the first one".
+                // config for the entry that matches this object's name - never "the first one".
                 var cars = TheBlockConfig.Load()?.Config?.Vehicle?.Cars;
                 var spec = cars?.FirstOrDefault(c =>
                     string.Equals(c.Name, name, System.StringComparison.OrdinalIgnoreCase));
@@ -517,7 +517,7 @@ namespace TheBlock.Vehicles
         }
 
         /// <summary>
-        /// Puts this car somewhere else, stopped and upright — the four steps <see cref="Respawn"/>
+        /// Puts this car somewhere else, stopped and upright - the four steps <see cref="Respawn"/>
         /// documents above, which U19's bust needs as well and must not re-derive.
         /// </summary>
         public void Teleport(Vector3 position, Quaternion rotation)

@@ -12,8 +12,8 @@ namespace TheBlock.EditorTools
     /// U17's build pass: the baked street graph, the traffic lights, and the scene objects the
     /// runtime traffic hangs off.
     ///
-    /// <b>It runs on EVERY build, including the fast one.</b> Nothing here bakes a NavMesh — the
-    /// expensive step the ledger warns about — so there is no reason to hide it behind the slow
+    /// <b>It runs on EVERY build, including the fast one.</b> Nothing here bakes a NavMesh - the
+    /// expensive step the ledger warns about - so there is no reason to hide it behind the slow
     /// menu item, and one very good reason not to: the crossings U16 places carry a node id and an
     /// edge id, and the lights answer to exactly those keys. Build the lights from a graph the
     /// crossings have never seen and every zebra silently stops working. So the graph is derived
@@ -49,11 +49,11 @@ namespace TheBlock.EditorTools
         /// How far in front of the housing's FRONT FACE our discs sit, in MODEL units (the model is
         /// ~78.6 units tall and scaled down to 4.5 m). Enough to clear the shell without z-fighting.
         ///
-        /// <b>In front of the shell, not in front of the disc — and that distinction was the whole
+        /// <b>In front of the shell, not in front of the disc - and that distinction was the whole
         /// bug.</b> This used to be measured from <c>lampBox.max.z</c>, the front of the animated
         /// disc, on the assumption that the disc was the outermost thing at that height. It is not:
         /// the discs slide BEHIND a lens, and the shell's front face measures 9.675 against disc
-        /// fronts at 6.883–7.163 — so the shell stands 2.51–2.79 units proud of them. A 0.3 epsilon
+        /// fronts at 6.883-7.163 - so the shell stands 2.51-2.79 units proud of them. A 0.3 epsilon
         /// off the wrong datum left every quad ~2.5 units INSIDE the housing, which at the pole's
         /// 0.06 world scale is 14 cm of solid model in front of the lamp.
         ///
@@ -76,8 +76,8 @@ namespace TheBlock.EditorTools
         /// Emission multiplier on a lit lamp. The web build's 2.5, in URP terms.
         ///
         /// <b>Everything above 1.0 is currently dead.</b> The project renders with no
-        /// post-processing at all — <c>m_RenderPostProcessing: 0</c> on every camera, no Volume in
-        /// <c>World.unity</c>, LDR colour grading — so the HDR buffer simply clamps on output and a
+        /// post-processing at all - <c>m_RenderPostProcessing: 0</c> on every camera, no Volume in
+        /// <c>World.unity</c>, LDR colour grading - so the HDR buffer simply clamps on output and a
         /// lit lamp reads as a flat saturated colour with no bloom halo. The number is kept because
         /// it is the right one the day a bloom volume appears; U33 left bloom out deliberately for
         /// its six-to-eight blur passes.
@@ -93,7 +93,7 @@ namespace TheBlock.EditorTools
             var traffic = config.Traffic;
             if (traffic?.Network == null || traffic.Network.Count == 0)
             {
-                report.Warnings.Add("traffic skipped — config has no `traffic.network`");
+                report.Warnings.Add("traffic skipped - config has no `traffic.network`");
                 return null;
             }
 
@@ -105,7 +105,7 @@ namespace TheBlock.EditorTools
             var (nodes, edges) = BuildGraph(traffic, report);
             if (edges.Count == 0)
             {
-                report.Warnings.Add("traffic skipped — the network produced no usable streets");
+                report.Warnings.Add("traffic skipped - the network produced no usable streets");
                 return null;
             }
 
@@ -137,7 +137,7 @@ namespace TheBlock.EditorTools
         /// re-shaded without a world build.
         ///
         /// Every one of the 233 poles points at that one mesh, and nothing else about them changes
-        /// when the lens does — same renderer, same three submeshes, same six materials — so this is
+        /// when the lens does - same renderer, same three submeshes, same six materials - so this is
         /// the whole fix in a second, instead of a full <c>Build World</c> that re-places every pole
         /// and carries the <c>navMeshData</c> trap with it.
         ///
@@ -197,7 +197,7 @@ namespace TheBlock.EditorTools
             }
             finally
             {
-                // Nothing in the scene was touched, so the scene does not need marking dirty — and
+                // Nothing in the scene was touched, so the scene does not need marking dirty - and
                 // the probe must not survive to be saved into it.
                 UnityEngine.Object.DestroyImmediate(probe);
             }
@@ -297,7 +297,7 @@ namespace TheBlock.EditorTools
         /// a street passing under a kerbstone, a doorstep or the lip of a raised forecourt gets one
         /// sample half a metre off its neighbours. Over two metres that is a ramp a car visibly hops.
         /// A sample that disagrees with the average of its neighbours by more than
-        /// <see cref="SpikeTolerance"/> is replaced by that average — which leaves a genuine slope
+        /// <see cref="SpikeTolerance"/> is replaced by that average - which leaves a genuine slope
         /// alone, because on a slope the neighbours are going the same way.
         /// </summary>
         private static int Despike(Vector3[] points)
@@ -368,7 +368,7 @@ namespace TheBlock.EditorTools
         }
 
         /// <summary>
-        /// Centripetal Catmull-Rom (alpha = 0.5) — the parameterisation three.js uses here, and the
+        /// Centripetal Catmull-Rom (alpha = 0.5) - the parameterisation three.js uses here, and the
         /// reason a tight street corner does not produce a cusp or a loop the way the uniform one
         /// does.
         /// </summary>
@@ -380,7 +380,7 @@ namespace TheBlock.EditorTools
             float t3 = t2 + Mathf.Pow(Vector3.Distance(p2, p3), 0.5f);
 
             // Coincident control points collapse a knot span to zero and divide by it. Falling back
-            // to the straight segment is the right answer there — there is no curve to describe.
+            // to the straight segment is the right answer there - there is no curve to describe.
             if (t1 - t0 < 1e-5f || t2 - t1 < 1e-5f || t3 - t2 < 1e-5f) return Vector3.Lerp(p1, p2, t);
 
             float tt = Mathf.Lerp(t1, t2, t);
@@ -396,7 +396,7 @@ namespace TheBlock.EditorTools
 
         /// <summary>
         /// One pole per approach of every lit intersection, on the right of the road just before the
-        /// stop line, head facing the oncoming cars — and one <see cref="TrafficLightSystem"/> that
+        /// stop line, head facing the oncoming cars - and one <see cref="TrafficLightSystem"/> that
         /// owns all of them.
         ///
         /// The phase group is the arrival AXIS, exactly as <c>traffic-lights.ts</c> classifies it.
@@ -422,7 +422,7 @@ namespace TheBlock.EditorTools
 
             foreach (var node in nodes)
             {
-                if (node.Edges.Count < 3) continue; // not lit — the same rule the crossings use
+                if (node.Edges.Count < 3) continue; // not lit - the same rule the crossings use
 
                 var controller = new TrafficLightSystem.Controller
                 {
@@ -479,7 +479,7 @@ namespace TheBlock.EditorTools
             if (unbalanced > 0)
                 report.Warnings.Add(
                     $"traffic lights: {unbalanced} intersection(s) have all approaches in ONE phase " +
-                    "group — half their cycle is all-red for nobody. Check those streets' end tangents");
+                    "group - half their cycle is all-red for nobody. Check those streets' end tangents");
 
             return system;
         }
@@ -515,7 +515,7 @@ namespace TheBlock.EditorTools
         ///     behind a translucent lens; the web build hides them because three.js cannot sort that,
         ///     and they are no more usable here.
         ///  2. <b>The housing material is rebuilt opaque.</b> The whole model is ONE material and
-        ///     the glTF declares it <c>BLEND</c>, so the import lands in the transparent queue —
+        ///     the glTF declares it <c>BLEND</c>, so the import lands in the transparent queue -
         ///     230 poles' worth of sorted overdraw for geometry with no transparency in it. A
         ///     glTFast material's surface mode is fixed at import (U11), so this is a generated
         ///     URP/Lit asset, the same answer as the facade tint and the leaf cutouts.
@@ -530,7 +530,7 @@ namespace TheBlock.EditorTools
             if (model == null)
             {
                 report.Missing.Add(
-                    $"traffic lights — no pole model at {TrafficLightModel}; the lights still run, " +
+                    $"traffic lights - no pole model at {TrafficLightModel}; the lights still run, " +
                     "but nothing is drawn");
                 return null;
             }
@@ -550,7 +550,7 @@ namespace TheBlock.EditorTools
             foreach (var animator in visual.GetComponentsInChildren<Animator>(true))
                 UnityEngine.Object.DestroyImmediate(animator);
 
-            // Measure the three lamps before anything is destroyed, in the model's own units — the
+            // Measure the three lamps before anything is destroyed, in the model's own units - the
             // probe is unrotated at the origin, so its world bounds ARE its local ones.
             visual.transform.localScale = Vector3.one;
             var lamps = new List<(string Name, Bounds Box, Renderer Renderer)>();
@@ -562,10 +562,10 @@ namespace TheBlock.EditorTools
 
             if (lamps.Count != 3)
                 report.Warnings.Add(
-                    $"traffic lights: expected 3 lamp nodes in the model, found {lamps.Count} — " +
+                    $"traffic lights: expected 3 lamp nodes in the model, found {lamps.Count} - " +
                     "the lamp discs may be misplaced");
 
-            // Top to bottom is red, amber, green — read off the measured heights rather than off the
+            // Top to bottom is red, amber, green - read off the measured heights rather than off the
             // German node names, which arrive mojibaked ("grün") through the glTF's UTF-8.
             lamps.Sort((a, b) => b.Box.center.y.CompareTo(a.Box.center.y));
 
@@ -620,14 +620,14 @@ namespace TheBlock.EditorTools
         }
 
         /// <summary>
-        /// Six domed lenses, three submeshes, one mesh — in MODEL units, so the whole thing scales
+        /// Six domed lenses, three submeshes, one mesh - in MODEL units, so the whole thing scales
         /// with the pole. Each lens takes its X, Y and radius from its own lamp's box, and its Z
         /// plane from <see cref="MeasureLampFaces"/>, so it is the outermost thing at that height
         /// and nothing of the model's own can draw over it.
         ///
         /// <b>Two lenses per lamp, front AND rear, in the SAME submesh.</b> A pole is aimed at the
         /// cars on its own approach, and the player on foot stands at the kerb beside it or looks at
-        /// it across the junction — both outside the head's forward hemisphere, where a single
+        /// it across the junction - both outside the head's forward hemisphere, where a single
         /// front-facing lens is backface-culled and hidden behind the opaque shell. A real traffic
         /// light is blank behind; this one is not, and that is the deliberate trade. Sharing the
         /// submesh keeps the whole thing at three materials and one draw call per state.
@@ -678,7 +678,7 @@ namespace TheBlock.EditorTools
                 return mesh;
             }
 
-            // Rewritten in place so the poles built last time keep pointing at the same asset — and
+            // Rewritten in place so the poles built last time keep pointing at the same asset - and
             // so the whole fix can ship by rewriting one mesh, without re-placing 233 poles.
             existing.Clear();
             existing.subMeshCount = mesh.subMeshCount;
@@ -731,7 +731,7 @@ namespace TheBlock.EditorTools
             // its order (v0, v2, v1) = (−1,−1), (−1,1), (1,−1) is clockwise in world XY, lands
             // counter-clockwise on screen, and is therefore a BACK face from +Z.
             //
-            // Which means U17's lamp quads faced −Z — away from the lens — from the day they were
+            // Which means U17's lamp quads faced −Z - away from the lens - from the day they were
             // written. They were never visible from the road; the grey lamps were not a grazing-angle
             // problem at all. Position was measured twice and facing was never measured once.
             for (int s = 0; s < DomeSegments; s++)
@@ -749,10 +749,10 @@ namespace TheBlock.EditorTools
         /// disagree.
         ///
         /// <b>Winding is measured here, never reasoned about.</b> The lamp quads faced −Z from U17
-        /// until 2026-08-16, and the first dome build (17:58 that day) was inside-out too — decoded
+        /// until 2026-08-16, and the first dome build (17:58 that day) was inside-out too - decoded
         /// off the asset: front cap stored normal (0,0,+1), geometric normal (…,−0.94). Each time the
-        /// argument in the comment was confident and wrong, and the symptom — grey from the front,
-        /// colour from the side, where the far half of an inverted dome's rim happens to face you —
+        /// argument in the comment was confident and wrong, and the symptom - grey from the front,
+        /// colour from the side, where the far half of an inverted dome's rim happens to face you -
         /// was read as a position bug twice. Unity's front face is <c>Cross(b − a, c − a)</c>
         /// (the Mesh docs' own quad: <c>(0,2,1)</c> with normals <c>−forward</c>), so a triangle
         /// whose cross points against its stored normal is a back face, and the fix is a swap.
@@ -776,7 +776,7 @@ namespace TheBlock.EditorTools
 
             if (flipped > 0)
                 report.Warnings.Add(
-                    $"traffic lights: lamp {lamp} had {flipped} triangle(s) wound against their normals — " +
+                    $"traffic lights: lamp {lamp} had {flipped} triangle(s) wound against their normals - " +
                     "flipped at build. AddLensCap's winding order is wrong again; the mesh is right anyway.");
         }
 
@@ -801,12 +801,12 @@ namespace TheBlock.EditorTools
         /// that lamp's X/Y window.
         ///
         /// <b>A whole-model min/max is the wrong datum for the back.</b> The front is safe either way
-        /// — the visor lip is the frontmost thing on the model — but the entire pole is ONE mesh, so
+        /// - the visor lip is the frontmost thing on the model - but the entire pole is ONE mesh, so
         /// a global <c>bounds.min.z</c> is the back of the MAST. Measured: the model's global z runs
         /// −2.98…9.67, while inside a lamp's own window it runs <b>5.83…9.67</b>. The head is 3.84
         /// units deep (22 cm); −2.98 is the mast, 0.68 m further back, and a rear lens placed there
         /// would hang in mid-air behind the pole. Sampling the vertices around each lamp gives the
-        /// shell at that lamp's own height, and behind the lamps there is nothing else to clear —
+        /// shell at that lamp's own height, and behind the lamps there is nothing else to clear -
         /// the bracket sits in the seams BETWEEN the three heads, not behind them.
         ///
         /// The probe is unrotated and unscaled at the origin when this runs, so these are model units
@@ -832,7 +832,7 @@ namespace TheBlock.EditorTools
 
             if (housing.Count == 0)
                 report.Warnings.Add(
-                    "traffic lights: no housing geometry found — the lenses are placed off the lamp " +
+                    "traffic lights: no housing geometry found - the lenses are placed off the lamp " +
                     "discs themselves, which is right only when there is no shell to clear.");
 
             var faces = new List<LampFaces>(lamps.Count);
@@ -861,7 +861,7 @@ namespace TheBlock.EditorTools
                     if (housing.Count > 0)
                         report.Warnings.Add(
                             $"traffic lights: lamp {i} caught only {hits} housing vertices in its own " +
-                            "window — its lenses fall back to the whole model's bounds");
+                            "window - its lenses fall back to the whole model's bounds");
                     front = housing.Count > 0 ? globalFront : box.max.z;
                     rear = housing.Count > 0 ? globalRear : box.min.z;
                 }
@@ -870,7 +870,7 @@ namespace TheBlock.EditorTools
             }
 
             report.Notes.Add(
-                "traffic lights: lens planes in model units — " +
+                "traffic lights: lens planes in model units - " +
                 string.Join(", ", faces.Select((f, i) => $"lamp{i} rear {f.Rear:0.00} / front {f.Front:0.00}")));
 
             return faces;
@@ -918,11 +918,11 @@ namespace TheBlock.EditorTools
             material.SetFloat("_Smoothness", 0.4f);
             material.SetFloat("_Metallic", 0f);
 
-            // Two-sided. A lens is twelve triangles, so this costs nothing — and it means a lamp can
+            // Two-sided. A lens is twelve triangles, so this costs nothing - and it means a lamp can
             // never again be hidden by its own winding, whatever EnforceWinding did or did not catch.
             material.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Off);
 
-            // Emission is what makes a lit lamp read as lit rather than as a coloured sticker — and
+            // Emission is what makes a lit lamp read as lit rather than as a coloured sticker - and
             // it is also what a future bloom pass would pick up. Off gets no emission at all rather
             // than a dim one: an unlit lamp is a dark lens.
             if (on)
@@ -1020,7 +1020,7 @@ namespace TheBlock.EditorTools
             if (prefabs.Count == 0)
             {
                 report.Missing.Add(
-                    $"traffic cars — no prefabs under {TrafficPrefabFolder}. Run " +
+                    $"traffic cars - no prefabs under {TrafficPrefabFolder}. Run " +
                     "The Block → Build Traffic Cars, then build the world again");
                 return null;
             }

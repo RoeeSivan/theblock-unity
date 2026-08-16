@@ -12,7 +12,7 @@ namespace TheBlock.Core
     ///
     /// <b>Why this has to exist at all:</b> six things in the project reset themselves with
     /// <c>[RuntimeInitializeOnLoadMethod]</c>, and every one of those comments is correct about the
-    /// trap it guards — statics survive entering Play. What none of them can do is fire again when a
+    /// trap it guards - statics survive entering Play. What none of them can do is fire again when a
     /// SCENE is reloaded, because that attribute runs once per session. Until U26 nothing ever
     /// reloaded a scene, so the distinction never mattered. <c>Quit to Title</c> makes it matter.
     ///

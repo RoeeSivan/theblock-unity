@@ -1,4 +1,4 @@
-# Unity generated — all rebuildable from Assets/ + ProjectSettings/ + Packages/
+# Unity generated - all rebuildable from Assets/ + ProjectSettings/ + Packages/
 /[Ll]ibrary/
 /[Tt]emp/
 /[Oo]bj/
@@ -53,18 +53,18 @@ crashlytics-build.properties
 # Port pipeline: generated from the web project, never hand-edited
 /[Aa]ssets/StreamingAssets/theblock-config.json
 
-# Editor screenshots — throwaway captures, would otherwise eat the shared LFS quota
+# Editor screenshots - throwaway captures, would otherwise eat the shared LFS quota
 /Assets/Screenshots/
 /Assets/Screenshots.meta
 
-# District source GLBs — 40-70 MB each, authoritative copies live in
+# District source GLBs - 40-70 MB each, authoritative copies live in
 # ~/TheBlockSource/cities/. Free LFS is 1 GiB and shared with the original repo,
 # so these stay out. first-one.glb is exempt: 240 KB and the ONLY copy anywhere.
 /Assets/Models/City/procedural-city-*.glb
 /Assets/Models/City/procedural-city-*.glb.meta
 
 # WorldBuilder's generated output. The stripped district meshes are ~15 MB each and the
-# alpha-clip materials point at textures inside those same gitignored .glbs — both are
+# alpha-clip materials point at textures inside those same gitignored .glbs - both are
 # derived assets that every Build World rewrites from scratch and sweeps when stale, so
 # committing them would cost LFS quota to store something that is never read.
 /Assets/Meshes/Generated/
@@ -77,13 +77,13 @@ crashlytics-build.properties
 /Assets/Materials/City/Cutout/
 /Assets/Materials/City/Cutout.meta
 
-# Character source FBX over 10 MB — raw Mixamo downloads, authoritative copies live in
+# Character source FBX over 10 MB - raw Mixamo downloads, authoritative copies live in
 # the game repo at source-assets/models/. Same LFS reasoning as the district GLBs.
 /Assets/Models/Characters/Joe.fbx
 /Assets/Models/Characters/Joe.fbx.meta
 /[Aa]ssets/StreamingAssets/theblock-config.json.meta
 
-# Jump animation FBX — 54 MB raw Mixamo download, same LFS reasoning as Joe.fbx.
+# Jump animation FBX - 54 MB raw Mixamo download, same LFS reasoning as Joe.fbx.
 /Assets/Models/Characters/Joe_Jumping.fbx
 /Assets/Models/Characters/Joe_Jumping.fbx.meta
 /Assets/Models/Characters/Joe_Sprint.fbx
@@ -91,23 +91,23 @@ crashlytics-build.properties
 
 # U15's compressed district textures, and the material clones that point at them. Both are
 # extracted from the gitignored district .glbs by The Block → Compress Textures, so they are
-# derived assets with no source of their own here — and they are ~1 GB, which is the whole free
+# derived assets with no source of their own here - and they are ~1 GB, which is the whole free
 # LFS quota several times over.
 /Assets/Textures/Generated/
 /Assets/Textures/Generated.meta
 /Assets/Materials/City/Compressed/
 /Assets/Materials/City/Compressed.meta
 
-# Lot-car paint materials — one per model per palette colour, written by WorldBuilder and
+# Lot-car paint materials - one per model per palette colour, written by WorldBuilder and
 # swept by it. Same reasoning as the cutout materials: derived from the config's palette,
 # rewritten by every Build World.
 /Assets/Materials/LotCars/
 /Assets/Materials/LotCars.meta
 
-# U16's pedestrian pack — Chepatack "NPC Casual set 00", Unity Asset Store free tier, 505 MB
+# U16's pedestrian pack - Chepatack "NPC Casual set 00", Unity Asset Store free tier, 505 MB
 # (185 MB of FBX, 280 MB of .tif). The authoritative copy is the .unitypackage in
 # ~/Library/Unity/Asset Store-5.x/Chepatack/, so this is a re-downloadable dependency and not
-# a source asset. Free LFS is 1 GiB shared with the original repo — this alone would be half of it.
+# a source asset. Free LFS is 1 GiB shared with the original repo - this alone would be half of it.
 /Assets/npc_casual_set_00/
 /Assets/npc_casual_set_00.meta
 
@@ -119,14 +119,14 @@ crashlytics-build.properties
 /Assets/Materials/Npc/
 /Assets/Materials/Npc.meta
 
-# The baked NavMesh — 2.3 MB, written by Build World's navigation pass and swept by it. Derived
+# The baked NavMesh - 2.3 MB, written by Build World's navigation pass and swept by it. Derived
 # from the gitignored district .glbs, so it has no source of its own here either.
 /Assets/Navigation/
 /Assets/Navigation.meta
 
 # U17's traffic build output. The baked street graph and the lamp mesh/materials are derived from
 # the config plus a raycast against the gitignored district .glbs, and Build World rewrites and
-# sweeps all of it — the same reasoning as the NavMesh it is built beside.
+# sweeps all of it - the same reasoning as the NavMesh it is built beside.
 /Assets/Traffic/
 /Assets/Traffic.meta
 
@@ -138,7 +138,7 @@ crashlytics-build.properties
 /Assets/Materials/Traffic/
 /Assets/Materials/Traffic.meta
 
-# The Asset Store officer's raw download — 459 MB of uncompressed .tga, and *.tga is LFS-tracked
+# The Asset Store officer's raw download - 459 MB of uncompressed .tga, and *.tga is LFS-tracked
 # against a free 1 GiB shared with the original repo.
 #
 # SETTLED at U19e: it stays ignored permanently and NOTHING references it. `sips` wrote 1024² PNG

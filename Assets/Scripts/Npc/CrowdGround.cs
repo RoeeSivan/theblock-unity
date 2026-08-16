@@ -6,7 +6,7 @@ namespace TheBlock.Npc
     /// The runtime twin of <c>WorldBuilder.Navigation</c>'s <c>GroundY</c>: what height is the
     /// pavement at this XZ, right now.
     ///
-    /// The crowd needs this because U16b took the NavMeshAgent away — nothing puts a pedestrian on
+    /// The crowd needs this because U16b took the NavMeshAgent away - nothing puts a pedestrian on
     /// the floor for us any more. It carries the same two scars the build-time version earned, and
     /// they are not obvious:
     ///
@@ -21,7 +21,7 @@ namespace TheBlock.Npc
     ///
     /// Plus one the build-time version never needed: <b>ignore anything with a Rigidbody</b>. At
     /// build time nothing moves, but at runtime a pedestrian would otherwise be placed on the roof
-    /// of a passing car — the web build's <c>staticOnly: true</c>, in the one place it matters.
+    /// of a passing car - the web build's <c>staticOnly: true</c>, in the one place it matters.
     /// </summary>
     public static class CrowdGround
     {
@@ -41,7 +41,7 @@ namespace TheBlock.Npc
         /// person already knows roughly what floor they are on and a full-height ray would happily
         /// find the pavement three storeys below a rooftop.
         /// </summary>
-        /// <returns>False when nothing was under the point at all — the caller keeps its old Y.</returns>
+        /// <returns>False when nothing was under the point at all - the caller keeps its old Y.</returns>
         public static bool TrySample(Vector3 point, int layerMask, float up, float down, out float y)
         {
             int count = Physics.RaycastNonAlloc(
@@ -56,7 +56,7 @@ namespace TheBlock.Npc
                 var hit = Hits[i];
 
                 // Anything that can move is not the floor. A car, a bike, another pedestrian's
-                // capsule — all of them would otherwise be walked on.
+                // capsule - all of them would otherwise be walked on.
                 if (hit.collider.attachedRigidbody != null) continue;
 
                 if (hit.collider.name == PlateName) { plate = Mathf.Min(plate, hit.point.y); continue; }

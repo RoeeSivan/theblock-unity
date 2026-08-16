@@ -9,7 +9,7 @@ namespace TheBlock.UI
     /// <b>The partial star is the point.</b> A row of lit/unlit stars would show the same thing the
     /// web build shows, and it would hide the whole change U19 makes: heat here is continuous, so a
     /// wall scrape moves the meter by a few hundredths and a body under the wheels moves it by a
-    /// star. Drawing the fraction is what lets a player see that scraping a wall costs nothing —
+    /// star. Drawing the fraction is what lets a player see that scraping a wall costs nothing -
     /// which is the actual fix for "the police are too sensitive", made visible rather than merely
     /// true.
     ///
@@ -38,7 +38,7 @@ namespace TheBlock.UI
         }
 
         /// <summary>
-        /// Repaints only when the picture would change — the fraction is compared at 1/100th of a
+        /// Repaints only when the picture would change - the fraction is compared at 1/100th of a
         /// star, which is finer than a pixel of fill and far coarser than every frame.
         /// </summary>
         public void Set(int max, int stars, float fraction, bool cooling)
@@ -69,7 +69,7 @@ namespace TheBlock.UI
                 //
                 // Growing rather than filling from the bottom, because Painter2D has no clip: a
                 // rectangle and a star in one path can only be combined by winding rule, and every
-                // rule gives the union or the difference — never the intersection, which is the one
+                // rule gives the union or the difference - never the intersection, which is the one
                 // wanted. A star that grows reads as a meter just as well and is honest about what
                 // it draws.
                 Trace(painter, centre, StarSize * 0.5f);

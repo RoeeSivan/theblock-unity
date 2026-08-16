@@ -4,21 +4,21 @@ using UnityEngine;
 namespace TheBlock.Player
 {
     /// <summary>
-    /// A host that wears a roster body — the player, the dance stage, the character screen's
+    /// A host that wears a roster body - the player, the dance stage, the character screen's
     /// turntable. One component, three very different owners, because the swap itself is the same
     /// operation every time: throw the visual child away and instantiate another one.
     ///
     /// <b>The body is a CHILD and never the host.</b> That is not tidiness, it is the reason a
     /// second character can exist at all: a body that did not import at Joe's height is corrected by
     /// a scale, and on the player that scale would land on the same transform as his
-    /// <c>CharacterController</c> — a shorter character would get a shorter capsule and start
+    /// <c>CharacterController</c> - a shorter character would get a shorter capsule and start
     /// falling through steps. The crowd (<c>NpcBuilder</c>) and the stage dancer were already built
     /// this way; U29 is what finally made the player match them.
     ///
     /// <b>Every consumer that caches something off the body must listen to <see cref="Swapped"/>.</b>
     /// There are three, and each cached for a good reason before there was anything to invalidate:
     /// <c>PlayerAnimator</c> holds the Animator, <c>Dancer</c> holds it too, and
-    /// <c>VehicleEnterExit</c> holds the renderer array it hides the driver with — a stale one of
+    /// <c>VehicleEnterExit</c> holds the renderer array it hides the driver with - a stale one of
     /// those leaves a body visible inside a car that is supposed to look empty.
     /// </summary>
     public class CharacterBody : MonoBehaviour
@@ -35,7 +35,7 @@ namespace TheBlock.Player
         [SerializeField] private RuntimeAnimatorController controller;
 
         [Tooltip("CullUpdateTransforms for a body that can leave the frame; AlwaysAnimate for one " +
-                 "that is posed off-camera and must still be right when it is looked at — the " +
+                 "that is posed off-camera and must still be right when it is looked at - the " +
                  "trap U19e paid for (memory: culled-animator-skips-pose-write).")]
         [SerializeField] private AnimatorCullingMode culling = AnimatorCullingMode.CullUpdateTransforms;
 
@@ -55,7 +55,7 @@ namespace TheBlock.Player
 
         /// <summary>
         /// Re-finds the Animator under the visual child. Public because a script recompile during
-        /// Play clears it and never runs Awake again (memory: recompile-during-play-nulls-fields) —
+        /// Play clears it and never runs Awake again (memory: recompile-during-play-nulls-fields) -
         /// every cache in this project carries the same guard.
         /// </summary>
         public void Rebind()
@@ -86,13 +86,13 @@ namespace TheBlock.Player
             {
                 // Detached BEFORE it is destroyed. Destroy is deferred to the end of the frame, so
                 // an un-parented old body would still answer a GetComponentInChildren from anything
-                // rebinding on this same frame — including the Swapped handlers below.
+                // rebinding on this same frame - including the Swapped handlers below.
                 old.SetParent(null, worldPositionStays: false);
                 if (Application.isPlaying) Destroy(old.gameObject);
                 else DestroyImmediate(old.gameObject);
             }
 
-            // worldPositionStays: false — the prefab root carries the height match against Joe, and
+            // worldPositionStays: false - the prefab root carries the height match against Joe, and
             // preserving the world transform would throw that scale away. Same rule, and the same
             // trap, as VehicleEnterExit's seat mounting.
             var visual = Instantiate(entry.Prefab, transform, worldPositionStays: false);
@@ -105,7 +105,7 @@ namespace TheBlock.Player
             animator.cullingMode = culling;
             animator.updateMode = updateMode;
 
-            // The host owns the transform in all three cases — the controller moves the player, the
+            // The host owns the transform in all three cases - the controller moves the player, the
             // stage is a fixed mark, the turntable spins. Nothing here may be driven by a clip.
             animator.applyRootMotion = false;
 

@@ -9,9 +9,9 @@ namespace TheBlock.Vehicles
     /// A rideable motorcycle: a Rigidbody on two WheelColliders, held upright by a torque and
     /// leaning into its corners.
     ///
-    /// This is NOT a port of <c>src/vehicle/motorcycle.ts</c>. That bike is kinematic — a scalar
+    /// This is NOT a port of <c>src/vehicle/motorcycle.ts</c>. That bike is kinematic - a scalar
     /// speed and a heading pushed through a Rapier character controller with a ray under it snapping
-    /// the body to the road — for exactly the reason the car was (see <see cref="CarController"/>):
+    /// the body to the road - for exactly the reason the car was (see <see cref="CarController"/>):
     /// Rapier's vehicle controller was unusable in that project, not because a two-wheeler wanted it.
     /// Port rule 5 says scar tissue does not carry, and the standing "can Unity do this better?"
     /// remark says to spend the difference. What that buys here, none of which the web build has:
@@ -23,7 +23,7 @@ namespace TheBlock.Vehicles
     ///
     /// The one thing a two-wheeler needs that a car does not is a reason to stay upright: two
     /// contact points give a Rigidbody no roll stability at all, and it falls over the moment it is
-    /// spawned. <see cref="Stabilize"/> is that reason, and it runs whether or not anyone is riding —
+    /// spawned. <see cref="Stabilize"/> is that reason, and it runs whether or not anyone is riding -
     /// a parked bike with nobody on it has to stand there too, and this model has no kickstand.
     ///
     /// Gameplay numbers carry from config (the 20 m/s cap, the 7 m/s reverse, the ~34° lock);
@@ -35,22 +35,22 @@ namespace TheBlock.Vehicles
     [RequireComponent(typeof(Rigidbody))]
     public class MotorcycleController : MonoBehaviour, IEnterable
     {
-        [Header("Wheels — front steers, rear drives. Wired by MotorcycleBuilder")]
+        [Header("Wheels - front steers, rear drives. Wired by MotorcycleBuilder")]
         [SerializeField] private WheelCollider frontWheel;
         [SerializeField] private WheelCollider rearWheel;
 
-        [Header("Cabin — wired by MotorcycleBuilder from config.vehicle.motorcycle.rider")]
+        [Header("Cabin - wired by MotorcycleBuilder from config.vehicle.motorcycle.rider")]
         [Tooltip("Where the rider sits. Unlike the car's, this IS a seat: the bike has no entry " +
                  "animation, so the rider is put straight onto it holding the driving pose.")]
         [SerializeField] private Transform riderAnchor;
 
         [Tooltip("The visual model's parent. Rolled to lean the bike into corners WITHOUT touching " +
-                 "the Rigidbody — a physical lean on two wheels is a fall with extra steps.")]
+                 "the Rigidbody - a physical lean on two wheels is a fall with extra steps.")]
         [SerializeField] private Transform leanPivot;
 
-        [Header("Drive — PhysX numbers, derived by feel (port rule 2)")]
+        [Header("Drive - PhysX numbers, derived by feel (port rule 2)")]
         [Tooltip("Nm on the rear wheel. A bike is a seventh of the Mustang's mass, so far less " +
-                 "torque gets far more acceleration — which is the point of taking the bike.")]
+                 "torque gets far more acceleration - which is the point of taking the bike.")]
         [SerializeField] private float motorTorque = 950f;
 
         [Tooltip("Nm on the rear wheel when braking. The front gets `frontBrakeShare` of it.")]
@@ -67,14 +67,14 @@ namespace TheBlock.Vehicles
 
         [Header("Steering")]
         [Tooltip("Degrees per second the front wheel swings toward the held direction. Quicker " +
-                 "than the car's 120 — the whole feel of a bike is that it changes direction now.")]
+                 "than the car's 120 - the whole feel of a bike is that it changes direction now.")]
         [SerializeField] private float steerRate = 200f;
 
         [Tooltip("Steering lock left at top speed, as a fraction.")]
         [Range(0.1f, 1f)]
         [SerializeField] private float steerAtTopSpeed = 0.30f;
 
-        [Header("Stability — this is what stops a two-wheeler falling over")]
+        [Header("Stability - this is what stops a two-wheeler falling over")]
         [Tooltip("Centre of mass in local space, measured from the contact patch. Low, and back " +
                  "toward the driven wheel so the front stays light without lifting.")]
         [SerializeField] private Vector3 centerOfMass = new Vector3(0f, 0.28f, -0.05f);
@@ -83,21 +83,21 @@ namespace TheBlock.Vehicles
                  "upright like a metronome.")]
         [SerializeField] private float uprightSpring = 9000f;
 
-        [Tooltip("Seconds of roll velocity the stabiliser looks ahead. This is the damping term — " +
+        [Tooltip("Seconds of roll velocity the stabiliser looks ahead. This is the damping term - " +
                  "it corrects where the bike is GOING to be, so it settles instead of oscillating.")]
         [SerializeField] private float uprightPredict = 0.35f;
 
         [Tooltip("Downward force at top speed, in multiples of the bike's weight.")]
         [SerializeField] private float downforce = 0.5f;
 
-        [Header("Lean — visual only, and the difference between a bike and a narrow car")]
+        [Header("Lean - visual only, and the difference between a bike and a narrow car")]
         [Tooltip("Hard limit on the roll, degrees. Real racers pass 50°; a delivery scooter does not.")]
         [SerializeField] private float maxLeanDegrees = 32f;
 
         [Tooltip("Degrees per second the lean chases its target.")]
         [SerializeField] private float leanRate = 180f;
 
-        [Header("Skid — Space")]
+        [Header("Skid - Space")]
         [Tooltip("Rear sideways grip multiplier while Space is down. Under 1 lets the back step out.")]
         [Range(0.1f, 1f)]
         [SerializeField] private float skidGrip = 0.35f;
@@ -126,7 +126,7 @@ namespace TheBlock.Vehicles
 
         public Transform GetTransform() => transform;
 
-        /// <summary>The seat. Never null on a built bike — the rider is always shown sitting on it.</summary>
+        /// <summary>The seat. Never null on a built bike - the rider is always shown sitting on it.</summary>
         public Transform RiderAnchor => riderAnchor;
 
         /// <summary>A bike has no door, which is what routes it onto the quick mount.</summary>
@@ -164,14 +164,14 @@ namespace TheBlock.Vehicles
         private float FuelFactor => fuelTank != null ? fuelTank.SpeedFactor : 1f;
 
         /// <summary>
-        /// ☕ Nitro coffee scales the forward ceiling, and so does U28b's tank — as FACTORS of one
+        /// ☕ Nitro coffee scales the forward ceiling, and so does U28b's tank - as FACTORS of one
         /// product, so a boosted bike on a dry tank still limps. The bike has no police variant, so
         /// unlike <c>CarController</c> there is nothing to exclude from the boost here.
         /// </summary>
         private float MaxForwardSpeed => _spec.MaxSpeed * Powerup.SpeedBoost.Factor * FuelFactor;
 
         /// <summary>
-        /// Reverse. <b>Fuel scales it; the boost does not</b> — the item says "+25% top speed on any
+        /// Reverse. <b>Fuel scales it; the boost does not</b> - the item says "+25% top speed on any
         /// ride", and nobody buys a power-up to back out of a driveway faster. An empty tank is
         /// empty in both directions.
         /// </summary>
@@ -185,7 +185,7 @@ namespace TheBlock.Vehicles
 
         /// <summary>
         /// Reads the config and caches what the ride loop needs. Called from Awake, and again from
-        /// FixedUpdate if the spec has gone null — which is what a script recompile during Play does:
+        /// FixedUpdate if the spec has gone null - which is what a script recompile during Play does:
         /// the domain reloads, non-serialized fields clear, and Awake does not run again.
         /// </summary>
         private void Bind()
@@ -205,7 +205,7 @@ namespace TheBlock.Vehicles
                 return;
             }
 
-            // The belt to FuelTank.Configure's braces — see CarController.Bind for the argument.
+            // The belt to FuelTank.Configure's braces - see CarController.Bind for the argument.
             if (fuelTank == null) TryGetComponent(out fuelTank);
 
             _spec = snapshot.Config.Vehicle;
@@ -215,7 +215,7 @@ namespace TheBlock.Vehicles
 
             if (rearWheel != null) _rearGripAtRest = rearWheel.sidewaysFriction.stiffness;
 
-            // Sub-stepping keeps a WheelCollider honest at speed — without it the contact patch
+            // Sub-stepping keeps a WheelCollider honest at speed - without it the contact patch
             // skips over geometry and the bike climbs kerbs it should hit. Applied to one wheel,
             // it configures the whole vehicle.
             if (frontWheel != null) frontWheel.ConfigureVehicleSubsteps(5f, 12, 15);
@@ -237,7 +237,7 @@ namespace TheBlock.Vehicles
             {
                 // Cut the drive BEFORE giving up. A WheelCollider holds the last torque it was
                 // given, so a bare `return` here leaves full throttle latched on with nothing left
-                // running to cap it — the exact failure U8 hit on the Mustang.
+                // running to cap it - the exact failure U8 hit on the Mustang.
                 Coast();
                 return;
             }
@@ -265,8 +265,8 @@ namespace TheBlock.Vehicles
 
         /// <summary>
         /// Eases the front wheel toward the held direction, with less lock available the faster the
-        /// bike is going. The tyres do the actual turning — a stationary wheel generates no side
-        /// force — so the falloff exists only to stop full lock at 72 km/h from spinning it.
+        /// bike is going. The tyres do the actual turning - a stationary wheel generates no side
+        /// force - so the falloff exists only to stop full lock at 72 km/h from spinning it.
         /// </summary>
         private void ApplySteering(float steer, float dt)
         {
@@ -281,7 +281,7 @@ namespace TheBlock.Vehicles
         {
             var speed = ForwardSpeed;
 
-            // S brakes while rolling forward and reverses once stopped — a brake lever and a gear
+            // S brakes while rolling forward and reverses once stopped - a brake lever and a gear
             // selector on one key, which is the arcade convention the web build had.
             var braking = throttle < 0f && speed > 0.5f || throttle > 0f && speed < -0.5f;
 
@@ -320,8 +320,8 @@ namespace TheBlock.Vehicles
         /// The torque is a spring toward world up, but measured against where the roll will BE in
         /// <see cref="uprightPredict"/> seconds rather than where it is now. That look-ahead is the
         /// damping term: correcting the current error alone makes a pendulum, and the bike wobbles
-        /// side to side forever. It deliberately does not cancel yaw — turning is the one rotation
-        /// the rider owns — so only the component that squares local up against world up is used.
+        /// side to side forever. It deliberately does not cancel yaw - turning is the one rotation
+        /// the rider owns - so only the component that squares local up against world up is used.
         /// </summary>
         private void Stabilize()
         {
@@ -331,7 +331,7 @@ namespace TheBlock.Vehicles
                 : Quaternion.AngleAxis(spin.magnitude * Mathf.Rad2Deg * uprightPredict, spin) * transform.up;
 
             // Cross(a, b) is the axis that rotates a onto b, scaled by the sine of the angle
-            // between them — so it is zero when already upright and grows as the bike goes over.
+            // between them - so it is zero when already upright and grows as the bike goes over.
             _body.AddTorque(Vector3.Cross(predictedUp, Vector3.up) * uprightSpring);
         }
 
@@ -339,7 +339,7 @@ namespace TheBlock.Vehicles
         /// Rolls the MODEL into the corner, leaving the Rigidbody upright.
         ///
         /// A real bike leans until gravity and the corner's centripetal force line up along its
-        /// wheels, which is <c>tan(lean) = v·ω / g</c> — so the target is read straight off the
+        /// wheels, which is <c>tan(lean) = v·ω / g</c> - so the target is read straight off the
         /// speed and the yaw rate the physics already produced, rather than off the steering key.
         /// Steering input alone would lean a stationary bike, and would not lean one sliding
         /// sideways off a handbrake turn.
@@ -360,7 +360,7 @@ namespace TheBlock.Vehicles
             leanPivot.localRotation = Quaternion.Euler(0f, 0f, _lean);
         }
 
-        /// <summary>Motor off, gentle brake on — the safe state when there is nobody to ask.</summary>
+        /// <summary>Motor off, gentle brake on - the safe state when there is nobody to ask.</summary>
         private void Coast()
         {
             SetTorque(frontWheel, 0f, coastBrake);
@@ -391,7 +391,7 @@ namespace TheBlock.Vehicles
         public Transform Anchor => transform;
 
         /// <summary>
-        /// <c>config.camera.localOffset</c>, the same boom the cars use — the web build hands the
+        /// <c>config.camera.localOffset</c>, the same boom the cars use - the web build hands the
         /// bike that identical offset, and a second camera feel for one vehicle is a worse game, not
         /// a better one. ModelOffset because three.js hangs a chase camera at <c>+Z</c>.
         /// </summary>
@@ -419,7 +419,7 @@ namespace TheBlock.Vehicles
         }
 
         /// <summary>
-        /// Back to where it was put down, upright and stopped — the `R` key, and the web build's
+        /// Back to where it was put down, upright and stopped - the `R` key, and the web build's
         /// `resetToSpawn`. It falls back to the config spawn if Bind ran before the spawner did.
         /// </summary>
         public void Respawn()

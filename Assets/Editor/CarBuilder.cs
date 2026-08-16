@@ -14,19 +14,19 @@ namespace TheBlock.EditorTools
 {
     /// <summary>
     /// Builds the drivable car prefabs from their imported GLBs and their <c>config.vehicle.cars</c>
-    /// entries — <b>The Block → Build Drivable Cars</b>.
+    /// entries - <b>The Block → Build Drivable Cars</b>.
     ///
     /// Generated rather than hand-assembled, for the reason <c>WorldBuilder</c> and
     /// <c>JoeAnimatorBuilder</c> are: four WheelColliders dragged into place by hand are invisible in
     /// review, impossible to reproduce, and quietly wrong the moment the model is re-exported. Here
     /// every number is either measured off the mesh or written down below with its reasoning, and
-    /// re-running the menu item rebuilds each prefab in place so its GUID — and every scene reference
-    /// to it — survives.
+    /// re-running the menu item rebuilds each prefab in place so its GUID - and every scene reference
+    /// to it - survives.
     ///
     /// <b>U17b generalised this past the Mustang, and the one thing that does not generalise is the
     /// wheels.</b> The Mustang is the only car in the game that kept its rig. The other three went
     /// through the web build's <c>blender/merge-car-meshes.py</c>, which welds every wheel into the
-    /// body to cut three.js draw calls — so their GLBs contain no wheel node at all, and
+    /// body to cut three.js draw calls - so their GLBs contain no wheel node at all, and
     /// <see cref="FindWheelBones"/> has nothing to find. Their axles are therefore STATED from the
     /// measured body box, the way <c>MotorcycleBuilder</c> states the bike's, and nothing visible
     /// depends on getting them exactly right because there is no wheel mesh to spin either. The
@@ -72,7 +72,7 @@ namespace TheBlock.EditorTools
 
         /// <summary>
         /// Damping, N·s/m. Critical for a 350 kg corner on that spring is 2·sqrt(k·m) ≈ 6,200;
-        /// this is a little over half of it — settled in one bounce without the jitter an
+        /// this is a little over half of it - settled in one bounce without the jitter an
         /// over-damped WheelCollider gets at low speed.
         /// </summary>
         private const float SuspensionDamper = 3500f;
@@ -84,7 +84,7 @@ namespace TheBlock.EditorTools
 
         /// <summary>
         /// Wheel radius as a fraction of the body's total height. A saloon stands about four and a
-        /// bit wheel-radii tall, and the Mustang — the one car that CAN be measured — is the check:
+        /// bit wheel-radii tall, and the Mustang - the one car that CAN be measured - is the check:
         /// its build log prints the measured radius beside what this rule would have produced.
         /// </summary>
         private const float WheelRadiusFraction = 0.24f;
@@ -109,8 +109,8 @@ namespace TheBlock.EditorTools
         ///
         /// Per MODEL, not per entry: the config lists sixteen cars, but twelve of them are colour
         /// variants that reuse one of four GLBs with a different <c>bodyColor</c> and a different
-        /// parking space. A variant needs no prefab of its own — the paint is a material swap on the
-        /// one already built — so the rule is "the first entry for each modelUrl", which produces
+        /// parking space. A variant needs no prefab of its own - the paint is a material swap on the
+        /// one already built - so the rule is "the first entry for each modelUrl", which produces
         /// exactly the four base cars without either the count or their names being typed in here.
         /// </summary>
         public static string BuildAll()
@@ -144,7 +144,7 @@ namespace TheBlock.EditorTools
             WireSpawner(built, log);
             AssetDatabase.SaveAssets();
 
-            var report = $"CarBuilder — {built.Count} of {bases.Count} drivable car(s)\n{log}";
+            var report = $"CarBuilder - {built.Count} of {bases.Count} drivable car(s)\n{log}";
             Debug.Log(report);
             return report;
         }
@@ -167,7 +167,7 @@ namespace TheBlock.EditorTools
             var prefab = BuildOne(spec, snapshot.Config.Vehicle.Driver, MaterialFolder, Quaternion.identity,new HashSet<string>(), log);
             AssetDatabase.SaveAssets();
 
-            var report = $"CarBuilder — {carName}\n{log}";
+            var report = $"CarBuilder - {carName}\n{log}";
             if (prefab == null) return Fail(report);
 
             Debug.Log(report);
@@ -177,8 +177,8 @@ namespace TheBlock.EditorTools
         /// <summary>
         /// Builds one car from a spec that need not come from <c>config.vehicle.cars</c>.
         ///
-        /// U19's police cruiser has no config entry — the web build hard-codes its model URL in
-        /// <c>police.ts</c> and never lists it as a car — so its spec is stated port-side and handed
+        /// U19's police cruiser has no config entry - the web build hard-codes its model URL in
+        /// <c>police.ts</c> and never lists it as a car - so its spec is stated port-side and handed
         /// in here. It takes its own <paramref name="materialFolder"/> for a reason that would
         /// otherwise bite silently: <see cref="VehicleMaterials.Sweep"/> deletes everything in a
         /// folder the run did not write, so police materials living beside the four drivable cars'
@@ -198,7 +198,7 @@ namespace TheBlock.EditorTools
             var model = LoadModel(spec.ModelUrl);
             if (model == null)
             {
-                log.AppendLine($"        MISSING — no asset for {spec.ModelUrl} under {ModelFolder}");
+                log.AppendLine($"        MISSING - no asset for {spec.ModelUrl} under {ModelFolder}");
                 return null;
             }
 
@@ -254,7 +254,7 @@ namespace TheBlock.EditorTools
         /// rather than burying or floating it by however far the artist's pivot sits under the tyres.
         /// The XZ recentre is what makes a car SWAPPABLE, which is new at U17b: a hijacked street car
         /// and a promoted lot car are placed at the pose of the thing they replace, and both of those
-        /// are built with a body-centred origin (<c>TrafficCarBuilder</c>) — so a drivable prefab
+        /// are built with a body-centred origin (<c>TrafficCarBuilder</c>) - so a drivable prefab
         /// pivoted somewhere off-centre would land half a car off the spot it was taken from.
         /// </summary>
         private static GameObject BuildVisual(
@@ -300,7 +300,7 @@ namespace TheBlock.EditorTools
                            (preRotation == Quaternion.identity
                                ? string.Empty
                                : $", pre-rotated {Fmt(preRotation.eulerAngles)}"));
-            log.AppendLine($"        origin  visual moved {Fmt(-shift)} — contact patch in Y, body centre in XZ");
+            log.AppendLine($"        origin  visual moved {Fmt(-shift)} - contact patch in Y, body centre in XZ");
 
             wheelBones = FindWheelBones(visual.transform, log);
             return visual;
@@ -311,13 +311,13 @@ namespace TheBlock.EditorTools
         public enum Corner { FrontLeft, FrontRight, RearLeft, RearRight }
 
         /// <summary>
-        /// Finds the four wheel bones and sorts them into corners BY POSITION, not by name — or
+        /// Finds the four wheel bones and sorts them into corners BY POSITION, not by name - or
         /// returns null, which is the ordinary case and not an error.
         ///
         /// The names cannot be trusted on their own: glTFast negates X on import, so the bone the
         /// rig calls <c>wheel_Front_L_0</c> arrives on Unity's +X side and only becomes left again
         /// after <see cref="Convert.ModelFacing"/>. Reading the sign off the transform sidesteps that
-        /// entirely — and works on the next car, whose rigger may have used other names.
+        /// entirely - and works on the next car, whose rigger may have used other names.
         ///
         /// The steering knuckles (<c>wheel_dir_*</c>) sit at the same spot as the front wheels and
         /// would tie for the corner, so they are filtered out by name first.
@@ -337,13 +337,13 @@ namespace TheBlock.EditorTools
 
             // A wheel's own mesh child is not a second wheel. The CrownVic names its geometry
             // `CrownVic.Wheel.Ft.L_0` under a transform of the same name, and two transforms at one
-            // position tie for the corner and throw the whole map away — which is how a model WITH
+            // position tie for the corner and throw the whole map away - which is how a model WITH
             // four perfectly good wheel nodes ended up on stated axles.
             candidates.RemoveAll(t => candidates.Any(other => other != t && t.IsChildOf(other)));
 
             if (candidates.Count != 4)
             {
-                log.AppendLine($"        wheels  no rig — {candidates.Count} wheel node(s) in this model" +
+                log.AppendLine($"        wheels  no rig - {candidates.Count} wheel node(s) in this model" +
                                (candidates.Count == 0
                                    ? " (merged into the body by the web build's Blender pass)"
                                    : $": {string.Join(", ", candidates.Select(c => c.name))}"));
@@ -361,7 +361,7 @@ namespace TheBlock.EditorTools
                 if (map.ContainsKey(corner))
                 {
                     log.AppendLine($"        wheels  two bones landed on {corner}: " +
-                                   $"{map[corner].name} and {bone.name} — falling back to stated axles");
+                                   $"{map[corner].name} and {bone.name} - falling back to stated axles");
                     return null;
                 }
 
@@ -378,7 +378,7 @@ namespace TheBlock.EditorTools
         /// Rig plumbing that carries "wheel" in its name without being one.
         ///
         /// Blender car rigs ship a deform bone, a mechanism bone and a control shape per wheel, plus
-        /// a brake, a damper and a rotation driver — the CrownVic has fifty such nodes against four
+        /// a brake, a damper and a rotation driver - the CrownVic has fifty such nodes against four
         /// real wheels. The prefixes are Rigify's own convention (<c>DEF-</c> deform, <c>MCH-</c>
         /// mechanism, <c>SHP-</c> shape) and the <c>_Car_Rig</c> suffix is the rig's namespace, so
         /// this reads as "not geometry" rather than as a list of names from one model.
@@ -401,7 +401,7 @@ namespace TheBlock.EditorTools
         ///
         /// <b>Rigged (the Mustang).</b> Radius is measured, not typed: the wheel centre's height above
         /// the contact patch IS the rolling radius once the root origin sits on that patch. The
-        /// stated rule is printed beside it, which is the only cross-check either has — one measured
+        /// stated rule is printed beside it, which is the only cross-check either has - one measured
         /// car keeping the three stated ones honest.
         ///
         /// <b>Stated (Tesla, Audi, Avenger).</b> Radius, wheelbase and track come off the measured
@@ -494,7 +494,7 @@ namespace TheBlock.EditorTools
                 };
 
                 // Only where there is a bone to drive. CarWheel with nothing bound disables itself
-                // and says so, once per wheel per car — twelve console warnings that mean nothing.
+                // and says so, once per wheel per car - twelve console warnings that mean nothing.
                 if (bones != null && bones.TryGetValue(pair.Key, out var bone))
                     go.AddComponent<CarWheel>().BindBone(bone);
 
@@ -512,7 +512,7 @@ namespace TheBlock.EditorTools
         /// The box floor is held clear of the road on purpose. A collider that reaches the tarmac
         /// fights the wheels for ground contact and the car judders; lifting it above the contact
         /// patch leaves the suspension to do that job alone while the box still catches walls, kerbs
-        /// and other cars. The web build arrived at the same shape from the Rapier side — which makes
+        /// and other cars. The web build arrived at the same shape from the Rapier side - which makes
         /// it design rather than scar tissue, so it carries over.
         /// </summary>
         private static void BuildChassis(GameObject root, Bounds bounds, StringBuilder log)
@@ -549,7 +549,7 @@ namespace TheBlock.EditorTools
         ///
         /// The axis is the only part that needs thought. It is written in the JOINT's own local
         /// frame, which glTFast has already re-expressed on import, so it goes through
-        /// <see cref="Convert.ModelAxis"/> — and the ANGLE is left exactly as authored, because
+        /// <see cref="Convert.ModelAxis"/> - and the ANGLE is left exactly as authored, because
         /// reading an axis-angle out of a converted quaternion moves the sign onto the axis and not
         /// onto the angle. Getting that backwards swings the door into the cabin instead of out.
         /// </summary>
@@ -558,7 +558,7 @@ namespace TheBlock.EditorTools
         {
             if (spec.Door == null || string.IsNullOrEmpty(spec.Door.JointName))
             {
-                log.AppendLine("        door    none in config — this car has no opening door");
+                log.AppendLine("        door    none in config - this car has no opening door");
                 return null;
             }
 
@@ -566,14 +566,14 @@ namespace TheBlock.EditorTools
                 .FirstOrDefault(t => t.name == spec.Door.JointName);
             if (joint == null)
             {
-                log.AppendLine($"        door    SKIPPED — no joint named '{spec.Door.JointName}' in the rig");
+                log.AppendLine($"        door    SKIPPED - no joint named '{spec.Door.JointName}' in the rig");
                 return null;
             }
 
             var key = (spec.Door.Axis ?? "z").ToLowerInvariant();
             if (!DoorAxes.TryGetValue(key, out var axis))
             {
-                log.AppendLine($"        door    SKIPPED — axis '{spec.Door.Axis}' is not x, y or z");
+                log.AppendLine($"        door    SKIPPED - axis '{spec.Door.Axis}' is not x, y or z");
                 return null;
             }
 
@@ -589,7 +589,7 @@ namespace TheBlock.EditorTools
         }
 
         /// <summary>
-        /// Places the driver's entry anchor — where the seated-driver animation STARTS.
+        /// Places the driver's entry anchor - where the seated-driver animation STARTS.
         ///
         /// Not the seat cushion. <c>config.vehicle.driver.seats</c> holds the transform of the entry
         /// clip's own origin, which is the driver standing beside the door at road level; the clip's
@@ -599,7 +599,7 @@ namespace TheBlock.EditorTools
         /// Two corrections turn that block into a Unity local transform:
         ///
         ///  - The web build measures those offsets from the BODY CENTRE. This prefab's origin is the
-        ///    body centre in XZ but the contact patch in Y, so the measured centre is added back —
+        ///    body centre in XZ but the contact patch in Y, so the measured centre is added back -
         ///    which is now purely the half-height, the XZ terms having become zero when
         ///    <see cref="BuildVisual"/> recentred the model.
         ///  - <see cref="Convert.ModelOffset"/> for the offset and <see cref="Convert.RotFromRadians"/>
@@ -608,7 +608,7 @@ namespace TheBlock.EditorTools
         ///    here and a plain negation is the whole conversion.
         ///
         /// All four cars have a seat block, so all four get the walk-up-and-sit-down entry. The
-        /// Tesla's is its own re-fit — a 1.44 m cabin against the Mustang's 1.61 — and the config
+        /// Tesla's is its own re-fit - a 1.44 m cabin against the Mustang's 1.61 - and the config
         /// says so at the entry.
         /// </summary>
         private static Transform BuildDriverAnchor(
@@ -622,7 +622,7 @@ namespace TheBlock.EditorTools
 
             if (seat == null)
             {
-                log.AppendLine($"        seat    none for {spec.ModelUrl} — this car uses the quick enter");
+                log.AppendLine($"        seat    none for {spec.ModelUrl} - this car uses the quick enter");
                 return null;
             }
 
@@ -647,7 +647,7 @@ namespace TheBlock.EditorTools
         /// and paints the body.
         ///
         /// <b>The paint is the part that was quietly broken.</b> This used to write <c>_BaseColor</c>
-        /// and <c>_Color</c> only — neither of which exists on the shader glTFast actually imports —
+        /// and <c>_Color</c> only - neither of which exists on the shader glTFast actually imports -
         /// so nothing was ever written and the Mustang has been wearing its model's native dark green
         /// since U8 instead of the config's <c>0xb5232a</c> red. <see cref="VehicleMaterials"/> now
         /// owns that choice, gamma and all, and returns which property it used so the log can show it.
@@ -704,7 +704,7 @@ namespace TheBlock.EditorTools
             if (paintSource == null)
             {
                 log.AppendLine(
-                    $"        paint   none — no material named " +
+                    $"        paint   none - no material named " +
                     $"{string.Join("/", VehicleMaterials.PaintMaterialNames)}; this model keeps its own");
                 return null;
             }
@@ -714,7 +714,7 @@ namespace TheBlock.EditorTools
 
             if (!spec.BodyColor.HasValue)
             {
-                log.AppendLine($"        paint   config sets no bodyColor — keeping the model's own, " +
+                log.AppendLine($"        paint   config sets no bodyColor - keeping the model's own, " +
                                $"on {slotOwners.Count} slot(s)");
                 return component;
             }
@@ -755,7 +755,7 @@ namespace TheBlock.EditorTools
             VehicleMaterials.EnsureFolder(PrefabFolder);
             var path = $"{PrefabFolder}/{carName}.prefab";
             // SaveAsPrefabAsset over an existing path keeps the GUID, so scene references survive
-            // a rebuild — the same reason JoeAnimatorBuilder writes its controller in place.
+            // a rebuild - the same reason JoeAnimatorBuilder writes its controller in place.
             PrefabUtility.SaveAsPrefabAsset(root, path);
             return path;
         }
@@ -767,7 +767,7 @@ namespace TheBlock.EditorTools
         /// pool itself: the builder is the only thing that knows the full set it just produced, and a
         /// prefab that exists but is in nobody's list is a car that silently never appears. It is also
         /// what U17b's carjack and lot promotion look the prefabs up in, so a missing entry is not
-        /// just a missing parked car — it is a stolen car that cannot be spawned.
+        /// just a missing parked car - it is a stolen car that cannot be spawned.
         ///
         /// The scene must be MARKED DIRTY by hand: assigning through SerializedObject leaves the scene
         /// looking clean, and Save then writes nothing and reports success (memory:
@@ -782,7 +782,7 @@ namespace TheBlock.EditorTools
 
             if (spawners.Length == 0)
             {
-                log.AppendLine("spawner    no CarSpawner in the open scene — nothing wired");
+                log.AppendLine("spawner    no CarSpawner in the open scene - nothing wired");
                 return;
             }
 
@@ -799,7 +799,7 @@ namespace TheBlock.EditorTools
                 EditorSceneManager.MarkSceneDirty(spawner.gameObject.scene);
                 log.AppendLine(
                     $"spawner    {spawner.name} ← {string.Join(", ", prefabs.Select(p => p.name))} " +
-                    "(scene marked dirty — save it)");
+                    "(scene marked dirty - save it)");
             }
         }
 

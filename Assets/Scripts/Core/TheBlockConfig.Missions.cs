@@ -5,12 +5,12 @@ namespace TheBlock.Core
 {
     /// <summary>
     /// Tier 5's half of the config model: the five mission modules the exporter gained for the
-    /// port — <c>mission.config.ts</c>, <c>rescue.config.ts</c>, <c>chase.config.ts</c>,
+    /// port - <c>mission.config.ts</c>, <c>rescue.config.ts</c>, <c>chase.config.ts</c>,
     /// <c>campaign.config.ts</c> and <c>rhythm/rhythm.config.ts</c>.
     ///
     /// Same rules as the world half: still right-handed, nothing converted here, and every
     /// XZ/XYZ literal exposes a <c>Raw</c> that goes through <see cref="Convert"/> at the point of
-    /// use. Split into its own file only for length — see the partial declaration in
+    /// use. Split into its own file only for length - see the partial declaration in
     /// <c>TheBlockConfig.cs</c>.
     ///
     /// <b>Most of this is DATA, not tuning.</b> The 15 delivery spots, the 18-point flee route and
@@ -23,7 +23,7 @@ namespace TheBlock.Core
         // ── shared shapes ─────────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// The overhead "go here" beacon — <c>mission.config.ts</c>'s <c>beacon</c> block, shared by
+        /// The overhead "go here" beacon - <c>mission.config.ts</c>'s <c>beacon</c> block, shared by
         /// all three marker missions. Only the colour differs per mission (green deliveries, orange
         /// survivors, cyan gates), which is why the colour is passed in rather than read from here.
         /// </summary>
@@ -53,7 +53,7 @@ namespace TheBlock.Core
             public float PopScale = 2.2f;
         }
 
-        /// <summary>An XZ point with an optional standing yaw — a delivery drop-off.</summary>
+        /// <summary>An XZ point with an optional standing yaw - a delivery drop-off.</summary>
         public struct DeliverySpotSpec
         {
             public float X;
@@ -66,7 +66,7 @@ namespace TheBlock.Core
             public Vector3 Raw => new Vector3(X, 0f, Z);
         }
 
-        // ── M1 — the pizza delivery run ───────────────────────────────────────────────────────
+        // ── M1 - the pizza delivery run ───────────────────────────────────────────────────────
 
         /// <summary>
         /// <c>src/mission/mission.config.ts</c>. The shift: how many drops, how long you have, and
@@ -74,7 +74,7 @@ namespace TheBlock.Core
         /// </summary>
         public class MissionSpec
         {
-            /// <summary>Targets spawned per run — a random subset of <see cref="CandidateSpots"/>.</summary>
+            /// <summary>Targets spawned per run - a random subset of <see cref="CandidateSpots"/>.</summary>
             public int DeliveryCount = 5;
 
             /// <summary>Pizzas handed over at the counter. The HUD counts down from this.</summary>
@@ -91,7 +91,7 @@ namespace TheBlock.Core
 
             /// <summary>
             /// The five faces, cycled across the targets. In this port the MESHES come from the
-            /// crowd's own imported prefabs (they are the same five people) — what is read here is
+            /// crowd's own imported prefabs (they are the same five people) - what is read here is
             /// the ORDER and each customer's thank-you line.
             /// </summary>
             public List<MissionNpcSpec> NpcSpecs = new();
@@ -100,7 +100,7 @@ namespace TheBlock.Core
 
             /// <summary>
             /// The 15 authored drop-offs. Every one is the centre of a pavement rectangle the crowd
-            /// already spawns in, so all of them are walkable by construction — the original's
+            /// already spawns in, so all of them are walkable by construction - the original's
             /// comment is explicit that this is why they were chosen that way.
             /// </summary>
             public List<DeliverySpotSpec> CandidateSpots = new();
@@ -125,7 +125,7 @@ namespace TheBlock.Core
             public string ThankUrl;
         }
 
-        // ── M3 — the rooftop rescue ───────────────────────────────────────────────────────────
+        // ── M3 - the rooftop rescue ───────────────────────────────────────────────────────────
 
         /// <summary>
         /// <c>src/mission/rescue.config.ts</c>. Note what is NOT here: the survivor faces, because
@@ -138,7 +138,7 @@ namespace TheBlock.Core
             public float LowTimeSec = 30f;
 
             /// <summary>
-            /// 3D metres. Descend within this of a survivor and they are scooped up — generous, so
+            /// 3D metres. Descend within this of a survivor and they are scooped up - generous, so
             /// no pixel-perfect landing is needed, but you must drop to the roof rather than
             /// overfly it at altitude.
             /// </summary>
@@ -162,7 +162,7 @@ namespace TheBlock.Core
             public List<string> BriefingLines = new();
         }
 
-        // ── M4 — the jetski sea chase ─────────────────────────────────────────────────────────
+        // ── M4 - the jetski sea chase ─────────────────────────────────────────────────────────
 
         /// <summary>A point on the thief's flee route. <see cref="Gate"/> points get a buoy.</summary>
         public struct ChasePointSpec
@@ -179,7 +179,7 @@ namespace TheBlock.Core
 
         /// <summary>
         /// <c>src/mission/chase.config.ts</c>. Every coordinate here lives in the water west of
-        /// <c>sea.shoreX</c> — which is Unity's EAST, since X negates. The run path is on dry sand.
+        /// <c>sea.shoreX</c> - which is Unity's EAST, since X negates. The run path is on dry sand.
         /// </summary>
         public class ChaseSpec
         {
@@ -192,7 +192,7 @@ namespace TheBlock.Core
             /// <summary>On-foot catch distance in the beach finale.</summary>
             public float CatchRadius = 2.5f;
 
-            /// <summary>Packed <c>0xRRGGBB</c>. Cyan — "water checkpoint".</summary>
+            /// <summary>Packed <c>0xRRGGBB</c>. Cyan - "water checkpoint".</summary>
             public int BeaconColor = 0x22ccee;
 
             public float BuoyScale = 1.2f;
@@ -227,7 +227,7 @@ namespace TheBlock.Core
         }
 
         /// <summary>
-        /// The chase cannot be lost on distance — the user's own call in the original. Thief speed
+        /// The chase cannot be lost on distance - the user's own call in the original. Thief speed
         /// maps linearly from <see cref="MaxSpeed"/> when you are inside <see cref="NearDist"/> down
         /// to <see cref="MinSpeed"/> at <see cref="FarDist"/>: ride his wake and he bolts, fall
         /// behind and he crawls. Player max is 18 m/s against his 17, so a close chase still reels
@@ -259,7 +259,7 @@ namespace TheBlock.Core
         // ── the campaign's copy ───────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// <c>src/mission/campaign.config.ts</c> — words and money, no coordinates. The waypoint a
+        /// <c>src/mission/campaign.config.ts</c> - words and money, no coordinates. The waypoint a
         /// step points at is resolved from the live world config, so a location stays single-sourced.
         /// </summary>
         public class CampaignSpec
@@ -276,12 +276,12 @@ namespace TheBlock.Core
         /// <summary>One campaign step's player-facing copy and its flat payout.</summary>
         public class CampaignTextSpec
         {
-            /// <summary>Stable key — matches the mission's own id. Never shown to players.</summary>
+            /// <summary>Stable key - matches the mission's own id. Never shown to players.</summary>
             public string Id;
 
             /// <summary>
             /// Map glyph, drawn in place of the objective's dot. Idle until the emoji font landed in
-            /// U28 — this comment used to say the map draws a dot instead, and it does not any more.
+            /// U28 - this comment used to say the map draws a dot instead, and it does not any more.
             /// </summary>
             public string Emoji;
 
@@ -297,11 +297,11 @@ namespace TheBlock.Core
             /// <summary>One-line narrative beat, shown when this step becomes the next objective.</summary>
             public string Story;
 
-            /// <summary>Flat cash paid when this step completes — once per run, never on a retry.</summary>
+            /// <summary>Flat cash paid when this step completes - once per run, never on a retry.</summary>
             public int Reward;
         }
 
-        // ── M2 — the beach dance ──────────────────────────────────────────────────────────────
+        // ── M2 - the beach dance ──────────────────────────────────────────────────────────────
 
         /// <summary><c>src/minigame/rhythm/rhythm.config.ts</c>. Timing, scoring, clips and placement.</summary>
         public class RhythmSpec
@@ -318,7 +318,7 @@ namespace TheBlock.Core
 
             /// <summary>
             /// Pass gate: the run is a WIN only if weighted accuracy (perfect 1, good 0.5, miss 0)
-            /// reaches this. Null means it can never fail — the original ships 0.5.
+            /// reaches this. Null means it can never fail - the original ships 0.5.
             /// </summary>
             public float? FailBelowAccuracy = 0.5f;
 
@@ -341,7 +341,7 @@ namespace TheBlock.Core
         /// The track. <see cref="Bpm"/> was measured with librosa, not guessed, and
         /// <see cref="Offset"/> places beatmap t=0 far enough in that the first note lands on a real
         /// beat. In this port the clock is <c>AudioSettings.dspTime</c>, not the clip's own
-        /// playhead — see <c>Minigame/Rhythm/Conductor.cs</c>.
+        /// playhead - see <c>Minigame/Rhythm/Conductor.cs</c>.
         /// </summary>
         public class RhythmSongSpec
         {
@@ -356,7 +356,7 @@ namespace TheBlock.Core
             public float RingPct = 10f;
         }
 
-        /// <summary>Judgment windows in seconds — absolute |press − note.time|.</summary>
+        /// <summary>Judgment windows in seconds - absolute |press − note.time|.</summary>
         public class HitWindowsSpec
         {
             public float Perfect = 0.05f;
@@ -396,7 +396,7 @@ namespace TheBlock.Core
         }
 
         /// <summary>
-        /// The beatmap is GENERATED at load from a BPM and a difficulty ramp — there is no authored
+        /// The beatmap is GENERATED at load from a BPM and a difficulty ramp - there is no authored
         /// note file in either build. Density ramps; note travel speed never does.
         /// </summary>
         public class RhythmBeatmapSpec
@@ -422,14 +422,14 @@ namespace TheBlock.Core
             public float DoubleChance;
         }
 
-        /// <summary>Remy's random hype on a good hit — occasional by design, not on every note.</summary>
+        /// <summary>Remy's random hype on a good hit - occasional by design, not on every note.</summary>
         public class RhythmCheerSpec
         {
             public List<string> Urls = new();
             public float Chance = 0.25f;
             public float CooldownSec = 6f;
 
-            /// <summary>Web gain, &gt;1 to push past unity. Unity clamps volume at 1 — see the port.</summary>
+            /// <summary>Web gain, &gt;1 to push past unity. Unity clamps volume at 1 - see the port.</summary>
             public float Gain = 1.6f;
         }
 
@@ -450,7 +450,7 @@ namespace TheBlock.Core
         }
 
         /// <summary>
-        /// The mission-giver on the dry sand. He is Remy, and he grooves through the whole run —
+        /// The mission-giver on the dry sand. He is Remy, and he grooves through the whole run -
         /// the GTA-style partner you dance to, not a static quest marker.
         /// </summary>
         public class RhythmNpcSpec
@@ -463,21 +463,21 @@ namespace TheBlock.Core
 
             /// <summary>
             /// A three.js-only correction for a glTF clip on an FBX skeleton. 0 in the original now,
-            /// and irrelevant here — Humanoid retargeting has no such mismatch.
+            /// and irrelevant here - Humanoid retargeting has no such mismatch.
             /// </summary>
             public float DanceRotationX;
 
             public float X;
             public float Z;
 
-            /// <summary>Facing in RADIANS, right-handed. Negate it — see <see cref="Convert.Yaw"/>.</summary>
+            /// <summary>Facing in RADIANS, right-handed. Negate it - see <see cref="Convert.Yaw"/>.</summary>
             public float Yaw;
 
             /// <summary>Press-to-start range in metres.</summary>
             public float TalkRadius = 4.5f;
         }
 
-        /// <summary>Where the player-dancer performs — a couple of metres in front of the giver.</summary>
+        /// <summary>Where the player-dancer performs - a couple of metres in front of the giver.</summary>
         public struct RhythmStageSpec
         {
             public float X;

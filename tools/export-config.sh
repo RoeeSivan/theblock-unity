@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Refresh Assets/StreamingAssets/theblock-config.json from the original game repo.
 #
-# The exporter itself lives in the game repo (scripts/export-config.mjs) — it is the
+# The exporter itself lives in the game repo (scripts/export-config.mjs) - it is the
 # one and only change that repo is permitted to receive. This wrapper holds the
 # port-specific wiring so the exporter stays generic.
 #

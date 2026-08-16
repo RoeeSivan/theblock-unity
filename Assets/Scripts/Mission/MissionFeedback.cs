@@ -16,7 +16,7 @@ namespace TheBlock.Missions
     }
 
     /// <summary>
-    /// Detects when a mission's status NEWLY becomes complete or failed — the port of
+    /// Detects when a mission's status NEWLY becomes complete or failed - the port of
     /// <c>src/game/mission-feedback.ts</c>.
     ///
     /// The point is that one place fires one card, one sting and one payout per event, instead of
@@ -25,8 +25,8 @@ namespace TheBlock.Missions
     /// are the same edge" true by construction rather than by discipline.
     ///
     /// <b>A poll, not an event, on purpose.</b> Four enum comparisons a frame is free, and an event
-    /// would give a mission two ways to announce the same thing — the status property and the
-    /// notification — which is exactly how the two disagree later.
+    /// would give a mission two ways to announce the same thing - the status property and the
+    /// notification - which is exactly how the two disagree later.
     /// </summary>
     public class MissionFeedback
     {

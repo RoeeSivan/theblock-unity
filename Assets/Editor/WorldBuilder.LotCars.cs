@@ -19,7 +19,7 @@ namespace TheBlock.EditorTools
     /// them can be culled, lit or shadowed individually.
     ///
     /// Unity gets real GameObjects instead. Identical mesh + material pairs are GPU-instanced
-    /// automatically, so the draw-call win survives — but each car is culled on its own bounds, and
+    /// automatically, so the draw-call win survives - but each car is culled on its own bounds, and
     /// each carries an <c>LODGroup</c> that culls it past <see cref="CullDistance"/>. Standing in the
     /// lot, the visible set is what the camera can see rather than every car in the world.
     ///
@@ -43,7 +43,7 @@ namespace TheBlock.EditorTools
         ///
         /// Nothing in <c>config.ts</c> to port: the web build has no per-car culling to configure.
         /// 180 m clears the whole 165 m lot from its far corner, so a car is never missing from a
-        /// view that contains the lot — it only stops being drawn from across the city.
+        /// view that contains the lot - it only stops being drawn from across the city.
         /// </summary>
         private const float CullDistance = 180f;
 
@@ -56,7 +56,7 @@ namespace TheBlock.EditorTools
             var stalls = LayOutStalls(cfg);
             if (stalls.Count == 0)
             {
-                report.Warnings.Add("lot cars — the stall grid came out empty; check bounds/rowDepth");
+                report.Warnings.Add("lot cars - the stall grid came out empty; check bounds/rowDepth");
                 return;
             }
 
@@ -81,16 +81,16 @@ namespace TheBlock.EditorTools
                 // U17b: the drivable twin's own facing correction, so a promoted car can be turned to
                 // match the filler it replaces. Resolved once per model, here, because this is the
                 // only place both `lotCars.models[].modelYaw` and `vehicle.cars[].modelYaw` are in
-                // view at the same time — see LotCar.DriveRotation.
+                // view at the same time - see LotCar.DriveRotation.
                 var drivable = TheBlockConfig.Load()?.Config?.Vehicle?.Cars?
                     .FirstOrDefault(c => string.Equals(
                         c.Name, spec.Name, System.StringComparison.OrdinalIgnoreCase));
                 if (drivable == null)
                     report.Warnings.Add(
-                        $"lot cars — no config.vehicle.cars entry named '{spec.Name}', so these " +
+                        $"lot cars - no config.vehicle.cars entry named '{spec.Name}', so these " +
                         "fillers cannot be promoted on E");
 
-                // Measured once off the prefab — every instance of a model is the same box, and the
+                // Measured once off the prefab - every instance of a model is the same box, and the
                 // config states no size of its own. The probe carries the model's scale, so `body` is
                 // in metres of world space, which is what both the placement and the cull threshold
                 // want; the collider divides it back out.
@@ -113,7 +113,7 @@ namespace TheBlock.EditorTools
                     car.transform.rotation =
                         Convert.RotFromRadians(stall.Yaw + spec.ModelYaw) * Convert.ModelFacing;
                     // Config's `y` is the lot surface and the wheels rest on it, so the model's own
-                    // bottom — not its centre — is what gets placed. The web build recentres the body
+                    // bottom - not its centre - is what gets placed. The web build recentres the body
                     // to the origin and adds half the height, which assumes a centred pivot; this
                     // does not need to assume anything.
                     car.transform.position =
@@ -125,7 +125,7 @@ namespace TheBlock.EditorTools
                     SetDistrictStaticFlags(car);
 
                     // U17b: what E needs to promote this filler into the drivable car of the same
-                    // model and colour. The paint is looked up rather than rebuilt — PaintCar has
+                    // model and colour. The paint is looked up rather than rebuilt - PaintCar has
                     // just put the material for this hex in the cache, and handing the promoted car
                     // the SAME asset is what makes the swap invisible. The rotation is the stall's
                     // heading carried into the drivable car's own facing convention.
@@ -146,9 +146,9 @@ namespace TheBlock.EditorTools
             if (options.CompressedTextures) ApplyCompressedTextures(group.gameObject, report);
 
             if (skipped.Count > 0)
-                report.Missing.Add($"lot cars — no model asset for {string.Join(", ", skipped)}");
+                report.Missing.Add($"lot cars - no model asset for {string.Join(", ", skipped)}");
 
-            report.Placed.Add($"LotCars — {placed} parked cars in {stalls.Count} filled stalls");
+            report.Placed.Add($"LotCars - {placed} parked cars in {stalls.Count} filled stalls");
         }
 
         /// <summary>One filled parking stall, still in the web build's right-handed frame.</summary>
@@ -172,7 +172,7 @@ namespace TheBlock.EditorTools
         /// every comparison. One conversion per car happens at placement instead.
         ///
         /// Rows run along X. Two rows sit back to back (rears touching), then a driving aisle,
-        /// repeated to the far edge — row A noses -Z, row B noses +Z.
+        /// repeated to the far edge - row A noses -Z, row B noses +Z.
         /// </summary>
         private static List<LotStall> LayOutStalls(TheBlockConfig.LotCarsSpec cfg)
         {
@@ -182,7 +182,7 @@ namespace TheBlock.EditorTools
             int PickPaint(int modelIndex)
             {
                 // A per-model palette is a uniform pick, and it consumes exactly ONE rand() like the
-                // weighted path does — otherwise the shared stream desynchronises and the whole lot
+                // weighted path does - otherwise the shared stream desynchronises and the whole lot
                 // reshuffles behind it.
                 var own = cfg.Models[modelIndex].Palette;
                 if (own != null && own.Count > 0) return own[Mathf.FloorToInt(rand() * own.Count)];
@@ -243,7 +243,7 @@ namespace TheBlock.EditorTools
         /// The web build's <c>mulberry32</c>, bit for bit, so the seed reproduces the shipped lot.
         ///
         /// JavaScript's <c>Math.imul</c> is a wrapping 32-bit multiply and <c>&gt;&gt;&gt;</c> is an
-        /// unsigned shift — which is what <c>uint</c> arithmetic is here, so no reinterpretation is
+        /// unsigned shift - which is what <c>uint</c> arithmetic is here, so no reinterpretation is
         /// needed as long as nothing becomes <c>int</c> on the way.
         /// </summary>
         private static System.Func<float> Mulberry32(int seed)
@@ -278,7 +278,7 @@ namespace TheBlock.EditorTools
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
             if (prefab == null)
                 report.Warnings.Add(
-                    $"lot cars — {path} did not load as a GameObject (a required glTF extension glTFast " +
+                    $"lot cars - {path} did not load as a GameObject (a required glTF extension glTFast " +
                     "cannot read imports as a DefaultAsset; see tools/glb-webp-to-png.py)");
             return prefab;
         }
@@ -288,7 +288,7 @@ namespace TheBlock.EditorTools
         ///
         /// The web build clones that material white and drives the colour per instance, because
         /// three's InstancedMesh has nowhere else to put it. Here the colour is a material asset,
-        /// which is the same call U1 made for the facade tint and U11 for the leaf cutouts — and it
+        /// which is the same call U1 made for the facade tint and U11 for the leaf cutouts - and it
         /// is also what KEEPS the instancing: a per-renderer MaterialPropertyBlock would give every
         /// car its own draw call, while nine shared materials give nine batches for the whole lot.
         /// </summary>
@@ -344,14 +344,14 @@ namespace TheBlock.EditorTools
             else if (material.HasProperty("_BaseColor"))
                 material.SetColor("_BaseColor", TheBlockConfig.ColorFromHex(hex).linear);
             else
-                report.Warnings.Add($"lot cars — {spec.Name}'s paint material has no base colour to set");
+                report.Warnings.Add($"lot cars - {spec.Name}'s paint material has no base colour to set");
 
             material.enableInstancing = true;
             return material;
         }
 
         /// <summary>
-        /// One box per car, sized off the model — not a MeshCollider.
+        /// One box per car, sized off the model - not a MeshCollider.
         ///
         /// The web build uses a Rapier cuboid for the same reason: these never move, never get
         /// driven, and are hit by cars and by a capsule. A convex hull of 40k triangles would buy
@@ -373,8 +373,8 @@ namespace TheBlock.EditorTools
         ///
         /// LOD screen height is relative, so the threshold is derived from the car's own size: at
         /// distance d a body of height h covers roughly <c>h / (2 d tan(fov/2))</c> of the screen.
-        /// Stating it in metres and converting keeps the intent readable — "not drawn from more than
-        /// 180 m away" — instead of a bare 0.01.
+        /// Stating it in metres and converting keeps the intent readable - "not drawn from more than
+        /// 180 m away" - instead of a bare 0.01.
         /// </summary>
         private static void AddCullGroup(GameObject car, Bounds body)
         {
@@ -394,7 +394,7 @@ namespace TheBlock.EditorTools
         /// The car's body box in metres, measured off a probe standing at the origin unrotated.
         ///
         /// Renderer bounds are world-space and axis-aligned, which is only the body's real box while
-        /// the probe is unrotated — hence the caller placing it at identity before asking. Measuring
+        /// the probe is unrotated - hence the caller placing it at identity before asking. Measuring
         /// a rotated car would give the bounding box of a bounding box and grow with the yaw.
         /// </summary>
         private static Bounds MeasureBody(GameObject probe)

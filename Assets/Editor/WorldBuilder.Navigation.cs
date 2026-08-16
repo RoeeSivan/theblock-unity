@@ -10,30 +10,30 @@ using Convert = TheBlock.Core.Convert;
 namespace TheBlock.EditorTools
 {
     /// <summary>
-    /// The pedestrian world — U16. Where a person may walk, and the only places they may cross.
+    /// The pedestrian world - U16. Where a person may walk, and the only places they may cross.
     ///
     /// THE WEB BUILD'S VERSION, AND WHY NONE OF IT SURVIVES. `walkable.ts` renders the districts
     /// from directly above into a 4096² offscreen mask, keeping only surfaces whose MATERIAL is
     /// named like a pavement (`CityGenside_walks`, `Concrete_Flooring_*`), reads that back on the
-    /// GPU — 67 MB at peak, plus a boolean grid held for the whole session — and then rejection-
+    /// GPU - 67 MB at peak, plus a boolean grid held for the whole session - and then rejection-
     /// samples points out of it. A pedestrian picks a point within 8 m and walks to it IN A
     /// STRAIGHT LINE. There is no path, no corridor, no notion that a road is a thing. When that
     /// proved not to be enough, forty rectangles and forty strips were recorded BY HAND into
-    /// `npc.config.ts` to pin people down — and a strip is a straight pingpong line beside the
+    /// `npc.config.ts` to pin people down - and a strip is a straight pingpong line beside the
     /// pavement rather than on it. That is the real reason people never looked like they were
     /// walking on the pavement: for the most part they were not on one, they were on a line
     /// somebody typed in next to one.
     ///
     /// Unity's answer is not a better sampler, it is a different question. The NavMesh is baked
-    /// from the districts' real geometry, and an agent moves inside a corridor of its triangles —
+    /// from the districts' real geometry, and an agent moves inside a corridor of its triangles -
     /// off it is not "unlikely", it is unrepresentable. So:
     ///
-    ///  1. Every carriageway in `config.traffic.network` — 12.7 km of it — is carved
+    ///  1. Every carriageway in `config.traffic.network` - 12.7 km of it - is carved
     ///     <c>Not Walkable</c> end to end. Not "expensive": absent. A pedestrian cannot be in the
     ///     road, and no per-frame check enforces that, the bake does.
     ///  2. Which leaves the two pavements of a street disconnected, so the ONLY way across is a
     ///     <see cref="NavMeshLink"/> at a zebra crossing, one per approach of every lit
-    ///     intersection — the same 233 crossings `traffic.ts` derives, from the same graph and the
+    ///     intersection - the same 233 crossings `traffic.ts` derives, from the same graph and the
     ///     same setbacks. A pedestrian crosses at a zebra because there is nowhere else to cross,
     ///     which is a stronger statement than the web build's dedicated crossers could make: there,
     ///     two people were assigned to walk each zebra forever and everyone else ignored roads.
@@ -41,7 +41,7 @@ namespace TheBlock.EditorTools
     ///     decision rather than a certainty. U16 answers the gate with "nothing is driving over it";
     ///     U17 hands it the traffic light and deletes that fallback.
     ///
-    /// Kerb heights make no difference to any of this, which is the point — with the carriageway
+    /// Kerb heights make no difference to any of this, which is the point - with the carriageway
     /// carved there is no surface to step down onto, so the default agent's 0.75 m climb cannot
     /// quietly reconnect the two sides the way it would if the road were merely costly.
     /// </summary>
@@ -56,7 +56,7 @@ namespace TheBlock.EditorTools
         /// <summary>
         /// How far past the kerb a link's endpoint is planted. The kerb itself is exactly where the
         /// carve stops, and a link endpoint landing on that boundary is a coin toss between the
-        /// pavement's NavMesh and nothing at all — so it goes a metre into the pavement instead.
+        /// pavement's NavMesh and nothing at all - so it goes a metre into the pavement instead.
         /// </summary>
         private const float LinkKerbInset = 1.2f;
 
@@ -68,13 +68,13 @@ namespace TheBlock.EditorTools
         ///
         /// The districts span roughly 950 × 800 m. At the default that is 5,700 × 4,800 columns and
         /// the bake stops being something you re-run casually. 0.25 m was the first pick and it
-        /// froze the editor for long enough, twice, that the user force-quit it — the bake is
+        /// froze the editor for long enough, twice, that the user force-quit it - the bake is
         /// main-thread with no progress bar, and on this machine, with this scene, that read as a
         /// crash. 0.4 m is 2.5× cheaper again and still five times finer than a 2 m pavement.
         /// </summary>
         private const float NavVoxelSize = 0.4f;
 
-        /// <summary>Square metres below which a baked island is dropped — awnings, ledges, kerb tops.</summary>
+        /// <summary>Square metres below which a baked island is dropped - awnings, ledges, kerb tops.</summary>
         private const float NavMinRegionArea = 4f;
 
         /// <summary>Height above the street the zebra is painted, matching the road ribbon's own lift.</summary>
@@ -110,7 +110,7 @@ namespace TheBlock.EditorTools
         /// <summary>
         /// <paramref name="graph"/> is built by <see cref="BuildTraffic"/>, which runs on every build
         /// and therefore owns it. Building a second one here would be two copies of the same
-        /// derivation drifting apart — and the crossings' <c>NodeId</c>/<c>EdgeId</c> are the keys
+        /// derivation drifting apart - and the crossings' <c>NodeId</c>/<c>EdgeId</c> are the keys
         /// U17's lights answer to, so they have to come from the same numbering.
         /// </summary>
         private static void BuildNavigation(
@@ -119,20 +119,20 @@ namespace TheBlock.EditorTools
         {
             if (districts == null)
             {
-                report.Warnings.Add("navigation skipped — districts were not built, so there is nothing to bake");
+                report.Warnings.Add("navigation skipped - districts were not built, so there is nothing to bake");
                 return;
             }
 
             var traffic = config.Traffic;
             if (traffic?.Network == null || traffic.Network.Count == 0)
             {
-                report.Warnings.Add("navigation skipped — config has no `traffic.network`");
+                report.Warnings.Add("navigation skipped - config has no `traffic.network`");
                 return;
             }
 
             if (graph == null)
             {
-                report.Warnings.Add("navigation skipped — the traffic pass produced no graph");
+                report.Warnings.Add("navigation skipped - the traffic pass produced no graph");
                 return;
             }
 
@@ -144,7 +144,7 @@ namespace TheBlock.EditorTools
             var (nodes, edges) = graph.Value;
             if (edges.Count == 0)
             {
-                report.Warnings.Add("navigation skipped — the traffic network produced no usable streets");
+                report.Warnings.Add("navigation skipped - the traffic network produced no usable streets");
                 return;
             }
 
@@ -156,8 +156,8 @@ namespace TheBlock.EditorTools
 
             BakeNavMesh(districts, report);
 
-            // The navigation folder is swept HERE and only here — never by the ordinary build's
-            // sweep — so a build that skips the bake cannot delete the assets the kept crossings
+            // The navigation folder is swept HERE and only here - never by the ordinary build's
+            // sweep - so a build that skips the bake cannot delete the assets the kept crossings
             // still point at. That happened once: the zebras went blank while the crossings stayed.
             foreach (var guid in AssetDatabase.FindAssets(string.Empty, new[] { GeneratedNavigationFolder }))
             {
@@ -179,7 +179,7 @@ namespace TheBlock.EditorTools
         /// Positions go through <see cref="Convert"/> here and nowhere downstream, so every
         /// perpendicular, tangent and box rotation below is computed in Unity space against Unity
         /// geometry. Deriving a kerb offset in config space and converting the result afterwards
-        /// would mirror the crossing about the street it belongs to — which reads as "the zebra is
+        /// would mirror the crossing about the street it belongs to - which reads as "the zebra is
         /// slightly off" rather than as a handedness fault, and is exactly the trap port rule 1 is
         /// about.
         /// </summary>
@@ -260,13 +260,13 @@ namespace TheBlock.EditorTools
         /// One <c>Not Walkable</c> box per straight run of every street.
         ///
         /// Per SEGMENT rather than per street, because a box is an oriented rectangle and a street
-        /// with a bend in it is not one — 142 streets come to 172 segments, which is few enough that
+        /// with a bend in it is not one - 142 streets come to 172 segments, which is few enough that
         /// the bake does not care and exact enough that a corner does not carve away the pavement
         /// outside it.
         ///
         /// The boxes overlap at every intersection, deliberately: they run the full length of their
-        /// segment including the node at each end, so the middle of a junction — which belongs to no
-        /// approach in particular — comes out carved rather than left as an island of road NavMesh
+        /// segment including the node at each end, so the middle of a junction - which belongs to no
+        /// approach in particular - comes out carved rather than left as an island of road NavMesh
         /// people could stand on.
         /// </summary>
         private static int CarveCarriageways(Transform parent, List<NavEdge> edges, Report report)
@@ -296,7 +296,7 @@ namespace TheBlock.EditorTools
                     // Centred a little above the street: the box has to swallow the road surface and
                     // the kerb beside it, and nothing at first-floor height.
                     modifier.center = new Vector3(0f, CarveHeight * 0.5f - 1f, 0f);
-                    modifier.area = 1; // Not Walkable — Unity's built-in area 1, fixed by the engine
+                    modifier.area = 1; // Not Walkable - Unity's built-in area 1, fixed by the engine
                     built++;
                 }
             }
@@ -325,7 +325,7 @@ namespace TheBlock.EditorTools
 
             foreach (var node in nodes)
             {
-                if (node.Edges.Count < 3) continue; // not lit — same rule as traffic-lights.ts
+                if (node.Edges.Count < 3) continue; // not lit - same rule as traffic-lights.ts
                 lit++;
 
                 foreach (int edgeId in node.Edges)
@@ -361,7 +361,7 @@ namespace TheBlock.EditorTools
 
             report.Notes.Add(
                 $"crossings: {built} on {lit} lit intersection(s)" +
-                (tooShort > 0 ? $", {tooShort} approach(es) dropped — street shorter than {fromNode * 2f:0} m" : ""));
+                (tooShort > 0 ? $", {tooShort} approach(es) dropped - street shorter than {fromNode * 2f:0} m" : ""));
             return built;
         }
 
@@ -418,7 +418,7 @@ namespace TheBlock.EditorTools
             });
             mesh.SetNormals(new[] { Vector3.up, Vector3.up, Vector3.up, Vector3.up });
             // U runs across the carriageway, so the stripe pattern is a function of U alone and
-            // stays put whatever the street's width — the same trick as the road ribbon's texture.
+            // stays put whatever the street's width - the same trick as the road ribbon's texture.
             mesh.SetUVs(0, new[]
             {
                 new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0f, 1f), new Vector2(1f, 1f),
@@ -441,7 +441,7 @@ namespace TheBlock.EditorTools
             var shader = Shader.Find("Universal Render Pipeline/Lit");
             if (shader == null)
             {
-                report.Warnings.Add("zebra material skipped — URP/Lit shader not found");
+                report.Warnings.Add("zebra material skipped - URP/Lit shader not found");
                 return null;
             }
 
@@ -458,7 +458,7 @@ namespace TheBlock.EditorTools
 
             // Nine bars over a 9 m street: 0.5 m of paint, 0.5 m of gap. Expressed as a fraction of
             // the width rather than in metres, so the widest road gets wider bars rather than more
-            // of them — which is what a real crossing does.
+            // of them - which is what a real crossing does.
             var pixels = new Color[across * 4];
             for (int x = 0; x < across; x++)
             {
@@ -499,7 +499,7 @@ namespace TheBlock.EditorTools
         /// Bakes the districts, and only the districts.
         ///
         /// <c>CollectObjects.Children</c> on the Districts group rather than a world volume, because
-        /// the alternative bakes the 1400 m ground plate — an unbroken, perfectly walkable sheet
+        /// the alternative bakes the 1400 m ground plate - an unbroken, perfectly walkable sheet
         /// under the entire map, on which a pedestrian could stroll from downtown to the sea. The
         /// districts carry every pavement in the game, so restricting the bake to them is also what
         /// makes the carve meaningful: outside a district there is no NavMesh to carve.
@@ -507,8 +507,8 @@ namespace TheBlock.EditorTools
         /// It also means the carve volumes have to live UNDER the Districts group, since that
         /// collection mode only gathers modifiers from the surface's own hierarchy.
         ///
-        /// Geometry comes from PHYSICS COLLIDERS, not render meshes. They are the same meshes here —
-        /// U11 gave every district a non-convex MeshCollider — except where they deliberately are
+        /// Geometry comes from PHYSICS COLLIDERS, not render meshes. They are the same meshes here -
+        /// U11 gave every district a non-convex MeshCollider - except where they deliberately are
         /// not: foliage carries no collider, so a tree canopy does not become a first floor.
         /// </summary>
         /// <summary>
@@ -518,8 +518,8 @@ namespace TheBlock.EditorTools
         /// The car park is one open slab of asphalt, and an open slab is exactly what a random
         /// spawn ring finds first: pavements are two metres wide and the lot is 165, so with the
         /// player standing in it (which is where the game starts) most of the pool landed there.
-        /// The web build never seeded people in the lot either — none of its zones or strips
-        /// touch it — so removing it is a match, not a departure.
+        /// The web build never seeded people in the lot either - none of its zones or strips
+        /// touch it - so removing it is a match, not a departure.
         /// </summary>
         private static readonly string[] UnwalkableDistricts = { "District_ParkingLot" };
 
@@ -553,13 +553,13 @@ namespace TheBlock.EditorTools
 
             if (surface.navMeshData == null)
             {
-                report.Warnings.Add("NavMesh bake produced no data — nothing walkable was collected");
+                report.Warnings.Add("NavMesh bake produced no data - nothing walkable was collected");
                 return;
             }
 
             // BuildNavMesh leaves the data in memory only. Without an asset behind it the NavMesh is
             // gone the moment the scene is closed, and Play mode then runs with agents that cannot
-            // path anywhere — which looks like the crowd being broken rather than the bake missing.
+            // path anywhere - which looks like the crowd being broken rather than the bake missing.
             EnsureFolder(GeneratedNavigationFolder);
             var path = $"{GeneratedNavigationFolder}/NavMesh.asset";
             AssetDatabase.CreateAsset(surface.navMeshData, path);
@@ -604,23 +604,23 @@ namespace TheBlock.EditorTools
         private static Vector3 Horizontal(Vector3 v) => new Vector3(v.x, 0f, v.z);
 
         /// <summary>
-        /// The street surface under a point, by raycast — the port of the web build's <c>bakeY</c>.
+        /// The street surface under a point, by raycast - the port of the web build's <c>bakeY</c>.
         ///
         /// Not the FIRST hit: downtown's canopies and the districts' overhangs sit above the road,
         /// and taking the first would paint a zebra on an awning. Not the LOWEST either, which is
         /// what this did at first and what put every zebra 2 cm UNDER the street: the ground plate
         /// runs beneath every district at −0.05, and a district's road surface sits at 0, so the
         /// lowest hit is always the plate. Painted there, the zebra z-fought up through the district
-        /// mesh as a pattern of that mesh's own texture — orange bars, not white — which reads as a
+        /// mesh as a pattern of that mesh's own texture - orange bars, not white - which reads as a
         /// material fault and is really a 5 cm height fault.
         ///
         /// So: the lowest hit that is not the ground plate. The plate is the fallback if it is the
-        /// only thing there — that is what the web build's <c>bakeY</c> returns off-district too.
+        /// only thing there - that is what the web build's <c>bakeY</c> returns off-district too.
         ///
         /// ⚠ AND THE LOWEST NON-PLATE HIT CAN STILL BE A ROOF, which U17 found by baking 6,590 of
         /// these instead of 230. Downtown is a single merged mesh with no street geometry under
         /// parts of its avenue, so under an overhang there the only non-plate hit is the building
-        /// itself and this returned 6.4 m — a zebra on a first floor, or a car flying over a block.
+        /// itself and this returned 6.4 m - a zebra on a first floor, or a car flying over a block.
         /// A street is never more than <see cref="StreetHeightBand"/> above the plate, so anything
         /// that is falls back to the plate, which is what is actually under the wheels there.
         /// </summary>

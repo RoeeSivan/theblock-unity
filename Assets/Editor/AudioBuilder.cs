@@ -9,7 +9,7 @@ using UnityEngine.Audio;
 namespace TheBlock.EditorTools
 {
     /// <summary>
-    /// <b>The Block → Build Audio</b> — the one step that makes the game audible.
+    /// <b>The Block → Build Audio</b> - the one step that makes the game audible.
     ///
     /// It builds the mixer if it is missing, fills the <see cref="AudioLibrary"/> from every clip
     /// under <c>Assets/Audio</c>, and assembles the <c>GameAudio</c> object with its five systems
@@ -21,7 +21,7 @@ namespace TheBlock.EditorTools
     /// sync with the config drifts, and this one has to know which mixer group each source belongs
     /// to. Everything here is derivable, so nothing here is hand-placed.
     ///
-    /// <b>It marks the scene dirty and does NOT save it</b> — the same contract Build Drivable Cars
+    /// <b>It marks the scene dirty and does NOT save it</b> - the same contract Build Drivable Cars
     /// keeps, so a build can be inspected before it is committed to.
     /// </summary>
     public static class AudioBuilder
@@ -49,7 +49,7 @@ namespace TheBlock.EditorTools
             var library = EnsureLibrary(out int clipCount, out var duplicates);
             report.AppendLine($"  library {clipCount} clip(s) → {LibraryPath}");
             foreach (var duplicate in duplicates)
-                report.AppendLine($"  ⚠ duplicate key '{duplicate}' — one of them is unreachable");
+                report.AppendLine($"  ⚠ duplicate key '{duplicate}' - one of them is unreachable");
 
             var host = EnsureHost();
             var sfx = Ensure<Sfx>(host, "Sfx");
@@ -65,7 +65,7 @@ namespace TheBlock.EditorTools
             rotor.SetOutput(Group(mixer, "Engine"));
 
             var siren = library.Resolve(SirenUrl);
-            if (siren == null) report.AppendLine($"  ⚠ no clip for {SirenUrl} — the police are silent");
+            if (siren == null) report.AppendLine($"  ⚠ no clip for {SirenUrl} - the police are silent");
 
             host.GetComponent<GameAudio>().Configure(
                 mixer, library, siren, sfx, ambient, screams, engine, rotor);
@@ -75,7 +75,7 @@ namespace TheBlock.EditorTools
 
             EditorUtility.SetDirty(host);
             // A GameObject created or re-parented in the editor leaves the scene CLEAN, so Save
-            // writes nothing and reports success — the memory file this project already carries.
+            // writes nothing and reports success - the memory file this project already carries.
             EditorSceneManager.MarkSceneDirty(host.scene);
 
             Debug.Log(report.ToString());
@@ -137,7 +137,7 @@ namespace TheBlock.EditorTools
         ///
         /// <c>Voice</c> and <c>Conductor</c> were built in U20 and U22 and have been playing through
         /// nothing but the default output ever since. Routing them is what makes a Voice bus and a
-        /// Music bus mean anything — and it is also the change most likely to break the dance, so
+        /// Music bus mean anything - and it is also the change most likely to break the dance, so
         /// the measurement pass re-reads <c>Conductor.Drift</c> afterwards.
         /// </summary>
         private static string BindExisting(AudioMixer mixer, AudioLibrary library)

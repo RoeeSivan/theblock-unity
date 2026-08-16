@@ -18,7 +18,7 @@ namespace TheBlock.EditorTools
     ///
     /// Re-runnable by design: it destroys its own root and rebuilds from scratch every time, so the
     /// scene is a pure function of the config plus the assets on disk. Nothing under the generated
-    /// root should ever be hand-edited — the next build eats it.
+    /// root should ever be hand-edited - the next build eats it.
     ///
     /// This is the ONLY place config positions become Unity transforms, and it does that through
     /// <see cref="Convert"/>. No sign flip is written inline here either.
@@ -38,13 +38,13 @@ namespace TheBlock.EditorTools
         private const string GeneratedMeshFolder = "Assets/Meshes/Generated";
 
         /// <summary>
-        /// Imported materials whose alpha is a CUTOUT MASK — leaf cards, railings, grating — and not
+        /// Imported materials whose alpha is a CUTOUT MASK - leaf cards, railings, grating - and not
         /// real translucency.
         ///
         /// glTF has one `alphaMode: BLEND` for both, and these assets use it for both, so glTFast
         /// imports the tree canopies as transparent surfaces with ZWrite off: hundreds of unsorted
         /// leaf quads blending over each other and over the buildings behind them, which reads as
-        /// white shards rather than trees. Alpha CLIPPING is what these actually want — hard edges,
+        /// white shards rather than trees. Alpha CLIPPING is what these actually want - hard edges,
         /// depth written, sorted with the opaque geometry, and a shadow that has leaf-shaped holes
         /// in it, which the blended version cannot produce at all.
         ///
@@ -75,7 +75,7 @@ namespace TheBlock.EditorTools
         {
             /// <summary>
             /// File name as it exists under <c>Assets/Models</c>, when this entry swaps the asset out.
-            /// <c>null</c> means the config's own file is used and only the corrections below apply —
+            /// <c>null</c> means the config's own file is used and only the corrections below apply -
             /// which is also what tells the build report and <c>hideNodes</c> apart: a stand-in has
             /// somebody else's node names, the real asset has the ones the config was written against.
             /// </summary>
@@ -98,7 +98,7 @@ namespace TheBlock.EditorTools
             ["pizza-lila.glb"] = new Substitute
             {
                 File = "low_poly_pizza_restaurant.glb",
-                // The GLB's node chain leaves the model lying on its back — its local Y and Z end up
+                // The GLB's node chain leaves the model lying on its back - its local Y and Z end up
                 // swapped, so the lamp post runs along Z instead of standing up. Rx(-90) rights it and
                 // lands the base exactly on the model's own zero.
                 ExtraEuler = new Vector3(-90f, 0f, 0f),
@@ -107,7 +107,7 @@ namespace TheBlock.EditorTools
                 Note = "lies on its back out of the box; righted and lifted onto the pavement",
             },
 
-            // The real Paz station, not a stand-in — File is null. The Sketchfab export wraps the
+            // The real Paz station, not a stand-in - File is null. The Sketchfab export wraps the
             // model in Sketchfab_model (Rx-90) → GLTF_SceneRootNode (Rx+90), a pair that cancels in
             // three.js but not through glTFast: the imported model arrives with its local Y and Z
             // swapped, so it stands 24.5 m "tall" (that is its 61 m depth) and sinks 5.4 m below the
@@ -129,7 +129,7 @@ namespace TheBlock.EditorTools
         /// The full build INCLUDING the NavMesh bake. Off the default item because the bake is the
         /// one step that freezes the editor for a minute or more with no progress bar, and a world
         /// rebuild should not cost that every time a material is touched. The scene keeps its last
-        /// baked NavMesh across ordinary builds — see <see cref="Options.Navigation"/>.
+        /// baked NavMesh across ordinary builds - see <see cref="Options.Navigation"/>.
         /// </summary>
         [MenuItem("The Block/Build World + NavMesh (slow)", priority = 2)]
         public static void BuildWorldWithNavigationMenu() => Build(new Options { Navigation = true });
@@ -151,7 +151,7 @@ namespace TheBlock.EditorTools
 
             /// <summary>
             /// U16's pedestrian world: the carriageway carve, the zebra crossings and the NavMesh
-            /// bake. OFF BY DEFAULT — the bake is main-thread, minute-plus, and shows no progress,
+            /// bake. OFF BY DEFAULT - the bake is main-thread, minute-plus, and shows no progress,
             /// which twice read as a hang and got the editor force-quit. When off, the previously
             /// baked <c>NavMesh.asset</c> is kept, and the crossings and carve volumes from the last
             /// navigation build are left standing under the new root, so Play still has a crowd.
@@ -160,14 +160,14 @@ namespace TheBlock.EditorTools
             public bool Navigation = false;
 
             /// <summary>
-            /// U17's traffic: the light poles and the car pool. ON by default and cheap — nothing in
+            /// U17's traffic: the light poles and the car pool. ON by default and cheap - nothing in
             /// it bakes. Turning it off still builds the street graph, because U16's crossings key
             /// off that graph's node and edge numbering and the navigation pass shares it.
             /// </summary>
             public bool Traffic = true;
 
             /// <summary>
-            /// U19's routing graph — the stitched view of the street graph the police plan over.
+            /// U19's routing graph - the stitched view of the street graph the police plan over.
             /// ON by default and cheap: it copies no geometry, bakes no mesh and casts no ray, and
             /// it is the only pass that reports whether the network is connected at all.
             /// </summary>
@@ -187,13 +187,13 @@ namespace TheBlock.EditorTools
             // Play mode throws the scene away on exit, so a build there is silently discarded.
             if (EditorApplication.isPlayingOrWillChangePlaymode)
             {
-                const string message = "WorldBuilder: stop Play mode first — a world built in play is discarded on exit.";
+                const string message = "WorldBuilder: stop Play mode first - a world built in play is discarded on exit.";
                 Debug.LogError(message);
                 return message;
             }
 
             var snapshot = TheBlockConfig.Load(reload: true);
-            if (snapshot == null) return "Build aborted — config could not be loaded.";
+            if (snapshot == null) return "Build aborted - config could not be loaded.";
 
             var stopwatch = Stopwatch.StartNew();
             var report = new Report();
@@ -248,11 +248,11 @@ namespace TheBlock.EditorTools
             // Last, and it has to be: the traffic pass raycasts for the street surface under every
             // sample, the carve does the same under every crossing, and the bake reads the colliders
             // every pass above put there. The graph is derived ONCE, by the traffic pass, and handed
-            // to navigation — two derivations of the same node numbering is how the crossings and
+            // to navigation - two derivations of the same node numbering is how the crossings and
             // the lights would end up disagreeing about which junction is which.
             var trafficGraph = BuildTraffic(root.transform, snapshot.Config, options, report);
 
-            // After traffic, because it reads the network traffic just baked — and it is the pass
+            // After traffic, because it reads the network traffic just baked - and it is the pass
             // that answers whether that network is one city or five islands.
             BuildPolice(root.transform, snapshot.Config, options, report);
 
@@ -280,8 +280,8 @@ namespace TheBlock.EditorTools
         /// <summary>
         /// Clears the previous build (and the hand-placed roots it supersedes), returns a fresh root.
         ///
-        /// When <paramref name="keepNavigation"/> is set, the previous build's navigation objects —
-        /// the Crossings group, the carve volumes and the NavMeshSurface — are lifted out before
+        /// When <paramref name="keepNavigation"/> is set, the previous build's navigation objects -
+        /// the Crossings group, the carve volumes and the NavMeshSurface - are lifted out before
         /// the root is destroyed and handed back for re-parenting, so a build that skips the bake
         /// does not also silently delete the last one. The bake is expensive; nothing else about
         /// the world build should be allowed to throw it away as a side effect.
@@ -315,7 +315,7 @@ namespace TheBlock.EditorTools
         /// <summary>
         /// Lifts the navigation objects out of an old root so they survive its destruction. The
         /// NavMeshSurface lives on the Districts group itself, so that whole group is what has to
-        /// come out — carve volumes are its children and the surface only collects from children.
+        /// come out - carve volumes are its children and the surface only collects from children.
         /// </summary>
         private static List<GameObject> DetachNavigation(Transform oldRoot)
         {
@@ -331,7 +331,7 @@ namespace TheBlock.EditorTools
             var districts = oldRoot.Find("Districts");
             if (districts != null && districts.TryGetComponent<Unity.AI.Navigation.NavMeshSurface>(out var surface))
             {
-                // Only the surface's DATA and the carve volumes are worth keeping — the districts
+                // Only the surface's DATA and the carve volumes are worth keeping - the districts
                 // themselves are about to be rebuilt. Move the surface onto a carrier along with the
                 // Navigation group, and let the new Districts group re-adopt both.
                 var carrier = new GameObject("__NavigationCarrier");
@@ -369,7 +369,7 @@ namespace TheBlock.EditorTools
                         // ⚠ The paste does NOT reliably bring `navMeshData` across, and when it does
                         // not the failure is silent and total: the surface looks correctly
                         // configured, the asset is still on disk, and `NavMesh.CalculateTriangulation`
-                        // returns zero vertices — so every agent fails to spawn and the city is empty
+                        // returns zero vertices - so every agent fails to spawn and the city is empty
                         // of people with nothing in the console. Found at U17's play-test by counting
                         // pedestrians. The asset the bake wrote is the authority, so bind it from
                         // disk rather than trusting a component copy to carry a reference.
@@ -377,7 +377,7 @@ namespace TheBlock.EditorTools
                             $"{GeneratedNavigationFolder}/NavMesh.asset");
                         if (baked != null) surface.navMeshData = baked;
                         else report.Warnings.Add(
-                            "navigation: no baked NavMesh.asset to re-attach — run Build World + NavMesh (slow)");
+                            "navigation: no baked NavMesh.asset to re-attach - run Build World + NavMesh (slow)");
 
                         // Pasting values onto a live component does not re-run OnEnable, and
                         // OnEnable is where the surface registers its data with the NavMesh. Bounce
@@ -394,7 +394,7 @@ namespace TheBlock.EditorTools
             }
 
             if (reattached > 0)
-                report.Notes.Add($"navigation: kept the previous bake ({reattached} group(s) re-attached) — run Build World + NavMesh to redo it");
+                report.Notes.Add($"navigation: kept the previous bake ({reattached} group(s) re-attached) - run Build World + NavMesh to redo it");
         }
 
         private static Transform NewGroup(string name, Transform parent)
@@ -411,7 +411,7 @@ namespace TheBlock.EditorTools
         ///
         /// Belongs to U12 with the roads and the sea, and is built here early because U8's car needs
         /// somewhere to land: the districts are islands, and a car that leaves one had nothing under
-        /// it at all — it drove off the edge and fell forever, which is not a thing a play-test can
+        /// it at all - it drove off the edge and fell forever, which is not a thing a play-test can
         /// survive.
         ///
         /// It sits at <c>y = -0.05</c>, marginally below every district, so wherever the two overlap
@@ -421,7 +421,7 @@ namespace TheBlock.EditorTools
         /// only shows up once there is a sea: the plate is solid at y -0.05 and the beach ramps down
         /// to -3, so an untrimmed plate holds the player up on an invisible sheet a few centimetres
         /// under the water and the whole beach becomes scenery. The visual plane keeps its full size
-        /// — the water is opaque and drawn above it — but the solid part stops at the waterline, and
+        /// - the water is opaque and drawn above it - but the solid part stops at the waterline, and
         /// past that the beach mesh is the only floor. Everything seaward of the shore is Unity
         /// <c>+x</c>; see <see cref="SeaGeometry"/> for why.
         /// </summary>
@@ -430,7 +430,7 @@ namespace TheBlock.EditorTools
         {
             if (ground == null)
             {
-                report.Warnings.Add("ground skipped — config has no `ground` section");
+                report.Warnings.Add("ground skipped - config has no `ground` section");
                 return;
             }
 
@@ -471,7 +471,7 @@ namespace TheBlock.EditorTools
         /// arithmetic that holds: `sea.surface.waves` carries amplitudes 0.18 + 0.12 + 0.07, so a
         /// trough reaches 0.37 m below the water line, while the plate sits at only −0.05. Every
         /// trough deeper than 5 cm exposes the green plate through the sea, in wide bands that
-        /// follow the swell — it reads as a shader fault and is really two surfaces interpenetrating.
+        /// follow the swell - it reads as a shader fault and is really two surfaces interpenetrating.
         ///
         /// The plate is never visible under opaque water, so the fix is to stop drawing it there
         /// rather than to move either surface: moving the plate down would leave its collider (which
@@ -479,7 +479,7 @@ namespace TheBlock.EditorTools
         /// and the water line is gameplay.
         ///
         /// The cut is a rectangle, so what is left is up to four rectangles. Land BEYOND the sea's
-        /// z-strip is kept — the sea is only 600 m deep in z against the plate's 1400, and trimming
+        /// z-strip is kept - the sea is only 600 m deep in z against the plate's 1400, and trimming
         /// the whole seaward half would put sky where there is currently ground.
         ///
         /// Predates U15's draw distance: the same bands are in a 320 m capture. Extending the view
@@ -501,7 +501,7 @@ namespace TheBlock.EditorTools
                 if (c.yMin > -half) rects.Add(Rect.MinMaxRect(c.xMin, -half, c.xMax, c.yMin));
                 if (c.yMax < half) rects.Add(Rect.MinMaxRect(c.xMin, c.yMax, c.xMax, half));
                 report.Notes.Add(
-                    $"Ground: sea footprint cut out — Unity x [{c.xMin:0}, {c.xMax:0}] z [{c.yMin:0}, {c.yMax:0}], " +
+                    $"Ground: sea footprint cut out - Unity x [{c.xMin:0}, {c.xMax:0}] z [{c.yMin:0}, {c.yMax:0}], " +
                     "so wave troughs cannot expose the plate");
             }
             else
@@ -547,7 +547,7 @@ namespace TheBlock.EditorTools
         }
 
         /// <summary>
-        /// The sea's rectangle in Unity's frame, clipped to the plate — or null when they do not
+        /// The sea's rectangle in Unity's frame, clipped to the plate - or null when they do not
         /// overlap. <c>Rect.y</c> is world Z.
         /// </summary>
         private static Rect? SeaFootprint(TheBlockConfig.SeaSpec sea, float half)
@@ -555,7 +555,7 @@ namespace TheBlock.EditorTools
             if (sea == null || sea.Width <= 0f || sea.Length <= 0f) return null;
 
             // Converted the same way BuildWaterSurface places the plane, so the two cannot disagree
-            // about where the water is. Never a hand-written sign flip — see Convert.
+            // about where the water is. Never a hand-written sign flip - see Convert.
             var centre = Convert.Pos(sea.ShoreX - sea.Width * 0.5f, 0f, sea.CenterZ);
             float xMin = Mathf.Max(centre.x - sea.Width * 0.5f, -half);
             float xMax = Mathf.Min(centre.x + sea.Width * 0.5f, half);
@@ -574,12 +574,12 @@ namespace TheBlock.EditorTools
             var shader = Shader.Find("Universal Render Pipeline/Lit");
             if (shader == null)
             {
-                report.Warnings.Add("ground material skipped — URP/Lit shader not found");
+                report.Warnings.Add("ground material skipped - URP/Lit shader not found");
                 return null;
             }
 
             var material = new Material(shader) { name = "Ground" };
-            // sRGB, not .linear — same trap as glTFast's baseColorFactor.
+            // sRGB, not .linear - same trap as glTFast's baseColorFactor.
             material.SetColor("_BaseColor", TheBlockConfig.ColorFromHex(ground.Color));
             material.SetFloat("_Smoothness", 0f);
 
@@ -621,7 +621,7 @@ namespace TheBlock.EditorTools
 
         /// <summary>
         /// Places one static prop. Returns the instance so a caller that needs to reach INTO the
-        /// model can — U28's store binds five of its own nodes off the result.
+        /// model can - U28's store binds five of its own nodes off the result.
         /// </summary>
         private static GameObject BuildPlace(
             Transform parent, TheBlockConfig.PlaceSpec place, string label, Options options, Report report)
@@ -643,10 +643,10 @@ namespace TheBlock.EditorTools
             HideCollisionProxies(instance, report);
 
             // hideNodes names parts of the ORIGINAL model. A stand-in that happens to share a node
-            // name would lose a piece it needs — the pizza substitute's lamp post is called
+            // name would lose a piece it needs - the pizza substitute's lamp post is called
             // PizzaLight, the same name the original build hides.
             if (substitute?.File != null)
-                report.Notes.Add($"{instance.name}: hideNodes skipped — they name the original model's parts");
+                report.Notes.Add($"{instance.name}: hideNodes skipped - they name the original model's parts");
             else if (place.HideNodes != null)
                 HideByNode(instance, place.HideNodes, report);
 
@@ -674,7 +674,7 @@ namespace TheBlock.EditorTools
             substitute = null;
             if (string.IsNullOrEmpty(url))
             {
-                report.Missing.Add($"{label} — config has no url");
+                report.Missing.Add($"{label} - config has no url");
                 return null;
             }
 
@@ -684,12 +684,12 @@ namespace TheBlock.EditorTools
                 if (substitute.File != null)
                 {
                     report.Warnings.Add(
-                        $"{label} — stand-in {substitute.File} for {fileName}: {substitute.Note}");
+                        $"{label} - stand-in {substitute.File} for {fileName}: {substitute.Note}");
                     fileName = substitute.File;
                 }
                 else
                 {
-                    report.Warnings.Add($"{label} — {fileName} corrected on import: {substitute.Note}");
+                    report.Warnings.Add($"{label} - {fileName} corrected on import: {substitute.Note}");
                 }
             }
 
@@ -703,14 +703,14 @@ namespace TheBlock.EditorTools
 
             if (assetPath == null)
             {
-                report.Missing.Add($"{label} — no asset named {fileName} under Assets/Models");
+                report.Missing.Add($"{label} - no asset named {fileName} under Assets/Models");
                 return null;
             }
 
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
             if (prefab == null)
             {
-                report.Missing.Add($"{label} — {assetPath} did not load as a GameObject");
+                report.Missing.Add($"{label} - {assetPath} did not load as a GameObject");
                 return null;
             }
 
@@ -732,7 +732,7 @@ namespace TheBlock.EditorTools
             var facade = AssetDatabase.LoadAssetAtPath<Material>(FacadeMaterialPath);
             if (facade == null)
             {
-                report.Warnings.Add($"facade tint skipped — {FacadeMaterialPath} not found");
+                report.Warnings.Add($"facade tint skipped - {FacadeMaterialPath} not found");
                 return;
             }
 
@@ -754,7 +754,7 @@ namespace TheBlock.EditorTools
 
             if (rebound == 0)
                 report.Warnings.Add(
-                    $"facade tint matched nothing — looked for [{string.Join(", ", facadeMaterials)}]");
+                    $"facade tint matched nothing - looked for [{string.Join(", ", facadeMaterials)}]");
             else
                 report.Notes.Add($"facade tint bound to {rebound} material slot(s)");
         }
@@ -763,15 +763,15 @@ namespace TheBlock.EditorTools
         /// Removes the districts' baked-in parked cars.
         ///
         /// A renderer whose every slot is a hidden material is simply switched off. A renderer that
-        /// MIXES them with real geometry — cities 2 and 3 each merge their cars into the same
-        /// 300k-vertex mesh as their streets and buildings — gets the car SUBMESHES stripped out of
+        /// MIXES them with real geometry - cities 2 and 3 each merge their cars into the same
+        /// 300k-vertex mesh as their streets and buildings - gets the car SUBMESHES stripped out of
         /// a generated copy of its mesh instead, which is the thing the web build could not do:
         /// three.js had one material path per draw and no edit-time asset step, so it could only
         /// hide a whole object. Unity owns the mesh at build time, so the split is a build step and
         /// the .glb on disk is never touched.
         ///
         /// Stripping rather than tinting also takes the cars out of collision, since the collider
-        /// pass reads the same (now stripped) mesh — an invisible but solid parked car is exactly
+        /// pass reads the same (now stripped) mesh - an invisible but solid parked car is exactly
         /// the kind of thing U17's traffic would pile into.
         /// </summary>
         private static void HideByMaterial(GameObject instance, List<string> hideMaterials, Report report)
@@ -814,7 +814,7 @@ namespace TheBlock.EditorTools
         /// The vertices are compacted, not just the indices dropped: in city 2 the parked cars are
         /// 186,186 of the mesh's 216,515 triangles, so leaving their vertices behind unreferenced
         /// would mean shipping a buffer that is 86% dead weight. Reindexing what survives is cheap
-        /// by comparison — it is a few tens of thousands of triangles.
+        /// by comparison - it is a few tens of thousands of triangles.
         ///
         /// The result is saved as an asset because a mesh created here and left unsaved is
         /// serialized INTO the scene file. Written under <see cref="GeneratedMeshFolder"/>,
@@ -854,7 +854,7 @@ namespace TheBlock.EditorTools
 
         /// <summary>
         /// Builds a mesh holding only the vertices <paramref name="indices"/> still reach, with the
-        /// index lists remapped onto them — one submesh per list, in the order given.
+        /// index lists remapped onto them - one submesh per list, in the order given.
         ///
         /// Vertex order is first-use order, which keeps the surviving triangles' vertices roughly
         /// as locally coherent as they were.
@@ -921,7 +921,7 @@ namespace TheBlock.EditorTools
         /// glTFast's own Shader Graph will not do this: its surface mode is decided at import from
         /// the glTF's <c>alphaMode</c>, and <c>_AlphaClip</c> on the imported material is inert
         /// because the graph's keywords were baked for the blended variant. So the fix is a separate
-        /// material asset, the same answer U1 reached for the facade tint — the imported material is
+        /// material asset, the same answer U1 reached for the facade tint - the imported material is
         /// read for its texture and factors and otherwise left exactly as imported.
         ///
         /// The generated material is rewritten in place on every build rather than reused as found,
@@ -933,7 +933,7 @@ namespace TheBlock.EditorTools
             var shader = Shader.Find("Universal Render Pipeline/Lit");
             if (shader == null)
             {
-                report.Warnings.Add("alpha-clip pass skipped — URP/Lit shader not found");
+                report.Warnings.Add("alpha-clip pass skipped - URP/Lit shader not found");
                 return;
             }
 
@@ -950,8 +950,8 @@ namespace TheBlock.EditorTools
                     var source = materials[i];
 
                     // A submesh whose glTF primitive names no material. Unity draws an empty slot
-                    // with the magenta error shader — small pink rectangles scattered over the
-                    // pavement — where glTF says it is the spec's default PBR material.
+                    // with the magenta error shader - small pink rectangles scattered over the
+                    // pavement - where glTF says it is the spec's default PBR material.
                     if (source == null)
                     {
                         materials[i] = GltfDefaultMaterial(shader, report);
@@ -981,7 +981,7 @@ namespace TheBlock.EditorTools
             if (names.Count > 0)
                 report.Notes.Add($"{instance.name}: alpha-clipped {string.Join(", ", names)}");
             if (defaults > 0)
-                report.Notes.Add($"{instance.name}: filled {defaults} empty material slot(s) — were rendering magenta");
+                report.Notes.Add($"{instance.name}: filled {defaults} empty material slot(s) - were rendering magenta");
         }
 
         /// <summary>
@@ -1013,7 +1013,7 @@ namespace TheBlock.EditorTools
         }
 
         /// <summary>
-        /// True when a material actually renders in the transparent queue — the precondition for the
+        /// True when a material actually renders in the transparent queue - the precondition for the
         /// alpha-clip pass, and not merely a tidiness check.
         ///
         /// <see cref="CutoutMaterialPatterns"/> is matched as substrings, and "tree" is a substring
@@ -1062,7 +1062,7 @@ namespace TheBlock.EditorTools
 
             // glTFast's `baseColorFactor` holds an sRGB value (memory: gltfast-basecolorfactor-gamma),
             // while URP/Lit's `_BaseColor` is an untagged colour property and so is read as linear.
-            // Every material this pass touches is pure white, where the two agree — the conversion is
+            // Every material this pass touches is pure white, where the two agree - the conversion is
             // here to be right rather than to be visible.
             if (source.HasProperty("baseColorFactor"))
                 material.SetColor("_BaseColor", source.GetColor("baseColorFactor").linear);
@@ -1071,8 +1071,8 @@ namespace TheBlock.EditorTools
             if (source.HasProperty("roughnessFactor"))
                 material.SetFloat("_Smoothness", 1f - source.GetFloat("roughnessFactor"));
 
-            // Opaque surface + alpha clip. The imported `alphaCutoff` is 0 on a BLEND material —
-            // glTF only defines it for MASK — so a real threshold has to be chosen here.
+            // Opaque surface + alpha clip. The imported `alphaCutoff` is 0 on a BLEND material -
+            // glTF only defines it for MASK - so a real threshold has to be chosen here.
             material.SetFloat("_Surface", 0f);
             material.SetFloat("_AlphaClip", 1f);
             material.SetFloat("_Cutoff", 0.5f);
@@ -1081,7 +1081,7 @@ namespace TheBlock.EditorTools
             material.doubleSidedGI = true;
 
             // Keywords, render queue, the TransparentCutout RenderType tag and _AlphaToMask all
-            // follow from those four floats — and getting any of them wrong by hand is how a
+            // follow from those four floats - and getting any of them wrong by hand is how a
             // material ends up clipping in the colour pass but not in the shadow pass.
             BaseShaderGUI.SetupMaterialBlendMode(material);
 
@@ -1093,7 +1093,7 @@ namespace TheBlock.EditorTools
         /// Deletes anything in the generated folders that THIS build did not write.
         ///
         /// Without it the generated folders are append-only and a rename, a re-export or a corrected
-        /// pattern list leaves a plausible-looking .mat behind that nothing references — which is
+        /// pattern list leaves a plausible-looking .mat behind that nothing references - which is
         /// the same "invisible and unreproducible" failure that keeps the world itself out of the
         /// scene file. The build is a pure function of the config and the assets; its output folders
         /// have to be too.
@@ -1122,20 +1122,20 @@ namespace TheBlock.EditorTools
         /// Takes glTFast's tiling/offset back out of glTFast's own V convention.
         ///
         /// glTFast decides per TEXTURE whether the imported image ended up vertically flipped, and
-        /// compensates by writing a negative Y scale into the material — an identity glTF transform
+        /// compensates by writing a negative Y scale into the material - an identity glTF transform
         /// comes out as <c>(1, -1, 0, 1)</c>. In these districts that decision is WRONG, and it is
         /// wrong inconsistently: <c>FoliageTrees.001</c> through <c>.004</c> all sample the same
         /// image through four different glTF texture entries, and only .001 came out unflipped.
         ///
         /// Which of them is right is measurable, not a matter of taste. The leaves occupy
-        /// u [0, 0.25] × v [0, 0.25] of the imported Texture2D — the bottom-left sixteenth, the rest
-        /// of the atlas being blank white — and the canopy meshes' UVs are in exactly that range.
+        /// u [0, 0.25] × v [0, 0.25] of the imported Texture2D - the bottom-left sixteenth, the rest
+        /// of the atlas being blank white - and the canopy meshes' UVs are in exactly that range.
         /// So the identity is correct and the flip is what sends three materials out of four into
         /// the white part of the atlas. THAT is the white shards, all along: not a blend-mode fault
         /// at all, which is why alpha-clipping alone left them white.
         ///
         /// Undoing the flip rather than forcing the identity keeps a genuine
-        /// KHR_texture_transform — tiling, offset — intact if a future district ships one.
+        /// KHR_texture_transform - tiling, offset - intact if a future district ships one.
         /// </summary>
         private static Vector4 UnflipV(Vector4 scaleOffset) =>
             scaleOffset.y >= 0f
@@ -1158,12 +1158,12 @@ namespace TheBlock.EditorTools
 
         /// <summary>
         /// Hides the crude collision proxy that Sketchfab-sourced props ship alongside their real
-        /// geometry — a node named <c>Collider</c> holding a coarse box, meant to be collided with
+        /// geometry - a node named <c>Collider</c> holding a coarse box, meant to be collided with
         /// and never drawn.
         ///
         /// Imported straight, it renders as a grey slab swallowing the prop, and it is the first
         /// thing a downward raycast hits, so ground probes read its roof instead of the pavement.
-        /// Hiding it also drops it from the collider pass, which only looks at active meshes — and
+        /// Hiding it also drops it from the collider pass, which only looks at active meshes - and
         /// the real geometry makes a better collider than the box did.
         /// </summary>
         private static void HideCollisionProxies(GameObject instance, Report report)
@@ -1204,7 +1204,7 @@ namespace TheBlock.EditorTools
         /// above <paramref name="collideMaxY"/>.
         ///
         /// Note that a district whose GLB is one merged mesh (downtown) has no node names to match,
-        /// so its foliage collides — the web build has the same hole. That is faithful, not a bug.
+        /// so its foliage collides - the web build has the same hole. That is faithful, not a bug.
         /// </summary>
         private static void AddColliders(
             GameObject instance, List<string> noCollidePatterns, List<string> noCollideNodes,
@@ -1226,7 +1226,7 @@ namespace TheBlock.EditorTools
                     if (renderer != null && renderer.bounds.max.y > collideMaxY.Value) { skipped++; continue; }
                 }
 
-                // Not `??` — UnityEngine.Object overloads `==` for destroyed objects, and `??`
+                // Not `??` - UnityEngine.Object overloads `==` for destroyed objects, and `??`
                 // bypasses that overload, so it hands back a fake-null and the next line throws.
                 if (!filter.gameObject.TryGetComponent<MeshCollider>(out var collider))
                     collider = filter.gameObject.AddComponent<MeshCollider>();
@@ -1244,7 +1244,7 @@ namespace TheBlock.EditorTools
         /// True when this mesh is foliage and should carry no collider.
         ///
         /// The node name decides it outright. Material names only decide it when EVERY material on
-        /// the renderer is foliage — the district GLBs are merged meshes carrying a dozen submeshes
+        /// the renderer is foliage - the district GLBs are merged meshes carrying a dozen submeshes
         /// each, so "any material matches" would strip collision from a whole district because one
         /// of its submeshes is a tree. A mixed mesh collides, palms included; that is what downtown
         /// does and what the web build does.
@@ -1279,7 +1279,7 @@ namespace TheBlock.EditorTools
         // --- reporting -------------------------------------------------------------------------
 
         /// <summary>
-        /// Marks a district static for occlusion, GI, navmesh and reflection probes — but NOT for
+        /// Marks a district static for occlusion, GI, navmesh and reflection probes - but NOT for
         /// batching.
         ///
         /// Static batching rewrites the MeshFilter to point at a "Combined Mesh (root: scene)" that
@@ -1350,16 +1350,16 @@ namespace TheBlock.EditorTools
             {
                 var sb = new StringBuilder();
                 sb.AppendLine(
-                    $"WorldBuilder — {Placed.Count} placed, {Missing.Count} missing, {Colliders} colliders, {elapsed.TotalSeconds:0.0}s");
+                    $"WorldBuilder - {Placed.Count} placed, {Missing.Count} missing, {Colliders} colliders, {elapsed.TotalSeconds:0.0}s");
                 sb.AppendLine($"config.ts {snapshot.SourceSha256?[..12]}  " +
                               $"districts:{options.Districts} places:{options.Places} colliders:{options.Colliders}");
 
                 Section(sb, "PLACED", Placed);
-                Section(sb, "MISSING — asset not in the project yet", Missing);
+                Section(sb, "MISSING - asset not in the project yet", Missing);
                 Section(sb, "WARNINGS", Warnings);
                 Section(sb, "REPLACED hand-placed roots", RemovedLegacy);
                 if (StillBlended.Count > 0)
-                    Section(sb, "STILL BLENDED — deliberate; suspects if anything else renders pale",
+                    Section(sb, "STILL BLENDED - deliberate; suspects if anything else renders pale",
                         new List<string> { string.Join(", ", StillBlended) });
                 Section(sb, "NOTES", Notes);
                 return sb.ToString().TrimEnd();

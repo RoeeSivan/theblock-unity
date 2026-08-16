@@ -8,7 +8,7 @@ using UnityEngine.UIElements;
 namespace TheBlock.UI
 {
     /// <summary>
-    /// The one card the whole campaign talks through — the port of <c>src/ui/briefing.ts</c>.
+    /// The one card the whole campaign talks through - the port of <c>src/ui/briefing.ts</c>.
     ///
     /// Four different things use it and they are deliberately the same thing: the mission briefing
     /// at the cashier, the handoff after a completion ("done, +$80 → here is the next job"), the
@@ -19,8 +19,8 @@ namespace TheBlock.UI
     /// reads while you sit in the vehicle, and the run itself begins when you dismiss it. Space or a
     /// click closes it.
     ///
-    /// The screen flash is here too, because it is the same event — a green pulse on a win, red on a
-    /// fail — and putting it anywhere else means two components racing to say one thing.
+    /// The screen flash is here too, because it is the same event - a green pulse on a win, red on a
+    /// fail - and putting it anywhere else means two components racing to say one thing.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public class BriefingCard : MonoBehaviour
@@ -43,7 +43,7 @@ namespace TheBlock.UI
         /// <b>Awake, and guarded, and both halves are load-bearing.</b> Built in Start this raced
         /// <see cref="Missions.CampaignRunner"/>, whose own Start shows the intro card on a fresh
         /// profile: the runner went first, <see cref="Show"/> found no overlay and built one, then
-        /// this Start built a SECOND set — leaving an empty dark panel on screen that nothing held a
+        /// this Start built a SECOND set - leaving an empty dark panel on screen that nothing held a
         /// reference to and nothing could dismiss, with the real card hidden behind it. Measured, not
         /// guessed: the panel dump had two `feedback-flash` and two `briefing` elements.
         /// </summary>
@@ -55,7 +55,7 @@ namespace TheBlock.UI
 
             var root = GetComponent<UIDocument>().rootVisualElement;
 
-            // The flash goes in FIRST so it sits under the card — a green pulse over the words
+            // The flash goes in FIRST so it sits under the card - a green pulse over the words
             // would wash out the very line it is celebrating.
             _flash = new VisualElement { name = "feedback-flash" };
             MenuStyle.Stretch(_flash);
@@ -70,7 +70,7 @@ namespace TheBlock.UI
             _overlay.style.justifyContent = Justify.Center;
             _overlay.style.display = DisplayStyle.None;
 
-            // The overlay itself takes the click, so anywhere on screen dismisses — the web card
+            // The overlay itself takes the click, so anywhere on screen dismisses - the web card
             // does the same, and hunting for a button is not what a briefing is for.
             _overlay.RegisterCallback<PointerDownEvent>(_ => Dismiss());
 
@@ -108,7 +108,7 @@ namespace TheBlock.UI
 
             for (var i = 0; i < lines.Count; i++)
             {
-                // The copy is drawn as written, emoji and all — U28's fallback font. The card is where
+                // The copy is drawn as written, emoji and all - U28's fallback font. The card is where
                 // most of the campaign's copy is read, so this was the most visible version of the
                 // blank-box problem and is now the clearest proof the font landed.
                 var label = new Label(Glyphs.Opaque(lines[i]));
@@ -130,14 +130,14 @@ namespace TheBlock.UI
         /// <summary>
         /// Opens the card and yields until it is dismissed. This is the web's
         /// <c>await briefing.show(...)</c>, and every mission's entry sequence is written against
-        /// it — briefing, then fade, then spawn.
+        /// it - briefing, then fade, then spawn.
         /// </summary>
         ///
         /// <remarks>
         /// <b>It returns a wait instruction rather than being a coroutine, and that is the fix for a
         /// real hang.</b> Written as an <c>IEnumerator</c>, <c>yield return ShowAndWait(lines)</c>
         /// does NOT call <see cref="Show"/> until the scheduler advances the inner routine on the
-        /// NEXT frame — so between a mission calling Enter and its card appearing there is a
+        /// NEXT frame - so between a mission calling Enter and its card appearing there is a
         /// one-frame window. Anything that touched the card in that window left the mission parked
         /// forever: its entry latch stayed set, its status stayed Inactive, and no key could retry
         /// it because the mission believed it was already starting. Measured on the rescue, which

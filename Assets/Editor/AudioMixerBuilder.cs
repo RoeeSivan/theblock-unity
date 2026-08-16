@@ -10,8 +10,8 @@ using UnityEngine.Audio;
 namespace TheBlock.EditorTools
 {
     /// <summary>
-    /// Builds <c>Assets/Audio/GameMixer.mixer</c> — seven groups, seven exposed volume parameters
-    /// and four snapshots — from a menu item instead of from twenty minutes of clicking.
+    /// Builds <c>Assets/Audio/GameMixer.mixer</c> - seven groups, seven exposed volume parameters
+    /// and four snapshots - from a menu item instead of from twenty minutes of clicking.
     ///
     /// <b>Every call in here is reflection, and that is not a preference.</b> Unity ships no public
     /// API for AUTHORING an AudioMixer: <c>AudioMixer</c> is read-only at runtime and the editing
@@ -27,14 +27,14 @@ namespace TheBlock.EditorTools
     /// be worse than no build step. Run it against an existing asset and it VALIDATES instead,
     /// naming precisely what is missing.
     ///
-    /// If a future Unity moves these internals, the failure is loud and lands here — and the fallback
+    /// If a future Unity moves these internals, the failure is loud and lands here - and the fallback
     /// is the same asset built by hand, which the log tells you how to check.
     /// </summary>
     public static class AudioMixerBuilder
     {
         public const string MixerPath = "Assets/Audio/GameMixer.mixer";
 
-        /// <summary>The buses. Master is implicit — every mixer has one.</summary>
+        /// <summary>The buses. Master is implicit - every mixer has one.</summary>
         public static readonly string[] Groups =
             { "Music", "Voice", "Sfx", "Engine", "Ambient", "Radio" };
 
@@ -52,7 +52,7 @@ namespace TheBlock.EditorTools
         public static readonly string[] Snapshots =
             { SnapshotDefault, SnapshotDriving, SnapshotInterior, SnapshotRhythm };
 
-        /// <summary>Exposed parameter name for a group's volume — <c>volMaster</c>, <c>volSfx</c>, …</summary>
+        /// <summary>Exposed parameter name for a group's volume - <c>volMaster</c>, <c>volSfx</c>, …</summary>
         public static string VolumeParam(string group) => "vol" + group;
 
         private static readonly Assembly Ed = typeof(Editor).Assembly;
@@ -61,7 +61,7 @@ namespace TheBlock.EditorTools
 
         private static Type T(string name) =>
             Ed.GetType(name) ?? throw new InvalidOperationException(
-                $"AudioMixerBuilder: this Unity has no {name}. The mixer must be built by hand — " +
+                $"AudioMixerBuilder: this Unity has no {name}. The mixer must be built by hand - " +
                 "see the class comment.");
 
         [MenuItem("The Block/Build Audio Mixer")]
@@ -140,7 +140,7 @@ namespace TheBlock.EditorTools
             ((UnityEngine.Object)first).name = SnapshotDefault;
             for (int i = 1; i < Snapshots.Length; i++)
             {
-                // Clone from Default every time, not from whatever was cloned last — otherwise
+                // Clone from Default every time, not from whatever was cloned last - otherwise
                 // Rhythm inherits Interior's overrides and the three stop being independent.
                 targetProp.SetValue(controller, first);
                 clone.Invoke(controller, new object[] { false });
@@ -155,12 +155,12 @@ namespace TheBlock.EditorTools
             // Two things that are only visible when a human opens the Audio Mixer window, and both
             // were wrong on the first build:
             //  - SetValueForVolume moves the EDITING target to whatever snapshot it just wrote, so
-            //    the mixer opened showing Rhythm — an Ambient bus at −80 dB, which reads as a broken
+            //    the mixer opened showing Rhythm - an Ambient bus at −80 dB, which reads as a broken
             //    build rather than as a snapshot doing its job. m_StartSnapshot was always correct.
             //  - a mixer built through the API has an EMPTY view list, so the window has no strips to
             //    show. Measured rather than assumed: `GetCurrentViewGroupList()` threw
             //    "Index was outside the bounds of the array" on the first build, and Unity's own
-            //    `SanitizeGroupViews()` does NOT repair an empty list — it only tidies a populated
+            //    `SanitizeGroupViews()` does NOT repair an empty list - it only tidies a populated
             //    one. One view holding every group has to be built by hand.
             targetProp.SetValue(controller, first);
             BuildDefaultView(controller, ctrlType, groupType);
@@ -169,7 +169,7 @@ namespace TheBlock.EditorTools
             AssetDatabase.SaveAssets();
             AssetDatabase.ImportAsset(MixerPath);
 
-            Debug.Log($"AudioMixerBuilder — built {MixerPath}\n{Validate()}");
+            Debug.Log($"AudioMixerBuilder - built {MixerPath}\n{Validate()}");
         }
 
         /// <summary>
@@ -204,7 +204,7 @@ namespace TheBlock.EditorTools
         /// Writes <c>ambientAudio.duck</c> into the three non-default snapshots.
         ///
         /// Read from the config rather than typed in, so the numbers stay diffable against
-        /// <c>config.ts</c> — the same rule the rest of the port follows. Only the Ambient bus is
+        /// <c>config.ts</c> - the same rule the rest of the port follows. Only the Ambient bus is
         /// touched: the web ducks nothing else, and a snapshot that quietly moves the music too
         /// would be a design change smuggled in as plumbing.
         /// </summary>
@@ -214,7 +214,7 @@ namespace TheBlock.EditorTools
             var duck = TheBlockConfig.Load()?.Config?.AmbientAudio?.Duck;
             if (duck == null)
             {
-                Debug.LogWarning("AudioMixerBuilder: no ambientAudio.duck in the config — the " +
+                Debug.LogWarning("AudioMixerBuilder: no ambientAudio.duck in the config - the " +
                                  "snapshots are built but every bus sits at 0 dB.");
                 return;
             }
@@ -246,7 +246,7 @@ namespace TheBlock.EditorTools
 
         /// <summary>
         /// A gain multiplier as decibels. Unity's floor is −80 dB, which is where a duck of 0 has to
-        /// land — <c>log10(0)</c> is negative infinity and a mixer will not take it.
+        /// land - <c>log10(0)</c> is negative infinity and a mixer will not take it.
         /// </summary>
         public static float LinearToDb(float linear) =>
             linear <= 0.0001f ? -80f : Mathf.Max(-80f, 20f * Mathf.Log10(linear));
@@ -260,7 +260,7 @@ namespace TheBlock.EditorTools
             var mixer = AssetDatabase.LoadAssetAtPath<AudioMixer>(MixerPath);
             if (mixer == null) return $"AudioMixerBuilder: {MixerPath} does not exist.";
 
-            var report = new StringBuilder($"AudioMixerBuilder — {MixerPath}\n");
+            var report = new StringBuilder($"AudioMixerBuilder - {MixerPath}\n");
             var missing = 0;
 
             foreach (var name in Groups)

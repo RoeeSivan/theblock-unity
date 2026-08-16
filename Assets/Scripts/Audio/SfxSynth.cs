@@ -8,7 +8,7 @@ namespace TheBlock.Audio
     ///
     /// <b>This is U27's answer to the standing "can Unity do this better?" question, and the answer
     /// is bake it once.</b> The web builds a fresh <c>OscillatorNode</c> + <c>GainNode</c> graph on
-    /// EVERY key press — three nodes per note, torn down 300 ms later — because Web Audio offers no
+    /// EVERY key press - three nodes per note, torn down 300 ms later - because Web Audio offers no
     /// way to keep the result. It has to: there is no file, and no place to put one. Unity has
     /// <see cref="AudioClip.Create"/>, so each cue is rendered to samples the first time it is asked
     /// for and is a plain clip from then on. Same envelope arithmetic, same waveforms, one
@@ -17,12 +17,12 @@ namespace TheBlock.Audio
     /// <b>The oscillators are band-limited, and that is not a flourish.</b> Web Audio's
     /// <c>OscillatorNode</c> is band-limited by specification, so a 1046 Hz <c>square</c> there has
     /// no harmonics above Nyquist. Generating one naively here would alias every one of them back
-    /// down as inharmonic grit, and the cue would be recognisably harsher than the shipped game's —
+    /// down as inharmonic grit, and the cue would be recognisably harsher than the shipped game's -
     /// a difference nobody would trace back to a missing PolyBLEP. So saw and square carry one.
     ///
     /// <b>The noise is seeded.</b> The web calls <c>Math.random()</c> per sample, so its crash thud
     /// is a different burst every time. A cue baked once is a fixed sound forever either way, so the
-    /// only question is whether it is the SAME fixed sound on every machine and every rebuild — and
+    /// only question is whether it is the SAME fixed sound on every machine and every rebuild - and
     /// a reproducible bake is what lets a test assert a peak level at all.
     /// </summary>
     public static class SfxSynth
@@ -59,7 +59,7 @@ namespace TheBlock.Audio
         }
 
         /// <summary>
-        /// A short lowpassed white-noise burst — the BODY of an impact. A pure tone alone reads as a
+        /// A short lowpassed white-noise burst - the BODY of an impact. A pure tone alone reads as a
         /// beep rather than a thunk, which is the web's own note and the reason this exists.
         /// </summary>
         public readonly struct Noise
@@ -245,7 +245,7 @@ namespace TheBlock.Audio
 
         private static float Frac(float v) => v - Mathf.Floor(v);
 
-        /// <summary>Mulberry32 — the same generator the world bake uses, so the project has one.</summary>
+        /// <summary>Mulberry32 - the same generator the world bake uses, so the project has one.</summary>
         private static float NextFloat(ref uint state)
         {
             state += 0x6D2B79F5u;
@@ -256,7 +256,7 @@ namespace TheBlock.Audio
         }
 
         /// <summary>
-        /// An RBJ lowpass, Q = 1 — the default a Web Audio <c>BiquadFilterNode</c> runs at, which is
+        /// An RBJ lowpass, Q = 1 - the default a Web Audio <c>BiquadFilterNode</c> runs at, which is
         /// what the web's noise bursts were voiced against.
         /// </summary>
         private struct Biquad

@@ -8,14 +8,14 @@ using Debug = UnityEngine.Debug;
 namespace TheBlock.EditorTools
 {
     /// <summary>
-    /// Builds the police cruiser prefab — <b>The Block → Build Police Car</b>.
+    /// Builds the police cruiser prefab - <b>The Block → Build Police Car</b>.
     ///
     /// <b>Why it is not just a seventeenth entry in <c>config.vehicle.cars</c>.</b> The web build
     /// does not list the cop car as a car either: <c>police.ts</c> hard-codes
     /// <c>const COP_URL = '/models/optimized/lod/police.glb'</c> and loads it outside the car list
     /// entirely, because it is never drivable, never parked, and never painted. Adding it to the
     /// config would mean editing the exporter in the other repo to describe something that repo's
-    /// game does not have — so the spec is stated here, with its numbers measured rather than typed.
+    /// game does not have - so the spec is stated here, with its numbers measured rather than typed.
     ///
     /// It reuses <see cref="CarBuilder"/> wholesale: same shared origin (body centre in XZ, tyre
     /// contact patch in Y), same 1400 kg chassis, same suspension, same material cloning onto U15's
@@ -26,7 +26,7 @@ namespace TheBlock.EditorTools
     /// <b>Two things it deliberately does NOT do:</b>
     ///  - it never touches <c>CarSpawner.carPrefabs</c>. That list is what <c>Take()</c> resolves a
     ///    carjack against, and <c>CarBuilder.WireSpawner</c> rewrites it wholesale from the four
-    ///    drivable cars every run — a police prefab in there would be both stealable and deleted.
+    ///    drivable cars every run - a police prefab in there would be both stealable and deleted.
     ///  - it writes its materials to its own folder, because
     ///    <see cref="VehicleMaterials.Sweep"/> deletes everything in a folder the current run did not
     ///    write, and the next <b>Build Drivable Cars</b> would take the police materials with it.
@@ -50,14 +50,14 @@ namespace TheBlock.EditorTools
 
         /// <summary>
         /// Scale to real size. <b>Measured, not inherited:</b> the source GLB's world AABB is
-        /// 6.705 × 2.477 × 1.985 m, and 5.65 / 6.705 = 0.8427 — which lands the other two axes on
+        /// 6.705 × 2.477 × 1.985 m, and 5.65 / 6.705 = 0.8427 - which lands the other two axes on
         /// 2.088 and 1.673, against the web build's independently measured 2.09 × 1.67 × 5.65. Three
         /// axes agreeing is what makes this a measurement rather than a coincidence.
         /// </summary>
         private const float ModelScale = 0.8428f;
 
         /// <summary>
-        /// The CrownVic faces <c>+Z</c> natively, which is already Unity's forward — so the net
+        /// The CrownVic faces <c>+Z</c> natively, which is already Unity's forward - so the net
         /// rotation wanted is NONE, and π is what produces none:
         /// <c>RotFromRadians(π)</c> is −180° and <c>ModelFacing</c> is +180°.
         /// The web build reached the same π from the other side, for the opposite reason.
@@ -74,7 +74,7 @@ namespace TheBlock.EditorTools
         /// project has hit: its <c>Sketchfab_model</c> node carries an Rx(−90) with <b>no</b>
         /// cancelling <c>GLTF_SceneRootNode</c> twin, unlike the Mustang and the gas station (memory
         /// <c>sketchfab-root-matrices-swap-yz</c>). If glTFast resolves that differently, the car
-        /// arrives on its side — and a 5.65 m TALL police car is a number, not a screenshot.
+        /// arrives on its side - and a 5.65 m TALL police car is a number, not a screenshot.
         /// </summary>
         private static readonly Vector3 ExpectedBody = new(2.09f, 1.67f, 5.65f);
 
@@ -84,15 +84,15 @@ namespace TheBlock.EditorTools
         /// Stands the model up. <b>Measured in the editor, not guessed.</b>
         ///
         /// This GLB's <c>Sketchfab_model</c> node carries an Rx(−90) with no cancelling
-        /// <c>GLTF_SceneRootNode</c> twin — the Mustang and the gas station both have the pair, this
-        /// one does not — and glTFast passes it straight through. The imported result was measured
+        /// <c>GLTF_SceneRootNode</c> twin - the Mustang and the gas station both have the pair, this
+        /// one does not - and glTFast passes it straight through. The imported result was measured
         /// by instantiating the asset and reading it: length on <b>Y</b> (6.705), width on X, height
         /// on <b>Z</b>, wheels at z 0.42 with the roof lights at z 1.895 (so <b>+Z was up</b>), and
         /// the front wheels at y −1.868 against the rear at +1.724 (so <b>−Y was forward</b>).
         ///
         /// <c>Euler(-90, 0, 0)</c> sends +Z to +Y and −Y to +Z: up stays up and the nose comes round
         /// to Unity's forward. The first build without it produced a car 5.65 m TALL, a 1.36 m wheel
-        /// radius and a 5.4 m chassis box — all of which the CHECK line caught as numbers rather
+        /// radius and a 5.4 m chassis box - all of which the CHECK line caught as numbers rather
         /// than as a screenshot.
         /// </summary>
         private static readonly Quaternion StandUpright = Quaternion.Euler(-90f, 0f, 0f);
@@ -140,7 +140,7 @@ namespace TheBlock.EditorTools
 
             if (prefab == null)
             {
-                var missing = $"PoliceCarBuilder — FAILED\n{log}";
+                var missing = $"PoliceCarBuilder - FAILED\n{log}";
                 Debug.LogError(missing);
                 return missing;
             }
@@ -148,7 +148,7 @@ namespace TheBlock.EditorTools
             MakeUnstealable(log);
             CheckImport(prefab, log);
 
-            var report = $"PoliceCarBuilder — {PrefabPath}\n{log}";
+            var report = $"PoliceCarBuilder - {PrefabPath}\n{log}";
             Debug.Log(report, prefab);
             return report;
         }
@@ -160,13 +160,13 @@ namespace TheBlock.EditorTools
         /// game does not have.
         ///
         /// <b>The numbers are the Avenger's, and that is a measurement rather than a shrug.</b> The
-        /// seat block is not the cushion — it is where the entry clip's ORIGIN goes, a person
+        /// seat block is not the cushion - it is where the entry clip's ORIGIN goes, a person
         /// standing beside the door at road level, and the clip's own hip travel carries the body
         /// into the car from there (memory <c>driver-seat-is-clip-origin</c>). Three of the web's
         /// four cars share <c>(-2.31, -0.84, -0.1)</c> because that is a saloon's door, not a
         /// particular saloon's door; the CrownVic measures 2.09 × 1.67 × 5.65 m against the
         /// Mustang's 1.95 × 1.40 × 4.72, so it is the widest of them and 2.31 m from the body centre
-        /// still clears its flank. <c>y</c> cancels the body centre exactly — the anchor stands on
+        /// still clears its flank. <c>y</c> cancels the body centre exactly - the anchor stands on
         /// the road.
         ///
         /// <b><see cref="RiderScale"/> is the field this row got wrong, and the first play-test saw
@@ -177,27 +177,27 @@ namespace TheBlock.EditorTools
         /// at 1.627 and hers at 1.887, against a roof at 1.673. So she sat 21.4 cm THROUGH it.
         ///
         /// It is also the field no cabin in this game leaves at 1: the config gives the Mustang
-        /// 0.95, the Audi 0.97 and the Tesla 0.82, and only the Avenger — a 2.17 m roof — seats a
+        /// 0.95, the Audi 0.97 and the Tesla 0.82, and only the Avenger - a 2.17 m roof - seats a
         /// driver unscaled. A 1.67 m cruiser roof was never in that company. See
         /// <see cref="RiderScale"/> for how the number was chosen.
         ///
         /// <c>CarBuilder</c> feeds <c>Raw</c> through <see cref="Convert.ModelOffset"/>, which flips
-        /// Z alone, so a negative <c>x</c> stays on Unity's left — the driver's side, as in the web.
+        /// Z alone, so a negative <c>x</c> stays on Unity's left - the driver's side, as in the web.
         ///
         /// <b><c>x</c> is no longer the Avenger's −2.31, and the reason is that a rider scale is not
         /// only a height.</b> The seat is the clip's ORIGIN, so the body arrives at the cushion by
-        /// travelling from here — and a uniform scale on the anchor shortens that travel on every
+        /// travelling from here - and a uniform scale on the anchor shortens that travel on every
         /// axis, not just the vertical one. At scale 1 the trip was <c>(+1.93, +0.79, −0.02)</c> and
         /// the hips landed at car-local <c>(−0.38, 0.79, 0.08)</c>, mid-way across the driver's half.
         /// <see cref="RiderScale"/> multiplies that trip by 0.833, which is confirmed on the axis that
-        /// was measured twice — 0.79 → <b>0.661</b>, against 0.79 × 0.833 = 0.658 — and therefore
+        /// was measured twice - 0.79 → <b>0.661</b>, against 0.79 × 0.833 = 0.658 - and therefore
         /// also true on the lateral one: <b>1.93 → 1.608</b>, putting the hips at <b>−0.702</b>, a
         /// third of a metre further to port and hard against a cabin wall at −1.04. The play-test saw
         /// exactly that.
         ///
         /// So the seat moves out by the 0.322 m the scale took: <c>−0.38 − 0.833 × 1.93 = −1.988</c>
         /// lands the hips back where they were. The anchor is still 1.99 m from the body centre and
-        /// the cruiser's half-width is 1.045, so it clears the flank — which matters beyond the pose,
+        /// the cruiser's half-width is 1.045, so it clears the flank - which matters beyond the pose,
         /// because <c>CopOfficer.Deploy</c> stands her up at this same point when she gets out.
         /// </summary>
         private static Dictionary<string, TheBlockConfig.SeatSpec> OfficerSeat() =>
@@ -217,17 +217,17 @@ namespace TheBlock.EditorTools
         /// How far down the officer is scaled to fit the cruiser's cabin.
         ///
         /// <b>Solved for, not eyeballed.</b> The target is the headroom the config already gives
-        /// Joe in the cars it does describe — Mustang <b>0.096 m</b>, Audi <b>0.103</b>, Tesla
-        /// <b>0.134</b> — so the cruiser should read about 0.10 too. The anchor sits at road level,
+        /// Joe in the cars it does describe - Mustang <b>0.096 m</b>, Audi <b>0.103</b>, Tesla
+        /// <b>0.134</b> - so the cruiser should read about 0.10 too. The anchor sits at road level,
         /// so a rider's head height scales straight off it: <c>1.673 − 1.887 s = 0.10</c> gives
         /// <c>s = 0.833</c>.
         ///
         /// Measured at that value by sampling <c>Joe_EnterCar</c> at its last frame on her rig in a
-        /// preview scene: head top <b>1.571</b>, clearance <b>+0.101 m</b>, hips <b>0.661</b> —
+        /// preview scene: head top <b>1.571</b>, clearance <b>+0.101 m</b>, hips <b>0.661</b> -
         /// between the Tesla's 0.656 and the Mustang's 0.759, which is where a saloon's cushion is.
         ///
-        /// <b>It is deliberately on the SEAT and not on her prefab.</b> Her size on foot is right —
-        /// she is within 4 cm of Joe standing — and this is a cabin that is too small for her, not a
+        /// <b>It is deliberately on the SEAT and not on her prefab.</b> Her size on foot is right -
+        /// she is within 4 cm of Joe standing - and this is a cabin that is too small for her, not a
         /// body that is too big for the world. Scaling the prefab would shrink the officer who
         /// chases you on foot in order to fix a car she is sitting in.
         /// </summary>
@@ -248,7 +248,7 @@ namespace TheBlock.EditorTools
             {
                 if (!contents.TryGetComponent<TheBlock.Vehicles.CarController>(out var car))
                 {
-                    log.AppendLine("        enter   NO CarController on the prefab — nothing to lock");
+                    log.AppendLine("        enter   NO CarController on the prefab - nothing to lock");
                     return;
                 }
 
@@ -256,7 +256,7 @@ namespace TheBlock.EditorTools
                 serialized.FindProperty("enterable").boolValue = false;
                 serialized.ApplyModifiedPropertiesWithoutUndo();
                 PrefabUtility.SaveAsPrefabAsset(contents, PrefabPath);
-                log.AppendLine("        enter   enterable=false — E cannot take a cop car");
+                log.AppendLine("        enter   enterable=false - E cannot take a cop car");
             }
             finally
             {
@@ -274,7 +274,7 @@ namespace TheBlock.EditorTools
         {
             if (!prefab.TryGetComponent<BoxCollider>(out var box))
             {
-                log.AppendLine("        CHECK   no chassis box on the prefab — the build did not finish");
+                log.AppendLine("        CHECK   no chassis box on the prefab - the build did not finish");
                 Debug.LogWarning("PoliceCarBuilder: the built prefab has no BoxCollider.");
                 return;
             }
@@ -292,7 +292,7 @@ namespace TheBlock.EditorTools
             bool ok = error.x <= BodyTolerance && error.y <= BodyTolerance && error.z <= BodyTolerance;
             log.AppendLine(
                 $"        CHECK   body {measured.x:0.00} x {measured.y:0.00} x {measured.z:0.00} m " +
-                $"against the web's {ExpectedBody.x:0.00} x {ExpectedBody.y:0.00} x {ExpectedBody.z:0.00} — " +
+                $"against the web's {ExpectedBody.x:0.00} x {ExpectedBody.y:0.00} x {ExpectedBody.z:0.00} - " +
                 (ok ? "MATCHES, so glTFast resolved the root rotation the same way" : "MISMATCH"));
 
             if (ok) return;
@@ -302,7 +302,7 @@ namespace TheBlock.EditorTools
                 "Rx(-90) survived import: pre-rotate the visual by Euler(-90, 0, 0), U13's pattern.");
             Debug.LogWarning(
                 $"PoliceCarBuilder: body measured {measured} against expected {ExpectedBody}. " +
-                "See the build log — this is the root-rotation case.");
+                "See the build log - this is the root-rotation case.");
         }
     }
 }

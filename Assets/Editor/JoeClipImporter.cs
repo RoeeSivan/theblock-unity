@@ -9,17 +9,17 @@ namespace TheBlock.EditorTools
     ///
     /// Scripted for the reason every other builder here is: the settings are six checkboxes buried
     /// in two Inspector tabs, they are invisible in review, and a clip imported with the wrong ones
-    /// fails in a way that looks like an animation bug rather than an import mistake — a T-pose, or
+    /// fails in a way that looks like an animation bug rather than an import mistake - a T-pose, or
     /// a driver who slides out of the car because his travel was extracted as root motion.
     ///
     /// The recipe, for each clip:
     ///  - <b>Humanoid, Copy From Other Avatar → JoeAvatar.</b> Retargeting by avatar is what makes
-    ///    the <c>mixamorig7:</c> bone-prefix problem moot — Mixamo stamps a per-upload counter into
+    ///    the <c>mixamorig7:</c> bone-prefix problem moot - Mixamo stamps a per-upload counter into
     ///    its namespace, so a clip and a body downloaded on different days disagree about what the
     ///    skeleton is called. The web build had to rename 195 tracks by hand to work around it.
     ///  - <b>Bake Into Pose, based upon Original</b>, on all three of rotation, position Y and
     ///    position XZ, for a clip whose travel is the point. Baked into the pose, the body walks
-    ///    itself while its transform stays exactly where it was put — which is what lets the car's
+    ///    itself while its transform stays exactly where it was put - which is what lets the car's
     ///    driver anchor be a fixed spot beside the door. Extracted as root motion instead, the
     ///    travel would fight whatever else owns the transform.
     ///
@@ -35,7 +35,7 @@ namespace TheBlock.EditorTools
 
         /// <summary>
         /// One borrowed clip. <c>BakeRoot</c> keeps the clip's travel in the pose instead of handing
-        /// it to the Animator as root motion — true for anything that moves the body through a fixed
+        /// it to the Animator as root motion - true for anything that moves the body through a fixed
         /// space, false for a locomotion cycle the controller drives.
         /// </summary>
         private readonly struct ClipSpec
@@ -58,7 +58,7 @@ namespace TheBlock.EditorTools
         {
             new("Joe_EnterCar.fbx", "Joe_EnterCar", loop: false, bakeRoot: true),
 
-            // The seated riding pose, shared by the motorcycle (U10) and the jetski (U24) — which is
+            // The seated riding pose, shared by the motorcycle (U10) and the jetski (U24) - which is
             // why the web build has it as a file of its own rather than inside either vehicle.
             // BakeRoot for the same reason as the entry clip: the rider anchor is a fixed child of
             // the bike and the body must not drift off it, so whatever travel the clip carries stays
@@ -87,18 +87,18 @@ namespace TheBlock.EditorTools
             {
                 Debug.LogError(
                     $"JoeClipImporter: no Avatar in {CharactersPath}/{AvatarSource}. That file is " +
-                    "what every borrowed clip is retargeted onto — import it Humanoid first.");
+                    "what every borrowed clip is retargeted onto - import it Humanoid first.");
                 return;
             }
 
-            var log = new System.Text.StringBuilder($"JoeClipImporter — avatar {avatar.name}\n");
+            var log = new System.Text.StringBuilder($"JoeClipImporter - avatar {avatar.name}\n");
 
             foreach (var clip in Clips)
             {
                 var path = $"{CharactersPath}/{clip.FileName}";
                 if (AssetImporter.GetAtPath(path) is not ModelImporter importer)
                 {
-                    log.AppendLine($"  {clip.FileName,-22} not in the project — skipped");
+                    log.AppendLine($"  {clip.FileName,-22} not in the project - skipped");
                     continue;
                 }
 
