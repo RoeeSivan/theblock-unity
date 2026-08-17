@@ -82,10 +82,10 @@ namespace TheBlock.Police
         /// <summary>
         /// The baked street graph, for anything that wants to route on the roads the cops drive.
         ///
-        /// It was private with no accessor until U35c, because the pursuit was its only consumer.
-        /// The GPS line is the second, and it is the whole argument of that half of the unit - the
-        /// web build's traffic graph was five disconnected islands and could not have drawn a route
-        /// at all.
+        /// It was private with no accessor until U35c, whose GPS line was the second consumer. That
+        /// line was cut by the user on 2026-08-17, so the pursuit is once again the only one - the
+        /// accessor is kept because the graph is public-worthy state, not because anything else
+        /// reads it today.
         /// </summary>
         public RouteGraph Graph => routeGraph;
 

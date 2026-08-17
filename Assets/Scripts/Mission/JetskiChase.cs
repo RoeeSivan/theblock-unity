@@ -193,10 +193,8 @@ namespace TheBlock.Missions
                 Kind = MapPoiKind.Marker,
                 Minor = true,
 
-                // U35c: opted in like the rest, and it is the case that proves the route honest -
-                // these gates are on open water with no road within the planner's 120 m snap, so
-                // the GPS finds nothing and draws NOTHING. A straight line over the sea is exactly
-                // the lie a road route exists to stop telling.
+                // Marked as somewhere the player is being sent, like the rest. Nothing reads it
+                // since the GPS route was cut (2026-08-17); see MapPoi.Guide.
                 Guide = true,
             });
 

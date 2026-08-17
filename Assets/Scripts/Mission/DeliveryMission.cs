@@ -235,7 +235,7 @@ namespace TheBlock.Missions
                 Position = at,
                 Kind = MapPoiKind.Marker,
                 Minor = true,
-                Guide = true,   // U35c: the GPS route draws to the nearest remaining drop-off
+                Guide = true,   // "somewhere the player is being sent" - see MapPoi.Guide
             });
 
             return target;

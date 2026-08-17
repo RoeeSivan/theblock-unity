@@ -38,20 +38,6 @@ namespace TheBlock.UI
         private Vector2 _playerScreenDir = new Vector2(0f, -1f);
         private bool _expanded;
 
-        private readonly List<Vector3> _route = new();
-
-        /// <summary>
-        /// The GPS polyline, in world space. Empty draws nothing.
-        ///
-        /// Copied rather than referenced: <see cref="GpsRoute"/> rewrites its list in place on a
-        /// replan, and this element repaints on the map's own 12 fps clock rather than on that one.
-        /// </summary>
-        public void SetRoute(IReadOnlyList<Vector3> points)
-        {
-            _route.Clear();
-            if (points != null) _route.AddRange(points);
-        }
-
         public MapView(TheBlockConfig.MapSpec spec)
         {
             _spec = spec;
@@ -123,48 +109,9 @@ namespace TheBlock.UI
                 size / 2f + (wz - _center.y) * scale);
         }
 
-        /// <summary>
-        /// The GPS route, drawn FIRST so every dot, pin and the player arrow sit on top of it.
-        ///
-        /// Two strokes, dark casing then bright core. One stroke is unreadable: the line runs over
-        /// a live render of the city, so it crosses pale roads and dark buildings within a few
-        /// pixels of each other and any single colour disappears against one of them.
-        /// </summary>
-        private void DrawRoute(Painter2D p)
-        {
-            if (_route.Count < 2) return;
-
-            // Thinned on the open map only. The planner emits a point every 4 m, which is ~250 of
-            // them across a kilometre - detail no one can see once the whole world is 82% of the
-            // screen's short edge. The minimap keeps them all; it only ever shows 150 m.
-            int step = _expanded ? 3 : 1;
-
-            for (int pass = 0; pass < 2; pass++)
-            {
-                p.BeginPath();
-                p.MoveTo(ToPanel(_route[0].x, _route[0].z));
-                for (int i = step; i < _route.Count; i += step)
-                    p.LineTo(ToPanel(_route[i].x, _route[i].z));
-
-                // Always finish on the real end point, or a thinned line stops short of the pin.
-                var last = _route[_route.Count - 1];
-                p.LineTo(ToPanel(last.x, last.z));
-
-                p.strokeColor = pass == 0
-                    ? new Color(0f, 0f, 0f, 0.55f)
-                    : new Color(0.20f, 0.85f, 1f, 0.95f);
-                p.lineWidth = pass == 0 ? 6f : 3f;
-                p.lineJoin = LineJoin.Round;
-                p.lineCap = LineCap.Round;
-                p.Stroke();
-            }
-        }
-
         private void Draw(MeshGenerationContext mgc)
         {
             var p = mgc.painter2D;
-
-            DrawRoute(p);
 
             // District outlines. Outline-only (no fill): the live render underneath IS the district.
             p.strokeColor = _districtStroke;

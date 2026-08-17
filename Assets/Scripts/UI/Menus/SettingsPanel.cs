@@ -38,7 +38,6 @@ namespace TheBlock.UI.Menus
         private Button _ragdollButton;
         private Button _damageButton;
         private Button _soundButton;
-        private Button _gpsButton;
         private System.Action _onBack;
 
         protected override void Awake()
@@ -67,17 +66,6 @@ namespace TheBlock.UI.Menus
             note.style.maxWidth = 420f;
             note.style.marginBottom = 22f;
             overlay.Add(note);
-
-            _gpsButton = MenuStyle.Primary("GPS Route", () => ApplyGps(!Progress.GpsRouteOn));
-            _gpsButton.style.marginBottom = 12f;
-            overlay.Add(_gpsButton);
-
-            var gpsNote = MenuStyle.Body(
-                "Draws the way to your objective along the streets, on the radar and the map. " +
-                "Off leaves just the pin.");
-            gpsNote.style.maxWidth = 420f;
-            gpsNote.style.marginBottom = 22f;
-            overlay.Add(gpsNote);
 
             _dayNightButton = MenuStyle.Primary("Time of Day", () => ApplyDayNight(!Progress.DayNightOn));
             _dayNightButton.style.marginBottom = 12f;
@@ -133,20 +121,6 @@ namespace TheBlock.UI.Menus
             Progress.RadarOn = radarOn;
             if (map != null) map.SetMinimapVisible(radarOn);
             if (_radarButton != null) _radarButton.text = radarOn ? "Radar:  On" : "Radar:  Off";
-        }
-
-        /// <summary>
-        /// Settings → Display → GPS Route (U35c).
-        ///
-        /// <b>Storage IS the mechanism here</b>, like Ragdolls and unlike Radar: there is nothing to
-        /// push to, because <c>GpsRoute.Tick</c> reads <see cref="Progress.GpsRouteOn"/> at the top
-        /// of its own tick and returns early. One reader means the preference and the drawing cannot
-        /// drift, and turning it off stops the A* rather than merely hiding its result.
-        /// </summary>
-        private void ApplyGps(bool on)
-        {
-            Progress.GpsRouteOn = on;
-            if (_gpsButton != null) _gpsButton.text = on ? "GPS Route:  On" : "GPS Route:  Off";
         }
 
         /// <summary>
@@ -232,8 +206,6 @@ namespace TheBlock.UI.Menus
             _onBack = onBack;
             if (_radarButton != null)
                 _radarButton.text = Progress.RadarOn ? "Radar:  On" : "Radar:  Off";
-            if (_gpsButton != null)
-                _gpsButton.text = Progress.GpsRouteOn ? "GPS Route:  On" : "GPS Route:  Off";
             if (_dayNightButton != null)
                 _dayNightButton.text = Progress.DayNightOn ? "Time of Day:  Cycle" : "Time of Day:  Fixed";
             if (_ragdollButton != null)

@@ -85,125 +85,107 @@ unclear, re-test before inheriting.
 
 ## RESUME HERE
 
-> **THE GAME IS BUILT. There is no `wip` left in this ledger and no open unit below Tier 7** - U0-U29
-> plus U33 and U34 are all `done` and all user-confirmed, as of 2026-08-16. The whole remaining port
-> is shipping it.
+> **THE GAME IS BUILT, AND AS OF 2026-08-17 SO IS TIER 8.** U0-U29 plus U33, U34 and every U35
+> sub-unit that survived the user's cuts are `done` or `built - user-confirmed`. **There is no
+> gameplay work scheduled anywhere in this ledger.** What remains is Tier 7 and the submission.
 >
 > **⚠ THE PROJECT PIVOTED, 2026-08-16. The Unity build is what gets submitted, and it has a deadline:
 > 1 Oct 2026.** See `CLAUDE.md` §1 and the **Submission** § below. This is not a change of plan, it is
 > a change of what "done" means - the graded artifacts are a video, a repo, a kanban board and a zip,
 > and only one of them is the game.
 >
-> ✅ **U35d-pre-2 IS USER-CONFIRMED, 2026-08-17** - *"okay i mark it as complete"*. The police
-> response is rebuilt on the web's model: cops come from a hidden street 50-90 m away unless the
-> car is already within 120 m of you, a cop that loses you is re-dispatched, and cruisers take no
-> damage at all. Crime → BUSTED measured **~6.5 s at 1★, ~8 s at 3★**, from ~36-45 s. Section
-> below.
+> ### 🚩 NEXT ACTION: **U30a - the macOS build.** Nothing else is queued in front of it.
 >
-> 🔧 **U35d-pre-3, 2026-08-17 - the in-vehicle arrest, a fourth report and the actual cause.**
-> *"אם אני יוצא מהרכב זה תופס ישר"* - and in the car, never. `ArrestRadius = 4` is a distance between
-> CENTRES, and two 5.6 m cars nose to tail have centres 5.6 m apart: a cop on your bumper never once
-> counted as close. In a vehicle the arrest now measures the **gap between the two bodies**
-> (`VehicleArrestGap = 2.5`), the arrival ramp aims at that gap, and the rubber band's floor is
-> relative to your speed. **Measured in Play: BUSTED while parked in 11 s, BUSTED while driving at
-> 9 m/s in ~10 s.** Section below. **NEEDS THE USER'S DRIVE** - its recipe replaces U35d-pre's.
+> ---
 >
-> ✅ **U35g IS PLAYED AND USER-CONFIRMED, 2026-08-17** - *"cool. mark this feature as done"* - state
-> `built - user-confirmed, awaiting U30b`, like U35a/b (rule 3(a)'s frame measurement is on the
-> Player). The auto shop paints the
-> vehicle you pull up in: shutter rolls up on approach, `Press C to change the color`, ten swatches,
-> $30 a coat, click → painted → menu closes, persists per vehicle across a reload. **The
-> motorcycle is IN** (the user: *"drive with every car / also the motorcycle"*) - its red body
-> recolours and its Wolt box stays teal, per the user's mid-build correction. Measured in Play,
-> section "④ BUILT" below; **its recipe is at the end of that section.** Asset `df0d9fc`, ledger
-> `570ed47`, feature `d5e2da8`.
+> **What the user settled on 2026-08-17, in one message. Five decisions, and four of them are cuts:**
 >
-> **NEXT ACTION: play-test U35d-pre-3, then U35e, then U30a.** Two earlier police sub-units are
-> still formally "awaiting play-test" only because nobody has said the words - they were built on
-> the same drive the user just played, so they are almost certainly fine and only need a yes:
+> - ✅ **U35d-pre-3 is USER-CONFIRMED** - the in-vehicle arrest. Its section is below; `ArrestRadius`
+>   was a distance between CENTRES and two 5.6 m cars nose to tail never satisfied it, so in a vehicle
+>   the arrest measures the **gap between bodies** (`VehicleArrestGap = 2.5`).
+> - ✅ **U35c is USER-CONFIRMED** - the police H145 at 3★, modelled in Blender from two reference
+>   photographs. **Its GPS-route half is CUT** - see the next line.
+> - ✂ **THE GPS ROUTE IS REMOVED FROM THE GAME** - *"תוריד את הקו התכלת מהמפה, לא צריך את הפיצר
+>   הזה."* The cyan polyline on the radar and the full map is gone, and it was **deleted rather than
+>   defaulted off**: `Assets/Scripts/UI/GpsRoute.cs` is gone, and with it `MapView.SetRoute` /
+>   `DrawRoute`, `GameMap._gps`, `Progress.GpsRouteOn` + its `theblock.gpsroute` key, the
+>   `Settings → Display → GPS Route` row, and `MapRegistry.NearestGuide`. **What deliberately stays:**
+>   `RoutePlanner` and `RouteGraph` (the police have A*-ed on them since U19 and still do,
+>   `PoliceSystem.Graph` included), and the `MapPoi.Guide` bool that four missions set - nothing reads
+>   it now, and its comment says so. **So U35c ships as the helicopter alone.**
+> - ✂ **U35e IS DROPPED** - stunt jumps and Cinemachine. *"we decieded we do not need that so do not
+>   mention it again."* Nothing was ever built for it, so the cut costs no work. **With it Tier 8 has
+>   no scheduled unit left at all.**
+> - ✂ **THE RADIO IS DROPPED, not held** - *"רדיו - גם תוריד, לא כזה חשוב."* It was ⏸ on hold since
+>   2026-08-16 and it is now closed. The measured finding in **Deferred** stays on the page as
+>   research, not as pending work: `GetAudioClip(streamAudio)` is dead on a live stream and the answer
+>   would have been a pure-C# MP3 decoder. **The `Radio` mixer group, `GameAudio.Bus.Radio` and
+>   `config.radio` remain idle in the build and are NOT to be ripped out** - they cost nothing and
+>   removing them is work spent making a retry harder.
+> - ✂ **U35d-pre needs no play-test and is CLOSED as superseded** - *"u35d-pre גם אפשר להוריד אמרנו
+>   שיורדים מהרמפה."* Read as: it comes off the pending list, **not** as "delete the arrival ramp from
+>   the code" - U35d-pre-3, which the user just confirmed, is a rewrite of that very ramp into
+>   relative terms and rests on the pull-over mechanism U35d-pre built. Removing it would break the
+>   feature that was approved in the same message. **If a literal code removal was meant, say so and
+>   it is a separate job.**
 >
-> - **U35c** - the police H145 at 3★, the GPS road route on both maps, and a police-response fix.
-> - **U35d-pre** - the arrival ramp and the speed gate; superseded in practice by U35d-pre-3, which
->   is what the user's report actually needed. Its pull-over mechanism is what U35d-pre-3 now feeds.
+> ---
+>
+> **Tier 8's final state, so nobody re-derives it:** U35a (ragdolls) ✅, U35b (vehicle damage) ✅,
+> U35c (police helicopter) ✅, U35g (the auto shop) ✅ - all four `built - user-confirmed, awaiting
+> U30b`, which is rule 3(a)'s frame measurement on a Player that does not exist yet and is the ONLY
+> thing any of them still owes. Dropped by the user: U35d (weather), U35e (stunt jumps), U35f (side
+> jobs). Backlog, unscheduled: **U35h** (breakable props - the census says the answer is the 233
+> traffic-light poles and nothing else, because benches and bins are baked into the district meshes).
+>
+> **The order from here, and it has not changed except by getting shorter:**
+>
+> **U30a** (build) → **U30b** (baseline on the Player with every switch off, then a per-feature delta
+> for U35a/b/c/g; anything over budget is tuned or cut) → **record the video** → **U30c** (strip the
+> debug keys, LAST, because `P`, `T`, `C`, `debugStock` and Mission Select are how a five-minute
+> recording reaches every feature in the game).
+>
+> **Why the old "build → baseline → features" trap does not bite here:** every U35 addition ships
+> behind a switch whose off state IS today's game (Tier 8, rule 2). So U30b's baseline is taken with
+> everything off - identical to what it would have measured before U35 - and each feature is then
+> toggled on alone for its delta.
+>
+> **U30a's own note:** U30 was split into a/b/c because a build is a correctness job, a perf pass is a
+> measurement job, and stripping debug keys is a shipping job. Nothing in this port has ever left the
+> Editor - a Player is a different renderer path, a different memory ceiling and a different input
+> stack, and it is the first place any of that is testable. U15 is the standing warning that the
+> obvious answer (streaming, LODs) can be the wrong one. **The one open choice is the scripting
+> backend, Mono or IL2CPP** - see the row.
+>
+> **Tier 7 is TWO units:** U30 and U32 (multiplayer, deferred by decision to last). U31 (iOS/iPad) is
+> **dropped by the user, 2026-08-16** - *"זה לא רלוונטי להגשה."* The iOS module stays installed and
+> unused; nothing is to be ripped out.
+>
+> ---
 >
 > ⚠ **`Settings → Gameplay → Vehicle Damage` was reset to Off by the U35d-pre-2 immunity test** (it
 > is a `PlayerPrefs` value and the test had to write it). If it was on before, turn it back on.
 >
-> ✅ **U35a and U35b are both user-confirmed** and neither needs anything further until U30b measures
-> their frame cost.
+> ⚠ **THE BLENDER MCP IS REGISTERED FOR THIS PROJECT** (`claude mcp add blender -- uvx blender-mcp`,
+> done by the user 2026-08-17) - but a session that starts before Blender's addon is listening has no
+> Blender tools. **The addon speaks plain JSON over TCP 127.0.0.1:9876 and can be driven directly**,
+> which is how U35c's model was built without restarting anything. The same is true of Unity's own MCP
+> on `http://127.0.0.1:8080/mcp` (JSON-RPC, 48 tools). Worth knowing before anyone burns a session
+> restarting for tools that were reachable all along.
 >
-> **U35c's asset was MODELLED IN BLENDER, not downloaded or repainted** - the user rejected both
-> alternatives, and correctly: *"יש את המסוק ליד הים זה כן, אבל אנחנו רוצים שהוא ייראה שונה… המסוק
-> של המשטרה צריך להראות כמו מסוק של משטרה."* A recoloured Huey keeps the Huey's silhouette, and the
-> player already flies that one. Built from two reference photographs of an Israeli Police H145
-> through the Blender MCP, 5.6k triangles, approved by the user at three checkpoints.
+> ⚠ **THE BATCH PLAY-TEST IS OFF - the user reversed it, 2026-08-16:** *"ברור, אנחנו צריכים לבדוק
+> אחרי כל פיצ'ר כן."* Every unit is play-tested at its own boundary, exactly as `CLAUDE.md`'s
+> "autonomous units, one checkpoint each" always said. The one-batch-at-the-end reordering is dead and
+> is recorded in the decisions log rather than deleted, so it cannot be rediscovered as the plan. The
+> reason it was reversed is the reason it should have been: **a ragdoll is judged with eyes and I have
+> none.**
 >
-> ⚠ **THE BLENDER MCP IS REGISTERED FOR THIS PROJECT NOW** (`claude mcp add blender -- uvx
-> blender-mcp`, done by the user 2026-08-17) - but a session that starts before Blender's addon is
-> listening has no Blender tools. **The addon speaks plain JSON over TCP 127.0.0.1:9876 and can be
-> driven directly**, which is how U35c's model was built without restarting anything. The same is
-> true of Unity's own MCP on `http://127.0.0.1:8080/mcp` (JSON-RPC, 48 tools). Worth knowing before
-> anyone burns a session restarting for tools that were reachable all along.
->
-> **U35b shipped with two additions the user asked for mid-play-test**, both in its section below: a
-> wrecked car cannot be entered and says why on the HUD, and the explosion announces itself. Its
-> switch is `Settings → Gameplay → Vehicle Damage` = Off / Visual / Full, **default Off**, so the
-> world looks exactly as it did before it until someone turns it on.
->
-> The U35a play-test also turned up two unrelated faults - a `PlayerPrefs` radar that read as "the map
-> vanished", and a real hole in the world's seaward edge - both fixed and both in their own section
-> below.
->
-> ✅ **THE U35a FOLLOW-UP IS PLAYED AND USER-CONFIRMED (2026-08-16)** - *"U35a עובד טוב אתה יכול לסמן
-> כן"*. Coming off the bike dismounts, and standing up remounts. Section below. **U35a is closed as far
-> as anything but U30b's frame measurement goes.**
->
-> ⚠ **TIER 8 WAS RE-SCOPED BY THE USER, 2026-08-16 - three cuts and one new spec.** U35e loses its
-> skid marks (*"סימני צמיגים נמחק זה לא מענין אותי"*), U35f is **dropped** (*"עבודות צד גם לא מעניין
-> תוריד"*), U35g is **promoted out of backlog with a design of the user's own** - an open garage built
-> in Blender where you paint **the car you arrived in** and drive out in that colour - and U35h keeps
-> its slot with a census attached. See the rows and the decisions log.
->
-> ⚠ **THE BATCH PLAY-TEST IS OFF - the user reversed it, 2026-08-16, later the same day again:**
-> *"ברור, אנחנו צריכים לבדוק אחרי כל פיצ'ר כן."* **Every U35 sub-unit is play-tested by the user at
-> its own boundary**, exactly as `CLAUDE.md`'s "autonomous units, one checkpoint each" always said -
-> the one-batch-at-the-end reordering earlier today is dead and is recorded in the decisions log
-> rather than deleted, so it cannot be rediscovered as the plan.
->
-> The reason it was reversed is the reason it should have been: **a ragdoll is judged with eyes and I
-> have none.** Four features stacked on a body whose knees bend the wrong way is four features to
-> re-check, and the frame-cost half of it compounds the same way.
->
-> **So each sub-unit lands as `built`, is played by the user, and only then does the next one start.**
-> The state after a good play-test is still not `done` - it is
-> **`built - user-confirmed, awaiting U30b`** - because rule 3(a) puts the frame measurement on the
-> Player, which does not exist yet. That is the only thing U30b still owes them.
->
-> **Why the old "build → baseline → features" trap does not bite here:** every U35 addition ships
-> behind a switch whose off state IS today's game (Tier 8, rule 2). So U30b's baseline is taken on
-> the Player with everything off - identical to what it would have measured before U35 - and each
-> feature is then toggled on alone for its delta. The order is now:
->
-> ~~U35a (play-test)~~ ✅ → ~~U35b (play-test)~~ ✅ → **U35c - BUILT, play-test pending** → ~~U35d~~ **DROPPED 2026-08-17** → U35e (play-test) →
-> U30a (build) → U30b (baseline with all off, then per-feature deltas; anything over budget is tuned
-> or cut) → record the video → U30c (strip the debug keys, LAST, because they are how the recording
-> reaches every feature).** ~~U35f~~ is dropped; **U35g and U35h are the backlog** behind all of that.
->
-> **U30a's own note, still true when it comes:** U30 was split into a/b/c because a build is a
-> correctness job, a perf pass is a measurement job, and stripping debug keys is a shipping job.
-> Nothing in this port has ever left the Editor - a Player is a different renderer path, a different
-> memory ceiling and a different input stack, and it is the first place any of that is testable. U15
-> is the standing warning that the obvious answer (streaming, LODs) can be the wrong one.
->
-> **Tier 7 is TWO units now: U30 and U32.** U31 (iOS/iPad) is **dropped by the user, 2026-08-16** -
-> *"זה לא רלוונטי להגשה."* The iOS module stays installed and unused; nothing is to be ripped out.
->
-> **What is deliberately NOT in the port:** the radio (U27, network dependency) and the dance's
+> **What is deliberately NOT in the port:** the radio (dropped 2026-08-17, above) and the dance's
 > tappable arrows (dropped 2026-08-16 - and with U31 gone its last trigger went too). Both are in
-> **Deferred** with their triggers.
+> **Deferred** with their history.
 >
 > *Ledger audited 2026-08-16: the U28b and U33 scene-rig debts are closed, a duplicated section and
-> four malformed table rows are fixed, and the open-work census below is complete as of that date.*
+> four malformed table rows are fixed. Open-work census re-cut 2026-08-17 by the five decisions above.*
 
 **U29 IS DONE AND USER-CONFIRMED (2026-08-16).** *"looking good."* The roster is Joe, Jody and
 David; the pick dresses the player AND the stage dancer, and the character screen got the studio
@@ -260,7 +242,12 @@ Drive out of the spawn car park (it has **no NavMesh within 10 m**, so she falls
 straight lines there and it is the wrong place to judge her), get out on a street, press **`P`** for
 one star, and wait ~20-30 s for the cruiser to drive over from the station.
 
-### U35d-pre, 2026-08-17 - the police can catch you in a vehicle - BUILT, AWAITING PLAY-TEST - `33420c8`
+### U35d-pre, 2026-08-17 - the police can catch you in a vehicle - CLOSED AS SUPERSEDED, no play-test of its own - `33420c8`
+
+> **Taken off the pending list by the user, 2026-08-17** - *"u35d-pre גם אפשר להוריד אמרנו שיורדים
+> מהרמפה."* It is not a code removal: **U35d-pre-3 is a rewrite of this ramp into relative terms and
+> rests on the pull-over mechanism this unit built**, and the user confirmed pre-3 in the same
+> message. Kept below because the reasoning is the reasoning pre-3 inherited.
 
 **The user's report:** *"אנחנו צריכים לוודא שהמשטרה תופסת גם אם אני בתוך הרכב… כלומר שתפיסה תהיה גם אם
 אני בתוך אופנוע / רכב."* It is not a tuning complaint - **an in-vehicle arrest was unreachable**, and
@@ -632,7 +619,7 @@ paint` → pick blue → the car goes blue behind the menu → Done → drive of
 quit to title, `Continue` → still blue. Then approach on foot: shutter opens, prompt says drive a
 car here.
 
-### U35d-pre-3, 2026-08-17 - the in-vehicle arrest was measured against the wrong thing - BUILT, MEASURED, AWAITING PLAY-TEST - `d6cc611`
+### U35d-pre-3, 2026-08-17 - the in-vehicle arrest was measured against the wrong thing - DONE, USER-CONFIRMED - `d6cc611`
 
 **The user's report, the fourth on this feature:** *"שמתי לב שאם אני יוצא מהרכב זה תופס ישר, בוא
 נעשה שיש busted גם אם אני בתוך האוטו / על האופנוע."* Get out and it busts at once; stay in and it
@@ -734,7 +721,12 @@ almost nothing - the time was never being spent driving. See the memory files
 `cop-wedges-leaving-the-station-bay` and `corner-limiter-throttles-the-approach`, and note that one
 plausible fix (capping egress speed) made the stall **five times worse** and was reverted.
 
-### U35c, 2026-08-17 - police helicopter + GPS route + a police-response fix - BUILT, AWAITING PLAY-TEST
+### U35c, 2026-08-17 - police helicopter + a police-response fix - DONE, USER-CONFIRMED (the GPS half CUT)
+
+> ✅ **USER-CONFIRMED 2026-08-17**, and **halved in the same message**: the road route is deleted
+> from the game - *"תוריד את הקו התכלת מהמפה, לא צריך את הפיצר הזה."* Everything below about the
+> H145 stands; everything below about the GPS line is history, not behaviour. What was removed and
+> what deliberately stayed is in RESUME HERE.
 
 Three things landed, and the third was not in the plan - the user reported it mid-build.
 
@@ -779,7 +771,9 @@ overtake cannot help a car that has not got moving yet. So:
 - **The chase numbers are untouched.** `MaxSpeed` 20.5 and the rubber band are what keep a pursuit
   beatable once a cop can see you, and the complaint was about arrival, not about escape.
 
-**④ The GPS route.** `GpsRoute` runs the U19 A\* once for the map, at the cops' own 0.25 s cadence,
+**④ The GPS route - ✂ REMOVED FROM THE GAME 2026-08-17 at the user's request** (*"תוריד את הקו
+התכלת מהמפה"*). The paragraph is kept as the record of what was built and deleted; **none of it is in
+the build.** `GpsRoute` ran the U19 A\* once for the map, at the cops' own 0.25 s cadence,
 replanning only when the objective drifts >5 m or the player leaves the corridor by >15 m. Drawn on
 `MapView` as a two-stroke Painter2D polyline under every pin. `Settings → Display → GPS Route`,
 default **on**, pull-only. Mission pins opt in through a new `MapPoi.Guide`, because kind alone
@@ -1050,7 +1044,7 @@ again 0.35 s later. **The heading was the one thing flagged to watch** - the bik
 crash began with, so a head-on into a wall stands you back up facing that wall - and it was not
 raised, so it stays as built. One line in `PlayerRagdoll.Remount` if it ever reads badly.
 
-### Everything else that is open, audited 2026-08-16
+### Everything else that is open, audited 2026-08-16, re-cut 2026-08-17
 
 This list was re-derived from the whole ledger in one pass, so it is the census - if something is not
 here or in **Deferred**, it is not open. **As of 2026-08-16 every unit on it is struck through: what
@@ -1071,8 +1065,13 @@ remains is Tier 7 and the two systems deliberately not ported.**
   the swell swallows, and the ski is a long hull with a rider on it that the eye reads as planing
   across chop rather than bobbing in it. This is a judgment, not a measurement - if it ever looks
   wrong at a different sea state, `SeaSurface.Height` is already built and it is a one-line move.
-- **The radio was never ported, and it has no row anywhere. Investigated and then put ⏸ ON HOLD by
-  the user, 2026-08-16** - *"בינתיים נכניס את הסעיף הזה על hold. אולי נממש בהמשך."* It was
+- ~~**The radio.**~~ ✂ **DROPPED BY THE USER, 2026-08-17** - *"רדיו - גם תוריד, לא כזה חשוב."* It
+  had been ⏸ on hold since 2026-08-16 (*"בינתיים נכניס את הסעיף הזה על hold"*) and it is now closed:
+  **not pending work, and not to be re-proposed.** The measured research below stays on the page
+  because it cost a session to get and it is the honest answer to "why is there no radio", but
+  nothing waits on it. **The idle half stays in the build and is NOT to be ripped out** - the `Radio`
+  mixer group, `GameAudio.Bus.Radio` and `config.radio` cost nothing and removing them only makes a
+  private retry harder. **Original entry, as history:** It was
   reopened, measured in the live Editor, and found **buildable**: Unity's own
   `GetAudioClip(streamAudio)` is proven dead on a live stream (FMOD needs a size a stream never
   has), and the answer is a pure-C# MP3 decoder into an `AudioClip` PCM callback with a local-clip
@@ -1091,11 +1090,18 @@ remains is Tier 7 and the two systems deliberately not ported.**
   *"הפיצר של המזג אוויר תוריד אותו הוא לא מעניין אותי כבר יותר. לא נממש אותו."* Nothing was ever
   built for it, so the cut costs no work and removes the largest un-measured frame risk left in
   Tier 8 (the row's own perf note named it). `U35d-pre` - the in-vehicle arrest, `33420c8` - keeps
-  its name and is untouched; it was named for its slot, not for weather. **Tier 8's remaining
-  scheduled work is now U35e alone.**
-- **Tier 8 is re-scoped, 2026-08-16, by the user.** Open: **U35c**, ~~**U35d**~~ (dropped a day
+  its name and is untouched; it was named for its slot, not for weather. ~~**Tier 8's remaining
+  scheduled work is now U35e alone.**~~ **Overtaken 2026-08-17 - see the next bullet.**
+- **TIER 8 IS CLOSED, 2026-08-17.** Four decisions in one message from the user: **U35c and
+  U35d-pre-3 are user-confirmed**, **U35e is DROPPED** (*"we decieded we do not need that so do not
+  mention it again"*), **U35d-pre needs no play-test of its own** (superseded by pre-3, which is a
+  rewrite of its ramp - it is off the list, not out of the code), and **the GPS route is REMOVED from
+  the game** (*"תוריד את הקו התכלת מהמפה, לא צריך את הפיצר הזה"*), taking U35c down to the helicopter
+  alone. **What is left in Tier 8 is U35h in backlog and four confirmed units awaiting only U30b's
+  frame measurement.** No Tier 8 unit is scheduled.
+- **Tier 8 is re-scoped, 2026-08-16, by the user.** ~~Open: **U35c**, ~~**U35d**~~ (dropped a day
   later, see above), **U35e** (stunt jumps +
-  Cinemachine - **skid marks cut**), then backlog **U35g** (the garage, now with its own design) and
+  Cinemachine - **skid marks cut**)~~ - **all resolved by the 2026-08-17 bullet above**, then backlog **U35g** (the garage, now with its own design) and
   **U35h** (breakables). ~~**U35f - side jobs**~~ is **DROPPED** - *"עבודות צד גם לא מעניין תוריד"*.
   It was already the weakest row on the "the web could not have done it" test and the ledger said so
   when it was written, so this cut agrees with the selection rule rather than fighting it. Recorded
@@ -1154,8 +1160,10 @@ proudest of, which has no counterpart in the original: the **offline pipeline**,
 graph, route graph, roof spots, NavMesh). Runtime casts no rays for any of it.
 
 **Order, and the one sequencing trap:** ~~U30a (build) → U30b (perf baseline) → Tier 8 showcase
-features~~ **REORDERED by the user 2026-08-16: U35a-e first, THEN U30a → U30b (baseline with all
-switches off, then per-feature deltas)** → record → U30c (strip the debug keys). ⚠ The same day's
+features~~ **REORDERED by the user 2026-08-16: the Tier 8 features first, THEN U30a → U30b (baseline
+with all switches off, then per-feature deltas)** → record → U30c (strip the debug keys).
+**As of 2026-08-17 the Tier 8 half of that is finished** - U35a/b/c/g are confirmed and U35d/e/f are
+dropped - so what is left of this order is exactly **U30a → U30b → record → U30c**. ⚠ The same day's
 second reorder - ~~"one batch play-test at the end of the five"~~ - was **reversed by the user within
 the hour**: each sub-unit is played at its own boundary. Kept struck through rather than deleted,
 because a plan that was live for an hour is a plan somebody can rediscover as current.
@@ -3433,9 +3441,8 @@ of them, and the user set the third in the same breath:**
 
 **Order: U35a → U35b → U35c first** (the most GTA per hour, and all three ride on systems that already
 exist), ~~**then U35d** (the best-looking on video and the riskiest for the frame)~~ **- U35d is
-DROPPED 2026-08-17**, **then U35e** (the
-most fun to play, and it installs the camera the recording wants). **~~U35f~~ is DROPPED and U35g-h are
-the backlog** (re-scoped by the user 2026-08-16 - see the rows) - after the
+DROPPED 2026-08-17**, ~~**then U35e**~~ **- U35e is DROPPED 2026-08-17 too**. **~~U35f~~ is DROPPED, U35g
+is BUILT and confirmed, and U35h is the only backlog row left** (re-scoped by the user 2026-08-16 - see the rows) - after the
 five, only if the frame and the calendar allow, and never before the video is recorded. **Slot: BEFORE
 U30a/U30b, and the user play-tests EACH one at its own boundary** - they reordered it to one batch at
 the end on 2026-08-16 and reversed that the same day (*"ברור, אנחנו צריכים לבדוק אחרי כל פיצ'ר כן"*),
@@ -3449,9 +3456,9 @@ pollute it. A sub-unit the user has played is **`built - user-confirmed, awaitin
 | U35 | The showcase additions - parent row | **planned 2026-08-16, list chosen** | | **The user's own idea and their framing:** *"סשן של 5 פיצ'רים מגניבים, לראות מה אני יכול עוד להוציא מ-Unity."* The list is now the eight rows below; this row is their parent and carries the rules above. ⚠ **The sequencing trap, and it is the same one U19b paid for:** a feature added after the perf baseline invalidates it, so the frame gets re-checked between the last landed sub-unit and the recording. Precedent for what a good row looks like is already in this tier and in the standing remark: real A\* pursuit against the web's five disconnected graph islands, Rigidbody wrecks against a 30-vehicle Rapier budget, `dspTime` against `audioElement.currentTime` |
 | U35a | Ragdolls - pedestrians and the player | **built - user-confirmed, awaiting U30b** | `6b856ab` + `abd69fe` | ✅ **USER-CONFIRMED 2026-08-16** - *"עובד טוב"*, **and its bike-dismount follow-up (`abd69fe`) was played and confirmed the same day** - *"U35a עובד טוב אתה יכול לסמן כן"*, so the throw→dismount→stand-up→remount loop is closed and the heading concern flagged for the play-test was not raised. Not `done` only because rule 3(a)'s frame measurement is on a Player that does not exist yet. **BUILT 2026-08-16. Its own section is above** - what is in it, the three faults building it found (Optimize Game Objects deletes the bones a ragdoll needs; `Interpolate` on a kinematic body drags every bone to the prefab pose; a kinematic body's PhysX pose is stale when it goes dynamic), the measurements, and the one hinge sign to look at in the play-test. `Build Ragdolls` writes 11 bodies / 10 joints / ~64 kg into six pedestrians and three player characters; `Settings → Gameplay → Ragdolls` default **on**; cap 4 with the oldest freezing; player thrown by a bike crash over 8 m/s or a fall over 5 m (the `K` debug key was removed the same day at the user's request - see the section), stand-up is a bone blend rather than a clip. ⚠ Perf debt for U30b: the six pedestrian FBX lost Optimize Game Objects, which is ~68 transforms per live body. **The original plan follows, unchanged, because every line of it survived contact:** **The argument:** the web's run-over is a canned Mixamo clip (`Hit_By_Car`, root motion harvested - memories `mixamo-pads-one-shot-clips`, `root-motion-on-a-scaled-child`) because Rapier on the main thread has no budget for a 15-body articulated rig per victim; PhysX does. **Mechanism:** the crowd prefabs are Humanoid, so Unity's **Ragdoll Wizard** (`GameObject → 3D Object → Ragdoll…`) builds the capsule/joint chain once per body type; at `RunOverSystem`'s hit, `RunOverReaction` disables the Animator, enables the rigidbodies and injects the car's velocity into the pelvis and the struck limb, then after N s the body settles and is recycled exactly as the clip's victims are today. **The player too:** thrown from the bike / a car door at speed, or a fall from a roof past a threshold, → ragdoll → `Getting_Up` (Mixamo, one more clip through the U29 importer) → control returns. **Off state:** a `Settings → Gameplay → Ragdolls` toggle, default **on** is the one exception argued for here - it replaces a reaction rather than adding a look, and it is the single most GTA thing on the list; if it does not read right the toggle restores the clip. **Perf budget:** a hard cap on simultaneous ragdolls (start at 4, oldest one freezes to a static pose), joints on `Solver Iterations` default, no ragdoll on the LOD-2 body (U16's `LODGroup` note applies - the ragdoll rig lives on ONE mesh). **Blender:** none. **Physics numbers are re-derived by feel (port rule 2)** - nothing to port anyway. Reuses: `RunOverSystem`, `RunOverReaction`, `Screams`, `Blood`, `CrashSensor` for the player's ejection |
 | U35b | Vehicle damage - deform, smoke, fire, parts that come off | **built - user-confirmed, awaiting U30b** | `bb51c29` | ✅ **USER-CONFIRMED 2026-08-16.** Not `done` only because rule 3(a)'s frame measurement is on a Player that does not exist yet. **BUILT 2026-08-16. Its own section is above** - the three layers, the switch, the fuse, and the three findings (the Mustang is eighteen SKINNED meshes whose vertices live in bind space; the contact normal points INTO the struck body, so the first dent bulged the nose outward by 0.136 m; the .glbs group by material, which is why layer ③ needed no Blender and why the Mustang alone sheds nothing). `Settings → Gameplay → Vehicle Damage` = Off / Visual / **Off by default**. Two additions the user asked for during the play-test, both landed: **a wrecked car cannot be entered** (`CarController.TryEnter` refuses, `EntryRefusal` says why on the same HUD line that offers the key - U28's socket) and **the explosion announces itself** through `MissionHud.ShowHint`, for the player's own car only. ⚠ Perf debt for U30b: up to 4 cars holding cloned meshes (~2.8 MB for a Tesla shell), 3 emitters, 8 shed parts - `DamageBudget` is the knob. **The original plan follows, unchanged where it survived contact:** **The argument:** the web's cars are kinematic and a crash is a number; U34 already made collisions cost a star and a thump. This makes them cost the car. **Mechanism, three layers, each independently switchable:** ① **vertex deformation** on the body mesh around the contact point (`CrashSensor.Impact` already carries the point, the closing speed and `HitVehicle` - U34) - a radius/strength curve, mesh readable at import, capped total deform so a car never turns inside-out; ② **health** per car → engine smoke (URP particles, pooled, ONE emitter per damaged car) at 50 %, fire at 20 %, and at 0 an explosion: radial impulse to everything within R, the U34 `LotCar` promotion path already handles static neighbours waking up, and the wanted level pays a star through the existing crime hooks; ③ **detachable parts - this is the Blender work:** split the Mustang's (then each car's) front/rear bumper, bonnet and doors into separate objects in Blender, re-export, and give each a `FixedJoint` with a `breakForce` - a hard hit sheds the bumper as its own rigidbody that despawns after 20 s. **Off state:** `Settings → Gameplay → Vehicle Damage` (Off / Visual / Full), default **Off**; Off touches no mesh and spawns no emitter. **Perf budget:** deform writes only the struck car's mesh and only on impact (never per frame); one particle system per damaged car, at most 3 live; detached parts are pooled and capped at 8. Texture/tri budget for the re-exported cars must not exceed today's - the split is topology, not detail. **Also on the list here:** the cop cruiser is a car built by the same `CarBuilder`, so it inherits all three for free, and traffic wrecks (`TrafficCar.Wrecked`) get smoke as a byproduct. **Careful:** the `preRotation` seam and every seat/rider scale (memory `every-seat-carries-a-rider-scale`) survive a re-export only if the object origins do not move in Blender - export from the same file, split in place |
-| U35c | Police helicopter at 3★ + GPS route on the map | **built - AWAITING PLAY-TEST** | `5ec82a8` | ✅ **BUILT 2026-08-17. Its own section is above** - the three findings that cost a render each, the police-response fix the user asked for mid-build, and the play-test recipe. **The plan said a cop-coloured `CarPaint` twin of the Huey and the user rejected that** - *"המסוק של המשטרה צריך להראות כמו מסוק של משטרה"* - so the H145 was MODELLED IN BLENDER from two reference photographs, 5.6k tris, zero textures, approved at three checkpoints. `PoliceTuning.HeliStars` = 3 (0 = never); `Settings → Display → GPS Route` default on. ⚠ Perf debt for U30b: ONE extra shadow-casting light at 512, only while airborne - the only new light in the port, and it gets its own delta. **Original row follows:** **Two arguments in one unit, both riding on things that exist.** ① **The heli:** at three stars a police Huey (the U21 model, `HelicopterController`'s flight, a cop-coloured `CarPaint` twin) lifts off from the station, holds a hover slot above and behind you, and pins you with a **real `Spotlight`** - URP spot with a **cookie** and **shadows** - that tracks the player on the ground; the rotor sound already exists (`RotorSound`), so does the siren bus. Three.js in a browser does not do a moving shadowed spotlight over a city at frame rate; URP does it as one additional light. Reconcile through `PoliceSystem` like a fourth car (Returning mode when the star drops), and it never lands: no seat, `enterable=false`, no arrest of its own - it exists to make the third star feel like the third star. ② **The GPS line:** the objective on the minimap and the full map draws as a **route along the roads**, not a straight line - `RoutePlanner` + `RouteGraph` are the U19 A\* the cops already drive on, and the web build's traffic graph was five islands, so it *could not* have drawn this. Re-planned only when the player leaves the current path by > 15 m or the objective moves; drawn on `MapView` as a polyline (UI Toolkit `generateVisualContent`, one mesh). **Off state:** the heli is gated by star count and by `PoliceTuning.HeliStars` (0 = never, ships **3**); the GPS line is `Settings → Display → GPS Route` default **on** - it is HUD, it changes no visual judgement of the world. **Perf budget:** ONE extra shadow-casting light, at a 512 shadow map, only while the heli is airborne - measure it against the U30b baseline explicitly, it is the only new light in the port; the route replan is off the hot path (0.25 s cadence, same as the cops). **Blender:** none - unless a searchlight housing under the Huey's nose is wanted, which is a five-minute mesh. Reuses: `HelicopterController`, `Rotor`, `RotorSound`, `Siren`, `PoliceSystem`, `Heat`, `RoutePlanner`, `MapView`/`GameMap` |
+| U35c | Police helicopter at 3★ (~~+ GPS route on the map~~ CUT) | **built - user-confirmed, awaiting U30b** | `5ec82a8` | ✅ **USER-CONFIRMED 2026-08-17, and the GPS half was CUT by the user in the same message** - *"תוריד את הקו התכלת מהמפה"*. `GpsRoute.cs`, `MapView.SetRoute`/`DrawRoute`, `Progress.GpsRouteOn`, the Settings row and `MapRegistry.NearestGuide` are deleted; `RoutePlanner`/`RouteGraph` stay because the police route on them. **So the unit ships as the helicopter alone**, and not `done` only because rule 3(a)'s frame measurement is on a Player that does not exist yet. **BUILT 2026-08-17. Its own section is above** - the three findings that cost a render each, the police-response fix the user asked for mid-build, and the play-test recipe. **The plan said a cop-coloured `CarPaint` twin of the Huey and the user rejected that** - *"המסוק של המשטרה צריך להראות כמו מסוק של משטרה"* - so the H145 was MODELLED IN BLENDER from two reference photographs, 5.6k tris, zero textures, approved at three checkpoints. `PoliceTuning.HeliStars` = 3 (0 = never); ~~`Settings → Display → GPS Route` default on~~ - removed with the GPS half. ⚠ Perf debt for U30b: ONE extra shadow-casting light at 512, only while airborne - the only new light in the port, and it gets its own delta. **Original row follows:** **Two arguments in one unit, both riding on things that exist.** ① **The heli:** at three stars a police Huey (the U21 model, `HelicopterController`'s flight, a cop-coloured `CarPaint` twin) lifts off from the station, holds a hover slot above and behind you, and pins you with a **real `Spotlight`** - URP spot with a **cookie** and **shadows** - that tracks the player on the ground; the rotor sound already exists (`RotorSound`), so does the siren bus. Three.js in a browser does not do a moving shadowed spotlight over a city at frame rate; URP does it as one additional light. Reconcile through `PoliceSystem` like a fourth car (Returning mode when the star drops), and it never lands: no seat, `enterable=false`, no arrest of its own - it exists to make the third star feel like the third star. ② **The GPS line:** the objective on the minimap and the full map draws as a **route along the roads**, not a straight line - `RoutePlanner` + `RouteGraph` are the U19 A\* the cops already drive on, and the web build's traffic graph was five islands, so it *could not* have drawn this. Re-planned only when the player leaves the current path by > 15 m or the objective moves; drawn on `MapView` as a polyline (UI Toolkit `generateVisualContent`, one mesh). **Off state:** the heli is gated by star count and by `PoliceTuning.HeliStars` (0 = never, ships **3**); the GPS line is `Settings → Display → GPS Route` default **on** - it is HUD, it changes no visual judgement of the world. **Perf budget:** ONE extra shadow-casting light, at a 512 shadow map, only while the heli is airborne - measure it against the U30b baseline explicitly, it is the only new light in the port; the route replan is off the hot path (0.25 s cadence, same as the cops). **Blender:** none - unless a searchlight housing under the Huey's nose is wanted, which is a five-minute mesh. Reuses: `HelicopterController`, `Rotor`, `RotorSound`, `Siren`, `PoliceSystem`, `Heat`, `RoutePlanner`, `MapView`/`GameMap` |
 | ~~U35d~~ | ~~Weather - rain, wet roads, lightning, and grip that answers~~ | **DROPPED by the user 2026-08-17** | | ✗ *"הפיצר של המזג אוויר תוריד אותו הוא לא מעניין אותי כבר יותר. לא נממש אותו."* **Never started - no `Weather.cs`, no emitter, no scene object, nothing to rip out**; the row was `todo` and is now closed. It was also the row this ledger itself called *"the one most likely to fail rule 3"* against a 20.7 ms frame, so the cut removes the largest un-measured perf risk left in Tier 8 - it agrees with the selection rule rather than fighting it. **Naming note: `U35d-pre` (the in-vehicle arrest, `33420c8`) keeps its name and is unaffected** - it was named for the slot it landed in, not for weather. The plan is struck through, not deleted, so nobody rebuilds it. ~~**The argument:** rain that changes how the car drives. Visuals alone the web could fake; a `WheelFrictionCurve` whose stiffness drops with wetness is a physics engine doing the work. **Mechanism:** a `Weather` component beside `DayNightCycle` on the same object, with a `Wetness` 0-1 that ramps in over ~30 s: **rain** = one URP particle system parented to the camera (pooled, ~600 drops, soft-particle off, no collision - the drops die at a fixed height), splashes as a second cheap emitter under the camera's ground point; **wet roads** = the road/pavement materials get their `_Smoothness` lerped up and `_BaseColor` darkened by `Wetness` via a `MaterialPropertyBlock` per district renderer (no material duplication - U15's texture memory lesson stands), which gives sky and neon reflections for free under URP; **lightning** = a 2-frame flash on the main light's intensity + a `Thunder` clip on the ambient bus with a distance delay; **grip** = every `CarWheel`'s forward/sideways stiffness × `(1 - 0.35 × Wetness)`, the bike more; ties into U33: rain darkens `SkyPalette`'s current stop by a fixed factor rather than adding a fourth palette. **Off state:** `Settings → Display → Weather` = Off / Rain / Random, default **Off**; Off never instantiates the emitter and writes no property block. **Perf budget - this is the row most likely to fail rule 3:** U33 already cut Bloom against a 20.7 ms frame; rain particles + darker sky must be measured on the Player, and the emitter has a `maxParticles` that is a tuning field, not a constant. If reflections on wet roads need a reflection probe or SSR, **they are cut** - the smoothness lerp alone reads as wet. **Blender:** none. **Note:** the sea (`SeaSurface`) and the ski get no rain treatment; the sea already moves. **Reuses:** `DayNightCycle`, `SkyPalette`, `Ambient`, `CarWheel`, `MotorcycleController`~~ |
-| U35e | Stunt jumps + a Cinemachine camera | todo | | ⚠ **RE-SCOPED BY THE USER 2026-08-16: the skid marks are CUT** - *"סימני צמיגים נמחק זה לא מענין אותי"*. What that removes is layer ① below and nothing else; **the handbrake goes with it** (it existed to make the marks worth drawing), so the unit is now two layers, not three, and its budget loses the 32-segments-per-wheel trail cap entirely. Struck through rather than deleted so nobody rebuilds it from the plan. **The argument, for what is left:** `FollowCamera.cs`'s own header says *"Cinemachine earns its place when the mission…"* - this is where it earns it, and the recording benefits from every shot after. **Mechanism:** ~~① **skid marks + tyre smoke** - `TrailRenderer` per wheel, emitting only when `WheelHit.sidewaysSlip`/`forwardSlip` cross a threshold, pooled and length-capped; a small smoke emitter per wheel on hard slip; drift = handbrake (a new key, `Shift` while driving, sideways stiffness on the rear halved while held).~~ **CUT.** ② **stunt jumps** - **the Blender work: 3-4 ramps** in a Florentin register (a plank-and-scaffold ramp, a rubble ramp, a container-and-plate ramp), each < 2k tris, one 1024² atlas, placed by a `StuntJumpBuilder` menu item at hand-chosen spots off the road graph; a trigger volume at the lip fires the jump: `Time.timeScale → 0.3`, a **Cinemachine** orbital camera takes over for the airtime, and a clean landing (all four wheels down within N s, no wreck) pays the `Wallet` and stamps the jump found on the map. ③ **Cinemachine** proper - install `com.unity.cinemachine` 3.x, keep `FollowCamera` as the default (it is user-confirmed and fifteen lines), and add virtual cameras only for: jumps, the bust, mission-start reveals, and a **cinematic camera key** (`V`, GTA's) that cycles a few shots for the recording - which is what makes it *the* video unit. **Off state:** ~~skids/smoke `Settings → Display → Tyre Effects`~~ cut with layer ①; ramps are world objects, present or not by build; the `V` camera is a key. **Perf budget:** ~~trails capped at 32 live segments per wheel and 4 cars, smoke emitters pooled~~ - gone with the cut; Cinemachine adds one Brain and costs nothing while a vcam is inactive, so what is left to measure is the ramps' geometry and the `timeScale` dip. **Reuses:** `CarWheel`, `CarController`, `Wallet`, `MapPois`, `BustSequence`, `CampaignDirector` |
+| U35e | ~~Stunt jumps + a Cinemachine camera~~ | **dropped - the user's call, 2026-08-17** | | ✂ **DROPPED** - *"we decieded we do not need that so do not mention it again."* Nothing was built for it, so the cut costs no work, and with it **Tier 8 has no scheduled unit left**. Not to be re-proposed. **Old row follows as HISTORY ONLY - do not act on any of it:** **RE-SCOPED BY THE USER 2026-08-16: the skid marks are CUT** - *"סימני צמיגים נמחק זה לא מענין אותי"*. What that removes is layer ① below and nothing else; **the handbrake goes with it** (it existed to make the marks worth drawing), so the unit is now two layers, not three, and its budget loses the 32-segments-per-wheel trail cap entirely. Struck through rather than deleted so nobody rebuilds it from the plan. **The argument, for what is left:** `FollowCamera.cs`'s own header says *"Cinemachine earns its place when the mission…"* - this is where it earns it, and the recording benefits from every shot after. **Mechanism:** ~~① **skid marks + tyre smoke** - `TrailRenderer` per wheel, emitting only when `WheelHit.sidewaysSlip`/`forwardSlip` cross a threshold, pooled and length-capped; a small smoke emitter per wheel on hard slip; drift = handbrake (a new key, `Shift` while driving, sideways stiffness on the rear halved while held).~~ **CUT.** ② **stunt jumps** - **the Blender work: 3-4 ramps** in a Florentin register (a plank-and-scaffold ramp, a rubble ramp, a container-and-plate ramp), each < 2k tris, one 1024² atlas, placed by a `StuntJumpBuilder` menu item at hand-chosen spots off the road graph; a trigger volume at the lip fires the jump: `Time.timeScale → 0.3`, a **Cinemachine** orbital camera takes over for the airtime, and a clean landing (all four wheels down within N s, no wreck) pays the `Wallet` and stamps the jump found on the map. ③ **Cinemachine** proper - install `com.unity.cinemachine` 3.x, keep `FollowCamera` as the default (it is user-confirmed and fifteen lines), and add virtual cameras only for: jumps, the bust, mission-start reveals, and a **cinematic camera key** (`V`, GTA's) that cycles a few shots for the recording - which is what makes it *the* video unit. **Off state:** ~~skids/smoke `Settings → Display → Tyre Effects`~~ cut with layer ①; ramps are world objects, present or not by build; the `V` camera is a key. **Perf budget:** ~~trails capped at 32 live segments per wheel and 4 cars, smoke emitters pooled~~ - gone with the cut; Cinemachine adds one Brain and costs nothing while a vcam is inactive, so what is left to measure is the ramps' geometry and the `timeScale` dip. **Reuses:** `CarWheel`, `CarController`, `Wallet`, `MapPois`, `BustSequence`, `CampaignDirector` |
 | ~~U35f~~ | ~~Side jobs - taxi and deliveries in free roam~~ | **DROPPED by the user 2026-08-16** | | ✗ *"עבודות צד גם לא מעניין תוריד"*. **The cut agrees with the ledger's own assessment of the row** - it was written down as the weakest against the selection rule, and it is the one row here whose argument was "design, not engine". The wallet's free-roam earning gap it was going to close stays open, and that is now a known and accepted state, not an oversight. Kept struck through so it is not rediscovered as pending. **The original row follows, unbuilt:** Weakest on the "web could not" test - it is design, not engine - but the strongest on the game: the wallet today has four mission payouts as its only source and the 7-Eleven as its only sink, so free roam earns nothing. A hail-a-fare loop: a pedestrian on the pavement with a marker (they are NavMesh agents already, `CrowdSpawner`), stop beside them, they get in (the `VehicleEnterExit` seat rig, second seat), a destination pin from the POI table, a timer, a payout scaled by A\* distance (`RoutePlanner` gives the number, so the fare is honest), tip if no crash on the way (`CrashSensor`). Deliveries reuse `DeliveryMission`'s pizza flow with a random shop→door pair. Ships behind a `Settings → Gameplay → Side Jobs` toggle; whether it defaults on is argued at build time. Blender: a taxi roof sign, optional. Reuses: `CrowdSpawner`, `Pedestrian`, `VehicleEnterExit`, `MapPois`, `Payouts`, `Wallet`, `RoutePlanner` |
 | U35g | Auto shop - paint the vehicle you drove up in (and buy cars, later) | **built - user-confirmed 2026-08-17, awaiting U30b** | `df0d9fc` (asset) + `d5e2da8` (feature) | ✅ **USER-CONFIRMED 2026-08-17** - *"cool. mark this feature as done"*; not `done` only because rule 3(a)'s frame measurement is on a Player that does not exist yet. **BUILT the same day - section "④ BUILT" above: C at the service point, ten swatches, $30, click → painted → closed, persisted per config vehicle; the motorcycle IS in (its red body recolours via an atlas re-hue, the Wolt box stays teal); "color" in every string.** Spec changed by the user mid-model: the car does NOT drive in - approach → shutter animation → colour menu. **Original row follows.** ✅ **The user's verdict 2026-08-16: *"קניית רכבים - מגניב"*, plus a design of their own that changes the unit's centre of gravity** - *"תסמן לעצמך שניצור asset ב-blender של מוסך פתוח, ששם היוזר יוכל לצבוע את הרכב שאיתו הוא מגיע, כלומר לצבוע ואז הרכב באמת יצא עם הצבע שהיוזר בחר."* **Three things follow from that sentence and none of them are the old row.** ① **The subject is the car you ARRIVED in**, not a showroom turntable - so the flow is drive in → the garage detects the vehicle you are sitting in → pick a colour → **drive out in it**. That deletes the teleport/interior pattern from the plan: it is an **OPEN garage** (the user's word - *מוסך פתוח*), a world structure you drive into, not a `U13 Interior` scene swap. ② **The paint must PERSIST on that specific vehicle** and survive leaving the garage, re-entering the car, and a reload - `CarPaint` writes `baseColorFactor` (memory `gltfast-basecolorfactor-gamma`) and the store is `PlayerPrefs` beside `Progress`, keyed **per vehicle**, not one global colour. ⚠ **The trap to design against before writing a line:** U13's lot cars deliberately share paint materials so they batch (see `TrafficLightPole`'s note on the same mistake) - a per-car colour must not hand every car in the world its own material instance. ③ **Blender is now REQUIRED, and it is this unit's asset**: an open garage/workshop in the Florentin register - roller shutter up, a bay, a sign - through the U15 gate (POT block-compressed textures, a tri count written here before it is wired, eyeballed in the Game view by the user first). **Buying cars stays in the row** as the second half and the money sink; the painting is the half the user asked for, so it is the half that ships first if only one does. **Reuses:** `CarPaint`, `CarSpawner`, `VehicleEnterExit` (to know what you drove in), `Wallet`, `Progress`, `MapPois` for the pin. **Original row, kept because parts of it survive:** Money sink number two, and a showcase of the config's own paint plumbing, so a colour picker is a UI over a system that exists. ~~A garage interior (the `Interior` teleport pattern from U13) with the four cars on turntables lit by U29's three-light preview rig~~ - superseded by the open-garage design above; the U29 studio rig can still light the bay. Blender: rims / a spoiler as optional bolt-ons, only if U35b's split export already exists (same file, same origins) |
 | U35h | Breakable street props | **backlog - census taken 2026-08-16, and the answer is ONE prop** | | **The user asked the right question first** - *"צריך לוודא אם יש אופציה לקחת assets קיימים במשחק כמו הרמזור או ספסל וכדומה ולעשות שהם יעפו יהיו שבירים"* - and it was measured against the tree rather than guessed. **The answer, and it is half good news:** ✅ **The traffic light IS available and it is a free win.** `Assets/Models/Props/traffic-light.glb` is the port's only standalone prop asset, and `WorldBuilder.Traffic` places **233 poles**, each its own GameObject under its own probe, each already carrying a `CapsuleCollider` sized by `lightsCfg.PoleColliderRadius`. That is exactly the shape `Breakable` needs - a static collider that already receives the U34 `LotCar` callback - so a pole that gets rammed can fall with no new asset at all. ⚠ **One thing to handle that a bin would not have:** a pole is a live `TrafficLightPole` driven by `TrafficLightSystem`, and its lamps are a three-submesh quad on SHARED materials so 233 poles batch. A knocked-over pole must go dark and drop out of its intersection's phase group (`TrafficLightSystem` counts poles per axis) - a felled light that keeps cycling green is worse than no feature - and it must not be given its own material instance on the way down. ✗ **Benches, bins, bollards, café chairs, bus shelters DO NOT EXIST as separate objects.** Grepped: no such node name appears anywhere in `Assets/Editor` or `Assets/Scripts`, and `Assets/Models` holds only `City/` (the eight district .glbs), `Places/`, `Vehicles/`, `Characters/` and a one-file `Props/`. Any street furniture in this game is **baked into the district meshes** - downtown is literally one mesh (memory `downtown-is-one-mesh`), so there is nothing to name, detach or knock over. **So the unit is now two clearly-priced halves:** ① **the poles, cheap, no Blender, do this one first**; ② **everything else is new Blender work**, not a reuse - and it also has to be PLACED, which is a `StuntJumpBuilder`-style menu item and hand-chosen spots. **Blender (half ② only):** split each prop into 2-5 pieces with sane origins, < 500 tris each, one shared 1024² atlas; the Sketchfab props' hidden `Collider` node (memory `sketchfab-collider-proxy-node`) must be stripped in the same pass. Ships as world objects; the number placed is the perf knob (start at 40, measure). Cheap, adds life, and the wanted level should NOT count it - a bin is not a crime, and neither is a traffic light |
@@ -3480,6 +3487,11 @@ with a vague note is the one failure mode this whole system exists to prevent.
 **Not** the decisions log: these are open, and picking one up needs no permission. Each says what
 would trigger it. A `wip` unit is work half-done; this is work deliberately not started.
 
+- ✂ **THE RADIO IS DROPPED BY THE USER, 2026-08-17** - *"רדיו - גם תוריד, לא כזה חשוב."* **Everything
+  below is research, not a plan.** It is kept because it cost a session to measure and it is the
+  answer to "why is there no radio", but it is not pending work and is not to be re-proposed. The
+  idle `Radio` mixer group, `GameAudio.Bus.Radio` and `config.radio` stay in the build. **Original
+  entry follows.**
 - **The radio is the one web system with no port and no row - and the TRIGGER FIRED, 2026-08-16.**
   The user asked for it directly: *"אני רוצה שכן נבדוק אם יש אופציה לממש את הרדיו."* It was deferred
   during U27 as the only system carrying a network dependency; twelve of the web's thirteen audio
@@ -3653,6 +3665,17 @@ would trigger it. A `wip` unit is work half-done; this is work deliberately not 
 ## Decisions log
 
 Dated one-liners. These are settled - do not re-litigate them without the user reopening.
+
+- **2026-08-17** - **TIER 8 IS CLOSED: two confirmations and four cuts, in one message.** ✅ **U35c**
+  (police H145) and ✅ **U35d-pre-3** (the in-vehicle arrest) are user-confirmed. ✂ **The GPS route
+  is REMOVED from the game** - *"תוריד את הקו התכלת מהמפה, לא צריך את הפיצר הזה"* - deleted rather
+  than defaulted off (`GpsRoute.cs`, `MapView.SetRoute`/`DrawRoute`, `Progress.GpsRouteOn`, the
+  Settings row, `MapRegistry.NearestGuide`); `RoutePlanner`/`RouteGraph` stay, the police drive on
+  them. ✂ **U35e (stunt jumps + Cinemachine) is DROPPED** - *"we decieded we do not need that so do
+  not mention it again"* - so **no Tier 8 unit is scheduled at all**. ✂ **The radio is DROPPED**, not
+  held - *"רדיו - גם תוריד, לא כזה חשוב."* ✂ **U35d-pre needs no play-test**, superseded by pre-3;
+  that is a list removal, not a code removal - pre-3 is a rewrite of its ramp. **Next action is
+  U30a.**
 
 - **2026-08-17** - **Police deploy NEAR the player, the web's way; U19's "always from the station"
   is reversed.** Third user report on the same feature (*"הפיצר של המשטרה פשוט גרוע… המשטרות פשוט לא

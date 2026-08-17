@@ -38,7 +38,6 @@ namespace TheBlock.Game
         private const string UnlockedKey = "theblock.unlocked";
         private const string CharacterKey = "theblock.character";
         private const string RadarKey = "theblock.radar";
-        private const string GpsRouteKey = "theblock.gpsroute";
         private const string DayNightKey = "theblock.daynight";
         private const string SoundKey = "theblock.sound";
         private const string RagdollKey = "theblock.ragdolls";
@@ -90,29 +89,6 @@ namespace TheBlock.Game
             set
             {
                 PlayerPrefs.SetInt(RadarKey, value ? 1 : 0);
-                PlayerPrefs.Save();
-            }
-        }
-
-        /// <summary>
-        /// Settings → Display → GPS Route (U35c): does the map draw a road route to the objective?
-        /// <b>Default TRUE</b>, and it is the one U35 addition that may ship on without arguing with
-        /// the Tier 8 off-switch rule - that rule exists to protect a VISUAL judgement of the world,
-        /// and this draws on the HUD only. Nothing in the scene, the lighting or the framing moves.
-        ///
-        /// A PREFERENCE, like <see cref="RadarOn"/>, so it survives <see cref="Reset"/>.
-        ///
-        /// <b>Pull-only, deliberately.</b> Unlike the radar there is no boot-time push and no live
-        /// object to write to: <c>GpsRoute.Tick</c> reads this at the top of every tick and returns
-        /// early when it is false. One reader means the preference and the drawing cannot drift, and
-        /// turning it off costs an A* search rather than merely hiding its result.
-        /// </summary>
-        public static bool GpsRouteOn
-        {
-            get => PlayerPrefs.GetInt(GpsRouteKey, 1) != 0;
-            set
-            {
-                PlayerPrefs.SetInt(GpsRouteKey, value ? 1 : 0);
                 PlayerPrefs.Save();
             }
         }
