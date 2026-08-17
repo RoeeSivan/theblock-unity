@@ -156,9 +156,19 @@ namespace TheBlock.EditorTools
                 SetDistrictStaticFlags(child.gameObject);
             }
 
+            // The runtime: the door, the distance and the prompt. Its player/vehicle/HUD references
+            // resolve in its own Awake; only the shutter is a fact of this model, so it is handed over.
+            var shop = instance.AddComponent<AutoShop>();
+            var shutter = instance.transform.Find("Shutter");
+            if (shutter == null) report.Warnings.Add($"{instance.name}: no node named Shutter - the door will not open");
+            var serialized = new SerializedObject(shop);
+            serialized.FindProperty("shutter").objectReferenceValue = shutter;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
             report.Placed.Add(
                 $"{instance.name} @ {Fmt(instance.transform.position)} yaw {instance.transform.eulerAngles.y:0.#}° " +
-                $"({instance.GetComponentsInChildren<MeshFilter>(true).Length} meshes)");
+                $"({instance.GetComponentsInChildren<MeshFilter>(true).Length} meshes, AutoShop on it, " +
+                $"service point {Fmt(AutoShopSpec.ServicePoint)})");
             return instance;
         }
 

@@ -114,37 +114,13 @@ namespace TheBlock.EditorTools
         /// Writes a packed <c>0xRRGGBB</c> as this material's base colour, whichever shader it is on.
         /// Returns the property it used, or null if the shader has no base colour at all.
         ///
-        /// <b>The two branches are not interchangeable.</b> glTFast's <c>baseColorFactor</c> is
-        /// declared gamma-tagged, so the sRGB value goes in exactly as written and <c>.linear</c>
-        /// renders the car near-black. URP/Lit's <c>_BaseColor</c> is untagged and is read as linear,
-        /// so it needs the conversion. A builder that only knows the URP name writes nothing at all
-        /// on a glTFast material - silently, with no warning - which is how the Mustang shipped in
-        /// its model's native paint instead of the config's red for the whole of U8.
+        /// The rule - glTFast's gamma-tagged <c>baseColorFactor</c> takes sRGB as written, URP's
+        /// <c>_BaseColor</c> needs <c>.linear</c> - lives in the runtime
+        /// <see cref="TheBlock.Vehicles.PaintPalette.SetBaseColor"/> since U35g, because the auto
+        /// shop applies it in Play. One copy; this is the editor's door to it.
         /// </summary>
-        public static string SetBaseColor(Material material, int hex)
-        {
-            var color = TheBlock.Core.TheBlockConfig.ColorFromHex(hex);
-
-            if (material.HasProperty("baseColorFactor"))
-            {
-                material.SetColor("baseColorFactor", color);
-                return "baseColorFactor";
-            }
-
-            if (material.HasProperty("_BaseColor"))
-            {
-                material.SetColor("_BaseColor", color.linear);
-                return "_BaseColor";
-            }
-
-            if (material.HasProperty("_Color"))
-            {
-                material.SetColor("_Color", color.linear);
-                return "_Color";
-            }
-
-            return null;
-        }
+        public static string SetBaseColor(Material material, int hex) =>
+            TheBlock.Vehicles.PaintPalette.SetBaseColor(material, hex);
 
         /// <summary>
         /// Points every .glb-sourced texture on a material at the copy <see cref="TextureCompressor"/>

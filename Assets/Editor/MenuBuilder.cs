@@ -98,6 +98,9 @@ namespace TheBlock.EditorTools
             // freeze - the only thing that differs is that E rather than a menu button opens it.
             Replace<ShopMenu>(hud);
 
+            // U35g's colour menu - the same shape as the counter, opened by C at the auto shop.
+            Replace<PaintMenu>(hud);
+
             Replace<MissionLaunch>(hud);
             Replace<ScreenFade>(hud);
 

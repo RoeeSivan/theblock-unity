@@ -40,6 +40,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6692655762566936417}
+  - component: {fileID: 8820109481710980773}
   - component: {fileID: 2637256630262527473}
   - component: {fileID: 1048798389764038759}
   - component: {fileID: 6041242208439489201}
@@ -67,6 +68,23 @@ Transform:
   - {fileID: 2963205901989425539}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8820109481710980773
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1479556171310570841}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c4c85ea96a91479a93bb9d51abcb982, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TheBlock.Vehicles.CarPaint
+  paintRenderers:
+  - {fileID: 4081672104317717885}
+  paintSlots: 00000000
+  paintInTexture: 1
+  textureBodyColor: {r: 0.75, g: 0, b: 0, a: 1}
 --- !u!54 &2637256630262527473
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -145,6 +163,7 @@ MonoBehaviour:
   leanRate: 180
   skidGrip: 0.35
   fallbackLookYOffset: 0.5
+  fuelTank: {fileID: 0}
 --- !u!1 &2316565159942987195
 GameObject:
   m_ObjectHideFlags: 0
@@ -413,6 +432,22 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 378158683810472417, guid: e22d4dd651eba4e7783a2ee838d84827, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 5bb19b338ac0745bc9555cc5b94f924a, type: 2}
+    - target: {fileID: 4912284044506039446, guid: e22d4dd651eba4e7783a2ee838d84827, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: b94d63773d1db472c939bd3e34df4602, type: 2}
+    - target: {fileID: 4912284044506039446, guid: e22d4dd651eba4e7783a2ee838d84827, type: 3}
+      propertyPath: 'm_Materials.Array.data[1]'
+      value: 
+      objectReference: {fileID: 2100000, guid: f74ca5912cbc64e7cbe80bd8762c8ab3, type: 2}
+    - target: {fileID: 4912284044506039446, guid: e22d4dd651eba4e7783a2ee838d84827, type: 3}
+      propertyPath: 'm_Materials.Array.data[2]'
+      value: 
+      objectReference: {fileID: 2100000, guid: e0a570a1a20da4f6ca924ff75de99614, type: 2}
     - target: {fileID: 8771091787928289351, guid: e22d4dd651eba4e7783a2ee838d84827, type: 3}
       propertyPath: m_Name
       value: Visual
@@ -422,6 +457,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: -4161369568681901532, guid: e22d4dd651eba4e7783a2ee838d84827, type: 3}
+--- !u!23 &4081672104317717885 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 378158683810472417, guid: e22d4dd651eba4e7783a2ee838d84827, type: 3}
+  m_PrefabInstance: {fileID: 4438999432196402332}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &8368568644134511832 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -3910990755373119420, guid: e22d4dd651eba4e7783a2ee838d84827, type: 3}

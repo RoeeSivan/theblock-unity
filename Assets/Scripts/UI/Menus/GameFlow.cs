@@ -34,6 +34,7 @@ namespace TheBlock.UI.Menus
         [SerializeField] private SettingsPanel settings;
         [SerializeField] private CharacterPanel character;
         [SerializeField] private ShopMenu shop;
+        [SerializeField] private PaintMenu paint;
 
         [Header("Scene - found automatically when left empty")]
         [SerializeField] private MissionLaunch launch;
@@ -44,6 +45,7 @@ namespace TheBlock.UI.Menus
         [SerializeField] private Wallet wallet;
         [SerializeField] private TheBlock.Powerup.PowerUps powerups;
         [SerializeField] private TheBlock.World.SevenEleven store;
+        [SerializeField] private TheBlock.World.AutoShop autoShop;
 
         [Header("Flow")]
         [Tooltip("Skip the title screen and drop straight into free roam at mission 1. For a " +
@@ -62,6 +64,7 @@ namespace TheBlock.UI.Menus
             if (settings == null) settings = GetComponent<SettingsPanel>();
             if (character == null) character = GetComponent<CharacterPanel>();
             if (shop == null) shop = GetComponent<ShopMenu>();
+            if (paint == null) paint = GetComponent<PaintMenu>();
             if (launch == null) launch = GetComponent<MissionLaunch>();
 
             if (runner == null) runner = FindAnyObjectByType<CampaignRunner>();
@@ -71,6 +74,7 @@ namespace TheBlock.UI.Menus
             if (wallet == null) wallet = FindAnyObjectByType<Wallet>();
             if (powerups == null) powerups = FindAnyObjectByType<TheBlock.Powerup.PowerUps>();
             if (store == null) store = FindAnyObjectByType<TheBlock.World.SevenEleven>();
+            if (autoShop == null) autoShop = FindAnyObjectByType<TheBlock.World.AutoShop>();
 
             Wire();
         }
@@ -101,6 +105,14 @@ namespace TheBlock.UI.Menus
                 shop.Count = id => powerups != null ? powerups.Count(id) : 0;
                 shop.OnBuy = Buy;
                 shop.OnClose = CloseShop;
+            }
+
+            if (paint != null)
+            {
+                paint.Balance = () => wallet != null ? wallet.Balance : 0;
+                paint.CurrentHex = () => autoShop != null && autoShop.ActivePaint() is { } cp ? cp.CurrentHex : -1;
+                paint.OnPick = PickPaint;
+                paint.OnClose = ClosePaint;
             }
         }
 
@@ -144,6 +156,43 @@ namespace TheBlock.UI.Menus
         private void CloseShop()
         {
             shop?.Hide();
+            Pause.Set(false);
+        }
+
+        // ── the auto shop (U35g) ──────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// The second thing in the game that spends cash, placed as the first is: the price, the
+        /// wallet and the car are decided here, and the menu only asks. Charge first, then paint,
+        /// for <see cref="Buy"/>'s reason. The colour the car already wears is free and does nothing -
+        /// a broke player can close the menu on their own colour without being told no.
+        /// </summary>
+        private bool PickPaint(int hex)
+        {
+            if (autoShop == null || wallet == null) return false;
+
+            var carPaint = autoShop.ActivePaint();
+            if (carPaint == null || carPaint.Source == null) return false;
+            if (carPaint.CurrentHex == hex) return true;
+
+            var price = TheBlock.World.AutoShopSpec.PaintPrice;
+            if (wallet.Balance < price) return false;
+
+            wallet.Charge(price);
+            PaintPalette.Apply(carPaint, hex);
+            if (!string.IsNullOrEmpty(carPaint.PersistKey)) PaintStore.Set(carPaint.PersistKey, hex);
+            return true;
+        }
+
+        private void OpenPaint()
+        {
+            Pause.Set(true);
+            paint?.Open();
+        }
+
+        private void ClosePaint()
+        {
+            paint?.Hide();
             Pause.Set(false);
         }
 
@@ -192,6 +241,15 @@ namespace TheBlock.UI.Menus
                 return;
             }
 
+            // C at the auto shop, the same shape: the predicate is the shop's own, so the prompt it
+            // draws and the menu this opens cannot disagree.
+            if (!Pause.Frozen && keyboard.cKey.wasPressedThisFrame &&
+                autoShop != null && autoShop.CanPaint() && paint != null && !paint.IsOpen)
+            {
+                OpenPaint();
+                return;
+            }
+
             if (!keyboard.escapeKey.wasPressedThisFrame) return;
 
             // Order matters, and it is the web's (main.ts): the deepest thing on screen goes first,
@@ -201,6 +259,7 @@ namespace TheBlock.UI.Menus
             if (settings != null && settings.IsOpen) { settings.Close(); return; }
             if (character != null && character.IsOpen) { character.Close(); return; }
             if (shop != null && shop.IsOpen) { CloseShop(); return; }
+            if (paint != null && paint.IsOpen) { ClosePaint(); return; }
 
             // The title has nothing behind it to go back to. Esc there is not "resume", it is
             // "resume WHAT" - the campaign has not been told which mission to open on yet.
@@ -218,7 +277,8 @@ namespace TheBlock.UI.Menus
             (guide != null && guide.IsOpen) ||
             (settings != null && settings.IsOpen) ||
             (character != null && character.IsOpen) ||
-            (shop != null && shop.IsOpen);
+            (shop != null && shop.IsOpen) ||
+            (paint != null && paint.IsOpen);
 
         /// <summary>
         /// The web's <c>canPause()</c>, minus its multiplayer clause. Free play only: on foot or
@@ -260,6 +320,7 @@ namespace TheBlock.UI.Menus
             wallet?.Reset();
             Payouts.Reset();
             powerups?.Reset();
+            PaintStore.Reset(); // U35g: the coats the wallet above paid for
             launch?.Launch(0, fresh: true);
         }
 
@@ -299,7 +360,7 @@ namespace TheBlock.UI.Menus
         private static readonly string[] MenuElements =
         {
             "title-menu", "pause-menu", "controls-guide", "settings", "character", "shop-menu",
-            "fade", "briefing", "feedback-flash",
+            "paint-menu", "fade", "briefing", "feedback-flash",
         };
 
         private bool _hudHidden;

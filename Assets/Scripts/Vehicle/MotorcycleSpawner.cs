@@ -73,7 +73,14 @@ namespace TheBlock.Vehicles
             // config.vehicle.motorcycle has no spawn yaw, and the web build leaves the bike at 0 -
             // which is its -Z, and Unity's +Z, so identity is the converted equivalent, not a stub.
             var bike = Instantiate(motorcyclePrefab, position, Quaternion.identity, transform);
-            bike.name = "Motorcycle";
+            bike.name = PaintStore.MotorcycleKey;
+
+            // U35g: the one bike keeps its auto-shop colour under its one name.
+            if (bike.TryGetComponent<CarPaint>(out var paint))
+            {
+                paint.PersistKey = PaintStore.MotorcycleKey;
+                if (PaintStore.TryGet(PaintStore.MotorcycleKey, out var hex)) PaintPalette.Apply(paint, hex);
+            }
 
             if (bike.TryGetComponent<MotorcycleController>(out var controller)) _bike = controller;
             else Debug.LogError(

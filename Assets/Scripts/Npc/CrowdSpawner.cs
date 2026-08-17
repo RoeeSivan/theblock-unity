@@ -99,6 +99,10 @@ namespace TheBlock.Npc
         [Tooltip("Seeded, so a run is reproducible - the same call WorldBuilder makes.")]
         [SerializeField] private int seed = 20260816;
 
+        [Tooltip("Debug: C hides and shows the whole crowd. OFF since U35g, when C became the auto " +
+                 "shop's key - a paint job that also emptied the pavements would read as a bug.")]
+        [SerializeField] private bool debugToggleKey;
+
         [Header("Crossings")]
         [Tooltip("Off makes a crosser step off the kerb as soon as its light is red, whether or not a " +
                  "car is standing on the zebra. The original checks; U16 deleted its version of this " +
@@ -292,7 +296,7 @@ namespace TheBlock.Npc
             if (_seeds == null) Bind();
             if (_seeds == null || _seeds.Length == 0) return;
 
-            if (UnityEngine.InputSystem.Keyboard.current?.cKey.wasPressedThisFrame == true) Toggle();
+            if (debugToggleKey && UnityEngine.InputSystem.Keyboard.current?.cKey.wasPressedThisFrame == true) Toggle();
             if (_hidden) return;
 
             _spawnedThisFrame = 0;

@@ -44,6 +44,7 @@ namespace TheBlock.UI.Menus
             ("Space", "Brake"),
             ("Space", "Hold at a gas pump - refuel"),
             ("E", "Exit vehicle"),
+            ("C", "Auto shop - change your vehicle's color"),
             ("R", "Respawn / flip vehicle"),
             ("Space / Shift", "Helicopter up / down"),
         };

@@ -31,6 +31,26 @@ namespace TheBlock.EditorTools
         private const string PrefabFolder = "Assets/Prefabs/Vehicles";
         private const string PrefabName = "Motorcycle";
 
+        /// <summary>Where this builder's material clones go. Only this builder writes here.</summary>
+        private const string MaterialFolder = "Assets/Materials/Motorcycle";
+
+        /// <summary>
+        /// The bike's body - U35g. The GLB is two nodes: <c>WoltBox</c> (the delivery box, flat
+        /// <c>Wolt_Teal / White / Black</c>) and <c>Bike</c>, the whole scooter on ONE textured
+        /// material whose atlas is painted red. The user's call: <b>the box stays Wolt teal, the red
+        /// is what changes</b> - so the paint slot is the <c>Bike</c> node's material, and because its
+        /// colour is pixels rather than a factor, <see cref="CarPaint.ConfigureBakedBody"/> tells the
+        /// palette to recolour the atlas (keyed on <see cref="BodyAtlasColor"/>) instead of tinting it.
+        /// </summary>
+        private const string PaintNodeName = "Bike";
+
+        /// <summary>
+        /// The atlas's body red, sRGB - measured, not guessed: 60 % of its pixels bin at
+        /// rgb(192,0,0) / (160,0,0) / (128,0,0), the shading of one red. Everything else in it is grey,
+        /// black or near-white (chrome, seat, tyres), which the hue key leaves alone.
+        /// </summary>
+        private static readonly Color BodyAtlasColor = new(0.75f, 0f, 0f);
+
         // --- physics, all derived by feel for PhysX (port rule 2) ---------------------------------
 
         /// <summary>Kerb weight in kg, rider included. A loaded delivery scooter, not a superbike.</summary>
@@ -99,6 +119,7 @@ namespace TheBlock.EditorTools
                 var lean = BuildVisual(model, spec, root.transform, log, out var bounds);
                 if (lean == null) return Fail(log.ToString());
 
+                BuildMaterials(root, lean, log);
                 BuildChassis(root, bounds, log);
                 var wheels = BuildWheels(root.transform, bounds, log);
                 // Under the lean pivot, not under the root: a rider who stays bolt upright while
@@ -198,6 +219,72 @@ namespace TheBlock.EditorTools
                            "the Rigidbody stays upright");
 
             return lean.transform;
+        }
+
+        // --- materials ---------------------------------------------------------------------------
+
+        /// <summary>
+        /// U35g: gives the bike a paint slot, the way <c>CarBuilder.BuildMaterials</c> gives the cars
+        /// one. Every material on the visual is cloned out of the .glb into
+        /// <see cref="MaterialFolder"/> and pointed at U15's compressed textures - the renderers had
+        /// been referencing the import's embedded sub-assets, and a runtime colour written into
+        /// those would edit the import - and every slot on the <see cref="PaintNodeName"/> renderer
+        /// is recorded on a <see cref="CarPaint"/> on the root, where <c>MotorcycleSpawner</c> and
+        /// the auto shop look for it.
+        /// </summary>
+        private static void BuildMaterials(GameObject root, Transform lean, StringBuilder log)
+        {
+            var written = new System.Collections.Generic.HashSet<string>();
+            var clones = new System.Collections.Generic.Dictionary<Material, Material>();
+            var slotOwners = new System.Collections.Generic.List<Renderer>();
+            var slotIndices = new System.Collections.Generic.List<int>();
+            int rebound = 0, misses = 0;
+
+            foreach (var renderer in lean.GetComponentsInChildren<Renderer>(true))
+            {
+                var materials = renderer.sharedMaterials;
+                bool changed = false;
+
+                for (int i = 0; i < materials.Length; i++)
+                {
+                    var source = materials[i];
+                    if (source == null) continue;
+
+                    if (!clones.TryGetValue(source, out var clone))
+                    {
+                        clone = VehicleMaterials.Clone(source, MaterialFolder, PrefabName, written);
+                        rebound += VehicleMaterials.RebindCompressed(clone, ref misses);
+                        clones[source] = clone;
+                    }
+
+                    materials[i] = clone;
+                    changed = true;
+
+                    if (renderer.name != PaintNodeName) continue;
+                    slotOwners.Add(renderer);
+                    slotIndices.Add(i);
+                }
+
+                if (changed) renderer.sharedMaterials = materials;
+            }
+
+            VehicleMaterials.Sweep(MaterialFolder, written, log);
+            log.AppendLine(
+                $"mats    {clones.Count} cloned into {MaterialFolder}, {rebound} texture slot(s) onto compressed copies" +
+                (misses > 0 ? $", {misses} with no twin" : string.Empty));
+
+            if (slotOwners.Count == 0)
+            {
+                log.AppendLine($"paint   none - no renderer named {PaintNodeName}; the auto shop will not paint this bike");
+                return;
+            }
+
+            var paint = root.AddComponent<CarPaint>();
+            paint.Configure(slotOwners.ToArray(), slotIndices.ToArray());
+            paint.ConfigureBakedBody(BodyAtlasColor);
+            log.AppendLine($"paint   {PaintNodeName} node, {slotOwners.Count} slot(s), body baked in the atlas as " +
+                           $"#{(int)(BodyAtlasColor.r * 255):X2}{(int)(BodyAtlasColor.g * 255):X2}{(int)(BodyAtlasColor.b * 255):X2} - " +
+                           "CarPaint on the root, recolour mode");
         }
 
         // --- wheels ------------------------------------------------------------------------------

@@ -135,6 +135,14 @@ namespace TheBlock.Vehicles
             var car = Instantiate(prefab, position, rotation, transform);
             car.name = spec.Name;
 
+            // U35g: a config car is the same car every boot, so its auto-shop colour is kept under
+            // its spawn name and put back here. A promoted or hijacked car (Take) never gets a key.
+            if (car.TryGetComponent<CarPaint>(out var paint))
+            {
+                paint.PersistKey = spec.Name;
+                if (PaintStore.TryGet(spec.Name, out var hex)) PaintPalette.Apply(paint, hex);
+            }
+
             // The controller has already put itself on the enterable list in OnEnable; this list is
             // only the spawner's own record of what it made.
             if (car.TryGetComponent<CarController>(out var controller))
