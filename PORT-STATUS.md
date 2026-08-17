@@ -98,18 +98,23 @@ unclear, re-test before inheriting.
 > response is rebuilt on the web's model: cops come from a hidden street 50-90 m away unless the
 > car is already within 120 m of you, a cop that loses you is re-dispatched, and cruisers take no
 > damage at all. Crime → BUSTED measured **~6.5 s at 1★, ~8 s at 3★**, from ~36-45 s. Section
-> below. **The police feature is closed** - the user's three reports on it are all answered.
+> below.
 >
-> **NEXT ACTION: U35e (play-test), then U30a.** Two earlier police sub-units are still formally
-> "awaiting play-test" only because nobody has said the words - they were built on the same drive
-> the user just played, so they are almost certainly fine and only need a yes:
+> 🔧 **U35d-pre-3, 2026-08-17 - the in-vehicle arrest, a fourth report and the actual cause.**
+> *"אם אני יוצא מהרכב זה תופס ישר"* - and in the car, never. `ArrestRadius = 4` is a distance between
+> CENTRES, and two 5.6 m cars nose to tail have centres 5.6 m apart: a cop on your bumper never once
+> counted as close. In a vehicle the arrest now measures the **gap between the two bodies**
+> (`VehicleArrestGap = 2.5`), the arrival ramp aims at that gap, and the rubber band's floor is
+> relative to your speed. **Measured in Play: BUSTED while parked in 11 s, BUSTED while driving at
+> 9 m/s in ~10 s.** Section below. **NEEDS THE USER'S DRIVE** - its recipe replaces U35d-pre's.
+>
+> **NEXT ACTION: play-test U35d-pre-3, then U35e, then U30a.** Two earlier police sub-units are
+> still formally "awaiting play-test" only because nobody has said the words - they were built on
+> the same drive the user just played, so they are almost certainly fine and only need a yes:
 >
 > - **U35c** - the police H145 at 3★, the GPS road route on both maps, and a police-response fix.
-> - **U35d-pre** - *the police can now catch you in a vehicle*, on the user's report
->   *"שתפיסה תהיה גם אם אני בתוך אופנוע / רכב"*. It was **unreachable**, not badly tuned: the arrival
->   ramp braked a cruiser to 3 m/s inside 8 m of a *moving* car, and `ArrestMaxSpeed` was a
->   precondition nobody being chased ever meets. Both fixed; the forced pull-over is the user's own
->   call. Its recipe is in the U35d-pre section below and it ends with U35c's own checks.
+> - **U35d-pre** - the arrival ramp and the speed gate; superseded in practice by U35d-pre-3, which
+>   is what the user's report actually needed. Its pull-over mechanism is what U35d-pre-3 now feeds.
 >
 > ⚠ **`Settings → Gameplay → Vehicle Damage` was reset to Off by the U35d-pre-2 immunity test** (it
 > is a `PlayerPrefs` value and the test had to write it). If it was on before, turn it back on.
@@ -404,6 +409,72 @@ section survives - its three "measure first" items are moot when the drive is 60
    you: **no smoke, no fire, no dents on the police car** - and your own car still dents.
 4. Repeat 2 on the motorcycle - it must stop upright, not throw you.
 5. Then U35c: 3★ for the H145 (three cars now, all near you), `M` for the GPS line.
+
+### U35d-pre-3, 2026-08-17 - the in-vehicle arrest was measured against the wrong thing - BUILT, MEASURED, AWAITING PLAY-TEST
+
+**The user's report, the fourth on this feature:** *"שמתי לב שאם אני יוצא מהרכב זה תופס ישר, בוא
+נעשה שיש busted גם אם אני בתוך האוטו / על האופנוע."* Get out and it busts at once; stay in and it
+never does. U35d-pre fixed the arrival ramp and the speed gate and **still left the in-vehicle
+arrest unreachable**, because the thing being measured was never the right thing.
+
+**THE CAUSE IS ONE NUMBER READ AGAINST THE WRONG GEOMETRY.** `ArrestRadius = 4` is a distance
+between *centres*, and it is a fine number for a person, who is a point. Every car in this game is
+**5.6 m long, the cruiser included** (`BoxCollider` bounds read live: Audi 5.64, Tesla 5.03,
+Avenger 5.63, cop 5.65). Nose to tail their centres are 5.6 m apart. So a cop glued to your bumper
+for the whole chase was at ~6 m and **never once counted as close**; 4 m was reachable door-to-door,
+alongside, and from nowhere else - which is not where a chasing car is. On foot the same 4 m is
+trivially reachable, and the officer's 18 m deploy radius makes it more so - hence *"if I get out it
+catches me immediately"*. That contrast is the whole diagnosis.
+
+**What changed - three things, one principle:** in a vehicle, every distance the arrest reasons
+about is now relative to the *vehicle*, not to a point.
+
+1. **`PoliceTuning.VehicleArrestGap = 2.5`**, new: in a vehicle, `close` is the **gap between the
+   two bodies**, box to box, XZ, not the centre distance. Bumper-to-bumper is 0. `ArrestRadius`
+   keeps its meaning on foot exactly. The gap is `PoliceSystem.VehicleGap` - three rounds of
+   alternating `Collider.ClosestPoint` between the two root `BoxCollider`s (every vehicle carries
+   exactly one; the wheels are `WheelCollider`s, which have no surface to ask), which lands within
+   centimetres and is far inside the tolerance of a 2.5 m threshold.
+2. **`CopDriver.ArrestDistance`**, new, written by `PoliceSystem.Step` beside `QuarrySpeed`: the
+   centre distance the arrival ramp *aims at*. On foot it is `ArrestRadius`; against a vehicle it is
+   the centre distance at which the gap is **half** the threshold - inside it rather than on it,
+   because a ramp converges on its target from outside and one aimed at the threshold itself hovers a
+   hair above it for ever. And the ramp's floor is now the **quarry's speed** rather than
+   `QuarrySpeed + ClosingSpeed`: at the reach the cop sits on the bumper matching pace instead of
+   shoving into it at +2 m/s for the whole hold. On foot both floors are `ArriveSpeed` and the line
+   is U19e's.
+3. **The rubber band's floor is relative too.** `MinSpeed = 8` is a number for a target on foot;
+   **measured**: against the Audi at 9.0 m/s a cop 18.8 m back asked for 9.35 and closed at a third
+   of a metre a second - thirty seconds to cover eleven metres, on a chase that expires in fifteen.
+   Inside the band it now wants at least `QuarrySpeed + ClosingSpeed`, capped by `MaxSpeed` (the
+   user's own 2.5% ceiling is untouched, so flat-out is still an escape). On foot it is `MinSpeed`.
+
+**MEASURED IN PLAY, driven over MCP - two runs, both BUSTED, on the same code:**
+
+| Run | Setup | Result |
+| --- | --- | --- |
+| Stationary | Audi parked on link 2 of the road graph, Cop 0 dropped 30 m behind, 1★ | BUSTED inside 11 s: Audi at the custody point `(160, 0.05, −106)`, stars 0, fine charged |
+| **Moving** | Audi lane-following at **9 m/s** via `SetInput` from an `EditorApplication.update` lambda, Cop 0 dropped 14 m behind, 1★ | **BUSTED ~10 s after the star**, 60 m down the road, `BustSequence.Running = true`, stars 0 - the car was never stopped by hand |
+
+The first two attempts of the moving run are worth recording as **test traps, not code faults**: the
+Audi was steered straight with no lane-following, ran 400 m south of the lot into the world's
+`South` wall (rear wheels slipping at 800 N·m against it, speed 0), and the corridor there is off the
+road graph, so both cops planned to nowhere. Put a synthetic drive ON the graph and steer it along
+the lane, or every number is against a car pressed into a wall.
+
+**⚠ Both runs charged the user's real save**, because `Continue` was used (memory:
+`new-game-wipes-the-test-balance`) - the balance read `$0` afterwards with `FinesOwed = 100`. If the
+wallet was not empty before, that is where it went.
+
+**HOW TO PLAY-TEST IT - the same drive as U35d-pre and U35d-pre-2, and it replaces their step 2:**
+
+1. `Continue`, take a car, earn a star, and **keep driving at a normal pace** - not flat out, the
+   2.5% ceiling still lets a full-throttle car hold a cruiser off. The cop should close, sit on your
+   bumper, and within ~2.5 s of contact: 🚨 hint, brakes taken, BUSTED.
+2. Then **stop the car and wait** with a star. The cruiser pulls up behind and busts you in ~1.5 s
+   without you leaving the seat.
+3. Repeat 1 **on the motorcycle** - the gap is measured against its 0.5 × 1.65 m box, so it must
+   work there too, and it must stop upright.
 
 ### ~~⚠ OPEN - police pursuit, consider improving further~~ - CLOSED BY U35d-pre-2 (kept as history)
 

@@ -178,8 +178,17 @@ namespace TheBlock.Police
                  "the old numbers on foot, where the target speed it is handed is zero.")]
         public float ClosingSpeed = 2f;
 
-        [Tooltip("DESIGN. XZ metres for the arrest.")]
+        [Tooltip("DESIGN. XZ metres for the arrest, centre to centre. This is the ON-FOOT number: " +
+                 "a person is a point. In a vehicle see VehicleArrestGap below.")]
         public float ArrestRadius = 4f;
+
+        [Tooltip("MEASURED FIX 2026-08-17, on the user's report that a bust only ever lands the " +
+                 "moment they step OUT of the car. ArrestRadius is centre-to-centre, and every car " +
+                 "in the game is 5.6 m long, the cruiser included: nose to tail their centres are " +
+                 "5.6 m apart, so 4 m was reachable only door-to-door and never from behind - the " +
+                 "one place a chasing cop actually is. In a vehicle the arrest is measured as the " +
+                 "GAP between the two bodies instead, box to box, metres. Bumper-to-bumper is 0.")]
+        public float VehicleArrestGap = 2.5f;
 
         [Tooltip("DESIGN. Seconds held inside that radius. Bleeds at twice the rate when you leave.")]
         public float ArrestHold = 1.5f;

@@ -78,6 +78,15 @@ namespace TheBlock.Police
         /// </summary>
         public float QuarrySpeed { get; set; }
 
+        /// <summary>
+        /// Centre-to-centre metres at which the arrival ramp stops closing. Set by
+        /// <see cref="PoliceSystem"/> each step: <c>ArrestRadius</c> on foot, and against a vehicle
+        /// the centre distance at which the two BODIES sit <c>VehicleArrestGap</c> apart, which is
+        /// what the arrest actually measures there. Left at the on-foot number, the ramp closes to
+        /// 4 m between centres - which on two 5.6 m cars is 1.6 m inside the other car's boot.
+        /// </summary>
+        public float ArrestDistance { get; set; }
+
         /// <summary>Whether the target is visible, which is what allows the straight final run.</summary>
         public bool HasLineOfSight { get; set; }
 
@@ -383,10 +392,17 @@ namespace TheBlock.Police
             float distance = Mathf.Sqrt(FlatSqr(Target, position));
             bool responding = Responding(position);
 
+            // The band's floor is relative to the quarry as well. MinSpeed is a number for a target
+            // on foot; against a car doing 9 m/s a cop 19 m back asked for 9.35 and closed at a
+            // third of a metre a second - measured 2026-08-17, thirty seconds to cover eleven metres.
+            // Inside the band it now wants at least the quarry's speed plus ClosingSpeed, and on foot
+            // (quarry 0) that is MinSpeed exactly. MaxSpeed still caps it: the top of the band is the
+            // user's own 2.5% and this does not touch it.
             float band = Mathf.InverseLerp(_tuning.BandNear, _tuning.BandFar, distance);
+            float floor = Mathf.Max(_tuning.MinSpeed, QuarrySpeed + _tuning.ClosingSpeed);
             float wanted = responding
                 ? _tuning.ResponseSpeed
-                : Mathf.Lerp(_tuning.MinSpeed, _tuning.MaxSpeed, band);
+                : Mathf.Lerp(Mathf.Min(floor, _tuning.MaxSpeed), _tuning.MaxSpeed, band);
 
             float corner = CornerSpeed(position, responding ? _tuning.ResponseGrip : _tuning.LateralGrip);
             wanted = Mathf.Min(wanted, corner);
@@ -412,8 +428,16 @@ namespace TheBlock.Police
             // closes at `distance - ArrestRadius` only while the far end stays put. Against a car it
             // has to close at that rate ON TOP OF whatever the car is doing, or the ramp is a brake
             // applied to a cop that has not caught anyone yet.
+            //
+            // The stopping point is ArrestDistance, not ArrestRadius: against a vehicle the arrest is
+            // a gap between bodies, and the ramp has to aim at the centre distance that gap sits at.
+            // Its floor is the QUARRY's speed, not the closing speed - at the reach the cop should sit
+            // on the bumper matching pace, not keep shoving into it at +2 m/s for the whole hold. On
+            // foot both floors are ArriveSpeed and the line is the U19e one.
+            float reach = ArrestDistance > 0f ? ArrestDistance : _tuning.ArrestRadius;
+            float settle = Mathf.Max(_tuning.ArriveSpeed, QuarrySpeed);
             if (straightRun)
-                wanted = Mathf.Min(wanted, Mathf.Max(arrive, distance - _tuning.ArrestRadius + QuarrySpeed));
+                wanted = Mathf.Min(wanted, Mathf.Max(settle, distance - reach + QuarrySpeed));
 
             return Mathf.Min(wanted, EgressCap);
         }

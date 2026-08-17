@@ -861,8 +861,19 @@ namespace TheBlock.Police
             // is zero and every U19e number is byte-for-byte what was play-tested.
             cop.Driver.QuarrySpeed = TargetSpeed();
 
+            // And how close it needs to get. On foot the arrest radius is a distance between centres
+            // and the ramp aims at it directly. Against a vehicle the arrest is a GAP between the two
+            // bodies, so the ramp is aimed at the centre distance where that gap is half the
+            // threshold - inside it, not on it, because a ramp converges on its target from outside
+            // and a cop aimed at the threshold itself hovers a hair above it forever.
+            bool onFoot = vehicles == null || vehicles.Mode != GameMode.Driving;
+            float gap = onFoot ? float.MaxValue : VehicleGap(cop);
+            cop.Driver.ArrestDistance = onFoot
+                ? _tuning.ArrestRadius
+                : Mathf.Max(0.5f, distance - gap + _tuning.VehicleArrestGap * 0.5f);
+
             Replan(cop, dt);
-            Arrest(cop, target, distance, dt);
+            Arrest(cop, target, distance, gap, dt);
             Sample(cop);
         }
 
@@ -996,9 +1007,20 @@ namespace TheBlock.Police
         /// bumper at 70 km/h, and being arrested at that speed reads as a bug rather than as an
         /// arrest.
         /// </summary>
-        private void Arrest(CopCar cop, Vector3 target, float distance, float dt)
+        /// <param name="gap">Body-to-body metres to the player's vehicle, or MaxValue on foot.</param>
+        private void Arrest(CopCar cop, Vector3 target, float distance, float gap, float dt)
         {
-            bool close = distance <= _tuning.ArrestRadius;
+            // ON FOOT, the officer is the arrest. IN A VEHICLE, the car is - she would never catch
+            // you, and a cruiser pulling up to a stopped getaway car is the arrest the web build has.
+            bool onFoot = vehicles == null || vehicles.Mode != GameMode.Driving;
+
+            // "Close" is centre-to-centre on foot and BODY-TO-BODY in a vehicle, and the difference is
+            // the whole of "it only busts me when I get out". Two 5.6 m cars nose to tail have their
+            // centres 5.6 m apart, so a 4 m centre radius was reachable door-to-door and from nowhere
+            // else - a cop glued to the bumper for the whole chase never once counted as close.
+            bool close = onFoot
+                ? distance <= _tuning.ArrestRadius
+                : gap <= _tuning.VehicleArrestGap;
             bool slow = Mathf.Abs(cop.Car.ForwardSpeed) <= _tuning.ArrestMaxSpeed && TargetSpeed() <= _tuning.ArrestMaxSpeed;
             bool grace = Time.time - cop.SpawnedAt < _tuning.SpawnGrace;
 
@@ -1011,9 +1033,6 @@ namespace TheBlock.Police
                 return;
             }
 
-            // ON FOOT, the officer is the arrest. IN A VEHICLE, the car is - she would never catch
-            // you, and a cruiser pulling up to a stopped getaway car is the arrest the web build has.
-            bool onFoot = vehicles == null || vehicles.Mode != GameMode.Driving;
             if (_tuning.OfficerChase && cop.Officer != null && onFoot)
             {
                 cop.PulloverHold = 0f;
@@ -1278,6 +1297,46 @@ namespace TheBlock.Police
             if (vehicles != null && vehicles.Mode == GameMode.Driving && vehicles.ActiveVehicle != null)
                 return Mathf.Abs(vehicles.ActiveVehicle.ForwardSpeed);
             return player != null ? player.PlanarSpeed : 0f;
+        }
+
+        /// <summary>
+        /// Metres of clear air between this cruiser's body and the player's vehicle, XZ, or
+        /// <c>float.MaxValue</c> when there is no vehicle to measure against.
+        ///
+        /// Every vehicle in the game carries exactly one non-trigger BoxCollider on its root - the
+        /// wheels are WheelColliders, which have no surface to ask - so the gap is between two boxes.
+        /// It is found by alternating <see cref="Collider.ClosestPoint"/> a few times rather than by
+        /// a closed form, because two arbitrarily rotated boxes do not have one and three rounds land
+        /// within centimetres, which is far inside the tolerance of a 2.5 m threshold.
+        /// </summary>
+        private float VehicleGap(CopCar cop)
+        {
+            if (vehicles == null || vehicles.Mode != GameMode.Driving || vehicles.ActiveVehicle == null)
+                return float.MaxValue;
+
+            var mine = BodyOf(vehicles.ActiveVehicle.GetTransform());
+            var theirs = BodyOf(cop.transform);
+            if (mine == null || theirs == null)
+                return Vector3.Distance(cop.transform.position, vehicles.ActiveVehicle.GetTransform().position);
+
+            var p = mine.ClosestPoint(theirs.bounds.center);
+            var q = theirs.ClosestPoint(p);
+            for (int i = 0; i < 2; i++)
+            {
+                p = mine.ClosestPoint(q);
+                q = theirs.ClosestPoint(p);
+            }
+
+            p.y = q.y = 0f;
+            return Vector3.Distance(p, q);
+        }
+
+        /// <summary>The root's own non-trigger collider - the body, on every vehicle this game has.</summary>
+        private static Collider BodyOf(Transform root)
+        {
+            foreach (var col in root.GetComponents<Collider>())
+                if (!col.isTrigger && !(col is WheelCollider)) return col;
+            return null;
         }
 
         /// <summary>
