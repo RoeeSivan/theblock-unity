@@ -333,7 +333,7 @@ edit and no hand wiring were needed**. `MissionHud` and `BustSequence` are both 
 rather than pulling alongside. Nothing brakes them at 8 m any more, and `SideGap = 3` is the only
 thing aiming them at your flank instead of your bumper.
 
-### U35d-pre-2, 2026-08-17 - the police response, rebuilt on the web's model - BUILT, AWAITING PLAY-TEST
+### U35d-pre-2, 2026-08-17 - the police response, rebuilt on the web's model - BUILT, AWAITING PLAY-TEST - `98470b2`
 
 **The user's report, the third on this feature and the bluntest:** *"הפיצר של המשטרה פשוט גרוע והוא
 לא עובד. אני מאוד לא מרוצה ממנו… מכוניות של משטרה יש להן את ההתנהגות שהן יכולות להפגע, בוא נוריד את
