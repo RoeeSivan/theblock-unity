@@ -1,4 +1,5 @@
 using TheBlock.Core;
+using TheBlock.World;
 using UnityEngine;
 
 namespace TheBlock.UI
@@ -86,6 +87,15 @@ namespace TheBlock.UI
             Place(config.PoliceStation, "Police Station", MapPoiKind.Marker, "🚓");
             Place(config.GasStation, "Gas Station", MapPoiKind.Marker, "⛽");
             Place(config.SevenEleven, "7-Eleven", MapPoiKind.Marker, "🏪");
+
+            // U35g - not a config place; the web build never had it. Same point the builder uses.
+            MapRegistry.AddPoi(new MapPoi
+            {
+                Name = AutoShopSpec.MapLabel,
+                Position = AutoShopSpec.Position,
+                Kind = MapPoiKind.Marker,
+                Icon = AutoShopSpec.MapIcon,
+            });
 
             // One pin for the whole lot - the web build found per-car POIs stacked unreadably. The
             // point is hand-authored in map-pois.ts, not derived from lotCars.bounds, so it is

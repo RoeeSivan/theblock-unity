@@ -92,6 +92,9 @@ namespace TheBlock.EditorTools
             }
 
             report.Placed.Add($"Roads {built} spline(s), {total:0} m total, {RoadWidth:0} m wide @ y {roads.Y:0.##}");
+
+            // U35g: the auto shop's street is not in config.roads - see WorldBuilder.AutoShop.cs.
+            if (material != null) BuildAutoShopRoads(group, material, roads.Y, report);
         }
 
         /// <summary>Config polyline → Unity-space points, degenerate ones dropped.</summary>
