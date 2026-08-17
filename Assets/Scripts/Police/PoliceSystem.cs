@@ -414,35 +414,50 @@ namespace TheBlock.Police
         }
 
         /// <summary>
-        /// Sends one cop after the player: out of its bay, off the road it was driving home on, or -
-        /// only for a car with no bay of its own - placed on a street you cannot see.
+        /// Sends one cop after the player: from where it is if that is near you - its bay, or the
+        /// road it was driving home on - and otherwise placed on a street near you that you cannot
+        /// see.
+        ///
+        /// <b>This is the web's rule, and U19 deliberately did not have it.</b> That version drove
+        /// every cruiser from the station however far away the crime was, on the argument that a
+        /// response with a travel time is one you can escape from. The user reported twice that the
+        /// police simply do not come, and the measurements agree: 36-45 s to a first arrest against
+        /// the web's 4-6, and neither the speed nor the anti-stuck rounds moved it, because the time
+        /// was the 900 m rather than the driving. The station is still the station - within
+        /// <see cref="PoliceTuning.DeployInPlaceRange"/> a cruiser rolls out of its bay exactly as
+        /// before, and its bay stands empty while it is out, which is the pool trick the header
+        /// describes. Beyond it the car is the same car, placed where a police car would already be.
         /// </summary>
         private bool Deploy(CopCar cop, Transform focus)
         {
             var at = focus.position;
 
-            // ALWAYS out of a bay when this car has one, however far away the crime was.
-            //
-            // The web deploys from the station only within 120 m and otherwise places a cop on a
-            // street near the player, because its cops could not reliably drive anywhere. Ours can:
-            // 97.9% of the city is one connected component and the station is inside it. So the
-            // cars sit at the station until a crime, then drive - which is what a police car does,
-            // and it also means the response has a TRAVEL TIME. Getting away before they arrive is
-            // a real thing you can do, and none of it needed a new mechanism.
-            bool fromBay = cop.Bay >= 0 && cop.Bay < bayPositions.Length;
+            bool hasBay = cop.Bay >= 0 && cop.Bay < bayPositions.Length;
+            bool nearby = cop.gameObject.activeSelf &&
+                          FlatSqr(cop.transform.position, at) <=
+                          _tuning.DeployInPlaceRange * _tuning.DeployInPlaceRange;
 
-            if (!fromBay)
+            if (!nearby)
             {
-                if (!TryFieldSpawn(at, out var position, out var rotation)) return false;
-
-                cop.gameObject.SetActive(true);
-                cop.transform.SetPositionAndRotation(position, rotation);
-                Physics.SyncTransforms();
-                Stop(cop);
+                if (TryFieldSpawn(at, out var position, out var rotation))
+                {
+                    Place(cop, position, rotation);
+                }
+                else if (!hasBay)
+                {
+                    // Nowhere to put it and nowhere to drive from.
+                    return false;
+                }
+                // A car with a bay that found no street to be placed on still drives from the
+                // station: a late cop beats no cop.
             }
 
             cop.State = CopCar.Mode.Chasing;
             cop.SpawnedAt = Time.time;
+            cop.RelocatedAt = Time.time;
+            cop.FarSince = 0f;
+            cop.Relocations = 0;
+            cop.WedgeStrikes = 0;
             cop.ArrestHold = 0f;
             cop.PulloverHold = 0f;
             cop.LastKnown = at;
@@ -463,6 +478,65 @@ namespace TheBlock.Police
                 Minor = true,
             });
 
+            return true;
+        }
+
+        /// <summary>Puts a cruiser down on a street, in the order CarController documents for a teleport.</summary>
+        private static void Place(CopCar cop, Vector3 position, Quaternion rotation)
+        {
+            cop.gameObject.SetActive(true);
+            cop.transform.SetPositionAndRotation(position, rotation);
+            Physics.SyncTransforms();
+            Stop(cop);
+        }
+
+        /// <summary>
+        /// Puts a chasing cop that has lost you back on a hidden street near you.
+        ///
+        /// <b>The web's guarantee, kept, by a different mechanism.</b> That build's rule was that a
+        /// pursuer which can enter an unrecoverable state is a bug whatever the geometry, and it
+        /// enforced it by stepping the kinematic body straight through whatever it was wedged in. A
+        /// WheelCollider car cannot do that, and the honest reverse-out (<c>CopDriver.Unwedging</c>)
+        /// was measured failing three times in a window on the same kerb - after which the old code
+        /// only replanned, and the cop was gone from the chase in every way that matters. This is
+        /// the other honest answer: it was out of sight when it was lost, so it is out of sight when
+        /// it comes back, and it drives into view from a new direction - a second unit answering the
+        /// call, which is how it reads.
+        ///
+        /// Two triggers, both gated on being out of sight and on the cooldown, and both switched off
+        /// by <c>RelocateAfter = 0</c>: wedged out (the unwedge limit), and fallen behind
+        /// (<see cref="PoliceTuning.RelocateBeyond"/> for <see cref="PoliceTuning.RelocateAfter"/>).
+        /// The second is what keeps a chase alive against a player at full speed on a road that
+        /// throttled the cruiser to 14 m/s: the web's cop was faster than you and drove a straight
+        /// line, ours is not and does not, and this is the difference made up.
+        /// </summary>
+        /// <param name="inView">
+        /// Allow the move while the cop can see you. Reserved for a cop that has been visibly stuck
+        /// through two whole unwedge windows - at that point it vanishing and another unit arriving
+        /// from round a corner reads better than a cruiser rocking against a kerb for the rest of
+        /// the chase. The field spawn's own scoring still keeps the new spot out of the camera.
+        /// </param>
+        /// <returns>True if the cop was moved.</returns>
+        private bool Relocate(CopCar cop, Vector3 target, bool inView = false)
+        {
+            if (_tuning.RelocateAfter <= 0f) return false;
+            if (cop.State != CopCar.Mode.Chasing) return false;
+            if (cop.HasLos && !inView) return false;
+            if (cop.Officer != null && cop.Officer.Deployed) return false;
+            if (Time.time - cop.RelocatedAt < _tuning.RelocateCooldown) return false;
+            if (!TryFieldSpawn(target, out var position, out var rotation)) return false;
+
+            Place(cop, position, rotation);
+
+            cop.RelocatedAt = Time.time;
+            cop.FarSince = 0f;
+            cop.WedgeStrikes = 0;
+            cop.Relocations++;
+            cop.LastKnown = target;
+            cop.ReplanIn = 0f;
+            cop.Driver.Target = target;
+            cop.Driver.ClearRoute();
+            cop.Driver.ResetWedges();
             return true;
         }
 
@@ -721,23 +795,12 @@ namespace TheBlock.Police
                 return;
             }
 
-            // Repeatedly wedged is not the same as wrecked, and treating it as such is how a cop
-            // that met a fence around a car park retired itself, was replaced, and the replacement
-            // met the same fence. Back off, throw the route away and plan a fresh one instead -
-            // which reads as a cop looking for another way in, because that is what it is.
-            if (cop.Driver.Unwedges >= _tuning.UnwedgeLimit)
-            {
-                cop.Driver.ResetWedges();
-                cop.Driver.ClearRoute();
-                cop.ReplanIn = 0f;
-            }
-
             float distance = Vector3.Distance(cop.transform.position, target);
 
-            // No distance retire. It was the traffic pool's discipline, and it is wrong here now
-            // that every cop starts at the station: a chase on the far side of the map begins with
-            // a car that is 900 m away and closing, and retiring it for being far is retiring it for
-            // doing its job. Cops go home when the stars do.
+            // No distance retire. It was the traffic pool's discipline, and it is wrong here: a cop
+            // that is far is a cop that is closing, and retiring it for being far is retiring it for
+            // doing its job. Cops go home when the stars do. What a far cop gets instead is
+            // Relocate, below - it is put back near you, not stood down.
 
             // One ray per cop per step. An occluder is anything with no Rigidbody attached, which
             // excludes every cop, every traffic car, every wreck and the player's own car in a single
@@ -753,6 +816,41 @@ namespace TheBlock.Police
             {
                 cop.LastKnown = target;
                 heat.ReportContact();
+            }
+
+            // Repeatedly wedged is not the same as wrecked, and treating it as such is how a cop
+            // that met a fence around a car park retired itself, was replaced, and the replacement
+            // met the same fence. Out of sight, it is put back on a street near you; in sight, or
+            // with nowhere to put it, it backs off, throws the route away and plans a fresh one -
+            // which reads as a cop looking for another way in, because that is what it is.
+            if (cop.Driver.Unwedges >= _tuning.UnwedgeLimit)
+            {
+                cop.WedgeStrikes++;
+
+                if (Relocate(cop, target, cop.WedgeStrikes >= 2))
+                {
+                    distance = Vector3.Distance(cop.transform.position, target);
+                }
+                else
+                {
+                    cop.Driver.ResetWedges();
+                    cop.Driver.ClearRoute();
+                    cop.ReplanIn = 0f;
+                }
+            }
+
+            // Fallen behind: a long way off and out of sight for a while is a cop that has lost the
+            // chase, whatever its route says. The clock only runs while both hold.
+            bool far = !cop.HasLos && distance > _tuning.RelocateBeyond;
+            if (!far)
+            {
+                cop.FarSince = 0f;
+            }
+            else
+            {
+                if (cop.FarSince <= 0f) cop.FarSince = Time.time;
+                if (Time.time - cop.FarSince >= _tuning.RelocateAfter && Relocate(cop, target))
+                    distance = Vector3.Distance(cop.transform.position, target);
             }
 
             cop.Driver.Target = cop.HasLos ? target : cop.LastKnown;

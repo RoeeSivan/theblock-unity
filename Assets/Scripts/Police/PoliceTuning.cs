@@ -264,10 +264,38 @@ namespace TheBlock.Police
                  "U16 and U17 both measured that the burst is the cost, not the population.")]
         public float SpawnInterval = 1f;
 
-        [Tooltip("Field spawn ring, metres. Only reachable by a cop with no bay of its own.")]
-        public float FieldSpawnMin = 60f;
+        [Tooltip("Metres from the player within which a cop deploys from WHERE IT IS - a bay it " +
+                 "rolls out of, or the street it was driving home on. Beyond it the car is placed on " +
+                 "a hidden street in the field ring instead. The web's stationDeployRange, 120 m.\n\n" +
+                 "REPORTED BY THE USER 2026-08-17, for the second time: the police do not come. " +
+                 "U19 had every cruiser drive from the station however far the crime was, on the " +
+                 "grounds that a travel time is a thing you can escape from. Measured: 36-45 s to " +
+                 "the first arrest against the web's 4-6 s, and no amount of speed or anti-stuck " +
+                 "tuning moved it, because the time was the 900 m, not the driving.")]
+        public float DeployInPlaceRange = 120f;
 
-        public float FieldSpawnMax = 110f;
+        [Tooltip("Field spawn ring, metres. Where a cop is placed when the crime is farther than " +
+                 "DeployInPlaceRange from wherever it is - and where a lost cop is put back.")]
+        public float FieldSpawnMin = 50f;
+
+        public float FieldSpawnMax = 90f;
+
+        [Tooltip("Metres beyond which an out-of-sight cop is counted as having lost you. Held that " +
+                 "far for RelocateAfter, it is placed back in the field ring - the web's guarantee " +
+                 "that a pursuer cannot fall out of the pursuit, done by re-dispatch instead of by " +
+                 "stepping a kinematic body through walls.")]
+        public float RelocateBeyond = 120f;
+
+        [Tooltip("Seconds continuously beyond RelocateBeyond, out of sight, before a cop is " +
+                 "re-dispatched. 0 disables re-dispatch entirely (both the distance and the wedge " +
+                 "trigger), which is the pursuit exactly as U19 shipped.\n\n" +
+                 "Sized against the shed clock, not against comfort: a star is gone " +
+                 "BreakContact + ShedStep = 12 s after contact is lost, so a re-dispatch that lands " +
+                 "later than that is a cop arriving for a chase that has already ended.")]
+        public float RelocateAfter = 6f;
+
+        [Tooltip("Seconds between re-dispatches of the same cop.")]
+        public float RelocateCooldown = 8f;
 
         [Tooltip("Candidates sampled per field spawn.")]
         public int FieldSpawnTries = 24;

@@ -135796,6 +135796,7 @@ MonoBehaviour:
     OvertakeShift: 3.5
     OvertakeTime: 3
     CornerScan: 25
+    BrakeDecel: 6.5
     LookaheadBase: 5
     LookaheadPerSpeed: 0.6
     LookaheadMin: 6
@@ -135808,10 +135809,14 @@ MonoBehaviour:
     SideGap: 3
     ArriveDistance: 8
     ArriveSpeed: 3
+    ClosingSpeed: 2
     ArrestRadius: 4
     ArrestHold: 1.5
     ArrestMaxSpeed: 6
     SpawnGrace: 2
+    PulloverHold: 2.5
+    PulloverStop: 3
+    PulloverSpeed: 2
     OfficerChase: 1
     OfficerDeployRadius: 18
     OfficerSpeed: 6.2
@@ -135826,14 +135831,19 @@ MonoBehaviour:
     UnwedgeLimit: 3
     MaxCops: 3
     SpawnInterval: 1
-    FieldSpawnMin: 60
-    FieldSpawnMax: 110
+    DeployInPlaceRange: 120
+    FieldSpawnMin: 50
+    FieldSpawnMax: 90
+    RelocateBeyond: 120
+    RelocateAfter: 6
+    RelocateCooldown: 8
     FieldSpawnTries: 24
     FieldSpawnClearance: 12
     CopSeparation: 30
     ReplaceDelay: 6
     BayArrive: 6
     StationApron: 26
+    BayEgressSpeed: 6
     ReplanInterval: 1
     CorridorWidth: 12
     HeliStars: 3
@@ -135873,6 +135883,7 @@ MonoBehaviour:
   traffic: {fileID: 0}
   bust: {fileID: 0}
   wallet: {fileID: 0}
+  hud: {fileID: 0}
   bayPositions:
   - {x: 164, y: 0.25, z: -111}
   - {x: 160, y: 0.25, z: -111}

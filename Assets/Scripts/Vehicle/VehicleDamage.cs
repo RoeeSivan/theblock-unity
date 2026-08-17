@@ -138,6 +138,19 @@ namespace TheBlock.Vehicles
         /// <summary>1 is showroom, 0 is a fireball. Read by nothing yet; the smoke is the readout.</summary>
         public float Health => _health;
 
+        /// <summary>
+        /// A police cruiser takes no damage at all - no dent, no shed part, no condition lost.
+        ///
+        /// It is not a design choice about realism, it is a pursuit-integrity rule: a cop that wedges
+        /// into a kerb (which the pursuit's own anti-stuck code makes it do on purpose) dented itself
+        /// to <c>EngineDead</c> and then coasted in <c>Chasing</c> for the rest of the session, and
+        /// <c>PoliceSystem</c> has no read of this component to replace it. The user's own words were
+        /// that no fire should come out of a police car. <c>IsPolice</c> is set by
+        /// <c>CopDriver.Configure</c> right after the pool instantiates the car, so it is true before
+        /// any collision; it is read on use rather than cached because it lands after Awake.
+        /// </summary>
+        private bool Immune => _car != null && _car.IsPolice;
+
         /// <summary>True from the moment the condition hits zero - engine dead, fuse lit.</summary>
         public bool Dead => _dead;
 
@@ -195,6 +208,9 @@ namespace TheBlock.Vehicles
             if (_sensor == null && !TryGetComponent(out _sensor)) return;
             if (impact.Sensor != _sensor) return;
 
+            if (_car == null) Bind();
+            if (Immune) return;
+
             float over = impact.ClosingSpeed - minDamageSpeed;
             if (over <= 0f) return;
 
@@ -216,6 +232,8 @@ namespace TheBlock.Vehicles
         public void Hurt(float amount)
         {
             if (_dead || amount <= 0f || !Progress.VehicleDamageOn) return;
+            if (_car == null) Bind();
+            if (Immune) return;
 
             // Visual mode floors the condition just above zero: the car dents, smokes and burns and
             // is still a car you can drive home. That is the whole difference between the two modes.

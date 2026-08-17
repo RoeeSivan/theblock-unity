@@ -94,15 +94,27 @@ unclear, re-test before inheriting.
 > a change of what "done" means - the graded artifacts are a video, a repo, a kanban board and a zip,
 > and only one of them is the game.
 >
-> **NEXT ACTION: ONE PLAY-TEST COVERING TWO THINGS**, both BUILT and awaiting the user's eyes,
+> **NEXT ACTION: ONE PLAY-TEST COVERING THREE THINGS**, all BUILT and awaiting the user's eyes,
 > 2026-08-17. They are the same drive, so they are tested together rather than batched by choice:
 >
+> - **U35d-pre-2 - THE POLICE RESPONSE, REBUILT ON THE WEB'S MODEL.** The user's third report on
+>   the same feature, and the bluntest - *"הפיצר של המשטרה פשוט גרוע והוא לא עובד… המשטרות פשוט לא
+>   באות אליי… ב three js בגרסא שם זה דווקא עבד טוב"*. The web's cops spawn **70 m behind you**;
+>   U19 chose, on purpose, to drive every cruiser from the station however far the crime was, and
+>   two rounds of tuning could not save that choice because the time was the 900 m, not the
+>   driving. Cops now come from a hidden street 50-90 m away unless the car is already within
+>   120 m of you, a cop that loses you is re-dispatched, and **cruisers take no damage at all**
+>   (the user's other ask - *"לא יוצא אש ממכוניות של משטרה"*). Measured in Play: crime → BUSTED in
+>   **~6.5 s at 1★, ~8 s at 3★**, from ~36-45 s. Section below, and it holds the recipe.
 > - **U35c** - the police H145 at 3★, the GPS road route on both maps, and a police-response fix.
 > - **U35d-pre** - *the police can now catch you in a vehicle*, on the user's report
 >   *"שתפיסה תהיה גם אם אני בתוך אופנוע / רכב"*. It was **unreachable**, not badly tuned: the arrival
 >   ramp braked a cruiser to 3 m/s inside 8 m of a *moving* car, and `ArrestMaxSpeed` was a
 >   precondition nobody being chased ever meets. Both fixed; the forced pull-over is the user's own
->   call. **The one recipe is in the U35d-pre section below** and it ends with U35c's own checks.
+>   call. Its recipe is in the U35d-pre section below and it ends with U35c's own checks.
+>
+> ⚠ **`Settings → Gameplay → Vehicle Damage` was reset to Off by the U35d-pre-2 immunity test** (it
+> is a `PlayerPrefs` value and the test had to write it). If it was on before, turn it back on.
 >
 > ✅ **U35a and U35b are both user-confirmed** and neither needs anything further until U30b measures
 > their frame cost.
@@ -321,13 +333,87 @@ edit and no hand wiring were needed**. `MissionHud` and `BustSequence` are both 
 rather than pulling alongside. Nothing brakes them at 8 m any more, and `SideGap = 3` is the only
 thing aiming them at your flank instead of your bumper.
 
-### ⚠ OPEN - police pursuit, consider improving further
+### U35d-pre-2, 2026-08-17 - the police response, rebuilt on the web's model - BUILT, AWAITING PLAY-TEST
+
+**The user's report, the third on this feature and the bluntest:** *"הפיצר של המשטרה פשוט גרוע והוא
+לא עובד. אני מאוד לא מרוצה ממנו… מכוניות של משטרה יש להן את ההתנהגות שהן יכולות להפגע, בוא נוריד את
+זה… המשטרות פשוט לא באות אליי… ב three js בגרסא שם זה דווקא עבד טוב."*
+
+**The diagnosis is a design decision, not a number.** The two builds were read side by side:
+
+| | three.js `police.ts` | Unity, before this |
+| --- | --- | --- |
+| Where a cop spawns | station bay only if you are ≤ 120 m from the station, **else a street 70 m behind you**, same frame | **always the station bays** (`Deploy`: *"however far away the crime was"*) - up to ~900 m of A\* through traffic, kerbs and wedges |
+| Crime → first contact | 4-6 s anywhere | 36-45 s, traffic-dependent, after two tuning rounds |
+| A cop that cannot get to you | impossible by construction (kinematic force-through) | a WheelCollider car that reverses out three times, then only replans - and one that dented itself to `EngineDead` coasted in `Chasing` for ever, unread by `PoliceSystem` |
+
+`TryFieldSpawn` - the 60-110 m road-graph ring, out of sight preferred - **had existed since U19 and
+was never reached**, because all three cruisers have bays. U19 turned the web's near-spawn off on
+purpose: *"the response has a TRAVEL TIME. Getting away before they arrive is a real thing you can
+do."* That was design rather than scar tissue, and it was the bug: the OPEN section this replaces
+had already found that *"the time was never being spent driving"* and warned against raising speeds.
+It was right. The answer was not to drive the 900 m.
+
+**What changed - four things, three files of logic:**
+
+1. **`VehicleDamage.Immune`** - a `CarController.IsPolice` car takes nothing: no dent, no shed part,
+   no condition, no smoke, no fire, no fuse. Guarded in `OnCrashed` (before `Dent`/`Shed`) and in
+   `Hurt` (the explosion's chain damage). The prefab is untouched - `CarController.Bind` re-adds the
+   model at runtime anyway, so a guard in the model is the only fix that holds. Verified in Play:
+   `Hurt(0.9)` on Cop 0 → health 1 → 1; the same on a civilian Audi → 1 → 0.7.
+2. **`PoliceSystem.Deploy` is the web's rule.** Within `DeployInPlaceRange` (120 m) of you a car
+   deploys from where it is - a bay it rolls out of (`PrependBayEgress` still applies), or the
+   street it was driving home on. Beyond it the same car is **placed** on a street in the field
+   ring, 50-90 m off (scene values changed from 60/110), out of your sight and out of the camera
+   when there is such a spot. Its bay stands empty while it is out - the pool trick the file's own
+   header describes. A bay car that finds no street still drives from the station: late beats never.
+3. **`PoliceSystem.Relocate` - re-dispatch.** The web's *"a pursuer that can enter an unrecoverable
+   state is a bug whatever the geometry"*, kept by the honest Unity means: an out-of-sight cop is put
+   back in the field ring. Triggers: **fallen behind** (`RelocateBeyond` 120 m out of sight for
+   `RelocateAfter` 6 s - sized against the shed clock, since a star is gone 12 s after contact is
+   lost) and **wedged out** (the unwedge limit; first strike in view is a fresh route as before, the
+   **second strike re-dispatches even in view** - twenty seconds rocking on a kerb in front of you
+   is worse than a cruiser leaving and another arriving from round a corner). `RelocateCooldown`
+   8 s per car; the officer on foot blocks it. **`RelocateAfter = 0` is the off switch** and
+   restores U19's behaviour exactly.
+4. **Speeds, grip, corners, arrest, pull-over: untouched.** Every U35c/U35d-pre number stands.
+
+**Measured, in Play, from the spawn car park (176 m from the station, "the hardest case"):**
+
+| | Before (ledger) | Now |
+| --- | --- | --- |
+| Crime → cop in sight | 30-45 s | **0.3 s** (placed 41 m off, in view - the car park is an open plaza, and out-of-sight is preferred not required) |
+| Crime → `Arresting` (officer out) | - | **4.9 s** |
+| Crime → BUSTED, 1★ | ~36-45 s | **~6.5 s** |
+| Crime → BUSTED, 3★ | - | **~8 s** - two cars placed, the third found no separated street and drove from the station, as designed |
+| Player jumps 176 m away mid-chase | cop lost | re-dispatched **6.4 s** later, 64 m off, out of sight; LOS regained 5 s after that; the cooling meter reset |
+
+**Known residual, and it is the OPEN section's own item 1:** in the jump test the re-dispatched
+cruiser then wedged in view at (117, −106) on the way into the station forecourt for ~5 s before
+reversing free - the kerb geometry near the station is climbable and the car beaches on it. The
+second-strike rule bounds that at ~20 s now; it does not remove it. Nothing else of the OPEN
+section survives - its three "measure first" items are moot when the drive is 60 m rather than 900.
+
+**HOW TO PLAY-TEST IT - it is the same drive as U35c and U35d-pre, so one run covers all three:**
+
+1. `Continue` (never `New Game`). Take a car, drive to the **far side of the map** from the station
+   (the beach, or downtown), earn a star. **A cruiser should be on you within ~10 s** and it should
+   *drive into view*, never appear in front of you. Report if one pops in.
+2. **Keep driving flat out** - the U35d-pre pull-over: hint, forced braking, BUSTED. Then break line
+   of sight and run for a corner - a re-dispatched car should come at you from a *different*
+   street, not the one you left it on.
+3. Set `Settings → Gameplay → Vehicle Damage = Full` and ram a cruiser into a wall, or let it ram
+   you: **no smoke, no fire, no dents on the police car** - and your own car still dents.
+4. Repeat 2 on the motorcycle - it must stop upright, not throw you.
+5. Then U35c: 3★ for the H145 (three cars now, all near you), `M` for the GPS line.
+
+### ~~⚠ OPEN - police pursuit, consider improving further~~ - CLOSED BY U35d-pre-2 (kept as history)
 
 **Left open by the user 2026-08-17** - *"תרשום לך בצעד מרדף משטרתי - לשקול לשפר בהמשך… יכול לסגור את
-הצעד הזה ואנחנו נטפל בזה בהמשך."* U35c closes; this stays as a named gap so it is not rediscovered
-as a surprise.
+הצעד הזה ואנחנו נטפל בזה בהמשך."* Closed the same day by U35d-pre-2 above; the section stays because
+its measurements are the "before" column and its warning about speeds was correct.
 
-**Where it stands, measured in Play rather than estimated.** The user's report was that the police
+**Where it stood, measured in Play rather than estimated.** The user's report was that the police
 often never arrive. Three things were found and two were fixed:
 
 | | Before | After |
@@ -3277,6 +3363,12 @@ would trigger it. A `wip` unit is work half-done; this is work deliberately not 
 
 Dated one-liners. These are settled - do not re-litigate them without the user reopening.
 
+- **2026-08-17** - **Police deploy NEAR the player, the web's way; U19's "always from the station"
+  is reversed.** Third user report on the same feature (*"הפיצר של המשטרה פשוט גרוע… המשטרות פשוט לא
+  באות אליי"*). Bays are used only within 120 m of you; otherwise the same car is placed on a
+  hidden street 50-90 m off, and a cop that loses you is re-dispatched (`RelocateAfter = 0` turns
+  that off). Crime → BUSTED measured ~6.5 s from ~36-45 s. **Cruisers are damage-immune** on the
+  user's own ask (*"לא יוצא אש ממכוניות של משטרה"*). Chase numbers untouched. U35d-pre-2.
 - **2026-08-16** - **THE PIVOT: the Unity build is the submission, and the port has a deadline.**
   The user's framing: the project began in three.js and moved to Unity mid-way, to learn a second
   engine and to use Unity's advantages. This **reverses** two things this ledger and `CLAUDE.md` had

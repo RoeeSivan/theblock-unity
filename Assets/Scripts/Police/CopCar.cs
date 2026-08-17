@@ -92,6 +92,28 @@ namespace TheBlock.Police
         /// <summary>Time it wrecked, for the replacement delay.</summary>
         public float WreckedAt { get; set; }
 
+        /// <summary>
+        /// Time it was last re-dispatched into the field ring, for the cooldown; also the deploy
+        /// time, so a fresh cop is not moved again before it has had a chance to arrive.
+        /// </summary>
+        public float RelocatedAt { get; set; }
+
+        /// <summary>
+        /// Time this cop first went beyond <c>RelocateBeyond</c> out of sight, or 0 while it is
+        /// within range or can see you. The distance trigger of the re-dispatch.
+        /// </summary>
+        public float FarSince { get; set; }
+
+        /// <summary>How many times this cop has been re-dispatched this deployment. A probe number.</summary>
+        public int Relocations { get; set; }
+
+        /// <summary>
+        /// How many times this cop has hit the unwedge limit since it was last placed. The first
+        /// strike in view of you is answered with a fresh route; the second is a cop that has been
+        /// visibly stuck for twenty seconds, and it is re-dispatched even though you can see it.
+        /// </summary>
+        public int WedgeStrikes { get; set; }
+
         /// <summary>Clear line to the target this step.</summary>
         public bool HasLos { get; set; }
 
