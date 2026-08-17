@@ -443,12 +443,39 @@ namespace TheBlock.Vehicles
             // out would bake that into Joe's own localScale - he would walk away permanently 5%
             // shorter, a little more so with every vehicle he got out of.
             player.transform.SetParent(null, worldPositionStays: false);
-            player.transform.SetPositionAndRotation(ExitSpot(vehicle), vehicle.GetTransform().rotation);
+            player.Teleport(ExitSpot(vehicle), Facing(vehicle));
 
             SetDriverVisible(true);
             riderSeated = false;
             playerAnimator?.SeatOut();
             followCamera?.FollowPlayer(snap: false);
+        }
+
+        /// <summary>
+        /// The heading to stand the player up on: the vehicle's yaw, with its pitch and roll dropped.
+        ///
+        /// <b>Copying the vehicle's full rotation is what this used to do, and it is the crooked-Joe
+        /// bug.</b> <see cref="PlayerController"/> turns with a WORLD-space yaw <c>Rotate</c>, which
+        /// ADDS to whatever rotation the transform already carries - so a pitch or a roll that
+        /// reaches the root is permanent, for the rest of the session, and the body leans while the
+        /// camera's horizon stays level. Getting out of a car resting on a kerb did it; so did
+        /// stepping out of one the police had just impounded at the station, which is where it was
+        /// reported.
+        ///
+        /// The yaw is read off the FORWARD vector flattened onto the ground rather than off
+        /// <c>eulerAngles.y</c>, which on a rolled body is whatever is left after the roll has eaten
+        /// the rest of the rotation - the trap <c>PlayerRagdoll</c> documents for a face-down pelvis.
+        /// A car on its roof still has a horizontal forward, so the common wreck reads correctly; one
+        /// balanced on its nose has none, and then any heading will do.
+        /// </summary>
+        private static float Facing(IEnterable vehicle)
+        {
+            var forward = vehicle.GetTransform().forward;
+            forward.y = 0f;
+
+            return forward.sqrMagnitude < 0.0001f
+                ? vehicle.GetTransform().eulerAngles.y
+                : Quaternion.LookRotation(forward, Vector3.up).eulerAngles.y;
         }
 
         /// <summary>

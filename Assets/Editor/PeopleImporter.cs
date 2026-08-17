@@ -344,12 +344,22 @@ namespace TheBlock.EditorTools
         // --- height ---------------------------------------------------------------------------
 
         /// <summary>
-        /// The character's standing height in metres, measured by actually instantiating it.
+        /// The character's standing height in metres, measured by actually instantiating it and
+        /// baking the skin.
         ///
         /// Instantiated rather than read off <c>mesh.bounds</c>, because that reports the mesh in
         /// FILE units and ignores the import scale entirely - which is how an earlier pass here
         /// concluded every character was "170 m tall", scaled the importer to fix it, and broke the
         /// rigs. A real instance in a preview scene is the only reading that includes everything.
+        ///
+        /// <b>BAKED VERTICES, never <c>renderer.bounds</c>, and that reversal is what fixed the
+        /// crowd.</b> A SkinnedMeshRenderer's bounds are the volume the whole CLIP sweeps, padded -
+        /// not the body's height. Measured on this project's own files: Joe.fbx bounds 1.968 m
+        /// against a 1.769 m body, Chinese_Idle 2.037 against 1.739, and Joe_Jumping - the same rig
+        /// again - 2.061, because the jump is in it. Feeding that overshoot into
+        /// <see cref="HeightScale"/> shrank every pedestrian by its own padding, so the crowd was
+        /// built 1.45-1.55 m tall and stood knee-high beside a 1.77 m player. Baking the skin and
+        /// reading the vertices is a measurement of the body and nothing else.
         ///
         /// The preview scene is not the open one: instantiating into the active scene would leave it
         /// dirty, and a builder that quietly dirties the world scene is how an unrelated change ends
@@ -367,19 +377,69 @@ namespace TheBlock.EditorTools
                 UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(instance, scene);
                 instance.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
 
-                var renderers = instance.GetComponentsInChildren<Renderer>(true);
-                if (renderers.Length == 0) return 0f;
+                float height = SkinnedHeight(instance);
 
-                var bounds = renderers[0].bounds;
-                foreach (var renderer in renderers) bounds.Encapsulate(renderer.bounds);
+                // Nothing skinned is not an error - it is a prop, or a clip-only FBX with no mesh at
+                // all - and for a static mesh the bounds ARE the geometry, so the old reading stands.
+                if (height <= 0f)
+                {
+                    var renderers = instance.GetComponentsInChildren<Renderer>(true);
+                    if (renderers.Length > 0)
+                    {
+                        var bounds = renderers[0].bounds;
+                        foreach (var renderer in renderers) bounds.Encapsulate(renderer.bounds);
+                        height = bounds.size.y;
+                    }
+                }
 
                 Object.DestroyImmediate(instance);
-                return bounds.size.y;
+                return height;
             }
             finally
             {
                 UnityEditor.SceneManagement.EditorSceneManager.ClosePreviewScene(scene);
             }
+        }
+
+        /// <summary>
+        /// Vertical extent of every skinned vertex in the pose the rig imported in, or 0 if there is
+        /// no skin.
+        ///
+        /// <b><c>useScale: true</c> AND then the renderer's matrix, and the pairing is the opposite of
+        /// what the flag name suggests.</b> Measured on <c>Ped_Remy</c>, whose visual scale is 0.454,
+        /// against a body that is drawn 1.700 m: <c>useScale: true</c> hands back 3.748 - the rig with
+        /// its world scale DIVIDED OUT - so the matrix puts it back and the answer is 1.700.
+        /// <c>useScale: false</c> hands back 1.700 already, and the matrix then squares the scale into
+        /// 0.771. On an unscaled hierarchy all four combinations agree, which is exactly why the wrong
+        /// pairing survives being tested on an FBX and only lies about a built prefab.
+        /// </summary>
+        private static float SkinnedHeight(GameObject instance)
+        {
+            float low = float.PositiveInfinity;
+            float high = float.NegativeInfinity;
+
+            foreach (var skin in instance.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                var baked = new Mesh();
+                try
+                {
+                    skin.BakeMesh(baked, useScale: true);
+                    var matrix = skin.transform.localToWorldMatrix;
+
+                    foreach (var vertex in baked.vertices)
+                    {
+                        float y = matrix.MultiplyPoint3x4(vertex).y;
+                        if (y < low) low = y;
+                        if (y > high) high = y;
+                    }
+                }
+                finally
+                {
+                    Object.DestroyImmediate(baked);
+                }
+            }
+
+            return high > low ? high - low : 0f;
         }
 
         /// <summary>

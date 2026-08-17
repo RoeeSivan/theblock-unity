@@ -234,7 +234,16 @@ namespace TheBlock.Npc
             else animSpeed = Walk(dt, tuning);
 
             if (animator != null)
-                animator.SetFloat(SpeedParameter, walkClipSpeed > 0.01f ? animSpeed / walkClipSpeed : 0f);
+            {
+                // Cadence against the stride as DRAWN, not as the clip measures it.
+                // <see cref="walkClipSpeed"/> is in the avatar's own units and the body is drawn at
+                // the visual's scale - the same multiply, for the same reason, as
+                // <see cref="HarvestRootMotion"/>, and Remy is again the one who proves it: his
+                // avatar is 4.20 m tall, so his clip travels 2.5x too far in local units before it
+                // is drawn 0.45x. Divide by the unscaled figure and a shrunk body skates.
+                float drawn = walkClipSpeed * animator.transform.localScale.z;
+                animator.SetFloat(SpeedParameter, drawn > 0.01f ? animSpeed / drawn : 0f);
+            }
         }
 
         /// <summary>

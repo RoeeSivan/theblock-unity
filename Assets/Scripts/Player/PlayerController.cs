@@ -252,6 +252,10 @@ namespace TheBlock.Player
                 _jumping = false;
             }
 
+            // The root is yaw-only, by construction - see KeepUpright for why that is an invariant
+            // and not a formality.
+            KeepUpright();
+
             // Turning is pure yaw; it steers the forward vector rather than the velocity. Positive
             // is clockwise seen from above, so D turns right. The three.js source writes the same
             // intent with the opposite sign because +Y there is counter-clockwise.
@@ -303,6 +307,42 @@ namespace TheBlock.Player
             _controller.Move(velocity * dt);
 
             UpdatePose(moving, wantSprint, wantJog);
+        }
+
+        /// <summary>
+        /// Drops any pitch or roll the root has picked up, keeping the yaw.
+        ///
+        /// <b>Why the root cannot be allowed to lean.</b> The turn above is a world-space yaw
+        /// <c>Rotate</c>, so it adds to whatever rotation is already there instead of replacing it -
+        /// a tilt that reaches this transform survives every turn, every step and every save, and it
+        /// shows up as a body leaning under a level horizon (the camera hangs off this transform but
+        /// keeps world up). <see cref="VehicleEnterExit"/> was the writer that handed one over, by
+        /// copying the CAR's full rotation on the way out; that is fixed at the source, and this is
+        /// the invariant, so the next writer cannot do it again.
+        ///
+        /// Free on an ordinary frame - an upright body's own up IS world up, and that comparison is
+        /// all that runs. It is also only ever reached while this component owns the body: mounted in
+        /// a vehicle the player is parented to a seat and this component is disabled, so a tilted car
+        /// still tilts its driver, which is correct.
+        /// </summary>
+        private void KeepUpright()
+        {
+            if (transform.up.y > 0.99999f) return;
+
+            var flat = transform.forward;
+            flat.y = 0f;
+
+            // Pitched a full 90° there is no forward left to flatten. Undefined rather than wrong:
+            // the body's own up is horizontal in exactly that case, so it yields A heading, and the
+            // point of the line is that the result is upright.
+            if (flat.sqrMagnitude < 0.0001f)
+            {
+                flat = transform.up;
+                flat.y = 0f;
+                if (flat.sqrMagnitude < 0.0001f) return;
+            }
+
+            transform.rotation = Quaternion.LookRotation(flat, Vector3.up);
         }
 
         /// <summary>

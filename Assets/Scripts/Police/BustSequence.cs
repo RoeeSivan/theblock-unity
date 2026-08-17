@@ -30,6 +30,7 @@ namespace TheBlock.Police
         [SerializeField] private VehicleEnterExit vehicles;
         [SerializeField] private FollowCamera followCamera;
         [SerializeField] private WantedHud hud;
+        [SerializeField] private PlayerRagdoll ragdoll;
 
         /// <summary>Raised once the freeze begins. U20 hangs its mission failure here.</summary>
         public event System.Action Busted;
@@ -44,6 +45,7 @@ namespace TheBlock.Police
             if (vehicles == null) vehicles = FindAnyObjectByType<VehicleEnterExit>();
             if (followCamera == null) followCamera = FindAnyObjectByType<FollowCamera>();
             if (hud == null) hud = FindAnyObjectByType<WantedHud>();
+            if (ragdoll == null) ragdoll = FindAnyObjectByType<PlayerRagdoll>();
         }
 
         /// <summary>Starts the sequence. Ignored if one is already running.</summary>
@@ -91,8 +93,14 @@ namespace TheBlock.Police
             }
             else
             {
-                player.enabled = false;
-                frozeOnFoot = true;
+                // A body that is already DOWN is not this sequence's to freeze, and above all not
+                // its to hand back. <see cref="PlayerRagdoll"/> owns the controller from the throw
+                // until it stands the player up, and switching it on under a crumpled skeleton gives
+                // the player a walking capsule while the visible body is still a heap on the road -
+                // which is a normal way for a pursuit to end, not an exotic one: come off the bike
+                // hard, and the officer arrests you where you land.
+                frozeOnFoot = ragdoll == null || !ragdoll.Down;
+                if (frozeOnFoot) player.enabled = false;
             }
 
             if (hud != null) hud.ShowBusted(taken, owed, driving != null);
@@ -125,7 +133,9 @@ namespace TheBlock.Police
                 if (followCamera != null) followCamera.SnapToTarget();
             }
 
-            if (frozeOnFoot) player.enabled = true;
+            // Checked again rather than trusted from before the wait: the ragdoll can settle and
+            // stand up during the hold, and it re-enables the controller itself when it does.
+            if (frozeOnFoot && (ragdoll == null || !ragdoll.Down)) player.enabled = true;
             if (hud != null) hud.HideBusted();
 
             Running = false;
