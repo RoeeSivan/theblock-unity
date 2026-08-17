@@ -310,6 +310,31 @@ namespace TheBlock.Player
         }
 
         /// <summary>
+        /// U35h - walking into a street prop shoves it instead of stopping dead against it.
+        ///
+        /// A <c>CharacterController</c> pushes nothing on its own: it is a kinematic capsule that
+        /// PhysX resolves the player OUT of, so a 3 kg cone would be as solid as a wall to a body on
+        /// foot. Only the Props layer is pushed - a car, a pedestrian, a door are handled by their own
+        /// systems - and the push is a velocity write scaled to walking pace, so a bench is nudged
+        /// and a cone is kicked over, and neither is launched.
+        /// </summary>
+        private void OnControllerColliderHit(ControllerColliderHit hit)
+        {
+            var body = hit.rigidbody;
+            if (body == null || body.isKinematic) return;
+            if (hit.gameObject.layer != World.Breakable.PropsLayer) return;
+            if (hit.moveDirection.y < -0.3f) return;   // standing on it, not walking into it
+
+            var push = hit.moveDirection;
+            push.y = 0f;
+            if (push.sqrMagnitude < 1e-4f) return;
+            push.Normalize();
+
+            float pace = Mathf.Max(PlanarSpeed, 1f);
+            body.linearVelocity = push * pace * (2f / Mathf.Max(1f, body.mass * 0.25f)) + Vector3.up * 0.5f;
+        }
+
+        /// <summary>
         /// Drops any pitch or roll the root has picked up, keeping the yaw.
         ///
         /// <b>Why the root cannot be allowed to lean.</b> The turn above is a world-space yaw

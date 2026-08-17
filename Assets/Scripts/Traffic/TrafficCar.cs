@@ -300,6 +300,7 @@ namespace TheBlock.Traffic
             if (!wreckOnImpact || Mode != State.Driving) return;
             if (collision.rigidbody == null) return;      // static geometry cannot wreck a car
             if (collision.rigidbody.isKinematic) return;  // another traffic car; the sim handles those
+            if (collision.collider != null && collision.collider.gameObject.layer == World.Breakable.PropsLayer) return; // U35h: a flung cone or a lying pole is debris, not a wreck
             if (collision.relativeVelocity.magnitude < wreckSpeed) return;
 
             Wreck(collision);

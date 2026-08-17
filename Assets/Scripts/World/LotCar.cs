@@ -120,6 +120,7 @@ namespace TheBlock.World
             if (!wreckOnImpact || Wrecked) return;
             if (collision.rigidbody == null) return;      // a pedestrian capsule, or nothing at all
             if (collision.rigidbody.isKinematic) return;  // a traffic car under script control
+            if (collision.collider != null && collision.collider.gameObject.layer == Breakable.PropsLayer) return; // U35h: a flung bin is not a shunt
             if (collision.relativeVelocity.magnitude < wreckSpeed) return;
 
             Wreck(collision);

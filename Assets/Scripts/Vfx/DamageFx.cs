@@ -309,6 +309,20 @@ namespace TheBlock.Vfx
             _flashT = 0f;
         }
 
+        /// <summary>
+        /// U35h - a short shower of sparks where a traffic-light pole was struck. Thrown from the
+        /// blast fire system rather than a new emitter: same material, same additive look, a dozen
+        /// tiny hot-white particles that die in a third of a second. Visual only, like
+        /// <see cref="Burst"/>.
+        /// </summary>
+        public void Sparks(Vector3 at)
+        {
+            if (_blastFire == null || _root == null) Build();
+            if (_blastFire == null) return;
+
+            Throw(_blastFire, at, 12, 5f, 0.06f, 0.35f, new Color(1f, 0.85f, 0.55f, 1f));
+        }
+
         private void Throw(ParticleSystem system, Vector3 at, int count, float speed, float size,
             float life, Color color)
         {

@@ -69,6 +69,9 @@ namespace TheBlock.Audio
 
         /// <summary>U35b - a car goes up. The longest and lowest cue in the game.</summary>
         Explosion,
+
+        /// <summary>U35h - a cone, bin or bench is knocked about. Light and short; never a crash.</summary>
+        Clatter,
     }
 
     /// <summary>
@@ -289,6 +292,15 @@ namespace TheBlock.Audio
                         .AddNoise(0.02f, 1.1f, 260f, 0.42f)       // the body of it, dark and long
                         .Add(46f, 0f, 0.55f, SfxSynth.Wave.Sawtooth, 0.34f)
                         .Add(31f, 0.05f, 0.9f, SfxSynth.Wave.Sine, 0.3f);
+
+                case SfxCue.Clatter:
+                    // U35h, no line in sfx.ts to copy. Voiced UNDER Crash on purpose: a cone leaving
+                    // the bumper must not sound like the bumper leaving the car. Brighter and much
+                    // shorter than the crash's 900 Hz / 0.18 s, with a low tap for the weight of a
+                    // bin instead of the crash's sawtooth. It is thrown at up to ~8 a second in a
+                    // cone cluster, so it is quiet by construction and the caller throttles it too.
+                    return c.AddNoise(0f, 0.09f, 2400f, 0.16f)
+                        .Add(180f, 0f, 0.06f, SfxSynth.Wave.Sine, 0.1f);
 
                 default:
                     return c.Add(A4, 0f, 0.05f);

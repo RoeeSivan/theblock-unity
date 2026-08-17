@@ -37,6 +37,7 @@ namespace TheBlock.UI.Menus
         private Button _dayNightButton;
         private Button _ragdollButton;
         private Button _damageButton;
+        private Button _propsButton;
         private Button _soundButton;
         private System.Action _onBack;
 
@@ -101,6 +102,17 @@ namespace TheBlock.UI.Menus
             damageNote.style.maxWidth = 420f;
             damageNote.style.marginBottom = 22f;
             overlay.Add(damageNote);
+
+            _propsButton = MenuStyle.Primary("Street Props", () => ApplyProps(!Progress.BreakablePropsOn));
+            _propsButton.style.marginBottom = 12f;
+            overlay.Add(_propsButton);
+
+            var propsNote = MenuStyle.Body(
+                "Cones, bins and benches at the kerb that cars send flying, and traffic lights that " +
+                "topple when rammed. Off is the game as it was.");
+            propsNote.style.maxWidth = 420f;
+            propsNote.style.marginBottom = 22f;
+            overlay.Add(propsNote);
 
             overlay.Add(MenuStyle.Heading("Audio"));
 
@@ -171,6 +183,20 @@ namespace TheBlock.UI.Menus
             if (_damageButton != null) _damageButton.text = DamageLabel(mode);
         }
 
+        /// <summary>
+        /// Settings → Gameplay → Street Props (U35h). <b>Pushed, like the radar row</b> - unlike a
+        /// ragdoll, a prop is a standing object, so switching Off has something to undo right now:
+        /// <see cref="PropSystem.SetEnabled"/> restores and despawns every prop and makes the poles
+        /// rigid again, and On spawns them back. The boot-time read is <c>PropSystem</c>'s own
+        /// <c>Start</c>, not this panel's, for the day/night reason: one boot-time writer.
+        /// </summary>
+        private void ApplyProps(bool on)
+        {
+            Progress.BreakablePropsOn = on;
+            if (PropSystem.Instance != null) PropSystem.Instance.SetEnabled(on);
+            if (_propsButton != null) _propsButton.text = on ? "Street Props:  On" : "Street Props:  Off";
+        }
+
         private static VehicleDamageMode Next(VehicleDamageMode mode) => mode switch
         {
             VehicleDamageMode.Off => VehicleDamageMode.Visual,
@@ -212,6 +238,8 @@ namespace TheBlock.UI.Menus
                 _ragdollButton.text = Progress.RagdollsOn ? "Ragdolls:  On" : "Ragdolls:  Off";
             if (_damageButton != null)
                 _damageButton.text = DamageLabel(Progress.VehicleDamage);
+            if (_propsButton != null)
+                _propsButton.text = Progress.BreakablePropsOn ? "Street Props:  On" : "Street Props:  Off";
             if (_soundButton != null)
                 _soundButton.text = Mute.SoundOn ? "Sound:  On" : "Sound:  Muted";
             Show();

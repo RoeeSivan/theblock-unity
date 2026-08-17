@@ -164,6 +164,33 @@ namespace TheBlock.Audio
             host.sfx.Play(SfxCue.Explosion, 0.25f + 0.75f * gain);
         }
 
+        /// <summary>
+        /// U35h - a street prop knocked about, rolled off against the listener like
+        /// <see cref="Explosion"/> and for the same reason, but with a far shorter reach: a cone
+        /// two streets away is nothing. <paramref name="gain"/> is the caller's read of how hard
+        /// the hit was, 0-1. Throttled here, not at the call sites, because a cluster of four cones
+        /// under one bumper is four callers in one physics step.
+        /// </summary>
+        public static void Clatter(Vector3 at, float gain = 1f)
+        {
+            var host = Instance;
+            if (host == null || host.sfx == null) return;
+            if (Time.time - host._lastClatter < clatterCooldown) return;
+
+            float distance = Vector3.Distance(at, host.ListenerPosition());
+            float falloff = Mathf.Clamp01(1f - Mathf.InverseLerp(clatterNear, clatterFar, distance));
+            float level = falloff * Mathf.Clamp01(gain);
+            if (level <= 0.03f) return;
+
+            host._lastClatter = Time.time;
+            host.sfx.Play(SfxCue.Clatter, 0.2f + 0.8f * level);
+        }
+
+        private float _lastClatter = -99f;
+        private const float clatterCooldown = 0.12f;
+        private const float clatterNear = 8f;
+        private const float clatterFar = 60f;
+
         /// <summary>Metres within which an explosion is at full volume.</summary>
         private const float explosionNear = 12f;
 

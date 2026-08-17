@@ -257,6 +257,11 @@ namespace TheBlock.EditorTools
             // that answers whether that network is one city or five islands.
             BuildPolice(root.transform, snapshot.Config, options, report);
 
+            // U35h - after traffic, because the bins stand beside the poles it just placed and the
+            // cones and benches read the network it just baked; and inside the build at all so the
+            // prop prefabs' compressed-material clones are re-emitted before SweepGenerated runs.
+            BuildProps(root.transform, snapshot.Config, options, report);
+
             if (options.Navigation)
                 BuildNavigation(root.transform, districts, snapshot.Config, trafficGraph, options, report);
             else ReattachNavigation(root, districts, keptNavigation, report);

@@ -90480,6 +90480,306 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1336937731}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &745398344
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 745398345}
+  - component: {fileID: 745398346}
+  m_Layer: 0
+  m_Name: Props
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &745398345
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 745398344}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1760806586}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &745398346
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 745398344}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b8587f2ce8852437c8fc6eb33f2411b5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TheBlock.World.PropSystem
+  entries:
+  - Kind: 1
+    Position: {x: 123.100006, y: 0.0049, z: -399.5}
+    Yaw: 0
+  - Kind: 1
+    Position: {x: 134.5, y: 0.0049, z: -354.59998}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: 134.49998, y: 0.0049, z: -293.59998}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: 134.5, y: 0.0049, z: -234.6}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: 52.800003, y: 0.0049, z: -399.5}
+    Yaw: 0
+  - Kind: 1
+    Position: {x: 64.2, y: -0.045000006, z: -354.59998}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: 64.2, y: 0.11999998, z: -293.59998}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: 64.2, y: 0.12, z: -234.6}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: 64.2, y: 0.11999999, z: -172.7}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: -4.4, y: 0.12, z: -399.5}
+    Yaw: 0
+  - Kind: 1
+    Position: {x: 7, y: 0.0049, z: -354.59998}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: 7, y: 0.0049, z: -293.59998}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: -4.4, y: 0.11999999, z: -217}
+    Yaw: 0
+  - Kind: 1
+    Position: {x: 7, y: 0.12, z: -172.7}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: -66.100006, y: 0.0049, z: -399.5}
+    Yaw: 0
+  - Kind: 1
+    Position: {x: -54.700005, y: 0.11999999, z: -354.59998}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: -54.700005, y: 0.120000005, z: -293.59998}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: -54.700005, y: 0.0049, z: -234.6}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: -115.80001, y: 0.0055, z: -354.59998}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: -115.8, y: 0.0055, z: -293.59998}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: -115.80001, y: 0.0055, z: -234.6}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: -115.8, y: 0.0049, z: -172.7}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: -118.600006, y: -0.045000006, z: -113.99999}
+    Yaw: 270
+  - Kind: 1
+    Position: {x: -145.2, y: 0.0049, z: -102.600006}
+    Yaw: 90
+  - Kind: 1
+    Position: {x: -191.2, y: 0.0049, z: -102.600006}
+    Yaw: 90
+  - Kind: 1
+    Position: {x: -244, y: 0.0055, z: -102.6}
+    Yaw: 90
+  - Kind: 1
+    Position: {x: -118.600006, y: 0.054999996, z: -48.7}
+    Yaw: 270
+  - Kind: 1
+    Position: {x: -145.2, y: 0.054999996, z: -37.300003}
+    Yaw: 90
+  - Kind: 1
+    Position: {x: -191.2, y: 0.055000003, z: -37.299995}
+    Yaw: 90
+  - Kind: 1
+    Position: {x: -244, y: 0.0049, z: -37.3}
+    Yaw: 90
+  - Kind: 1
+    Position: {x: -162.2, y: 0.0049, z: 49.7}
+    Yaw: 90
+  - Kind: 1
+    Position: {x: -191.2, y: 0.0055, z: 49.7}
+    Yaw: 90
+  - Kind: 1
+    Position: {x: 194.9, y: 0.0549, z: -44.599995}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: 116.7, y: 0.055, z: -44.599995}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: 136.90001, y: 0.054999996, z: -97.40001}
+    Yaw: 90
+  - Kind: 1
+    Position: {x: 86.6, y: 0.0049, z: 235.1}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: 86.6, y: 0.0049, z: 316.5}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: -6.8, y: 0.11999999, z: 172.40001}
+    Yaw: 0
+  - Kind: 1
+    Position: {x: 4.6000004, y: 0.0049, z: 316.5}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: 4.6000004, y: 0.0049, z: 378.5}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: -75.3, y: 0.11999998, z: 235.1}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: -75.3, y: 0.12, z: 316.5}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: -120.49999, y: 0.0055, z: 177.79999}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: -120.5, y: 0.0055, z: 240.4}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: -218.3, y: 0.0049, z: 135.4}
+    Yaw: 0
+  - Kind: 1
+    Position: {x: -206.90001, y: 0.11999998, z: 177.79999}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: -206.90001, y: 0.11999998, z: 240.4}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: -276.4, y: 0.0049, z: 135.4}
+    Yaw: 0
+  - Kind: 1
+    Position: {x: -265, y: 0.12, z: 177.79999}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: -265, y: 0.16999999, z: 240.4}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: -264.99997, y: 0.0049, z: 300.5}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: -354, y: 0.0055, z: 177.79999}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: -354, y: 0.0055, z: 240.4}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: 595.50006, y: 0.0055, z: 190.8}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: 488.70004, y: 0.0055, z: 84.3}
+    Yaw: 0
+  - Kind: 1
+    Position: {x: 500.10007, y: 0.0055, z: 190.8}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: 500.10007, y: 0.0049, z: 316.80002}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: 414.90002, y: 0.0055, z: 190.8}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: 414.90002, y: 0.0049, z: 316.80002}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: 304.7, y: 0.11999999, z: 208.40001}
+    Yaw: 0
+  - Kind: 1
+    Position: {x: 316.10004, y: 0.0049, z: 316.80002}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: 230.70001, y: 0.0055, z: 84.3}
+    Yaw: 0
+  - Kind: 1
+    Position: {x: 242.1, y: 0.0055, z: 190.8}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: 242.1, y: 0.0049, z: 316.80002}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: 133.00002, y: 0.11999998, z: 190.8}
+    Yaw: 180
+  - Kind: 1
+    Position: {x: 319.19998, y: 0.0055, z: 81.2}
+    Yaw: 90
+  - Kind: 0
+    Position: {x: 318.73685, y: -0.045000006, z: -128.39583}
+    Yaw: 79.615845
+  - Kind: 0
+    Position: {x: 318.97116, y: -0.045000006, z: -129.67453}
+    Yaw: 116.615845
+  - Kind: 0
+    Position: {x: 319.20547, y: -0.045000006, z: -130.95325}
+    Yaw: 153.61584
+  - Kind: 0
+    Position: {x: 319.4398, y: -0.045000006, z: -132.23195}
+    Yaw: 190.61584
+  - Kind: 2
+    Position: {x: 316.0231, y: -0.045000006, z: -125.792336}
+    Yaw: 79.615845
+  - Kind: 2
+    Position: {x: 317.8256, y: -0.045000006, z: -135.62854}
+    Yaw: 79.615845
+  - Kind: 0
+    Position: {x: -84.9, y: 0.0049, z: 243.05}
+    Yaw: 90
+  - Kind: 0
+    Position: {x: -84.9, y: 0.0049, z: 244.35}
+    Yaw: 127
+  - Kind: 0
+    Position: {x: -84.9, y: 0.0049, z: 245.65}
+    Yaw: 164
+  - Kind: 0
+    Position: {x: -84.9, y: 0.0049, z: 246.95}
+    Yaw: 201
+  - Kind: 2
+    Position: {x: -87.1, y: 0.0049, z: 240}
+    Yaw: 90
+  - Kind: 2
+    Position: {x: -87.1, y: 0.0049, z: 250}
+    Yaw: 90
+  - Kind: 2
+    Position: {x: -6.4711413, y: 0.005, z: -19.773489}
+    Yaw: 89.4383
+  - Kind: 2
+    Position: {x: -6.569176, y: 0.005, z: -9.773969}
+    Yaw: 89.4383
+  - Kind: 2
+    Position: {x: -5.6368303, y: 0.005, z: -104.87317}
+    Yaw: 89.4383
+  - Kind: 2
+    Position: {x: -5.734865, y: 0.005, z: -94.87364}
+    Yaw: 89.4383
+  conePrefab: {fileID: 1553711505431125635, guid: a6a7da9d666df4b42bebc296cbf687b2, type: 3}
+  binPrefab: {fileID: 3855868266028538538, guid: 4b0467133dddb4fc2a1a74320de79e68, type: 3}
+  benchPrefab: {fileID: 2498825482369882934, guid: cc2aa0888be0844ff8bd8780294a5c05, type: 3}
+  tickSeconds: 0.5
+  settleSeconds: 6
+  farDistance: 120
+  nearFloor: 15
+  maxAwake: 16
+  killY: -20
 --- !u!1 &745873723
 GameObject:
   m_ObjectHideFlags: 0
@@ -136358,6 +136658,7 @@ MonoBehaviour:
   vehicles: {fileID: 0}
   followCamera: {fileID: 0}
   hud: {fileID: 0}
+  ragdoll: {fileID: 0}
 --- !u!114 &1127657414
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -213966,6 +214267,7 @@ Transform:
   - {fileID: 1127657411}
   - {fileID: 1864218252}
   - {fileID: 352017695}
+  - {fileID: 745398345}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1761009266

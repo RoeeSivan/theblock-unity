@@ -45,6 +45,41 @@ namespace TheBlock.Traffic
         private Material[] _slots;
         private LampState _shown;
         private bool _everShown;
+        private bool _down;
+
+        /// <summary>
+        /// U35h: has this pole been knocked over? While down all three lamps show their OFF material
+        /// and <see cref="Apply"/> is a no-op, so <c>TrafficLightSystem</c> can keep painting the
+        /// approach without knowing - a felled light that cycles green is worse than no feature.
+        /// Setting it back to false forces the next <see cref="Apply"/> to repaint, because the
+        /// change-detection latch would otherwise believe the last painted state is still showing.
+        ///
+        /// The dark materials are the SHARED off assets, never an instance: 233 poles batch by
+        /// being literally the same material, and one instanced pole is one more draw call for
+        /// every frame it lies there.
+        /// </summary>
+        public bool Down
+        {
+            get => _down;
+            set
+            {
+                if (_down == value) return;
+                _down = value;
+                if (_down)
+                {
+                    if (lamps == null) return;
+                    _slots ??= new Material[3];
+                    _slots[0] = redOff;
+                    _slots[1] = amberOff;
+                    _slots[2] = greenOff;
+                    lamps.sharedMaterials = _slots;
+                }
+                else
+                {
+                    _everShown = false;
+                }
+            }
+        }
 
         /// <summary>Set by <c>WorldBuilder.Traffic</c> at build time.</summary>
         public void Configure(
@@ -65,7 +100,7 @@ namespace TheBlock.Traffic
         /// <summary>Paints a state. Cheap to call every frame - it returns immediately unless it changed.</summary>
         public void Apply(LampState state)
         {
-            if (lamps == null) return;
+            if (lamps == null || _down) return;
             if (_everShown && _shown == state) return;
 
             _shown = state;

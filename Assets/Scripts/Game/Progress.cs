@@ -42,6 +42,7 @@ namespace TheBlock.Game
         private const string SoundKey = "theblock.sound";
         private const string RagdollKey = "theblock.ragdolls";
         private const string VehicleDamageKey = "theblock.vehicledamage";
+        private const string BreakablePropsKey = "theblock.streetprops";
 
         /// <summary>
         /// Furthest mission index unlocked. 0 = only the first, which is also what a fresh profile
@@ -188,6 +189,28 @@ namespace TheBlock.Game
 
         /// <summary>Are cars allowed to die and explode, or only to look hurt?</summary>
         public static bool VehicleDamageLethal => VehicleDamage == VehicleDamageMode.Full;
+
+        /// <summary>
+        /// Settings → Gameplay → Street Props (U35h). <b>Default On</b>, the <see cref="RagdollsOn"/>
+        /// call rather than the vehicle-damage one: the props are ADDITIONS at the kerb that no
+        /// approved screenshot ever framed, and a knocked-over pole is a reaction to a crash, not a
+        /// change to what a car looks like. Off is the game as it was - no cone, no bin, no bench
+        /// exists at all, and a rammed traffic light stays rigid.
+        ///
+        /// Read by <c>PropSystem</c> at boot and on the button, and by every pole at the moment it
+        /// is struck (so a light already falling keeps falling if the switch flips under it).
+        ///
+        /// A PREFERENCE, like <see cref="RadarOn"/>, so it survives <see cref="Reset"/>.
+        /// </summary>
+        public static bool BreakablePropsOn
+        {
+            get => PlayerPrefs.GetInt(BreakablePropsKey, 1) != 0;
+            set
+            {
+                PlayerPrefs.SetInt(BreakablePropsKey, value ? 1 : 0);
+                PlayerPrefs.Save();
+            }
+        }
 
         /// <summary>New Game: back to only the first mission unlocked.</summary>
         public static void Reset()

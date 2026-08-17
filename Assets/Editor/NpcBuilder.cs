@@ -198,7 +198,7 @@ namespace TheBlock.EditorTools
         /// The crowd needs one so its ground probe can ignore other pedestrians - without it people
         /// sample each other's capsules and stack up.
         /// </summary>
-        private static int EnsureLayer(string name)
+        internal static int EnsureLayer(string name)
         {
             int existing = LayerMask.NameToLayer(name);
             if (existing >= 0) return existing;

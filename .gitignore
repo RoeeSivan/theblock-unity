@@ -135,6 +135,12 @@ crashlytics-build.properties
 # dangling GUIDs; one menu item rebuilds both folders from the tracked car .glbs.
 /Assets/Prefabs/Traffic/
 /Assets/Prefabs/Traffic.meta
+
+# U35h - the three street-prop prefabs. Same reason as the traffic cars: they point at material
+# clones under Materials/City/Compressed that point into the gitignored Textures/Generated.
+# The Block → Build Props (or Build World) rebuilds them from the tracked Models/Props/*.glb.
+/Assets/Prefabs/Props/
+/Assets/Prefabs/Props.meta
 /Assets/Materials/Traffic/
 /Assets/Materials/Traffic.meta
 

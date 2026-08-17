@@ -97,13 +97,19 @@ namespace TheBlock.Vehicles
                  "wall is the two-detector fight U18's decision log settled.")]
         [SerializeField] private string pedestrianLayer = "Pedestrian";
 
+        [Tooltip("U35h - layer of the street props (cones, bins, benches, a felled pole). A 3 kg cone " +
+                 "under the bumper is not a crash: no star, no dent, no thump.")]
+        [SerializeField] private string propsLayer = World.Breakable.PropsLayerName;
+
         private Rigidbody _body;
         private int _pedestrianLayer = -1;
+        private int _propsLayer = -1;
 
         private void Awake()
         {
             _body = GetComponent<Rigidbody>();
             _pedestrianLayer = LayerMask.NameToLayer(pedestrianLayer);
+            _propsLayer = LayerMask.NameToLayer(propsLayer);
         }
 
         /// <summary>
@@ -125,6 +131,7 @@ namespace TheBlock.Vehicles
             if (_body == null) _body = GetComponent<Rigidbody>();
             if (collision.contactCount == 0) return;
             if (collision.collider != null && collision.collider.gameObject.layer == _pedestrianLayer) return;
+            if (collision.collider != null && _propsLayer >= 0 && collision.collider.gameObject.layer == _propsLayer) return;
 
             // The most head-on contact of the set. A single collision reports several points and the
             // shallow ones are the car sliding along whatever it just touched.
