@@ -227,6 +227,42 @@ Drive out of the spawn car park (it has **no NavMesh within 10 m**, so she falls
 straight lines there and it is the wrong place to judge her), get out on a street, press **`P`** for
 one star, and wait ~20-30 s for the cruiser to drive over from the station.
 
+### ⚠ OPEN - police pursuit, consider improving further
+
+**Left open by the user 2026-08-17** - *"תרשום לך בצעד מרדף משטרתי - לשקול לשפר בהמשך… יכול לסגור את
+הצעד הזה ואנחנו נטפל בזה בהמשך."* U35c closes; this stays as a named gap so it is not rediscovered
+as a surprise.
+
+**Where it stands, measured in Play rather than estimated.** The user's report was that the police
+often never arrive. Three things were found and two were fixed:
+
+| | Before | After |
+| --- | --- | --- |
+| Wedged outside the station | **18 s** | **~5 s** |
+| Commanded speed on the run in (mean / worst) | 25.8 / 3.8 m/s | 28.1 / 9.6 m/s |
+| Crime → arrest, whole run | ~43 s | **~36-45 s, traffic-dependent** |
+
+So the station stall is down by roughly two thirds and the approach is no longer throttled, but the
+**total is not reliably better**, because the time now goes somewhere else: in the last sampled run
+a single ambient car blocked the cruiser for ~3 s mid-route, and the wedge counter was non-zero for
+most of the drive.
+
+**What a next attempt should measure FIRST, before touching a number:**
+
+1. **Why the car still ends up 1.5 m north of a lane it was aimed at.** Two egress waypoints
+   reduced it and did not remove it. Suspect the kerb geometry at (155, −100) is climbable and the
+   car beaches on it - the forward box-cast reads "nothing ahead" while the car sits at v = 0.
+2. **Whether ambient traffic should yield harder to a siren.** `SetPursuitObstacles` already hands
+   the traffic every live cop, but a kinematic car is a wall to a cop, and the sample caught one
+   holding a cruiser for 3 s at (54.7, −161.8).
+3. **The `Unwedges` counter as a metric.** It was non-zero for most of a 40 s drive. A pursuit that
+   never wedges is the target; the count is the cheapest way to know.
+
+⚠ **Do not start by raising speeds.** `ResponseSpeed` was already raised 29 → 34 and it changed
+almost nothing - the time was never being spent driving. See the memory files
+`cop-wedges-leaving-the-station-bay` and `corner-limiter-throttles-the-approach`, and note that one
+plausible fix (capping egress speed) made the stall **five times worse** and was reverted.
+
 ### U35c, 2026-08-17 - police helicopter + GPS route + a police-response fix - BUILT, AWAITING PLAY-TEST
 
 Three things landed, and the third was not in the plan - the user reported it mid-build.

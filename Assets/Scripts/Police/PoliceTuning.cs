@@ -129,6 +129,15 @@ namespace TheBlock.Police
         [Tooltip("Metres of route ahead scanned for the tightest corner.")]
         public float CornerScan = 25f;
 
+        [Tooltip("Braking a cop will use to arrive at a corner at the right speed, m/s^2.\n\n" +
+                 "ADDED 2026-08-17. Before it, CornerSpeed applied the tightest corner in the next " +
+                 "25 m IMMEDIATELY - so a measured 143-degree lane-width U-turn in the route capped " +
+                 "the cruiser at 3.8 m/s for the entire approach, twenty metres before it got there. " +
+                 "That was the whole of the user's 'the police never arrive'. With this, the corner " +
+                 "is still taken at exactly the same speed; only the run up to it is allowed to be " +
+                 "quick. 6.5 is a firm road-car stop, a little under the LateralGrip they corner at.")]
+        public float BrakeDecel = 6.5f;
+
         [Tooltip("Pure-pursuit lookahead: base + per m/s of speed, clamped. GUESS - tune the per-speed " +
                  "term first if it weaves.")]
         public float LookaheadBase = 5f;
@@ -263,6 +272,12 @@ namespace TheBlock.Police
                  "that has not got moving yet, and stationary traffic has nowhere to yield to. " +
                  "Clearing the apron fixes the response without touching the chase.")]
         public float StationApron = 26f;
+
+        [Tooltip("UNUSED - tried 2026-08-17 and reverted; see CopDriver.EgressCap for why. Capping " +
+                 "a cruiser's speed on its way out of the bay made the stall five times WORSE, " +
+                 "because the car was climbing off a kerb rather than steering badly. Left here so " +
+                 "the idea is not rediscovered.")]
+        public float BayEgressSpeed = 6f;
 
         [Header("Routing")]
         [Tooltip("Seconds between A* replans, staggered across cops so three never land in one frame.")]

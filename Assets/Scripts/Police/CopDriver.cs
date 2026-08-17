@@ -73,6 +73,21 @@ namespace TheBlock.Police
         /// <summary>Stops the car dead and holds it there - the arrest, and the spawn grace.</summary>
         public bool Halt { get; set; }
 
+        /// <summary>
+        /// TRIED AND REVERTED, 2026-08-17, kept only as this note.
+        ///
+        /// The idea was a speed ceiling while a cruiser manoeuvres out of its bay - a car leaving a
+        /// parking space does not do 12 m/s, and the measured overshoot past the lane centre was
+        /// 1.5 m. <b>Capping it at 6 m/s made the stall roughly five times worse</b>: 3 s became
+        /// 17 s of oscillation, because what the car was actually doing was climbing off a kerb it
+        /// had beached on, and at 6 m/s it no longer had the momentum to. The forward box-cast said
+        /// "nothing ahead" the whole time, which is what gave it away.
+        ///
+        /// The egress WAYPOINT is what fixed the station stall; the cap is not needed and is not
+        /// wanted. Recorded rather than deleted so it is not rediscovered as an idea.
+        /// </summary>
+        public float EgressCap { get; set; } = float.MaxValue;
+
         // --- anti-stuck ---------------------------------------------------------------------------
 
         private Vector3 _stuckFrom;
@@ -378,17 +393,33 @@ namespace TheBlock.Police
             if (straightRun)
                 wanted = Mathf.Min(wanted, Mathf.Max(_tuning.ArriveSpeed, distance - _tuning.ArrestRadius));
 
-            return wanted;
+            return Mathf.Min(wanted, EgressCap);
         }
 
         /// <summary>
-        /// The tightest corner in the next stretch of route, as a speed.
+        /// How fast this cop may be going RIGHT NOW given the corners ahead of it.
         ///
-        /// <c>v = sqrt(a / k)</c> - the speed at which a curvature <c>k</c> costs a lateral
+        /// <c>v = sqrt(a / k)</c> is the speed at which a curvature <c>k</c> costs a lateral
         /// acceleration <c>a</c>. The grip is the dial: raise it and cops take corners flat, lower it
         /// and a bend is a real place to lose one. It is a parameter rather than a field read because
         /// the run to the scene and the chase itself want different answers - see
         /// <see cref="ChooseSpeed"/>.
+        ///
+        /// <b>MEASURED AND FIXED 2026-08-17, on a user report that the police simply do not arrive.</b>
+        /// This method used to return the tightest corner in the next 25 m and apply it immediately,
+        /// which is not how a car works: a hairpin twenty metres away does not stop you driving at
+        /// it, it makes you brake before you get there. Sampled live, a real plan from the station
+        /// to the player contained a <b>143° turn across 2.5 m</b> - a lane-width U-turn the planner
+        /// had chosen, rendered as a hairpin - and it capped the cruiser at <b>3.8 m/s for the whole
+        /// 25 m approach</b>. That is the whole of the "the cop never arrives" complaint: the run in
+        /// was being throttled by a corner nobody had reached.
+        ///
+        /// So the limit is now a BRAKING one. For a corner at distance <c>d</c> whose own limit is
+        /// <c>v_c</c>, the speed permitted here is <c>sqrt(v_c² + 2·b·d)</c> - the classic
+        /// stop-in-time relation. Right at the corner it reduces to <c>v_c</c> exactly, so corners
+        /// are still taken at the same speed as before and nothing about the chase gets easier; it
+        /// is only the approach that stops being crawled. That same 3.8 m/s hairpin, 20 m out at
+        /// <c>b</c> = 6.5, now permits <b>16.3 m/s</b>.
         /// </summary>
         private float CornerSpeed(Vector3 position, float grip)
         {
@@ -404,6 +435,7 @@ namespace TheBlock.Police
 
                 float lengthA = a.magnitude;
                 float lengthB = b.magnitude;
+                float reach = scanned;      // arc length from HERE to this corner
                 scanned += lengthB;
                 previous = _route[i];
                 if (lengthA < 0.1f || lengthB < 0.1f) continue;
@@ -413,8 +445,11 @@ namespace TheBlock.Police
 
                 // Curvature of the arc that turns by `turn` over the length of the second leg.
                 float curvature = turn / lengthB;
-                float limit = Mathf.Sqrt(grip / Mathf.Max(curvature, 1e-4f));
-                if (limit < best) best = limit;
+                float corner = Mathf.Sqrt(grip / Mathf.Max(curvature, 1e-4f));
+
+                // What that corner allows HERE, given there is room to brake into it.
+                float allowed = Mathf.Sqrt(corner * corner + 2f * _tuning.BrakeDecel * reach);
+                if (allowed < best) best = allowed;
             }
 
             return Mathf.Max(best, _tuning.MinSpeed * 0.5f);

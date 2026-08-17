@@ -770,11 +770,110 @@ namespace TheBlock.Police
             var heading = cop.transform.forward;
             var plan = cop.Planner.Plan(cop.transform.position, heading, cop.Driver.Target, cop.Driver.Route);
             cop.LastPlan = plan;
+            PrependBayEgress(cop);
             cop.Driver.RouteRefreshed();
 
             // No route at all: off the graph, or the target is somewhere no street reaches. The
             // driver then steers straight, which is the ONLY other place straight-line survives.
             if (!plan.Found) cop.Driver.ClearRoute();
+        }
+
+        /// <summary>
+        /// Makes a cruiser leaving its bay drive OUT to the lane before it starts turning along it.
+        ///
+        /// <b>MEASURED 2026-08-17, and it is the whole of the user's "the police never arrive - it
+        /// is as if something is blocking him".</b> Sampled live, every single deployment went the
+        /// same way, to the centimetre:
+        ///
+        /// <code>
+        ///   cop at (155.6, −100.1)   aiming at its waypoint (151.7, −101.1)
+        ///   HIT STATIC 'CityGen Buildings' at (153.4, −98.3), 0.6 m off the nose
+        /// </code>
+        ///
+        /// The bay faces the street, so the car pulls straight out - but its first waypoint is
+        /// away down the lane, so pure pursuit starts turning immediately and the nose swings into
+        /// the building standing on the far kerb. It wedges, reverses, comes forward, wedges again.
+        /// <b>Eighteen of the forty-seven seconds to reach the player were spent doing that</b>,
+        /// within ten metres of the station, and the run itself was always fine once it broke free.
+        ///
+        /// The fix is one waypoint: the point on the lane directly out from the bay. The car
+        /// travels bay → lane → route instead of cutting the corner, which is what a car leaving a
+        /// parking space actually does. It is prepended rather than planned because the planner is
+        /// working on a road graph and this is a manoeuvre in a car park.
+        ///
+        /// It stops applying the moment the car is clear: past <see cref="BayEgressRadius"/> from
+        /// its own bay there is nothing to insert.
+        /// </summary>
+        private void PrependBayEgress(CopCar cop)
+        {
+            if (cop.Bay < 0 || cop.Bay >= bayPositions.Length) return;
+
+            var bay = bayPositions[cop.Bay];
+            var here = cop.transform.position;
+            if (FlatSqr(here, bay) > BayEgressRadius * BayEgressRadius) return;
+
+            // Where the lane actually is, straight out from this bay. Asking the graph rather than
+            // assuming keeps this correct if the station is ever moved.
+            if (routeGraph == null ||
+                !routeGraph.TryNearest(bay, BayEgressRadius * 2f, -1, out var hit)) return;
+
+            // SampleLink takes its link by `in`, so the array element goes in directly - passing a
+            // local with `ref` is a C# 12 spelling this project's language version does not have.
+            routeGraph.SampleLink(routeGraph.Links[hit.Link], hit.S, _laneGap, out var lane, out _);
+
+            var laneCentre = new Vector3(lane.x, bay.y, lane.z);
+            var out0 = laneCentre - bay;
+            out0.y = 0f;
+            if (out0.sqrMagnitude < 0.25f) return;
+            var outward = out0.normalized;
+
+            // ONE gate on the lane centre was not enough, and the miss was measured rather than
+            // guessed: the car passed it and settled 1.5 m beyond, which on this street is the far
+            // kerb with a building on it. Pure pursuit steers TOWARD a waypoint, it does not stop
+            // at one, so a gate placed exactly where the car should end up is a gate it overshoots.
+            //
+            // Two points instead. The first sits GateBackoff short of the lane so the overshoot
+            // lands on it; the second sits along the lane in the direction of travel, which gives
+            // the car something to line up with before it turns rather than a corner to cut.
+            var approach = laneCentre - outward * GateBackoff;
+
+            // Which way along the lane the route actually goes.
+            var along = cop.Driver.Route.Count > 0
+                ? cop.Driver.Route[0] - laneCentre
+                : cop.Driver.Target - laneCentre;
+            along.y = 0f;
+            if (along.sqrMagnitude > 0.25f)
+                along = along.normalized;
+            else
+                along = Vector3.zero;
+
+            var settle = laneCentre + along * GateRunOn;
+
+            // Already past the approach point - inserting now would ask it to turn back on itself.
+            if (Vector3.Dot(approach - here, outward) < 0f) return;
+
+            if (along != Vector3.zero) cop.Driver.Route.Insert(0, settle);
+            cop.Driver.Route.Insert(0, approach);
+        }
+
+        /// <summary>
+        /// How far short of the lane centre the egress gate sits, metres.
+        ///
+        /// This is the measured overshoot, not a guess: sampled live, a cruiser aiming at a gate on
+        /// the lane centre at z = −101.1 came to rest at z = −99.6 every single time.
+        /// </summary>
+        private const float GateBackoff = 1.6f;
+
+        /// <summary>Metres along the lane the second gate sits, to line the car up before it turns.</summary>
+        private const float GateRunOn = 6f;
+
+        /// <summary>Metres from its bay within which a cop is still manoeuvring out of it.</summary>
+        private const float BayEgressRadius = 16f;
+
+        private static float FlatSqr(Vector3 a, Vector3 b)
+        {
+            a.y = b.y = 0f;
+            return (a - b).sqrMagnitude;
         }
 
         /// <summary>
