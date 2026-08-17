@@ -94,18 +94,16 @@ unclear, re-test before inheriting.
 > a change of what "done" means - the graded artifacts are a video, a repo, a kanban board and a zip,
 > and only one of them is the game.
 >
-> **NEXT ACTION: ONE PLAY-TEST COVERING THREE THINGS**, all BUILT and awaiting the user's eyes,
-> 2026-08-17. They are the same drive, so they are tested together rather than batched by choice:
+> ✅ **U35d-pre-2 IS USER-CONFIRMED, 2026-08-17** - *"okay i mark it as complete"*. The police
+> response is rebuilt on the web's model: cops come from a hidden street 50-90 m away unless the
+> car is already within 120 m of you, a cop that loses you is re-dispatched, and cruisers take no
+> damage at all. Crime → BUSTED measured **~6.5 s at 1★, ~8 s at 3★**, from ~36-45 s. Section
+> below. **The police feature is closed** - the user's three reports on it are all answered.
 >
-> - **U35d-pre-2 - THE POLICE RESPONSE, REBUILT ON THE WEB'S MODEL.** The user's third report on
->   the same feature, and the bluntest - *"הפיצר של המשטרה פשוט גרוע והוא לא עובד… המשטרות פשוט לא
->   באות אליי… ב three js בגרסא שם זה דווקא עבד טוב"*. The web's cops spawn **70 m behind you**;
->   U19 chose, on purpose, to drive every cruiser from the station however far the crime was, and
->   two rounds of tuning could not save that choice because the time was the 900 m, not the
->   driving. Cops now come from a hidden street 50-90 m away unless the car is already within
->   120 m of you, a cop that loses you is re-dispatched, and **cruisers take no damage at all**
->   (the user's other ask - *"לא יוצא אש ממכוניות של משטרה"*). Measured in Play: crime → BUSTED in
->   **~6.5 s at 1★, ~8 s at 3★**, from ~36-45 s. Section below, and it holds the recipe.
+> **NEXT ACTION: U35e (play-test), then U30a.** Two earlier police sub-units are still formally
+> "awaiting play-test" only because nobody has said the words - they were built on the same drive
+> the user just played, so they are almost certainly fine and only need a yes:
+>
 > - **U35c** - the police H145 at 3★, the GPS road route on both maps, and a police-response fix.
 > - **U35d-pre** - *the police can now catch you in a vehicle*, on the user's report
 >   *"שתפיסה תהיה גם אם אני בתוך אופנוע / רכב"*. It was **unreachable**, not badly tuned: the arrival
@@ -333,7 +331,7 @@ edit and no hand wiring were needed**. `MissionHud` and `BustSequence` are both 
 rather than pulling alongside. Nothing brakes them at 8 m any more, and `SideGap = 3` is the only
 thing aiming them at your flank instead of your bumper.
 
-### U35d-pre-2, 2026-08-17 - the police response, rebuilt on the web's model - BUILT, AWAITING PLAY-TEST - `98470b2`
+### U35d-pre-2, 2026-08-17 - the police response, rebuilt on the web's model - DONE, USER-CONFIRMED - `98470b2`
 
 **The user's report, the third on this feature and the bluntest:** *"הפיצר של המשטרה פשוט גרוע והוא
 לא עובד. אני מאוד לא מרוצה ממנו… מכוניות של משטרה יש להן את ההתנהגות שהן יכולות להפגע, בוא נוריד את
