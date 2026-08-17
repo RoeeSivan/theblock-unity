@@ -255,9 +255,45 @@ namespace TheBlock.Vehicles
             }
 
             ApplySteering(steer, Time.fixedDeltaTime);
-            ApplyDrive(throttle, skid);
+
+            // The pull-over takes the throttle away and leaves the steering; see HoldStill.
+            if (HeldStill) ForceStop();
+            else ApplyDrive(throttle, skid);
+
             ApplyDownforce();
+
+            // Stabilize() still runs while held: a bike that is being braked hard is exactly when
+            // it would otherwise lie down, and an arrest that starts by throwing you off is U35a's
+            // mechanic firing on the wrong trigger.
             Stabilize();
+        }
+
+        /// <summary>
+        /// Full brakes, no throttle, steering still yours - the forced stop a cruiser imposes once it
+        /// has held you at arrest range (<c>PoliceSystem</c>, 2026-08-17).
+        ///
+        /// <b>A DEADLINE rather than a bool.</b> The police run on <c>Update</c> and this runs on
+        /// <c>FixedUpdate</c>; a flag one sets and the other clears drops out on every frame the two
+        /// ticks do not coincide. The caller re-arms a short lease each frame and letting it lapse IS
+        /// the release. Same reasoning, same numbers, as <c>CarController.HoldStill</c>.
+        /// </summary>
+        public void HoldStill(float seconds) =>
+            _holdUntil = Mathf.Max(_holdUntil, Time.time + seconds);
+
+        /// <summary>True while a pull-over lease is live.</summary>
+        public bool HeldStill => Time.time < _holdUntil;
+
+        private float _holdUntil;
+
+        /// <summary>
+        /// Motor off, both brakes on. The rear grip is restored on the way in because the skid key
+        /// halves it and a WheelCollider latches that as surely as it latches a torque.
+        /// </summary>
+        private void ForceStop()
+        {
+            SetTorque(rearWheel, 0f, brakeTorque);
+            SetTorque(frontWheel, 0f, brakeTorque * frontBrakeShare);
+            SetSidewaysStiffness(rearWheel, _rearGripAtRest);
         }
 
         /// <summary>The lean is cosmetic, so it belongs on the render tick, not the physics one.</summary>

@@ -67,6 +67,17 @@ namespace TheBlock.Police
         /// <summary>Where this cop is trying to get to. Set by <see cref="PoliceSystem"/> each step.</summary>
         public Vector3 Target { get; set; }
 
+        /// <summary>
+        /// How fast the thing being chased is going, m/s, absolute. Set by <see cref="PoliceSystem"/>
+        /// each step; <b>zero on foot</b>, which is what makes the arrival ramp below reduce to the
+        /// numbers U19e was play-tested on.
+        ///
+        /// Named for the quarry rather than the target because <see cref="TargetSpeed"/> above is
+        /// already this driver's OWN commanded speed, and confusing the two is a chase that brakes
+        /// when it should close.
+        /// </summary>
+        public float QuarrySpeed { get; set; }
+
         /// <summary>Whether the target is visible, which is what allows the straight final run.</summary>
         public bool HasLineOfSight { get; set; }
 
@@ -380,8 +391,14 @@ namespace TheBlock.Police
             float corner = CornerSpeed(position, responding ? _tuning.ResponseGrip : _tuning.LateralGrip);
             wanted = Mathf.Min(wanted, corner);
 
+            // The arrival speed is RELATIVE to the quarry, and that is the fix for "the police never
+            // catch you in a car" - see the field's tooltip. Standing still it is ArriveSpeed and
+            // every on-foot number is untouched; at 20 m/s it is 22, which the rubber band's own
+            // MaxSpeed then caps back to 20.5, so this can only ever RAISE a floor, never a ceiling.
+            float arrive = Mathf.Max(_tuning.ArriveSpeed, QuarrySpeed + _tuning.ClosingSpeed);
+
             if (distance < _tuning.ArriveDistance)
-                wanted = Mathf.Min(wanted, _tuning.ArriveSpeed);
+                wanted = Mathf.Min(wanted, arrive);
 
             // An arrival ramp on the final approach, one metre per second per metre left.
             //
@@ -390,8 +407,13 @@ namespace TheBlock.Police
             // player asks for 8 m/s, overshoots the flank it is aiming at, and has to come round for
             // another pass. Measured at exactly that: 8 m/s commanded, 1.5 m/s delivered, and the
             // 4 m arrest radius never reached before the pursuit expired.
+            //
+            // It is a STOPPING ramp, so it carries the same stationary-target assumption: the gap
+            // closes at `distance - ArrestRadius` only while the far end stays put. Against a car it
+            // has to close at that rate ON TOP OF whatever the car is doing, or the ramp is a brake
+            // applied to a cop that has not caught anyone yet.
             if (straightRun)
-                wanted = Mathf.Min(wanted, Mathf.Max(_tuning.ArriveSpeed, distance - _tuning.ArrestRadius));
+                wanted = Mathf.Min(wanted, Mathf.Max(arrive, distance - _tuning.ArrestRadius + QuarrySpeed));
 
             return Mathf.Min(wanted, EgressCap);
         }

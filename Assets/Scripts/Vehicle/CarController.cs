@@ -149,6 +149,25 @@ namespace TheBlock.Vehicles
         /// </summary>
         public bool EngineDead { get; set; }
 
+        /// <summary>
+        /// Full brakes, no throttle, steering still yours - the forced stop a cruiser imposes once it
+        /// has held you at arrest range (<c>PoliceSystem</c>, 2026-08-17).
+        ///
+        /// <b>A DEADLINE rather than a bool, and that is not a style choice.</b> The police run on
+        /// <c>Update</c> and this runs on <c>FixedUpdate</c>, so a flag that its owner sets and this
+        /// clears drops out on every frame the two ticks do not coincide - which at 60 fps and a 50 Hz
+        /// step is most of them, and it would read as a car that shudders instead of stopping. The
+        /// caller re-arms a short lease each frame and letting it lapse IS the release, which is the
+        /// same idiom <c>ExternalInputTimeout</c> already uses for the AI's steering input below.
+        /// </summary>
+        public void HoldStill(float seconds) =>
+            _holdUntil = Mathf.Max(_holdUntil, Time.time + seconds);
+
+        /// <summary>True while a pull-over lease is live.</summary>
+        public bool HeldStill => Time.time < _holdUntil;
+
+        private float _holdUntil;
+
         /// <summary>This car's damage model, for the entry refusal. Resolved on first use.</summary>
         private VehicleDamage _damage;
 
@@ -352,7 +371,11 @@ namespace TheBlock.Vehicles
             // U35b: a dead engine steers and rolls, but it does not drive. Coast() rather than an
             // early return, for the reason the recompile guard above spells out - a WheelCollider
             // LATCHES its last torque, so "stop driving" has to be written, not omitted.
-            if (EngineDead) Coast();
+            //
+            // The pull-over outranks both: it is the one state where the throttle is not yours, and
+            // it is checked first so a dead engine cannot swallow it into the gentler coast brake.
+            if (HeldStill) ForceStop();
+            else if (EngineDead) Coast();
             else ApplyDrive(input.Throttle, input.Handbrake);
 
             ApplyDownforce();
@@ -416,6 +439,23 @@ namespace TheBlock.Vehicles
             if (downforce <= 0f) return;
             var fraction = Mathf.Clamp01(Mathf.Abs(ForwardSpeed) / Mathf.Max(1f, _spec.MaxSpeed));
             _body.AddForce(-transform.up * (downforce * fraction * fraction * _body.mass * -Physics.gravity.y));
+        }
+
+        /// <summary>
+        /// Motor off, full brakes on all four - the pull-over. Steering is deliberately untouched:
+        /// <see cref="ApplySteering"/> has already run with the player's own input this step, so you
+        /// keep the wheel while the car is brought to a stop, which is what being pulled over is.
+        /// </summary>
+        private void ForceStop()
+        {
+            SetTorque(frontLeft, 0f, brakeTorque);
+            SetTorque(frontRight, 0f, brakeTorque);
+            SetTorque(rearLeft, 0f, brakeTorque);
+            SetTorque(rearRight, 0f, brakeTorque);
+
+            // The handbrake may have been down when the lease started, and its grip cut LATCHES the
+            // same way a brake torque does. Put the rear tyres back or the car slews as it stops.
+            SetRearGrip(_rearGripAtRest);
         }
 
         /// <summary>Motor off, gentle brake on - the safe state when there is nobody to ask.</summary>

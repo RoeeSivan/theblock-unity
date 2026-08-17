@@ -42,6 +42,9 @@ namespace TheBlock.Police
         [SerializeField] private BustSequence bust;
         [SerializeField] private Game.Wallet wallet;
 
+        [Tooltip("For the pull-over's one-line nudge. Left empty, the takedown still works silently.")]
+        [SerializeField] private UI.MissionHud hud;
+
         [Header("Station")]
         [Tooltip("Bay poses, in Unity space, placed by WorldBuilder.Police from config.policeStation.")]
         [SerializeField] private Vector3[] bayPositions = System.Array.Empty<Vector3>();
@@ -127,6 +130,7 @@ namespace TheBlock.Police
             if (traffic == null) traffic = FindAnyObjectByType<TrafficSystem>();
             if (bust == null) bust = FindAnyObjectByType<BustSequence>();
             if (wallet == null) wallet = FindAnyObjectByType<Game.Wallet>();
+            if (hud == null) hud = FindAnyObjectByType<UI.MissionHud>();
 
             _tuning = heat != null ? heat.Tuning : new PoliceTuning();
             _hits ??= new RaycastHit[8];
@@ -286,6 +290,8 @@ namespace TheBlock.Police
                 else Step(cop, focus, dt);
             }
 
+            DrivePullover(dt);
+
             if (traffic != null) traffic.SetPursuitObstacles(_positions);
         }
 
@@ -438,6 +444,7 @@ namespace TheBlock.Police
             cop.State = CopCar.Mode.Chasing;
             cop.SpawnedAt = Time.time;
             cop.ArrestHold = 0f;
+            cop.PulloverHold = 0f;
             cop.LastKnown = at;
             cop.ReplanIn = 0f;
             cop.Driver.Halt = false;
@@ -574,6 +581,8 @@ namespace TheBlock.Police
         private void SendHome(CopCar cop, bool immediate)
         {
             cop.ArrestHold = 0f;
+            cop.PulloverHold = 0f;
+            if (_pulloverCop == cop) EndPullover();
             UI.MapRegistry.RemovePoi(cop.name);
 
             // Straight back into the seat, never a walk. This is the bust, a lost star or a wrecked
@@ -749,6 +758,11 @@ namespace TheBlock.Police
             cop.Driver.Target = cop.HasLos ? target : cop.LastKnown;
             cop.Driver.HasLineOfSight = cop.HasLos;
 
+            // How fast the thing it is chasing is going. The arrival ramp is relative to this, and
+            // handing it over is the whole of "the police can now catch you in a car" - on foot it
+            // is zero and every U19e number is byte-for-byte what was play-tested.
+            cop.Driver.QuarrySpeed = TargetSpeed();
+
             Replan(cop, dt);
             Arrest(cop, target, distance, dt);
             Sample(cop);
@@ -890,14 +904,34 @@ namespace TheBlock.Police
             bool slow = Mathf.Abs(cop.Car.ForwardSpeed) <= _tuning.ArrestMaxSpeed && TargetSpeed() <= _tuning.ArrestMaxSpeed;
             bool grace = Time.time - cop.SpawnedAt < _tuning.SpawnGrace;
 
+            // A pull-over already running owns the outcome, for every cop and not just the one that
+            // started it. Everything below is a second route to the same Bust(), and the fine is
+            // charged OUTSIDE BustSequence's own re-entry guard - so a race here is a double charge.
+            if (_pulloverCop != null)
+            {
+                cop.Driver.Halt = cop == _pulloverCop;
+                return;
+            }
+
             // ON FOOT, the officer is the arrest. IN A VEHICLE, the car is - she would never catch
             // you, and a cruiser pulling up to a stopped getaway car is the arrest the web build has.
             bool onFoot = vehicles == null || vehicles.Mode != GameMode.Driving;
             if (_tuning.OfficerChase && cop.Officer != null && onFoot)
             {
+                cop.PulloverHold = 0f;
                 FootArrest(cop, target, distance, dt, grace);
                 return;
             }
+
+            // THE PULL-OVER, and it is why an in-vehicle arrest exists at all. `slow` above is a
+            // PRECONDITION, and nobody being chased ever meets it - so before this, a player who
+            // simply kept driving was never caught in a car or on a bike. Holding the arrest radius
+            // at any speed is the hard thing; once a cruiser has done it for PulloverHold seconds,
+            // it takes your throttle and stops you, and the bust lands on a stationary car.
+            //
+            // It returns out the moment one begins: DrivePullover owns the arrest from here, and
+            // letting the stationary test below run in the same frame is the double-Bust race again.
+            if (TrackPullover(cop, close, grace, dt)) return;
 
             // Back in a car while she was out of hers: she walks back, and the cruiser takes the
             // arrest over from exactly where U19 left it - but not until she is IN it. A cruiser
@@ -1014,6 +1048,133 @@ namespace TheBlock.Police
             return false;
         }
 
+        // --- the pull-over --------------------------------------------------------------------------
+
+        /// <summary>
+        /// The cop that has earned a forced stop, or null while nobody has.
+        ///
+        /// <b>One owner, deliberately, and the field is on the system rather than on the cop.</b> The
+        /// thing being written is the PLAYER's throttle, and there is one of those - three cruisers
+        /// each holding their own opinion about it is the <c>Heat.Frozen</c> trap again (memory:
+        /// <c>one-flag-one-owner-heat-frozen</c>), where the last writer each frame wins and the
+        /// others' work lasts a single step.
+        /// </summary>
+        private CopCar _pulloverCop;
+
+        /// <summary>Seconds the forced stop has been running.</summary>
+        private float _pulloverFor;
+
+        /// <summary>
+        /// How long a lease on the player's brakes is renewed for, seconds.
+        ///
+        /// Comfortably longer than a frame because this is renewed on <c>Update</c> and consumed on
+        /// <c>FixedUpdate</c>, and short enough that letting it lapse gives the throttle back within
+        /// a quarter second. See <c>CarController.HoldStill</c> for why it is a lease at all.
+        /// </summary>
+        private const float PulloverLease = 0.25f;
+
+        /// <summary>
+        /// Counts how long this cop has held the arrest radius <b>at any speed</b>, and starts the
+        /// forced stop when it has held it long enough.
+        /// </summary>
+        /// <returns>True if a forced stop began this frame, which ends the caller's arrest logic.</returns>
+        private bool TrackPullover(CopCar cop, bool close, bool grace, float dt)
+        {
+            if (_tuning.PulloverHold <= 0f)
+            {
+                cop.PulloverHold = 0f;
+                return false;
+            }
+
+            if (close && !grace)
+            {
+                cop.PulloverHold += dt;
+                if (cop.PulloverHold < _tuning.PulloverHold) return false;
+
+                BeginPullover(cop);
+                return true;
+            }
+
+            // Same double-rate bleed as the stationary arrest, and for the same reason: breaking the
+            // radius for a moment has to cost more than it gained, or a car weaving on the boundary
+            // accumulates a takedown it never actually earned.
+            cop.PulloverHold = Mathf.Max(0f, cop.PulloverHold - dt * 2f);
+            return false;
+        }
+
+        private void BeginPullover(CopCar cop)
+        {
+            _pulloverCop = cop;
+            _pulloverFor = 0f;
+            cop.State = CopCar.Mode.Arresting;
+
+            if (hud != null) hud.ShowHint("🚨 Police! Pull over.");
+        }
+
+        private void EndPullover()
+        {
+            if (_pulloverCop != null) _pulloverCop.PulloverHold = 0f;
+            _pulloverCop = null;
+            _pulloverFor = 0f;
+        }
+
+        /// <summary>
+        /// Runs the forced stop: brakes held on the player's vehicle, the cruiser parked alongside,
+        /// and the bust the moment the car is actually stopped.
+        ///
+        /// <b>Why the delay exists at all.</b> The alternative was busting you the instant a cruiser
+        /// touched the arrest radius, which is what the web build does - and it is exactly what
+        /// <see cref="PoliceTuning.ArrestMaxSpeed"/> was added to prevent, because a BUSTED card over
+        /// a car still doing 70 km/h reads as a bug rather than as an arrest. Stopping you first
+        /// keeps the reason that gate was written and drops the side effect that made it unreachable.
+        ///
+        /// Called once per frame from <see cref="Update"/>, after every cop has been stepped, so the
+        /// state it reads is the whole pursuit's rather than one car's mid-loop.
+        /// </summary>
+        private void DrivePullover(float dt)
+        {
+            if (_pulloverCop == null) return;
+
+            // Every way out. None of these re-arms the lease, so the throttle comes back on its own
+            // within PulloverLease seconds - there is no flag anywhere that has to be cleared.
+            bool over = heat == null || heat.Frozen || heat.Stars <= 0 ||
+                        _pulloverCop.State == CopCar.Mode.Idle ||
+                        _pulloverCop.State == CopCar.Mode.Wrecked ||
+                        _pulloverCop.State == CopCar.Mode.Returning ||
+                        vehicles == null || vehicles.Mode != GameMode.Driving ||
+                        vehicles.ActiveVehicle == null;
+
+            if (over)
+            {
+                EndPullover();
+                return;
+            }
+
+            _pulloverFor += dt;
+            _pulloverCop.Driver.Halt = true;
+            HoldVehicleStill(PulloverLease);
+
+            // Stopped, or out of patience. The timeout is not a formality: a car being braked on a
+            // slope, wedged against a wall or upside down may never reach PulloverSpeed, and a
+            // takedown that can hang is worse than one that occasionally fires a little early.
+            if (TargetSpeed() <= _tuning.PulloverSpeed || _pulloverFor >= _tuning.PulloverStop) Bust();
+        }
+
+        /// <summary>
+        /// Renews the brake lease on whatever the player is driving.
+        ///
+        /// Two branches rather than a method on <see cref="IEnterable"/>, because only two of the
+        /// four vehicles can ever be pulled over: a cruiser cannot get within
+        /// <see cref="PoliceTuning.ArrestRadius"/> of a helicopter at 34 m or of a jetski out on the
+        /// water, so widening the interface would be adding a member for nobody to call.
+        /// </summary>
+        private void HoldVehicleStill(float seconds)
+        {
+            var active = vehicles.ActiveVehicle;
+            if (active is CarController car) car.HoldStill(seconds);
+            else if (active is MotorcycleController bike) bike.HoldStill(seconds);
+        }
+
         private float TargetSpeed()
         {
             if (vehicles != null && vehicles.Mode == GameMode.Driving && vehicles.ActiveVehicle != null)
@@ -1032,6 +1193,13 @@ namespace TheBlock.Police
         /// </summary>
         private void Bust()
         {
+            // One bust per bust. Three cruisers can cross their thresholds on the same frame, and the
+            // charge below sits OUTSIDE BustSequence's own `Running` guard - so without this line the
+            // fine is taken twice for one arrest and the second BustSequence.Begin silently no-ops.
+            if (bust != null && bust.Running) return;
+
+            EndPullover();
+
             int taken = wallet != null ? wallet.Charge(_tuning.BustFine) : 0;
             FinesOwed += _tuning.BustFine - taken;
 

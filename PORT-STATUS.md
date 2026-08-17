@@ -94,10 +94,18 @@ unclear, re-test before inheriting.
 > a change of what "done" means - the graded artifacts are a video, a repo, a kanban board and a zip,
 > and only one of them is the game.
 >
-> **NEXT ACTION: PLAY-TEST U35c.** It is **BUILT and awaiting the user's eyes**, 2026-08-17 - the
-> police H145 at 3★, the GPS road route on both maps, and a police-response fix the user asked for
-> mid-build. The recipe is in the U35c section below. ✅ **U35a and U35b are both user-confirmed**
-> and neither needs anything further until U30b measures their frame cost.
+> **NEXT ACTION: ONE PLAY-TEST COVERING TWO THINGS**, both BUILT and awaiting the user's eyes,
+> 2026-08-17. They are the same drive, so they are tested together rather than batched by choice:
+>
+> - **U35c** - the police H145 at 3★, the GPS road route on both maps, and a police-response fix.
+> - **U35d-pre** - *the police can now catch you in a vehicle*, on the user's report
+>   *"שתפיסה תהיה גם אם אני בתוך אופנוע / רכב"*. It was **unreachable**, not badly tuned: the arrival
+>   ramp braked a cruiser to 3 m/s inside 8 m of a *moving* car, and `ArrestMaxSpeed` was a
+>   precondition nobody being chased ever meets. Both fixed; the forced pull-over is the user's own
+>   call. **The one recipe is in the U35d-pre section below** and it ends with U35c's own checks.
+>
+> ✅ **U35a and U35b are both user-confirmed** and neither needs anything further until U30b measures
+> their frame cost.
 >
 > **U35c's asset was MODELLED IN BLENDER, not downloaded or repainted** - the user rejected both
 > alternatives, and correctly: *"יש את המסוק ליד הים זה כן, אבל אנחנו רוצים שהוא ייראה שונה… המסוק
@@ -226,6 +234,92 @@ every crime on `Driving` - so a wanted level while on foot is only reachable thr
 Drive out of the spawn car park (it has **no NavMesh within 10 m**, so she falls back to running in
 straight lines there and it is the wrong place to judge her), get out on a street, press **`P`** for
 one star, and wait ~20-30 s for the cruiser to drive over from the station.
+
+### U35d-pre, 2026-08-17 - the police can catch you in a vehicle - BUILT, AWAITING PLAY-TEST
+
+**The user's report:** *"אנחנו צריכים לוודא שהמשטרה תופסת גם אם אני בתוך הרכב… כלומר שתפיסה תהיה גם אם
+אני בתוך אופנוע / רכב."* It is not a tuning complaint - **an in-vehicle arrest was unreachable**, and
+two independent things made it so. Both are fixed; the second was the user's own design call.
+
+**① THE BUG: the arrival ramp is written for a target that is standing still.** `CopDriver.ChooseSpeed`
+had two clamps that assume a stationary quarry, and against a moving car they are a brake applied to
+a cop that has not caught anybody:
+
+```csharp
+if (distance < ArriveDistance)  wanted = Min(wanted, ArriveSpeed);          //  8 m → 3 m/s
+if (straightRun)                wanted = Min(wanted, distance - ArrestRadius);
+```
+
+So a cruiser that got inside **8 m** of the player's car braked to **3 m/s** while the player drove
+away at 20. The 4 m arrest radius was **not reachable on a moving vehicle at all** - which is exactly
+why it worked on foot, where the number it is handed is genuinely zero.
+
+Both are relative now, through a new `CopDriver.QuarrySpeed` that `PoliceSystem.Step` writes each
+step from `TargetSpeed()`:
+
+```csharp
+float arrive = Max(ArriveSpeed, QuarrySpeed + ClosingSpeed);   // ClosingSpeed = 2 m/s
+if (distance < ArriveDistance)  wanted = Min(wanted, arrive);
+if (straightRun)                wanted = Min(wanted, Max(arrive, distance - ArrestRadius + QuarrySpeed));
+```
+
+**On foot `QuarrySpeed` is zero and both lines reduce to the old ones character for character**, so
+every U19e number stands and nothing that was play-tested has moved. At 20 m/s it asks for 22, which
+the rubber band's own `MaxSpeed` caps back to 20.5 - it can only ever raise a floor, never a ceiling.
+
+**② THE DESIGN: `ArrestMaxSpeed` was a precondition nobody ever met.** The web build busts you at 4 m
+after 1.5 s **at any speed** (`police.ts:454` - there is no speed test in it). The port added
+`ArrestMaxSpeed = 6` because a BUSTED card over a car still doing 70 km/h reads as a bug. That reason
+is right and the side effect was fatal: a player who simply kept driving was never caught.
+
+**It is an ESCALATION now, not a gate, and the shape is the user's call** (asked, and answered
+*"עצירה כפויה ואז מעצר"*):
+
+| | Condition | Outcome |
+| --- | --- | --- |
+| Stationary arrest, unchanged | 4 m **and** both under 6 m/s, 1.5 s | BUSTED, exactly as U19 shipped |
+| **Pull-over, new** | 4 m at **any** speed, `PulloverHold` = 2.5 s | 🚨 hint → forced braking → BUSTED once stopped, or after `PulloverStop` = 3 s |
+
+**Three mechanisms in it are worth keeping, and each one is a trap this project has already paid for:**
+
+1. **`HoldStill(seconds)` is a DEADLINE, not a bool.** The police run on `Update` and the vehicles on
+   `FixedUpdate`; a flag one sets and the other clears drops out on every frame the two ticks do not
+   coincide, and a car that is braked on half its frames shudders instead of stopping. The caller
+   re-arms a 0.25 s lease each frame and **letting it lapse IS the release** - the same idiom
+   `CarController.ExternalInputTimeout` already uses for AI steering input.
+2. **One flag, one owner.** `_pulloverCop` lives on `PoliceSystem`, not on `CopCar`, because the thing
+   being written is the *player's* throttle and there is one of those. Three cruisers each holding an
+   opinion is the `Heat.Frozen` failure again (memory: `one-flag-one-owner-heat-frozen`).
+3. **`Stabilize()` still runs on a braked bike.** Hard braking is precisely when a two-wheeler lies
+   down, and an arrest that begins by throwing you off is U35a's mechanic firing on the wrong trigger.
+
+The steering stays yours throughout - only the throttle and brakes are taken, which is what being
+pulled over is. **Off switch: `PulloverHold = 0` restores U19's behaviour exactly.**
+
+**③ A SEPARATE BUG FOUND ON THE WAY, and it predates this work.** `PoliceSystem.Bust()` charged the
+wallet and cleared the heat **outside** `BustSequence`'s own `Running` guard, so two cruisers crossing
+their thresholds on the same frame took the $100 fine twice and the second `Begin` silently no-opped.
+Guarded now, and `Arrest` returns early for every cop while a pull-over is live rather than racing it
+to the same `Bust()`.
+
+**Compiled clean and verified by reflection against the live domain**, not assumed: `ClosingSpeed 2`,
+`PulloverHold 2.5`, `PulloverStop 3`, `PulloverSpeed 2` all present on the **scene's** `PoliceTuning`
+with U35c's own serialized values (`ResponseSpeed 34`, `HeliStars 3`) untouched - the new fields took
+their C# defaults exactly as memory `scene-serialized-value-beats-cs-default` predicts, so **no scene
+edit and no hand wiring were needed**. `MissionHud` and `BustSequence` are both in the scene for
+`Bind()` to find.
+
+**HOW TO PLAY-TEST IT - and it doubles as U35c's own test, because it is the same drive:**
+
+1. `Continue` (never `New Game` - memory `new-game-wipes-the-test-balance`), take a car, earn a star.
+2. **Keep driving at full speed.** The cruiser should now stay glued instead of falling back at 8 m.
+   After ~2.5 s alongside: the hint, then your car is braked out of your hands, then BUSTED.
+3. Repeat **on the motorcycle** - it must stop upright, not throw you.
+4. Then U35c on the same run: 3★ for the helicopter, downtown for its tower guard, `M` for the GPS line.
+
+**What to watch for and report, because it is what the numbers could get wrong:** cruisers *ramming*
+rather than pulling alongside. Nothing brakes them at 8 m any more, and `SideGap = 3` is the only
+thing aiming them at your flank instead of your bumper.
 
 ### ⚠ OPEN - police pursuit, consider improving further
 

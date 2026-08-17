@@ -75,6 +75,17 @@ namespace TheBlock.Police
         /// <summary>Seconds this cop has been within arrest range, bleeding when you leave.</summary>
         public float ArrestHold { get; set; }
 
+        /// <summary>
+        /// Seconds this cop has been within arrest range at ANY speed, bleeding when you leave.
+        ///
+        /// Kept apart from <see cref="ArrestHold"/> rather than folded into it because the two count
+        /// different things: that one is the stationary arrest and clears the moment you are over
+        /// <c>ArrestMaxSpeed</c>, this one is the pull-over and does not care how fast you are going.
+        /// One meter serving both would reset the takedown every time you crossed 6 m/s, which on a
+        /// chase is constantly.
+        /// </summary>
+        public float PulloverHold { get; set; }
+
         /// <summary>Time it went live, for the spawn grace.</summary>
         public float SpawnedAt { get; set; }
 

@@ -170,6 +170,14 @@ namespace TheBlock.Police
 
         public float ArriveSpeed = 3f;
 
+        [Tooltip("MEASURED FIX 2026-08-17. ArriveSpeed is an ABSOLUTE floor written for a target " +
+                 "that is standing still, and against a moving car it is the whole reason the " +
+                 "police could never catch you in one: a cruiser that got inside ArriveDistance " +
+                 "braked to 3 m/s while you drove away at 20. The arrival ramp is relative now - " +
+                 "the cop settles at YOUR speed plus this margin, m/s - which reduces to exactly " +
+                 "the old numbers on foot, where the target speed it is handed is zero.")]
+        public float ClosingSpeed = 2f;
+
         [Tooltip("DESIGN. XZ metres for the arrest.")]
         public float ArrestRadius = 4f;
 
@@ -183,6 +191,22 @@ namespace TheBlock.Police
 
         [Tooltip("Seconds a freshly spawned cop cannot arrest, so a spawn-on-top is not an instant bust.")]
         public float SpawnGrace = 2f;
+
+        [Header("The pull-over - the arrest that happens at speed")]
+        [Tooltip("DESIGN, on the user's call 2026-08-17. ArrestMaxSpeed above is a PRECONDITION, " +
+                 "and a precondition nobody being chased ever meets - so a player who simply keeps " +
+                 "driving is never caught. It becomes an ESCALATION instead: a cruiser that holds " +
+                 "ArrestRadius for this many seconds at ANY speed forces the pull-over below. " +
+                 "0 disables the whole thing and the arrest is exactly what U19 shipped.")]
+        public float PulloverHold = 2.5f;
+
+        [Tooltip("DESIGN. Seconds of forced braking before the bust fires regardless. The point of " +
+                 "the delay is that you SEE the car stop - a BUSTED card at 70 km/h reads as a bug, " +
+                 "which is why the speed gate was added in the first place.")]
+        public float PulloverStop = 3f;
+
+        [Tooltip("m/s under which the pulled-over car counts as stopped and the bust fires early.")]
+        public float PulloverSpeed = 2f;
 
         [Header("The officer on foot - U19e")]
         [Tooltip("PORT ADDITION. Off, the cruiser arrests you itself at ArrestRadius, which is what " +
