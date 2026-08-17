@@ -410,7 +410,7 @@ section survives - its three "measure first" items are moot when the drive is 60
 4. Repeat 2 on the motorcycle - it must stop upright, not throw you.
 5. Then U35c: 3★ for the H145 (three cars now, all near you), `M` for the GPS line.
 
-### U35d-pre-3, 2026-08-17 - the in-vehicle arrest was measured against the wrong thing - BUILT, MEASURED, AWAITING PLAY-TEST
+### U35d-pre-3, 2026-08-17 - the in-vehicle arrest was measured against the wrong thing - BUILT, MEASURED, AWAITING PLAY-TEST - `d6cc611`
 
 **The user's report, the fourth on this feature:** *"שמתי לב שאם אני יוצא מהרכב זה תופס ישר, בוא
 נעשה שיש busted גם אם אני בתוך האוטו / על האופנוע."* Get out and it busts at once; stay in and it
