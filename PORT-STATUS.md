@@ -235,7 +235,7 @@ Drive out of the spawn car park (it has **no NavMesh within 10 m**, so she falls
 straight lines there and it is the wrong place to judge her), get out on a street, press **`P`** for
 one star, and wait ~20-30 s for the cruiser to drive over from the station.
 
-### U35d-pre, 2026-08-17 - the police can catch you in a vehicle - BUILT, AWAITING PLAY-TEST
+### U35d-pre, 2026-08-17 - the police can catch you in a vehicle - BUILT, AWAITING PLAY-TEST - `33420c8`
 
 **The user's report:** *"אנחנו צריכים לוודא שהמשטרה תופסת גם אם אני בתוך הרכב… כלומר שתפיסה תהיה גם אם
 אני בתוך אופנוע / רכב."* It is not a tuning complaint - **an in-vehicle arrest was unreachable**, and
