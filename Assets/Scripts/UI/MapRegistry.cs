@@ -57,6 +57,16 @@ namespace TheBlock.UI
         /// <see cref="MapRegistry.RemovePoi"/> finds by name.
         /// </summary>
         public bool Minor;
+
+        /// <summary>
+        /// This pin is somewhere the player is being SENT, so the GPS route may draw to it.
+        ///
+        /// Kind cannot answer that question: mission objectives and the fixed landmarks are all
+        /// <see cref="MapPoiKind.Marker"/>, so routing to "the nearest Marker" would send you to
+        /// the 7-Eleven whenever it happened to be closer than the drop-off. Missions opt in; the
+        /// standing places do not, and a pin that says nothing is left alone.
+        /// </summary>
+        public bool Guide;
     }
 
     /// <summary>A district's world footprint and the name shown over it.</summary>
@@ -92,6 +102,34 @@ namespace TheBlock.UI
         {
             if (poi == null) return;
             _pois.Add(poi);
+        }
+
+        /// <summary>
+        /// The nearest pin the player is being sent to, or null.
+        ///
+        /// Nearest rather than first because a mission can post several at once - the delivery run
+        /// pins every remaining drop-off - and the one worth drawing a road to is the one you would
+        /// actually go to next. Distance is flat: a route is a thing on the ground.
+        /// </summary>
+        public static MapPoi NearestGuide(Vector3 from)
+        {
+            MapPoi best = null;
+            float bestSqr = float.MaxValue;
+
+            foreach (var poi in _pois)
+            {
+                if (!poi.Guide) continue;
+
+                var d = poi.At - from;
+                d.y = 0f;
+                float sqr = d.sqrMagnitude;
+                if (sqr >= bestSqr) continue;
+
+                bestSqr = sqr;
+                best = poi;
+            }
+
+            return best;
         }
 
         /// <summary>Removes a POI by name - for dynamic markers, e.g. a drop-off that is done.</summary>

@@ -156,10 +156,23 @@ namespace TheBlock.EditorTools
             // not a warning - the police still work without her.
             var officer = AssetDatabase.LoadAssetAtPath<GameObject>(CopOfficerBuilder.PrefabPath);
 
+            // U35c's helicopter, and like the officer it is OPTIONAL wiring: with no prefab the
+            // pursuit is exactly what U19 shipped, which is also what PoliceTuning.HeliStars = 0
+            // gives you. So a missing prefab is a report line rather than a warning.
+            var heli = AssetDatabase.LoadAssetAtPath<GameObject>(PoliceHelicopterBuilder.PrefabPath);
+
+            // The pad: clear of the bays, on the far side of the forecourt from the road the
+            // cruisers leave by, and ground-probed with the same GroundY the bays use.
+            var padFlat = bays.Length > 0 ? bays[0] : custody;
+            var pad = new Vector3(padFlat.x + 18f, 0f, padFlat.z - 12f);
+            pad.y = GroundY(pad) + BayRideHeight;
+            system.ConfigureHelipad(pad, Convert.Yaw(0f));
+
             var serialized = new SerializedObject(system);
             serialized.FindProperty("copPrefab").objectReferenceValue = prefab;
             serialized.FindProperty("officerPrefab").objectReferenceValue = officer;
             serialized.FindProperty("routeGraph").objectReferenceValue = graph;
+            serialized.FindProperty("heliPrefab").objectReferenceValue = heli;
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
             // How far the custody point is from a street decides whether you can drive away from a
@@ -172,7 +185,10 @@ namespace TheBlock.EditorTools
                 $"Police {bays.Length} bay(s) at the station, pool of cruisers wired, {custodyNote}, " +
                 (officer == null
                     ? "NO officer prefab - the cruisers arrest you themselves"
-                    : "an officer in every driver's seat"));
+                    : "an officer in every driver's seat") + ", " +
+                (heli == null
+                    ? "NO helicopter prefab - run The Block → Build Police Helicopter"
+                    : $"helipad at {pad:F1}"));
         }
 
         /// <summary>Clearance above the probed ground when a car is placed, metres.</summary>

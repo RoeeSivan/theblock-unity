@@ -440,7 +440,11 @@ namespace TheBlock.Traffic
                 var position = car.transform.position;
                 bool tooFar = (position - centre).sqrMagnitude > cullSqr;
                 bool sunk = position.y < -20f; // a wreck that found a hole in the world
-                if (tooFar || sunk) { car.Retire(); continue; }
+
+                // Refusing to SPAWN on the station apron is not enough on its own: a car placed
+                // legitimately down the road drives onto it a few seconds later, and one that has
+                // already stopped there stays. The sweep clears it too.
+                if (tooFar || sunk || InsideKeepClear(position)) { car.Retire(); continue; }
                 live++;
             }
 
@@ -522,6 +526,37 @@ namespace TheBlock.Traffic
             }
         }
 
+        /// <summary>
+        /// A patch of street ambient traffic is not allowed to occupy - the police station's apron.
+        ///
+        /// <b>Why this exists.</b> The user's report was that the police often do not arrive, or
+        /// arrive far too late. The cause is not the pursuit tuning, which is measured and fine: it
+        /// is that the cruisers DRIVE out of their bays (deliberately - the response having a real
+        /// travel time is the design), and the one street the station opens onto is ambient road
+        /// like any other. A queue standing on it is a wall three cars deep in a lane the cruiser
+        /// has to reverse-and-shuffle out of, and <c>CopDriver</c>'s overtake only helps once the
+        /// car is already moving. Stationary traffic has nowhere to yield to.
+        ///
+        /// So the apron is kept clear instead. Nothing about the pursuit changes; the cars simply
+        /// have a road to leave on.
+        /// </summary>
+        public void SetKeepClear(Vector3 centre, float radius)
+        {
+            _keepClear = centre;
+            _keepClearSqr = radius * radius;
+        }
+
+        private Vector3 _keepClear;
+        private float _keepClearSqr;
+
+        private bool InsideKeepClear(Vector3 point)
+        {
+            if (_keepClearSqr <= 0f) return false;
+            var d = point - _keepClear;
+            d.y = 0f;
+            return d.sqrMagnitude < _keepClearSqr;
+        }
+
         private bool Place(TrafficCar car, Vector3 centre)
         {
             float minSqr = spawnMinRadius * spawnMinRadius;
@@ -553,6 +588,7 @@ namespace TheBlock.Traffic
                 if (attempt < sampleAttempts * 2 / 3 &&
                     Vector3.Dot(offset.normalized, view) > 0.3f) continue;
 
+                if (InsideKeepClear(position)) continue;
                 if (Occupied(position, car)) continue;
 
                 car.EdgeId = edgeId;

@@ -93763,6 +93763,7 @@ MonoBehaviour:
   cars: {fileID: 0}
   traffic: {fileID: 0}
   hud: {fileID: 0}
+  ragdoll: {fileID: 0}
   exitProbeHeight: 5
   exitProbeDepth: 25
   doorlessMountSeconds: 0.35
@@ -135789,9 +135790,9 @@ MonoBehaviour:
     BandNear: 12
     BandFar: 75
     LateralGrip: 6.5
-    ResponseSpeed: 29
-    ResponseGrip: 11
-    OvertakeAfter: 1.5
+    ResponseSpeed: 34
+    ResponseGrip: 14
+    OvertakeAfter: 0.9
     OvertakeShift: 3.5
     OvertakeTime: 3
     CornerScan: 25
@@ -135832,8 +135833,17 @@ MonoBehaviour:
     CopSeparation: 30
     ReplaceDelay: 6
     BayArrive: 6
+    StationApron: 26
     ReplanInterval: 1
     CorridorWidth: 12
+    HeliStars: 3
+    HeliAltitude: 34
+    HeliOffsetBack: 18
+    HeliSpeed: 26
+    HeliLaunchDelay: 2.5
+    HeliDamping: 1.1
+    HeliSpotAngle: 24
+    HeliSpotRange: 70
     BustHold: 2.2
     BustFine: 100
   stars: 0
@@ -135869,6 +135879,9 @@ MonoBehaviour:
   - {x: 156, y: 0.25, z: -111}
   bayYaw: -0
   custodyPoint: {x: 160, y: 0.1999, z: -106}
+  heliPrefab: {fileID: 4904277192888008480, guid: 966d8feb9a2da4d03b4e045f41793cb9, type: 3}
+  heliPad: {x: 182, y: 0.1, z: -123}
+  heliPadYaw: 0
   drawGizmos: 1
 --- !u!1 &1127989653
 GameObject:
@@ -192798,6 +192811,7 @@ MonoBehaviour:
   settleTimeout: 4
   lieSeconds: 0.9
   blendSeconds: 0.35
+  remountLift: 0.1
   player: {fileID: 0}
   body: {fileID: 0}
   followCamera: {fileID: 0}

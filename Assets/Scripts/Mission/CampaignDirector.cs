@@ -138,6 +138,7 @@ namespace TheBlock.Missions
                 Follow = step.Follow,
                 Kind = MapPoiKind.Marker,
                 Icon = step.Emoji,
+                Guide = true,   // U35c: the GPS route draws to this
             });
         }
 

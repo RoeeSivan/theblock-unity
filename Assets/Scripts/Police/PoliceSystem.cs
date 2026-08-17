@@ -51,6 +51,15 @@ namespace TheBlock.Police
         [Tooltip("Where a busted player is returned. The web's (-160, 0.3, -106), converted.")]
         [SerializeField] private Vector3 custodyPoint = new(160f, 0.3f, -106f);
 
+        [Header("Helicopter (U35c)")]
+        [Tooltip("The police H145. Left empty, everything below U35c behaves exactly as U19 shipped.")]
+        [SerializeField] private GameObject heliPrefab;
+
+        [Tooltip("The pad it sits on, clear of the cruiser bays. Placed by WorldBuilder.Police.")]
+        [SerializeField] private Vector3 heliPad;
+
+        [SerializeField] private float heliPadYaw;
+
         [Header("Debug")]
         [Tooltip("Draws each cop's route, aim point and sight line in the Scene view.")]
         [SerializeField] private bool drawGizmos = true;
@@ -62,8 +71,20 @@ namespace TheBlock.Police
         private RaycastHit[] _hits;
         private float _laneGap = 3.4f;
 
+        private PoliceHelicopter _heli;
+
         /// <summary>Live cops, for the map blips and the traffic's obstacle list.</summary>
         public IReadOnlyList<CopCar> Cops => _cops;
+
+        /// <summary>
+        /// The baked street graph, for anything that wants to route on the roads the cops drive.
+        ///
+        /// It was private with no accessor until U35c, because the pursuit was its only consumer.
+        /// The GPS line is the second, and it is the whole argument of that half of the unit - the
+        /// web build's traffic graph was five disconnected islands and could not have drawn a route
+        /// at all.
+        /// </summary>
+        public RouteGraph Graph => routeGraph;
 
         /// <summary>Fines you have run up but nothing has charged. U28 owes a wallet.</summary>
         public int FinesOwed { get; private set; }
@@ -76,6 +97,26 @@ namespace TheBlock.Police
         {
             Bind();
             FillPool();
+            ClearStationApron();
+        }
+
+        /// <summary>
+        /// Tells the traffic to leave the station's forecourt alone, so a scrambling cruiser has a
+        /// road to leave on. See <see cref="TrafficSystem.SetKeepClear"/> for why this is the fix
+        /// rather than more speed.
+        ///
+        /// The centre is the mean of the bays rather than the station's model origin: the bays are
+        /// where the cars actually are, and they are already ground-probed and converted.
+        /// </summary>
+        private void ClearStationApron()
+        {
+            if (traffic == null || bayPositions.Length == 0 || _tuning.StationApron <= 0f) return;
+
+            var centre = Vector3.zero;
+            foreach (var bay in bayPositions) centre += bay;
+            centre /= bayPositions.Length;
+
+            traffic.SetKeepClear(centre, _tuning.StationApron);
         }
 
         private void Bind()
@@ -131,6 +172,31 @@ namespace TheBlock.Police
                 Park(cop);
                 _cops.Add(cop);
             }
+
+            FillHelicopter();
+        }
+
+        /// <summary>
+        /// One helicopter, up front like the cruisers, parked on its pad with the light off.
+        ///
+        /// <b>It is held in its own field rather than in <c>_cops</c>, and that is the design.</b>
+        /// Everything in <see cref="Reconcile"/>, <see cref="Step"/> and <see cref="Park"/> assumes
+        /// a wheeled car on a lane graph; a flying unit dropped into that list would be null-reffed
+        /// by <c>CopCar.Configure</c> before it ever got off the ground. Keeping it beside the list
+        /// means the pursuit's own logic is untouched by this unit.
+        /// </summary>
+        private void FillHelicopter()
+        {
+            if (heliPrefab == null || _tuning.HeliStars <= 0) return;
+
+            var instance = Instantiate(heliPrefab, transform);
+            instance.name = "Police Helicopter";
+
+            if (!instance.TryGetComponent<PoliceHelicopter>(out var heli))
+                heli = instance.AddComponent<PoliceHelicopter>();
+
+            heli.Configure(_tuning, heliPad, Quaternion.Euler(0f, heliPadYaw, 0f));
+            _heli = heli;
         }
 
         /// <summary>
@@ -183,6 +249,7 @@ namespace TheBlock.Police
             int wanted = heat.Frozen ? 0 : Mathf.Clamp(heat.Stars, 0, _tuning.MaxCops);
 
             Reconcile(wanted, focus);
+            ReconcileHelicopter(focus);
             _positions.Clear();
 
             foreach (var cop in _cops)
@@ -221,6 +288,48 @@ namespace TheBlock.Police
 
             if (traffic != null) traffic.SetPursuitObstacles(_positions);
         }
+
+        /// <summary>
+        /// Star count in, helicopter up or home. Two lines of state and no population to balance -
+        /// there is exactly one of it, so <see cref="Reconcile"/>'s furthest-unit arithmetic has
+        /// nothing to do here.
+        ///
+        /// It reads <c>heat.Stars</c> directly rather than the clamped <c>wanted</c> the cruisers
+        /// use: that value is capped at <c>MaxCops</c>, and the two thresholds are independent
+        /// knobs. <c>HeliStars = 0</c> is the feature's off switch and is checked first, so a
+        /// disabled helicopter costs one integer compare per frame and nothing else.
+        /// </summary>
+        private void ReconcileHelicopter(Transform focus)
+        {
+            if (_heli == null) return;
+
+            bool wanted = _tuning.HeliStars > 0 && !heat.Frozen && heat.Stars >= _tuning.HeliStars;
+            if (wanted) _heli.Launch(focus);
+            else _heli.Recall();
+
+            // A blip while it is up, gone when it lands - the same Follow-a-transform pin the
+            // cruisers get, so it tracks without anything rewriting it per frame.
+            if (_heli.Airborne == _heliBlipped) return;
+            _heliBlipped = _heli.Airborne;
+
+            if (_heliBlipped)
+            {
+                UI.MapRegistry.AddPoi(new UI.MapPoi
+                {
+                    Name = HeliPoi,
+                    Follow = _heli.transform,
+                    Kind = UI.MapPoiKind.Cop,
+                    Minor = true,
+                });
+            }
+            else
+            {
+                UI.MapRegistry.RemovePoi(HeliPoi);
+            }
+        }
+
+        private const string HeliPoi = "Police Helicopter";
+        private bool _heliBlipped;
 
         /// <summary>The driven vehicle if there is one, else the player - as the crowd and map do.</summary>
         private Transform Focus()
@@ -891,6 +1000,13 @@ namespace TheBlock.Police
             bayPositions = bays;
             bayYaw = yawDegrees;
             custodyPoint = custody;
+        }
+
+        /// <summary>The helipad pose, from the same builder pass and the same conversion.</summary>
+        public void ConfigureHelipad(Vector3 pad, float yawDegrees)
+        {
+            heliPad = pad;
+            heliPadYaw = yawDegrees;
         }
 
         private void OnDrawGizmos()

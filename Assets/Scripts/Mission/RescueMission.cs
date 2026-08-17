@@ -208,6 +208,7 @@ namespace TheBlock.Missions
                 Position = at,
                 Kind = MapPoiKind.Marker,
                 Minor = true,
+                Guide = true,   // U35c: the GPS route draws to the nearest survivor
             });
 
             return survivor;

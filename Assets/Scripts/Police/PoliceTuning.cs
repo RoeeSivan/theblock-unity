@@ -255,12 +255,52 @@ namespace TheBlock.Police
                  "that loses its star drives back rather than vanishing in front of you.")]
         public float BayArrive = 6f;
 
+        [Tooltip("Metres around the station kept clear of AMBIENT traffic. 0 disables it.\n\n" +
+                 "REPORTED BY THE USER 2026-08-17: the police often do not arrive, or arrive far " +
+                 "too late. The pursuit numbers below are measured and were not the cause - the " +
+                 "cause is that cruisers DRIVE out of their bays, and a queue standing on the one " +
+                 "street the station opens onto is a wall. CopDriver's overtake cannot help a car " +
+                 "that has not got moving yet, and stationary traffic has nowhere to yield to. " +
+                 "Clearing the apron fixes the response without touching the chase.")]
+        public float StationApron = 26f;
+
         [Header("Routing")]
         [Tooltip("Seconds between A* replans, staggered across cops so three never land in one frame.")]
         public float ReplanInterval = 1f;
 
         [Tooltip("Metres off its own route before a cop replans immediately.")]
         public float CorridorWidth = 12f;
+
+        [Header("Helicopter (U35c)")]
+        [Tooltip("DESIGN. Stars at which the police Huey- er, H145 - launches. 0 disables it " +
+                 "entirely, which is this feature's off switch: the world then looks exactly as it " +
+                 "did before U35c, which is the Tier 8 rule. Ships 3, so the third star is the one " +
+                 "that changes the sky.")]
+        public int HeliStars = 3;
+
+        [Tooltip("Hover altitude above the target's ground, metres. Above Florentin's tallest roof " +
+                 "and well inside the fog plane.")]
+        public float HeliAltitude = 34f;
+
+        [Tooltip("Metres BEHIND the target it holds station, so it sits in the follow camera's " +
+                 "frame rather than directly overhead where you would never see it.")]
+        public float HeliOffsetBack = 18f;
+
+        [Tooltip("Cruise, m/s. Faster than a cruiser on purpose - the helicopter should be the " +
+                 "thing that finds you first.")]
+        public float HeliSpeed = 26f;
+
+        [Tooltip("Seconds between earning the star and lift-off. Without it the aircraft appears " +
+                 "overhead the instant the star lands, which reads as a spawn rather than a scramble.")]
+        public float HeliLaunchDelay = 2.5f;
+
+        [Tooltip("Seconds to settle onto the hover slot. Higher = lazier, more helicopter-like.")]
+        public float HeliDamping = 1.1f;
+
+        [Tooltip("Searchlight cone angle and reach, degrees / metres. Tuned by eye in the play-test.")]
+        public float HeliSpotAngle = 24f;
+
+        public float HeliSpotRange = 70f;
 
         [Header("Bust")]
         [Tooltip("DESIGN. Seconds the overlay holds.")]

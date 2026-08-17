@@ -80,6 +80,16 @@ namespace TheBlock.UI
         private bool _suppressed;
         private float _lastMiniDraw;
 
+        /// <summary>
+        /// U35c's road route to the objective. Owned here rather than being a component of its own:
+        /// the only sensible host object is this one, and <c>HudBuilder</c> destroys and rebuilds
+        /// it - which is how U26's menus were lost once already.
+        ///
+        /// Null when there is no <c>RouteGraph</c> in the scene, and everything downstream is
+        /// null-guarded, so a world built before the police existed still opens its map.
+        /// </summary>
+        private GpsRoute _gps;
+
         public bool IsExpanded => _expanded;
 
         /// <summary>
@@ -117,6 +127,7 @@ namespace TheBlock.UI
 
             BuildUi();
             SetExpanded(false);
+            _gps = GpsRoute.Create();
         }
 
         private void BuildUi()
@@ -224,6 +235,12 @@ namespace TheBlock.UI
             var active = ActiveAnchor();
             if (active == null) return;
 
+            // The GPS plans on its OWN 0.25 s clock, above the Hidden check on purpose: a player
+            // who opens the map after driving for a minute should find the line already there, not
+            // watch it appear a quarter-second later. It costs one A* over a 105-node graph, and
+            // only when the objective moved or you left the corridor.
+            _gps?.Tick(active.position, active.forward, Time.unscaledDeltaTime);
+
             // Radar off and map closed: there is nothing on screen to keep up to date, so the whole
             // second-camera pass is skipped rather than rendered into a texture nobody is looking
             // at. U14's own note called the live camera the map's main cost; this is not drawing it.
@@ -243,6 +260,7 @@ namespace TheBlock.UI
             }
 
             mapCamera.RenderNow();
+            if (_gps != null) _view.SetRoute(_gps.Points);
             _view.SetFrame(mapCamera.Center, mapCamera.OrthoSize, active, _expanded);
         }
 

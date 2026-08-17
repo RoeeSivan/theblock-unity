@@ -147,3 +147,6 @@ crashlytics-build.properties
 # folder; re-run the conversion instead if the source is ever needed again. It can be deleted.
 Assets/Police_officer/
 Assets/Police_officer.meta
+
+# Blender writes a .blend1 backup beside every save. It is a duplicate of the file next to it.
+*.blend1

@@ -116,6 +116,31 @@ namespace TheBlock.Audio
             _target = Mathf.Clamp01(t);
         }
 
+        /// <summary>
+        /// Places this rotor in the world: <paramref name="gain"/> 0-1 for distance,
+        /// <paramref name="pan"/> −1 (left) to +1 (right).
+        ///
+        /// <b>Unity's own 3D panning cannot be used here, and it is worth writing down why.</b> The
+        /// obvious move for U35c's police helicopter was <c>spatialBlend = 1</c> on a second
+        /// instance of this component. It does nothing: <see cref="OnAudioFilterRead"/> OVERWRITES
+        /// every sample in the buffer rather than modifying it, so whatever attenuation and panning
+        /// the source computed is thrown away a moment later. The synth is the last word on what
+        /// comes out, so the synth is where the distance has to be applied.
+        ///
+        /// That makes the placement deterministic rather than approximate, which is the trade: no
+        /// HRTF, no rolloff curve, no doppler - a gain and a balance, computed by the caller from a
+        /// distance it already knows. Called from the main thread; both fields are read once per
+        /// buffer on the audio thread, and a torn float here is inaudible.
+        /// </summary>
+        public void SetPlacement(float gain, float pan)
+        {
+            _gain = Mathf.Clamp01(gain);
+            _pan = Mathf.Clamp(pan, -1f, 1f);
+        }
+
+        private float _gain = 1f;
+        private float _pan;
+
         private void Update()
         {
             // Stopping the carrier is a main-thread job; the audio thread must not call into Unity.
@@ -129,6 +154,12 @@ namespace TheBlock.Audio
 
             float target = _target;
             float k = 1f - Mathf.Exp(-1f / Mathf.Max(0.0001f, _tau * _rate));
+
+            // Equal-power balance, read once per buffer. At pan 0 both are 1, so the player's own
+            // cockpit rotor is bit-for-bit what it was before SetPlacement existed.
+            float gain = _gain;
+            float left = Mathf.Sqrt(Mathf.Clamp01(1f - _pan));
+            float right = Mathf.Sqrt(Mathf.Clamp01(1f + _pan));
 
             for (int i = 0; i < data.Length; i += channels)
             {
@@ -148,10 +179,19 @@ namespace TheBlock.Audio
                 // --- turbine whine: faint high triangle ---
                 float whine = (2f * Mathf.Abs(2f * (float)_whinePhase - 1f) - 1f) * WhineGain;
 
-                float sample = (blade + hum + whine) * Mathf.Max(0.0001f, t * MaxVolume);
+                float sample = (blade + hum + whine) * Mathf.Max(0.0001f, t * MaxVolume) * gain;
                 sample = Mathf.Clamp(sample, -1f, 1f);
 
-                for (int c = 0; c < channels; c++) data[i + c] = sample;
+                if (channels >= 2)
+                {
+                    data[i] = sample * left;
+                    data[i + 1] = sample * right;
+                    for (int c = 2; c < channels; c++) data[i + c] = sample;
+                }
+                else
+                {
+                    for (int c = 0; c < channels; c++) data[i + c] = sample;
+                }
 
                 _chopPhase = Wrap(_chopPhase + (ChopHzMin + t * (ChopHzMax - ChopHzMin)) / _rate);
                 _enginePhase = Wrap(_enginePhase + EngineHz * (0.7f + 0.5f * t) / _rate);
