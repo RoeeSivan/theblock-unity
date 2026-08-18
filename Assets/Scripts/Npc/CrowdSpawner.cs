@@ -437,6 +437,21 @@ namespace TheBlock.Npc
             bool hasRect = seed.RectId >= 0 && _rects != null && seed.RectId < _rects.Length;
             var rect = hasRect ? _rects[seed.RectId] : default;
 
+            // ROLL THE FACE AND THE SHIRT. Twelve bodies × five faces × six tints is 360 people, and
+            // it costs two shared-material assignments on a bind that already instantiates a body.
+            //
+            // <b>Seeded from the SEED INDEX, not from <see cref="_rng"/>.</b> The obvious reading of
+            // NpcAppearance - and what its own docstring proposes - is a fresh roll per recycle, so
+            // "the same pooled body is a different person each time it walks back into view". That is
+            // right about the pool and wrong about the street: a seed is a PERSON, standing at their
+            // own spot with their own pace and their own place along a lane, and re-rolling on rebind
+            // means the man outside the falafel stand is wearing a different shirt every time you
+            // drive past. The index is stable for the life of the table, so this makes each of the
+            // 687 a fixed person - and the pooled body underneath them still changes freely, which is
+            // the part that actually mattered.
+            if (body.TryGetComponent<NpcAppearance>(out var appearance))
+                appearance.Randomize(new System.Random(index));
+
             body.gameObject.SetActive(true);
             body.Bind(this, index, seed, path, gate, rect, hasRect, _rng);
 

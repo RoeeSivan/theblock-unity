@@ -637,7 +637,7 @@ namespace TheBlock.EditorTools
             float plate = float.MaxValue;
             foreach (var hit in hits)
             {
-                if (hit.collider.name == "Ground Floor") { plate = hit.point.y; continue; }
+                if (IsGroundPlate(hit.collider)) { plate = hit.point.y; continue; }
                 lowest = Mathf.Min(lowest, hit.point.y);
             }
 
@@ -647,6 +647,26 @@ namespace TheBlock.EditorTools
             if (plate != float.MaxValue) return plate;
             return lowest != float.MaxValue ? lowest : 0f;
         }
+
+        /// <summary>
+        /// Is this collider part of the ground plate?
+        ///
+        /// <b>By prefix, and U38 is the reason it is not an equality test any more.</b> The plate used
+        /// to be one object called <c>Ground Floor</c>; it is now three - it grew
+        /// <c>Ground Floor Seaward North</c> and <c>… South</c> when the sea was added - and
+        /// <see cref="GroundY"/> recognised only the first. In the two seaward regions the plate was
+        /// therefore read as a STREET, and since it is the lowest thing there, every point baked in
+        /// them came back at −0.05 instead of the district surface at 0.115.
+        ///
+        /// The symptom is small and would have shipped: 113 of the crowd's 687 seeds, 16% of the
+        /// street, standing 16 cm into their own pavement. It was invisible until something re-baked,
+        /// because the committed tables predate the split.
+        ///
+        /// <b>Anything else baked against those two regions carries the same error</b> until it is
+        /// re-baked - zebras and lanes included.
+        /// </summary>
+        private static bool IsGroundPlate(Collider collider) =>
+            collider != null && collider.name.StartsWith("Ground Floor", System.StringComparison.Ordinal);
 
         /// <summary>
         /// Metres above the ground plate a surface may be and still be a street.

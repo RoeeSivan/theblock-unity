@@ -63,7 +63,41 @@ namespace TheBlock.Npc
         [Tooltip("The collision shells, index-matched to the bones.")]
         [SerializeField] private Collider[] shells = System.Array.Empty<Collider>();
 
+        /// <summary>
+        /// A skinned bone ABOVE the hips, carried along by hand while the body is simulating. Null on
+        /// most rigs, and then none of this costs anything.
+        ///
+        /// <b>U38, and it presents as a crash.</b> The ragdoll drives the hips and everything under
+        /// them; a bone above the hips is not in the joint chain and nothing moves it, so it stays at
+        /// the transform the body had when it was hit. On a Mixamo rig that is nobody - every skinned
+        /// bone is the hips or below. The pack rigs put a <c>Root</c> above the hips and list it as
+        /// <c>bones[0]</c> on the garment meshes, so a corpse that slides four metres leaves one bone
+        /// four metres behind, and <see cref="Core.SkinWatchdog"/> - correctly - calls that the wedge
+        /// and pauses the editor.
+        ///
+        /// <b>It is not only the watchdog, which is why this is carried rather than exempted.</b> The
+        /// same bone is those renderers' <c>rootBone</c>, and Unity derives a SkinnedMeshRenderer's
+        /// world bounds from its root bone: left behind, a body's bounds stay where it was standing,
+        /// so it is frustum-culled and shadowed against a position it no longer occupies. Carrying the
+        /// bone fixes the diagnostic and the rendering with one line.
+        ///
+        /// The weights on it are zero, so no vertex is dragged either way - this is about where the
+        /// renderer THINKS it is, not about the silhouette.
+        /// </summary>
+        [SerializeField] private Transform skinRoot;
+
         private Transform[] _boneTransforms;
+
+        /// <summary>
+        /// <see cref="skinRoot"/>'s pose in its parent, captured before anything has moved it.
+        ///
+        /// Restored by <see cref="Rest"/>, and that is not optional: a Humanoid Animator writes the
+        /// mapped bones, and a bone above the hips is not mapped. Without this the displacement from
+        /// the first run-over is permanent for the life of that pooled body - and the crowd recycles
+        /// bodies, so it would spread through the pool one corpse at a time.
+        /// </summary>
+        private Vector3 _skinRootLocal;
+        private bool _skinRootCaptured;
 
         /// <summary>True while this body is being simulated - frozen counts.</summary>
         public bool Active { get; private set; }
@@ -118,17 +152,28 @@ namespace TheBlock.Npc
         /// Editor-side wiring, called by <c>RagdollBuilder</c>. Everything is serialized, so this runs
         /// once at build time and never again.
         /// </summary>
-        public void Configure(Animator skeleton, Rigidbody pelvis, Rigidbody[] built, Collider[] builtShells)
+        public void Configure(
+            Animator skeleton, Rigidbody pelvis, Rigidbody[] built, Collider[] builtShells,
+            Transform skinnedRootAboveHips)
         {
             animator = skeleton;
             hips = pelvis;
             bones = built;
             shells = builtShells;
+            skinRoot = skinnedRootAboveHips;
         }
 
         private void Awake()
         {
             EnsureLayerRules();
+
+            // Captured here, before the first Rest() below and long before any run-over: this is the
+            // rig as the prefab authored it.
+            if (skinRoot != null)
+            {
+                _skinRootLocal = skinRoot.localPosition;
+                _skinRootCaptured = true;
+            }
 
             // A prefab is saved with its shells enabled if anyone ever inspected it mid-simulation,
             // and a body that boots half-ragdolled walks around dragging its own limbs. Cheap to be
@@ -255,9 +300,36 @@ namespace TheBlock.Npc
 
             if (Active) RagdollBudget.Give(this);
 
+            // Put the carried bone back where the prefab had it. Nothing else will: it is above the
+            // hips, so the Humanoid Animator does not write it.
+            if (_skinRootCaptured && skinRoot != null) skinRoot.localPosition = _skinRootLocal;
+
             Active = false;
             Frozen = false;
             if (animator != null) animator.enabled = true;
+        }
+
+        /// <summary>
+        /// Carries <see cref="skinRoot"/> to the hips for as long as the body is simulating.
+        ///
+        /// <b>Move the parent, then put the child back.</b> <see cref="skinRoot"/> is an ANCESTOR of
+        /// the hips, so moving it drags the whole solved pose with it; restoring the hips' world pose
+        /// immediately afterwards undoes that for the hips and, because every other simulated bone
+        /// hangs off the hips, for all of them. The net effect is that one unsimulated bone catches
+        /// up and the ragdoll does not move a millimetre.
+        ///
+        /// LateUpdate, after the solver's pose has been written and - by execution order - before
+        /// <see cref="Core.SkinWatchdog"/> measures it.
+        /// </summary>
+        private void LateUpdate()
+        {
+            if (!Active || skinRoot == null || hips == null) return;
+
+            var pose = hips.transform.position;
+            var spin = hips.transform.rotation;
+
+            skinRoot.position = pose;
+            hips.transform.SetPositionAndRotation(pose, spin);
         }
 
         /// <summary>Every simulated bone's transform, cached - the pose blend walks it every frame.</summary>

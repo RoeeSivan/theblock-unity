@@ -159,16 +159,31 @@ namespace TheBlock.EditorTools
         }
 
         /// <summary>
-        /// Every prefab that can be knocked down: the six faces in the crowd and the three the player
-        /// wears. <b>Not the cop and not the thief</b> - neither is ever run over (the officer is
-        /// <c>CopOfficer</c>'s, driven by the police system, and the thief is a mission actor), so
-        /// eleven bodies each would be paid for a reaction that cannot happen.
+        /// Every prefab that can be knocked down: the six Mixamo faces, U38's twelve pack strangers,
+        /// and the three bodies the player wears. <b>Not the cop and not the thief</b> - neither is
+        /// ever run over (the officer is <c>CopOfficer</c>'s, driven by the police system, and the
+        /// thief is a mission actor), so eleven bodies each would be paid for a reaction that cannot
+        /// happen.
+        ///
+        /// <b>The pack twelve need no special case below this line</b>, and that is worth saying
+        /// because it is not obvious: nothing in this file knows a bone by name. Every lookup goes
+        /// through <see cref="HumanBodyBones"/> and the avatar's own <c>humanDescription</c>, so a
+        /// rig from a different vendor with a different naming convention resolves identically -
+        /// provided it imported Humanoid with <c>Optimize Game Objects</c> off, which is the one
+        /// thing that would delete the bones outright (memory:
+        /// <c>ragdoll-needs-unoptimized-hierarchy</c>). Both conditions are verified on the pack.
         /// </summary>
         private static IEnumerable<string> Targets()
         {
             foreach (var name in PeopleImporter.Names)
             {
                 var path = $"{PedFolder}/Ped_{name}.prefab";
+                if (AssetDatabase.LoadAssetAtPath<GameObject>(path) != null) yield return path;
+            }
+
+            foreach (var code in PackPedBuilder.Names)
+            {
+                var path = PackPedBuilder.PrefabPath(code);
                 if (AssetDatabase.LoadAssetAtPath<GameObject>(path) != null) yield return path;
             }
 
@@ -206,15 +221,62 @@ namespace TheBlock.EditorTools
                 if (!contents.TryGetComponent<Ragdoll>(out var ragdoll))
                     ragdoll = contents.AddComponent<Ragdoll>();
 
-                ragdoll.Configure(animator, bodies[0], bodies, shells);
+                var skinRoot = SkinnedRootAboveHips(contents, bodies[0].transform);
+                ragdoll.Configure(animator, bodies[0], bodies, shells, skinRoot);
 
                 PrefabUtility.SaveAsPrefabAsset(contents, path);
-                log.AppendLine($"{name,-14} {report}");
+                log.AppendLine($"{name,-14} {report}" +
+                               (skinRoot != null ? $" | carries '{skinRoot.name}' above the hips" : ""));
                 return true;
             }
             finally
             {
                 PrefabUtility.UnloadPrefabContents(contents);
+            }
+        }
+
+        /// <summary>
+        /// The highest bone ABOVE the hips that some skinned mesh on this body actually uses, or null
+        /// when every skinned bone is the hips or below.
+        ///
+        /// <b>Null is the answer for all nine Mixamo bodies</b>, and that is the point of searching
+        /// rather than naming: their meshes bind to <c>mixamorig:Hips</c> and <c>…:Spine2</c>, both
+        /// inside the joint chain, so nothing is left behind when a ragdoll flies and
+        /// <see cref="Ragdoll"/>'s carry compiles down to an early return. The pack rigs put a
+        /// <c>Root</c> above the hips and list it as <c>bones[0]</c> on their garments; that is the
+        /// bone this finds, and leaving it behind is what pauses the editor mid-run-over.
+        ///
+        /// <c>rootBone</c> is checked as well as the bone array because it is what Unity derives the
+        /// renderer's world bounds from, and a rig can name a root bone it does not skin to.
+        /// </summary>
+        private static Transform SkinnedRootAboveHips(GameObject contents, Transform hips)
+        {
+            var above = new HashSet<Transform>();
+            for (var t = hips.parent; t != null; t = t.parent) above.Add(t);
+            if (above.Count == 0) return null;
+
+            Transform best = null;
+            int bestDepth = int.MaxValue;
+
+            foreach (var skin in contents.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                Consider(skin.rootBone);
+                if (skin.bones == null) continue;
+                foreach (var bone in skin.bones) Consider(bone);
+            }
+
+            return best;
+
+            void Consider(Transform candidate)
+            {
+                if (candidate == null || !above.Contains(candidate)) return;
+
+                int depth = 0;
+                for (var t = candidate; t != null; t = t.parent) depth++;
+                if (depth >= bestDepth) return;
+
+                best = candidate;
+                bestDepth = depth;
             }
         }
 

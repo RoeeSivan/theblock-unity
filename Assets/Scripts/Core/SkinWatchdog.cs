@@ -19,6 +19,16 @@ namespace TheBlock.Core
     ///
     /// Editor-only by construction - the auto-install is compiled out of a player build.
     /// </summary>
+    /// <remarks>
+    /// <b>Execution order 1000 - last, and it has to be said in code rather than in a comment.</b>
+    /// <see cref="LateUpdate"/> below documents its own placement as "after every poser has had its
+    /// say", and that was true of the Animators and the car parts because Unity runs default-order
+    /// LateUpdates in an arbitrary order that happened to work out. It stopped being true when
+    /// <see cref="Npc.Ragdoll"/> gained a LateUpdate of its own: measuring a skeleton one frame
+    /// before the component that finishes assembling it is how a watchdog reports a fault that is
+    /// already fixed by the time anything is drawn.
+    /// </remarks>
+    [DefaultExecutionOrder(1000)]
     [DisallowMultipleComponent]
     public class SkinWatchdog : MonoBehaviour
     {

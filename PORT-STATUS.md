@@ -88,7 +88,8 @@ unclear, re-test before inheriting.
 > **THE GAME IS BUILT, AND AS OF 2026-08-17 SO IS TIER 8.** U0-U29 plus U33, U34 and every U35
 > sub-unit that survived the user's cuts are `done` or `built - user-confirmed`. What remains is
 > Tier 7 and the submission. ⚠ **"No gameplay work is scheduled" was true until 2026-08-18 and is
-> not any more:** the user asked for the sea, and **U36** is `wip`, built and awaiting its play-test.
+> not any more:** the user asked for the sea (**U36** ✅), then a repeatable income (**U37** ✅, its
+> `U37a` half still unplayed), then a real crowd (**U38** ✅ 2026-08-19).
 > Gameplay rows can still arrive - they arrive from the user, not from this list.
 >
 > **⚠ THE PROJECT PIVOTED, 2026-08-16. The Unity build is what gets submitted, and it has a deadline:
@@ -96,9 +97,21 @@ unclear, re-test before inheriting.
 > a change of what "done" means - the graded artifacts are a video, a repo, a kanban board and a zip,
 > and only one of them is the game.
 >
-> ### 🚩 NEXT ACTION: **U37's play-test.** It is `wip` only in the sense that the user has not played it yet - everything is built, proved in Play by direct method calls, and the stand's location and its vendor are already user-approved on sight. **The test, in order:** Play → **Continue, never New Game** (`new-game-wipes-the-test-balance` - the wallet IS the thing being measured) → ride to the stand opposite the pizzeria → the prompt reads `Press T for a falafel round - 3 orders, $40` → run it → then lose one on the clock and confirm the streak falls back to round 1 and a fresh round can be started. Watch for the two things a synthetic test cannot judge: whether **`TalkRadius = 6`** makes taking the order from the saddle feel right, and whether the campaign's own objective line and clock still draw once the job is over (that is the `DriveHud` guard's regression). Its section is below.
+> ### ✅ U38 is DONE - user-confirmed 2026-08-19. The crowd is twelve pack bodies at 360 looks, and it made the frame ~22 ms FASTER. Section below.
 >
-> ### After that: **U30b round 2 - the boot hitches.** U30a is DONE and U30b's first round landed 2026-08-18 (section below): the Player exists, the baseline is measured, and the biggest finding is already fixed and re-measured. What is left of U30b is named at the bottom of that section, worst first: **a 2,154 ms hitch at t=2.2 s that is NOT textures** (it happens at `tex current 6 MB`), and a chase that is now 44-77 ms rather than 300-400. ⚠ **U37 owes it a frame measurement too**, like the six Tier 8 rows: it adds a 41k-triangle place with an always-animating skinned NPC on it.
+> ### 🚩 NEXT ACTION: **U37a's play-test** - the ONE outstanding gameplay confirmation, and it is small. U37 itself is user-confirmed (*"tested and its working really good"*); what has never been played is **U37a**, the change that moved the order INSIDE the shop. **The test:** Play → **Continue, never New Game** (`new-game-wipes-the-test-balance` - the wallet IS the thing being measured) → ride to the stand opposite the pizzeria → outside, the prompt should only *nudge you in*; **walk through the open bay** → at the counter the prompt reads `Press T for a falafel round` and the cashier is visible behind it → run a round → then lose one on the clock and confirm the streak falls back to round 1 and a fresh round can be started. Watch for what a synthetic test cannot judge: whether stepping inside reads as obvious rather than fiddly, and whether the campaign's own objective line and clock still draw once the job is over (that is the `DriveHud` guard's regression). ⚠ **The falafel vendor was rebuilt under U38** (he is `Ped_02m_01`), so confirm he is idling and not T-posed.
+>
+> ### After that: **U30b round 2 - the boot hitches.** U30a is DONE and U30b's first round landed 2026-08-18 (section below): the Player exists, the baseline is measured, and the biggest finding is already fixed and re-measured. What is left of U30b is named at the bottom of that section, worst first: **a 2,154 ms hitch at t=2.2 s that is NOT textures** (it happens at `tex current 6 MB`), and a chase that is now 44-77 ms rather than 300-400. ⚠ **U37 owes it a frame measurement too**, like the six Tier 8 rows: it adds a 41k-triangle place with an always-animating skinned NPC on it. **U38 owes one as well and is expected to hand time back** - it already measured −22 ms at the densest crowd pose in the Editor, and the Player has never seen it.
+>
+> ### ⚠ Two open items U38 uncovered and did NOT close
+>
+> - **The seaward ground plate.** `GroundY` misread the plate as a street in the two `Ground Floor
+>   Seaward …` regions, which put 113 of 687 crowd seeds 16 cm underground. The crowd table is fixed
+>   and re-baked; **zebras, lanes and anything else baked against those regions still carry the same
+>   error** and need a re-bake to clear it. Full account on the U38 row.
+> - **`Assets/Prefabs/Npc/` is gitignored**, so a fresh clone has no pedestrians at all until the
+>   pack is re-imported and `Build Pack Pedestrians` is run. Already true before U38; it now covers
+>   the whole crowd rather than one vendor. **Belongs in the submission README.**
 >
 > ### U36 is DONE - user-confirmed 2026-08-18 ✅
 >
@@ -229,6 +242,172 @@ unclear, re-test before inheriting.
 >
 > *Ledger audited 2026-08-16: the U28b and U33 scene-rig debts are closed, a duplicated section and
 > four malformed table rows are fixed. Open-work census re-cut 2026-08-17 by the five decisions above.*
+
+### U38, 2026-08-19 - a crowd of strangers: 12 bodies × 30 looks, and it made the frame FASTER - USER-CONFIRMED ✅
+
+*"working really good"* - after the run-over regression below was found and fixed.
+
+**The ask:** *"להחליף בעצם לשים את הדמויות החדשות האלה במקום ה NPC's שיש לנו עכשיו עם כל האפקטים גם
+שיש עכשיו"* - same population, new people, nothing lost. The street's variety was **six**, and five of
+those six are mission actors: Elizabeth cashiers the pizzeria, Remy gives the dance, Sophie/Chinese/
+Lewis take the pizza deliveries. A named character who is also every third extra on the pavement
+stops reading as a character.
+
+**Shipped:** 687 seeds and `liveCap 155` unchanged; the bodies behind them are now **12 pack
+characters × 5 faces × 6 shirt tints = 360 distinct pedestrians**. The Mixamo six are still built,
+still rigged, still placed by the mission builders - they have just stopped being the crowd.
+
+#### ⚠ The headline is a correction: the pack bodies are ELEVEN TIMES LIGHTER, and the plan said the opposite
+
+The plan for this unit was written around a perf risk that does not exist. It claimed pack
+pedestrians cost "8 SkinnedMeshRenderers against today's 1-2" and scheduled a mesh-combine pass to
+pay for it. **That "1-2" was read out of `NpcBuilder`'s docstring instead of measured**, and the
+docstring is describing what U16b removed, not what shipped. Measured:
+
+| body | renderers | triangles |
+| --- | --- | --- |
+| Ped_Sophie | 6 | **53,460** |
+| Ped_Peter | 8 | **53,738** |
+| Ped_Chinese | 7 | **50,264** |
+| Ped_Lewis | 1 | **49,180** |
+| **Ped_01f_01** (pack) | 6 | **4,320** |
+| **Ped_02m_01** (pack) | 8 | **4,694** |
+
+Same renderer count, an order of magnitude less geometry. Two Play runs at the densest pose in the
+game (the point with the most seeds inside the 90 m cull radius), ~150 live, same camera, same seed:
+
+| | A: 6 Mixamo | B: 6 pack |
+| --- | --- | --- |
+| crowd triangles | **7,299,366** | **664,641** |
+| renderers posed | 868 | 988 |
+| CPU frame, mean of 3 | **82.6 ms** | **60.3 ms** |
+| main thread, mean of 3 | 64.9 ms | **50.2 ms** |
+| GPU, mean of 3 | 25.7 ms | 32.1 ms |
+
+**~22 ms cheaper per frame**, and the mesh-combine was dropped from the plan on the strength of it.
+This is U30b's kind of finding arriving inside a gameplay unit: **6.6 M triangles came off a scene
+U30b measured at 9.9 M scene / 21.9 M drawn.** The GPU side goes up slightly - more material slots -
+and U30b's own headline says the frame is not pixel-bound, so that is the right trade.
+
+**The lesson, and it is the same one U27 wrote down in a different currency:** a docstring is a
+statement about the past. `NpcBuilder`'s paragraph was accurate about the LOD stacks it deleted and
+said nothing about what the Mixamo rigs actually weigh. Measure the thing, not the note about it.
+
+#### The twelve prefabs already existed, and all twelve were broken
+
+`Ped_01f_01`…`Ped_02m_03` sat in `Assets/Prefabs/Npc/` from U16, unreferenced by anything except U37's
+falafel vendor. **The tell was orphaned YAML:** they still serialized `stepRadius`, `pauseTime`,
+`crossingBias`, `crossingSearchRadius` - fields `Pedestrian` has not had since those moved into
+`CrowdSpawner`'s tuning struct - while missing all three it *does* have (`animator`, `walkClipSpeed`,
+`voice`). Unity keeps orphaned fields silently, so the inspector looks fine. They also had **no
+kinematic Rigidbody** (a moving capsule with no body is a moving *static* collider, which
+`NpcBuilder` calls the most expensive thing in the unit) and **no ragdoll**.
+
+So: rebuilt, not patched. New `Assets/Editor/PackPedBuilder.cs`, menu **The Block → Build Pack
+Pedestrians**, modelled on `NpcBuilder` - `_lod0` only and the LODGroup deleted (40 renderers → 6-8),
+kinematic Rigidbody, capsule from the config, base `Npc.controller`, height 1.87-1.90 m → **1.70 m on
+the Visual child, never the root**, voice by gender, `NpcAppearance` re-wired against the surviving
+renderers, and `RagdollBuilder.Build()` at the tail (the U34 lesson).
+
+It also **fixed a bug in the pack**: `02m_01`'s LOD0 listed six renderers where LOD1 listed eight, so
+that character was bald and beardless at the closest range and his hair popped in as you walked
+away. Deleting the group gives him his head back.
+
+Materials were rebound `Materials/` → `MaterialsUPR/` by name - the pack's prefabs point at
+`Standard`, and the URP set sits unused beside it (memory: `asset-store-prefabs-ship-built-in-materials`).
+
+#### `Face % prefabCount` would have hidden half the roster
+
+`CrowdBuilder` baked `Face = face++ % faceCount` where `faceCount` came from `npcConfig.people` - six
+entries, because the web build had six people - and `CrowdSpawner.TryBind` resolves a body as
+`seed.Face % pedestrianPrefabs.Count`. With six baked face values and a twelve-long list,
+`0..5 % 12` is still `0..5`: **six prefabs wired, correct in the inspector, and never once on
+screen.** `faceCount` now comes from the list that actually gets assigned, built at the top of
+`Build()` so the bake and `WireScene` cannot disagree. Histogram went from `0:115 … 5:114` to twelve
+buckets of 57-58.
+
+The re-bake was verified rather than asserted: **0 of 687 seeds moved**, byte-identical X/Y/Z against
+the committed table. The face counter never touches the RNG - only `Speed()` draws from it - so the
+positions could not move, and the check proves it.
+
+#### ⚠ The re-bake exposed a pre-existing ground bug: the plate is THREE objects
+
+The first re-bake did move 113 seeds - **Y only, all to exactly −0.05**. `GroundY` identifies the
+ground plate by `hit.collider.name == "Ground Floor"`, and the plate grew two siblings when the sea
+was added: `Ground Floor Seaward North` and `… South`. In those two regions the plate was read as a
+**street**, and being the lowest thing there it won - so every point baked in them came back at −0.05
+instead of the district surface at 0.115. **113 of 687 seeds, 16% of the crowd, standing 16 cm into
+their own pavement.** Invisible until something re-baked, because the committed tables predate the
+split.
+
+Now matched by prefix (`WorldBuilder.Navigation.cs` → `IsGroundPlate`). After the fix the re-bake
+moved **0 of 687**.
+
+> ⚠ **ANYTHING ELSE BAKED AGAINST THOSE TWO SEAWARD REGIONS CARRIES THE SAME 16 cm ERROR** until it
+> is re-baked - zebras and lanes included. Not chased inside this unit; it is a real open item.
+
+#### The run-over regression, and it presented as a crash
+
+The user's play-test: *"דרסתי כרגע מישהו והמשחק פשוט קרס."* It was not a crash - `SkinWatchdog` found
+a genuine wedge and **paused the editor on purpose**, which is exactly what it is for and reads
+exactly like a freeze.
+
+**The fault:** the pack garment meshes list **`Root` as `bones[0]`**, and `Root` is the *parent* of
+`Hips`. The ragdoll drives the hips and everything below them; nothing drives a bone above them, so a
+body that slid 3 m left one bone 3 m behind. Every Mixamo mesh binds to `mixamorig:Hips` or
+`:Spine2`, both inside the joint chain, which is why fourteen units of run-overs never tripped this.
+
+**Two consequences, and the second is why the bone is carried rather than exempted.** The weights on
+`Root` are **zero**, so nothing was visually deformed - but it is also those renderers' `rootBone`,
+and Unity derives a SkinnedMeshRenderer's world bounds from its root bone. Left behind, a ragdolled
+body's bounds stay where it was standing: wrong frustum culling, wrong shadows.
+
+**The fix**, three files:
+- `Ragdoll.cs` - a serialized `skinRoot`, carried to the hips every `LateUpdate` while `Active`. It
+  moves the parent then restores the hips' world pose, so the solved ragdoll does not shift a
+  millimetre. **`Rest()` restores its authored local position**, and that half is not optional: a
+  Humanoid Animator writes mapped bones, and a bone above the hips is not mapped - without it the
+  first run-over's displacement is permanent for that pooled body and spreads through the pool one
+  corpse at a time.
+- `RagdollBuilder.cs` - `SkinnedRootAboveHips` finds it by searching rather than naming. **All 12
+  pack bodies get `Root`; all 9 Mixamo bodies get `(none)`**, so the carry compiles down to an early
+  return for them.
+- `SkinWatchdog.cs` - `[DefaultExecutionOrder(1000)]`. Its docstring always claimed it ran "after
+  every poser has had its say"; that was luck until `Ragdoll` gained a `LateUpdate` of its own.
+
+**Verified with 71 synthetic run-overs** at 14, 28 and 40 m/s: 0 watchdog pauses (it fired on the
+*first* one before), worst bone spread across the whole live crowd **1.53 m** against a 3 m limit,
+`skinRoot`→hips gap **0.0000 m** while simulating, and **0 of 133** bodies left displaced afterwards.
+
+#### The look roll is seeded PER SEED, not per recycle
+
+`NpcAppearance.Randomize` was written in U16 and **never called from anywhere** - the "360 looks"
+were a capability, not a behaviour. One line in `TryBind` turns it on, seeded from the **seed index**
+rather than the spawner's shared RNG. The docstring proposes a fresh roll per recycle so "the same
+pooled body is a different person each time it walks back into view"; that is right about the pool
+and wrong about the street. A seed is a *person* - their spot, their pace, their place along a lane -
+and re-rolling on rebind means the man outside the falafel stand wears a different shirt every time
+you drive past. A per-index seed makes each of the 687 a fixed person, and the pooled body underneath
+still changes freely, which was the part that actually mattered.
+
+#### Rebuilds, and one trap for whoever runs them
+
+`Build Pack Pedestrians` → `Build Ragdolls` (it calls this itself) → `Bake Crowd Seeds` → **save the
+scene**. ⚠ **`Build Falafel Stand` must be re-run after `Build Pack Pedestrians`**, because the vendor
+is `Ped_02m_01` and the prefab is regenerated underneath him. That rebuild also caught a break:
+`WorldBuilder.Falafel.cs` looked for his Animator with `TryGetComponent` on the root, and
+`PackPedBuilder` moved it under the new `Visual` child - so the lookup silently found nothing, left
+him at `CullCompletely`, and put him straight back in the T-pose that line exists to prevent. Now
+`GetComponentInChildren`.
+
+**⚠ `Assets/npc_casual_set_00/` (505 MB) and `Assets/Prefabs/Npc/` are both gitignored.** The prefabs
+are build products, so a fresh clone must re-import the pack from the Asset Store and run the builder
+or the street is empty. This was already true of the Mixamo six; U38 only widens it. **Decided by the
+user - do not re-ask:** leave it gitignored and document it, because the graded artifacts are a
+video, a repo, a board and a **zip**, and the zip carries a built Player with everything baked in.
+
+**U38 owes U30b a frame measurement like every other row** - though it is the first row in the
+project that is expected to hand time *back*.
 
 ### U37, 2026-08-18 - פלאפל הפעמונים: the game's first repeatable income - BUILT, awaiting the play-test
 

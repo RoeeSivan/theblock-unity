@@ -88,7 +88,17 @@ namespace TheBlock.EditorTools
             var rects = new List<CrowdSeedTable.Rect>();
             var paths = new List<CrowdSeedTable.LanePath>();
             var seeds = new List<CrowdSeedTable.Seed>();
-            int faceCount = Mathf.Max(1, npc.People?.Count ?? 1);
+
+            // THE PREFAB LIST IS BUILT HERE, at the top, and the bake counts faces from it.
+            //
+            // It used to count from `npcConfig.people` - six entries, because the web build had six
+            // people - and <see cref="CrowdSpawner.TryBind"/> resolves a body as
+            // `seed.Face % pedestrianPrefabs.Count`. With six baked face values and a longer list,
+            // `0..5 % 12` is still `0..5`: the extra prefabs are wired, look correct in the
+            // inspector, and never appear on the street. Counting from the list that will actually be
+            // assigned is the only arrangement where the two cannot disagree.
+            var prefabs = CrowdPrefabs();
+            int faceCount = Mathf.Max(1, prefabs.Count);
             int face = 0;
 
             // --- 1. painted rectangles ----------------------------------------------------------
@@ -246,7 +256,7 @@ namespace TheBlock.EditorTools
             EditorUtility.SetDirty(table);
             AssetDatabase.SaveAssets();
 
-            string wiring = WireScene(table, peak);
+            string wiring = WireScene(table, peak, prefabs);
 
             var report =
                 $"CrowdBuilder - {seeds.Count} seed(s), {rects.Count} rect(s), {paths.Count} lane(s)\n" +
@@ -257,6 +267,41 @@ namespace TheBlock.EditorTools
         }
 
         // --- helpers ---------------------------------------------------------------------------
+
+        /// <summary>
+        /// The bodies the street draws from - U38's twelve strangers from
+        /// <see cref="PackPedBuilder"/>.
+        ///
+        /// <b>The six Mixamo faces are deliberately NOT here any more.</b> Five of them have a job in
+        /// the campaign - Elizabeth cashiers the pizzeria, Remy gives the dance, Sophie, Chinese and
+        /// Lewis take the pizza deliveries - and a named character who is also every third extra on
+        /// the pavement stops reading as a character. They are still built, still rigged and still
+        /// placed by the mission builders; they have just stopped being the crowd.
+        ///
+        /// Falling back to them if the pack is absent is on purpose and not a courtesy: the pack
+        /// folder is gitignored (505 MB against a shared 1 GiB LFS ceiling), so a fresh clone has no
+        /// pack at all, and an empty street would look like a broken bake rather than a missing
+        /// import.
+        /// </summary>
+        private static List<GameObject> CrowdPrefabs()
+        {
+            var pack = PackPedBuilder.Names
+                .Select(code => AssetDatabase.LoadAssetAtPath<GameObject>(PackPedBuilder.PrefabPath(code)))
+                .Where(p => p != null)
+                .ToList();
+
+            if (pack.Count > 0) return pack;
+
+            Debug.LogWarning(
+                "CrowdBuilder: none of PackPedBuilder's twelve prefabs exist, so the crowd falls back " +
+                "to the six Mixamo faces. Re-import Assets/npc_casual_set_00 (gitignored) and run " +
+                "The Block → Build Pack Pedestrians.");
+
+            return PeopleImporter.Names
+                .Select(n => AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefabs/Npc/Ped_{n}.prefab"))
+                .Where(p => p != null)
+                .ToList();
+        }
 
         private static CrowdSeedTable.Seed Wander(Vector3 point, int rectId, int face, float speed) =>
             new()
@@ -400,16 +445,11 @@ namespace TheBlock.EditorTools
         /// scene looking clean, so Save writes nothing and reports success (memory:
         /// <c>editor-created-objects-need-markscenedirty</c>).
         /// </summary>
-        private static string WireScene(CrowdSeedTable table, int peak)
+        private static string WireScene(CrowdSeedTable table, int peak, List<GameObject> prefabs)
         {
             var crowd = GameObject.Find("Crowd");
             if (crowd == null || !crowd.TryGetComponent<CrowdSpawner>(out var spawner))
                 return "\n  ⚠ no Crowd object with a CrowdSpawner in this scene - wire it by hand";
-
-            var prefabs = PeopleImporter.Names
-                .Select(n => AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefabs/Npc/Ped_{n}.prefab"))
-                .Where(p => p != null)
-                .ToList();
 
             var serialized = new SerializedObject(spawner);
             serialized.FindProperty("seedTable").objectReferenceValue = table;

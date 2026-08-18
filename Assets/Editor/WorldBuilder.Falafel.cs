@@ -205,8 +205,15 @@ namespace TheBlock.EditorTools
             // One stationary skinned NPC animating off-screen is nothing - the crowd runs ninety of
             // them - and it buys a vendor who is already mid-idle before the player is close enough
             // to read him, instead of one who snaps out of a T-pose on first sight.
-            if (vendor.TryGetComponent<Animator>(out var animator))
-                animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            //
+            // <b>In CHILDREN, and U38 is why.</b> The pack prefab used to carry its Animator on its
+            // own root, so a TryGetComponent here found it. PackPedBuilder now wraps the pack body in
+            // a `Visual` child - it has to, because the height correction belongs on the visual and
+            // never on the root that owns the physics capsule - and the Animator went down with it.
+            // A root-only lookup silently found nothing, left the vendor at CullCompletely, and put
+            // him straight back in the T-pose this line exists to prevent.
+            var animator = vendor.GetComponentInChildren<Animator>(true);
+            if (animator != null) animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
 
             report.Notes.Add(
                 $"{FalafelSpec.ObjectName}: vendor at {Fmt(at.position)} " +
