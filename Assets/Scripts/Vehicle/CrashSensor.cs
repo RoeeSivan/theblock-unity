@@ -53,8 +53,8 @@ namespace TheBlock.Vehicles
             public readonly Rigidbody Other;
 
             /// <summary>
-            /// Was the thing hit another VEHICLE - a traffic car, a parked filler, a cruiser, a
-            /// drivable car or a bike?
+            /// Was the thing hit another VEHICLE - a traffic car, a parked filler, a cruiser, the
+            /// police helicopter, a drivable car or a bike?
             ///
             /// <see cref="Other"/> cannot answer this and never could: a parked lot filler is a
             /// static collider with no Rigidbody at all, so it arrives here indistinguishable from a
@@ -64,16 +64,25 @@ namespace TheBlock.Vehicles
             /// </summary>
             public readonly bool HitVehicle;
 
+            /// <summary>
+            /// Was the thing hit a POLICE vehicle - a cruiser, or the H145 on its pad? Always
+            /// <see cref="HitVehicle"/> too. Split out because <c>CrimeWatch</c> judges police
+            /// contact by its own line: ramming one is a crime the user asked for by name, but a
+            /// cop pulling in behind you must not mint you a star, and the two are a few m/s apart.
+            /// </summary>
+            public readonly bool HitPolice;
+
             public readonly Vector3 Point;
             public readonly Vector3 Normal;
 
-            public Impact(CrashSensor sensor, float closing, float impulse, Rigidbody other, bool hitVehicle, Vector3 point, Vector3 normal)
+            public Impact(CrashSensor sensor, float closing, float impulse, Rigidbody other, bool hitVehicle, bool hitPolice, Vector3 point, Vector3 normal)
             {
                 Sensor = sensor;
                 ClosingSpeed = closing;
                 ImpulseOverMass = impulse;
                 Other = other;
                 HitVehicle = hitVehicle;
+                HitPolice = hitPolice;
                 Point = point;
                 Normal = normal;
             }
@@ -152,37 +161,57 @@ namespace TheBlock.Vehicles
             if (best < minClosingSpeed) return;
 
             float mass = _body != null && _body.mass > 0f ? _body.mass : 1f;
+            Classify(collision.collider, out bool vehicle, out bool police);
             Crashed?.Invoke(new Impact(
                 this, best, collision.impulse.magnitude / mass, collision.rigidbody,
-                IsVehicle(collision.collider), contact.point, contact.normal));
+                vehicle, police, contact.point, contact.normal));
         }
 
         /// <summary>
-        /// Does this collider belong to a vehicle?
+        /// Does this collider belong to a vehicle - and if so, a police one?
         ///
         /// Walked from the collider UPWARDS, because every kind of vehicle in this game puts its
         /// script somewhere different: a drivable car and a traffic car carry theirs on the same
         /// object as the collider, a parked filler carries <see cref="World.LotCar"/> on the root of
-        /// a scaled model, and a bike's collider sits under its body. It is only ever run on the
-        /// frames a vehicle actually strikes something, which is not a rate worth caching for.
+        /// a scaled model, a bike's collider sits under its body, and the police helicopter's hull
+        /// boxes sit on its root under <see cref="Police.PoliceHelicopter"/>. It is only ever run
+        /// on the frames a vehicle actually strikes something, which is not a rate worth caching for.
+        ///
+        /// <b>Police vehicles used to answer "not a vehicle" here</b>, so that a cruiser was judged
+        /// by the wall's high line - the feedback loop U19 paid for once: cops crowd you and touch
+        /// you constantly, and a low bar against police contact mints a crime every cooldown, which
+        /// spawns another cop and resets the give-up clock. Since 2026-08-18 they are a vehicle
+        /// AND <paramref name="police"/>, and the loop is held off by <c>CrimeWatch</c>'s own police
+        /// line instead (<c>PoliceTuning.PoliceCrashCrimeSpeed</c>) - which is what lets ramming a
+        /// parked cruiser or the helicopter be the crime the user asked for, while a cop pulling
+        /// in at the arrival ramp's 2 m/s stays free.
         /// </summary>
-        private static bool IsVehicle(Collider other)
+        private static void Classify(Collider other, out bool vehicle, out bool police)
         {
-            if (other == null) return false;
+            vehicle = false;
+            police = false;
+            if (other == null) return;
 
             var probe = other.attachedRigidbody != null ? other.attachedRigidbody.transform : other.transform;
 
-            // A CRUISER is not a civilian vehicle, and the exclusion is not politeness - it is the
-            // feedback loop U19 already paid for once. Cops crowd you and touch you constantly, so a
-            // low bar against police contact mints a crime every cooldown, which spawns another cop
-            // and resets the give-up clock: a pursuit that can never end because it is happening.
-            // Ramming one hard is still a crime; it is judged by the wall's line, like a wall.
             var car = probe.GetComponentInParent<CarController>();
-            if (car != null) return !car.IsPolice;
+            if (car != null)
+            {
+                vehicle = true;
+                police = car.IsPolice;
+                return;
+            }
 
-            return probe.GetComponentInParent<MotorcycleController>() != null
-                   || probe.GetComponentInParent<Traffic.TrafficCar>() != null
-                   || probe.GetComponentInParent<World.LotCar>() != null;
+            if (probe.GetComponentInParent<Police.PoliceHelicopter>() != null)
+            {
+                vehicle = true;
+                police = true;
+                return;
+            }
+
+            vehicle = probe.GetComponentInParent<MotorcycleController>() != null
+                      || probe.GetComponentInParent<Traffic.TrafficCar>() != null
+                      || probe.GetComponentInParent<World.LotCar>() != null;
         }
 
         /// <summary>

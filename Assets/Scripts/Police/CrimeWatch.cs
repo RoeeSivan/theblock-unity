@@ -147,13 +147,18 @@ namespace TheBlock.Police
                 return;
             }
 
-            // Two lines, not one: what you hit decides which. A wall wants the high bar that made
+            // Three lines, not one: what you hit decides which. A wall wants the high bar that made
             // scrapes free; another CAR is a hit-and-run and is a crime at little more than walking
-            // pace. `HitVehicle` is read off the collider rather than off `Other`, because a parked
-            // filler has no Rigidbody to be.
-            float line = impact.HitVehicle
-                ? heat.Tuning.VehicleCrashCrimeSpeed
-                : heat.Tuning.CrashCrimeSpeed;
+            // pace; a POLICE vehicle - a cruiser, or the helicopter on its pad - has its own line in
+            // between, above the speed a cop closes at when it pulls in on you and below the wall's,
+            // so ramming one is a crime and being boxed in is not. `HitVehicle`/`HitPolice` are read
+            // off the collider rather than off `Other`, because a parked filler has no Rigidbody to
+            // be.
+            float line = impact.HitPolice
+                ? heat.Tuning.PoliceCrashCrimeSpeed
+                : impact.HitVehicle
+                    ? heat.Tuning.VehicleCrashCrimeSpeed
+                    : heat.Tuning.CrashCrimeSpeed;
 
             if (impact.ClosingSpeed < line)
             {

@@ -23,10 +23,30 @@ namespace TheBlock.Police
     /// It needs to LOOK right.</item>
     /// </list>
     ///
-    /// So this is transform-driven with <c>SmoothDamp</c>, and it carries no Rigidbody and no
-    /// collider at all. That also gets `enterable = false` for free: the prefab simply never has
-    /// <c>HelicopterController</c> on it, and that component is the only thing that ever calls
-    /// <see cref="EnterableRegistry.Register"/>.
+    /// So this is transform-driven with <c>SmoothDamp</c>. It gets `enterable = false` for free:
+    /// the prefab simply never has <c>HelicopterController</c> on it, and that component is the
+    /// only thing that ever calls <see cref="EnterableRegistry.Register"/>.
+    ///
+    /// <b>It DOES carry a Rigidbody and a hull of box colliders (since 2026-08-18)</b> - the user's
+    /// call, on finding they could drive straight through the parked aircraft: <i>"שלא נוכל פשוט
+    /// ליסוע דרכו… אם מכונית מתנגשת במסוק אז שהוא יזוז גם"</i>. Two regimes, switched on the state:
+    ///
+    /// <list type="bullet">
+    /// <item><b>Grounded</b> (<see cref="Mode.Parked"/>, <see cref="Mode.Scrambling"/>): the body is
+    /// DYNAMIC and asleep on its skids. A car that hits it shoves it - it slides, settles, and
+    /// sleeps again wherever it stopped. It launches from wherever that is; <see cref="FlyTo"/>'s
+    /// <c>RotateTowards</c> to a level heading rights it on the climb if it was knocked askew.</item>
+    /// <item><b>Airborne</b> (the other three): KINEMATIC, and the transform is written exactly as
+    /// before. Kinematic is what makes it a wall to the player's Huey and to a car under a
+    /// climb-out, without a flight model to fall out of the sky with - a rammed helicopter that
+    /// stayed dynamic at 34 m would need a crash, a wreck and a respawn this unit has no design for.
+    /// The transform write is picked up by PhysX before every step, the same as every kinematic
+    /// traffic car.</item>
+    /// </list>
+    ///
+    /// The crime side of a collision is not here: the striking car's <c>CrashSensor</c> reads this
+    /// component off the hull's <c>attachedRigidbody</c> and reports <c>HitPolice</c>, and
+    /// <c>CrimeWatch</c> judges it by <c>PoliceTuning.PoliceCrashCrimeSpeed</c>.
     /// </summary>
     [DisallowMultipleComponent]
     public class PoliceHelicopter : MonoBehaviour
@@ -75,20 +95,39 @@ namespace TheBlock.Police
         private float _roofY;
         private float _sinceGroundProbe;
 
+        /// <summary>The hull. Null when the prefab predates it - then the craft flies as it did.</summary>
+        private Rigidbody _body;
+        private readonly RaycastHit[] _probeHits = new RaycastHit[8];
+
         public Mode State { get; private set; } = Mode.Parked;
 
         /// <summary>Airborne in any sense - what the map blip and the perf note both care about.</summary>
         public bool Airborne => State == Mode.Climbing || State == Mode.Hunting ||
                                 State == Mode.Returning;
 
+        /// <summary>On its skids and dynamic - the states in which a car can shove it.</summary>
+        public bool Grounded => State == Mode.Parked || State == Mode.Scrambling;
+
         public void Configure(PoliceTuning tuning, Vector3 pad, Quaternion padRotation)
         {
             _tuning = tuning;
             _pad = pad;
             _padRotation = padRotation;
-            transform.SetPositionAndRotation(pad, padRotation);
+
+            // The builder hands over the pad at the cruisers' ride height, 15 cm up, which is
+            // clearance for a WheelCollider and nothing to a skid: a dynamic body left there drops
+            // and thumps at start, and lands 15 cm short every time after. Probe once and rest the
+            // skids on the ground itself. Probed BEFORE the craft is moved there, so it cannot
+            // read its own hull.
+            if (GroundUnder(new Vector3(pad.x, pad.y + 3f, pad.z), 10f, out float groundY))
+                _pad.y = groundY;
+
+            transform.SetPositionAndRotation(_pad, padRotation);
             SetLightsOn(false);
             if (rotor != null) rotor.SetFlying(false);
+
+            BindBody();
+            SetGrounded(true);
 
             // Its own rotor voice. GameAudio's single RotorSound is the PLAYER's cockpit sound and
             // is only fed while the driven vehicle is a HelicopterController - a second aircraft in
@@ -152,6 +191,7 @@ namespace TheBlock.Police
                     if (_sinceLaunch >= _tuning.HeliLaunchDelay)
                     {
                         State = Mode.Climbing;
+                        SetGrounded(false);
                         SetLightsOn(true);
                     }
 
@@ -181,6 +221,7 @@ namespace TheBlock.Police
                         State = Mode.Parked;
                         transform.SetPositionAndRotation(_pad, _padRotation);
                         _velocity = Vector3.zero;
+                        SetGrounded(true);
                         if (rotor != null) rotor.SetFlying(false);
                         if (_audio != null) _audio.StopRotor();
                         SetLightsOn(false);
@@ -192,6 +233,94 @@ namespace TheBlock.Police
             Probe(dt);
             AimLight();
             PlaceSound();
+        }
+
+        // --- the hull ---------------------------------------------------------------------------
+
+        /// <summary>
+        /// Finds the Rigidbody the builder put on the prefab, and refuses to invent one.
+        ///
+        /// A body added here to a prefab that has no colliders would be a 2.2 t point falling
+        /// through the pad the first time it went dynamic - so an old prefab is left exactly as it
+        /// was, transform-driven and hull-less, and says so once.
+        /// </summary>
+        private void BindBody()
+        {
+            if (!TryGetComponent(out _body) || GetComponentInChildren<Collider>(true) == null)
+            {
+                _body = null;
+                Debug.LogWarning(
+                    "PoliceHelicopter: no Rigidbody/hull on the prefab - it can be driven through. " +
+                    "Run The Block → Build Police Helicopter, then rebuild the world.", this);
+                return;
+            }
+
+            // Interpolation would write PhysX's pose back over the transform every frame, and while
+            // airborne the transform IS the authority. None, and the parked body's occasional shove
+            // is a 50 Hz slide of a 2.2 t airframe - not a thing anyone will see stepping.
+            _body.interpolation = RigidbodyInterpolation.None;
+        }
+
+        /// <summary>
+        /// Dynamic on the ground, kinematic in the air.
+        ///
+        /// The order inside the dynamic branch is the one <c>physx-pose-stale-on-activate</c> was
+        /// learned from: a kinematic body's transform writes are move targets, and going dynamic
+        /// throws the queued one away and resumes from PhysX's own last pose - so the pose is
+        /// written to the body AFTER the flip, and the velocities the kinematic phase never had are
+        /// zeroed explicitly. Then it is put to sleep on purpose: a resting body that is awake costs
+        /// a solver slot every step and, worse, integrates once on any pad that is not dead level
+        /// and wakes itself tilted.
+        /// </summary>
+        private void SetGrounded(bool grounded)
+        {
+            if (_body == null) return;
+
+            if (grounded)
+            {
+                _body.isKinematic = false;
+                _body.useGravity = true;
+                _body.position = transform.position;
+                _body.rotation = transform.rotation;
+                _body.linearVelocity = Vector3.zero;
+                _body.angularVelocity = Vector3.zero;
+                Physics.SyncTransforms();
+                _body.Sleep();
+            }
+            else
+            {
+                // A body that was mid-shove when the third star landed freezes where it is and
+                // flies from there; RotateTowards levels it on the way up.
+                _body.linearVelocity = Vector3.zero;
+                _body.angularVelocity = Vector3.zero;
+                _body.isKinematic = true;
+            }
+        }
+
+        /// <summary>
+        /// The nearest downward hit that is not this aircraft's own hull.
+        ///
+        /// <b>Needed the moment the hull existed:</b> the roof probe fires from 300 m above the
+        /// hover slot, and the hover slot is where the helicopter IS. A plain <c>Raycast</c> would
+        /// return its own engine deck as "the tallest thing under the slot", lift the slot
+        /// <see cref="RoofClearance"/> above that, and climb 12 m every quarter second for ever.
+        /// </summary>
+        private bool GroundUnder(Vector3 from, float reach, out float y)
+        {
+            int count = Physics.RaycastNonAlloc(from, Vector3.down, _probeHits, reach, ~0,
+                                                QueryTriggerInteraction.Ignore);
+            float best = float.MaxValue;
+            y = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                var hit = _probeHits[i];
+                if (hit.distance >= best) continue;
+                if (hit.collider.transform.IsChildOf(transform)) continue;
+                best = hit.distance;
+                y = hit.point.y;
+            }
+
+            return best < float.MaxValue;
         }
 
         /// <summary>
@@ -209,22 +338,17 @@ namespace TheBlock.Police
 
             // Ground under the target, for the searchlight to aim at.
             var from = _target.position + Vector3.up * 3f;
-            _groundY = Physics.Raycast(from, Vector3.down, out var down, 80f,
-                                       ~0, QueryTriggerInteraction.Ignore)
-                ? down.point.y
-                : _target.position.y;
+            if (!GroundUnder(from, 80f, out _groundY)) _groundY = _target.position.y;
 
-            // The tallest thing under the hover slot, so the slot can be lifted over it.
+            // The tallest thing under the hover slot, so the slot can be lifted over it. Through
+            // GroundUnder, which skips this aircraft's own hull - the slot is exactly where it is.
             var behind = _target.forward;
             behind.y = 0f;
             if (behind.sqrMagnitude < 1e-4f) behind = Vector3.forward;
             var above = _target.position - behind.normalized * _tuning.HeliOffsetBack
                         + Vector3.up * 300f;
 
-            _roofY = Physics.Raycast(above, Vector3.down, out var roof, 320f,
-                                     ~0, QueryTriggerInteraction.Ignore)
-                ? roof.point.y
-                : _target.position.y;
+            if (!GroundUnder(above, 320f, out _roofY)) _roofY = _target.position.y;
         }
 
         /// <summary>
@@ -262,11 +386,11 @@ namespace TheBlock.Police
         /// The hover slot: above the target's ground, back along its own heading, and never inside
         /// a building.
         ///
-        /// <b>The roof check is not optional.</b> This aircraft has no collider by design - it never
-        /// lands, is never entered and is never rammed - which also means nothing stops it flying
-        /// straight through the downtown towers. Those are well over the 34 m hover altitude, so a
-        /// chase that ends up downtown would put the helicopter inside a building. One downward ray,
-        /// on the same quarter-second clock as the searchlight's ground probe.
+        /// <b>The roof check is not optional.</b> Airborne, this aircraft is kinematic - a wall to
+        /// others, but nothing is a wall to it - so nothing stops it flying straight through the
+        /// downtown towers. Those are well over the 34 m hover altitude, so a chase that ends up
+        /// downtown would put the helicopter inside a building. One downward ray, on the same
+        /// quarter-second clock as the searchlight's ground probe.
         /// </summary>
         private Vector3 Slot()
         {

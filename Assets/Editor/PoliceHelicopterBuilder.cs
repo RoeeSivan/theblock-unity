@@ -28,11 +28,18 @@ namespace TheBlock.EditorTools
     /// <item>The rotor nodes already have their pivots AT THEIR HUBS, so
     /// <c>MissionVehicleBuilder.BuildRotorPivots</c>'s wrap-in-a-pivot dance is not needed - that
     /// exists because Sketchfab exports put every node's origin at the model centre.</item>
-    /// <item>It carries no collider and no <see cref="HelicopterController"/>. This craft never
-    /// lands, is never entered and never collides, so it needs no PhysX at all - and leaving
-    /// <c>HelicopterController</c> off is also what makes it un-enterable, because that component
-    /// is the only thing that calls <see cref="EnterableRegistry.Register"/>.</item>
+    /// <item>It carries no <see cref="HelicopterController"/> - that component is the only thing
+    /// that calls <see cref="EnterableRegistry.Register"/>, so leaving it off is what makes the
+    /// craft un-enterable. It DOES carry a Rigidbody and a hull (below) since 2026-08-18; the
+    /// first build had neither, and the user drove through it.</item>
     /// </list>
+    ///
+    /// <b>The hull</b> is four boxes on the root - skids, cabin, tail boom, fin - and NOT the rotor
+    /// disc, for the same reason the Huey's collider excludes its own: a 10.4 m disc collider
+    /// would sweep every façade the craft hovers past. The numbers are measured off the glb's own
+    /// accessors (2026-08-18) and stated in PREFAB space, i.e. after the visual is recentred so the
+    /// skids sit at the origin; <see cref="BuildHull"/> checks each box against the measured
+    /// bounds and logs a warning if a re-export has moved the airframe out from under them.
     /// </summary>
     public static class PoliceHelicopterBuilder
     {
@@ -44,6 +51,29 @@ namespace TheBlock.EditorTools
         private const float MainRotorSpeed = 900f;
 
         private const float FenestronSpeed = 1700f;
+
+        /// <summary>
+        /// The Huey's figure, so a car meets the same wall either way. An H145 is 1.8 t empty and
+        /// 3.7 t at gross; a 1.4 t car at 40 km/h shoves either a metre or two, which is the look
+        /// asked for - it moves, it does not skitter.
+        /// </summary>
+        private const float Mass = 2200f;
+
+        /// <summary>
+        /// The hull, prefab space (skid bottoms at y = 0, body centred in XZ, nose at +Z), from the
+        /// glb's node bounds with the visual's recentring offset (0, −0.03, +0.28) applied:
+        /// skids ±1.37 × 0.03–0.94 × −1.04…3.15; fuselage ±1.04 × 0.83–2.48 × −5.20…4.52 with the
+        /// engine deck to 2.82 and the boom narrowing behind z ≈ −1.95; fin ±0.16 × 1.63–3.88 ×
+        /// −5.74…−4.44. The cabin box's front corners overhang the pointed nose by ~0.4 m, and the
+        /// stabiliser's ±1.18 m span is left out - neither is a thing a car meets.
+        /// </summary>
+        private static readonly (string name, Vector3 centre, Vector3 size)[] Hull =
+        {
+            ("Skids", new Vector3(0f, 0.45f, 1.33f), new Vector3(2.74f, 0.90f, 4.20f)),
+            ("Cabin", new Vector3(0f, 1.80f, 1.55f), new Vector3(2.10f, 2.00f, 6.50f)),
+            ("Boom",  new Vector3(0f, 1.90f, -3.55f), new Vector3(1.00f, 1.60f, 3.70f)),
+            ("Fin",   new Vector3(0f, 2.72f, -4.81f), new Vector3(0.40f, 2.25f, 1.30f)),
+        };
 
         [MenuItem("The Block/Build Police Helicopter", priority = 28)]
         public static void Build()
@@ -80,6 +110,7 @@ namespace TheBlock.EditorTools
             var rotor = BuildRotor(root, visual, log);
             var light = BuildSearchlight(root, visual, log);
             var beam = BuildBeam(light.transform, log);
+            BuildHull(root, log);
 
             // Bind here rather than leaving [SerializeField]s for a human to drag: the prefab is
             // generated, so there is no inspector step in the pipeline to fill them in, and a null
@@ -119,6 +150,96 @@ namespace TheBlock.EditorTools
                 log.AppendLine("  ⚠ rotor hub is low - the model may be lying on its side.");
             if (flir.localPosition.x > 0f)
                 log.AppendLine("  · FLIR is on the starboard side (reference has it to port) - cosmetic.");
+        }
+
+        /// <summary>
+        /// The Rigidbody and the four hull boxes, on the root.
+        ///
+        /// Built KINEMATIC and asleep: <see cref="PoliceHelicopter.Configure"/> is what decides the
+        /// regime at runtime (dynamic on the skids, kinematic aloft), and a prefab that is dynamic
+        /// at rest would start falling in the Editor's prefab stage and in any scene it is dropped
+        /// into by hand. Interpolation off - the runtime asserts it too - because while airborne the
+        /// transform is written by <c>SmoothDamp</c> and interpolation would fight it.
+        ///
+        /// The centre of mass is pulled down to the cabin floor. PhysX's own figure from these boxes
+        /// sits at 1.5 m, and a 2.7 m skid track under a 1.5 m centre tips on a hard side hit; at
+        /// 0.9 m it slides instead, which is what a rammed helicopter should do in a game whose
+        /// helicopter has no way to be righted.
+        /// </summary>
+        private static void BuildHull(GameObject root, System.Text.StringBuilder log)
+        {
+            var body = root.AddComponent<Rigidbody>();
+            body.mass = Mass;
+            body.isKinematic = true;
+            body.interpolation = RigidbodyInterpolation.None;
+            body.collisionDetectionMode = CollisionDetectionMode.Discrete;
+            body.linearDamping = 0.05f;
+            body.angularDamping = 1f;
+
+            // Kept in a local for the log: the getter reads back zero on an Editor-created body
+            // whose physics representation has not been built yet, though the value serialises
+            // (m_CenterOfMass, with m_ImplicitCom 0). Verified in the prefab YAML, not assumed.
+            var centreOfMass = new Vector3(0f, 0.9f, 0.8f);
+            body.centerOfMass = centreOfMass;
+
+            var skids = SkidMaterial();
+            var bounds = Measure(root);
+            foreach (var (name, centre, size) in Hull)
+            {
+                var box = root.AddComponent<BoxCollider>();
+                box.center = centre;
+                box.size = size;
+                box.sharedMaterial = skids;
+
+                // Each box must lie inside the airframe's measured extents (with a little slack for
+                // the nose overhang) - the check that catches a re-export moving the model.
+                var min = centre - size * 0.5f;
+                var max = centre + size * 0.5f;
+                bool inside = min.x >= bounds.min.x - 0.1f && max.x <= bounds.max.x + 0.1f &&
+                              min.y >= bounds.min.y - 0.1f && max.y <= bounds.max.y + 0.1f &&
+                              min.z >= bounds.min.z - 0.5f && max.z <= bounds.max.z + 0.5f;
+                log.AppendLine($"  hull '{name}': centre {centre:F2} size {size:F2}" +
+                               (inside ? "" : "  ⚠ OUTSIDE the measured airframe - re-measure the glb"));
+            }
+
+            log.AppendLine($"  rigidbody {Mass} kg, kinematic at rest, CoM {centreOfMass:F2}, " +
+                           $"{Hull.Length} boxes on '{skids.name}', rotor disc outside all of them");
+        }
+
+        /// <summary>
+        /// Skids on tarmac, and the number is MEASURED against how far a rammed helicopter slides.
+        ///
+        /// On Unity's default friction (0.6/0.6) a 1400 kg car at 15 m/s moved the parked aircraft
+        /// 0.82 m - a nudge that reads as "it is bolted down" rather than as the shove the user
+        /// asked for. At 0.30/0.45 the same hit gives 1.38 m and a 3° swing, which is a helicopter
+        /// being shoved. It is also the physically right direction: skids are a low-friction contact
+        /// on purpose, which is why real ground handling puts wheels under them.
+        ///
+        /// <c>Minimum</c> combine, so the ground's own material cannot pull the figure back up.
+        ///
+        /// Saved as <c>.asset</c>, not <c>.physicsMaterial</c>: <c>AssetDatabase.CreateAsset</c>
+        /// answers a physics-material extension with <i>"CreateAsset() should not be used to create
+        /// a file of type 'physicsMaterial'… this error will in a future release be changed to an
+        /// exception"</i>. The extension is cosmetic; the asset type is not.
+        /// </summary>
+        private static PhysicsMaterial SkidMaterial()
+        {
+            const string path = "Assets/Materials/PoliceHeli/HeliSkids.asset";
+            var existing = AssetDatabase.LoadAssetAtPath<PhysicsMaterial>(path);
+            if (existing != null) return existing;
+
+            System.IO.Directory.CreateDirectory("Assets/Materials/PoliceHeli");
+            var material = new PhysicsMaterial("HeliSkids")
+            {
+                dynamicFriction = 0.30f,
+                staticFriction = 0.45f,
+                bounciness = 0f,
+                frictionCombine = PhysicsMaterialCombine.Minimum,
+                bounceCombine = PhysicsMaterialCombine.Minimum,
+            };
+
+            AssetDatabase.CreateAsset(material, path);
+            return material;
         }
 
         private static Rotor BuildRotor(GameObject root, Transform visual, System.Text.StringBuilder log)

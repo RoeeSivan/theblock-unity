@@ -41,6 +41,15 @@ namespace TheBlock.Police
                  "shunt, not a parking nudge.")]
         public float VehicleCrashCrimeSpeed = 2.5f;
 
+        [Tooltip("USER REQUEST 2026-08-18, and MEASURED. The line for an impact against a POLICE " +
+                 "vehicle - a cruiser or the parked helicopter - which used to be judged by the wall " +
+                 "figure so that a cop touching you could not mint you a star every cooldown. It " +
+                 "sits between the two: sampled in Play, three cruisers crowding a stopped car came " +
+                 "in at 2.15, 2.30 and 2.45 m/s, and a deliberate ram read 6.93 - so 3.5 is above " +
+                 "everything the police do to you and under anything you do to them. AtFault still " +
+                 "applies on top, and is what clears a cop that shunts you from behind.")]
+        public float PoliceCrashCrimeSpeed = 3.5f;
+
         [Tooltip("DESIGN. crime.crashCooldown. Seconds before another impact can be a crime, so " +
                  "grinding a wall is not a star every frame.")]
         public float CrashCooldown = 3f;
