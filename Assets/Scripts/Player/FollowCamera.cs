@@ -22,8 +22,16 @@ namespace TheBlock.Player
         [Tooltip("Target held while on foot. The camera returns to it whenever a vehicle is left.")]
         [SerializeField] private PlayerController player;
 
+        [Tooltip("Metres the camera is held above the drawn water surface while it is over the sea. " +
+                 "`TheBlock/Water` is single-sided, so a camera one centimetre under it does not see " +
+                 "murk - it sees straight through the sea to the void the ground plate was cut away " +
+                 "for, which reads as the ocean vanishing. Sinking a car is the first thing in the " +
+                 "game that ever put the camera down there.")]
+        [SerializeField] private float waterClearance = 0.6f;
+
         private IChaseTarget _target;
         private Camera _camera;
+        private TheBlockConfig.SeaSpec _sea;
 
         /// <summary>Whatever the camera is behind right now.</summary>
         public IChaseTarget Target => _target;
@@ -38,6 +46,8 @@ namespace TheBlock.Player
                 enabled = false;
                 return;
             }
+
+            _sea = snapshot.Config.Sea;
 
             var lens = snapshot.Config.Camera;
             _camera.fieldOfView = lens.Fov;
@@ -77,8 +87,25 @@ namespace TheBlock.Player
             // The web build lerps by a fixed fraction per frame, which ties the feel to the frame
             // rate. This reproduces that fraction exactly at 60 fps and stays stable off it.
             var t = 1f - Mathf.Pow(1f - _target.FollowLerp, Time.deltaTime * 60f);
-            transform.position = Vector3.Lerp(transform.position, desired, t);
+            transform.position = AboveWater(Vector3.Lerp(transform.position, desired, t));
             transform.LookAt(_target.LookTarget);
+        }
+
+        /// <summary>
+        /// Holds the camera off the water while it is over the sea, and does nothing anywhere else.
+        ///
+        /// The region test is not a formality: <see cref="World.SeaSurface.Height"/> answers for any
+        /// XZ in the world, sea or not, so clamping without it would lift the camera off an invisible
+        /// sheet at y 0 in the middle of the city. <see cref="World.SeaGeometry.InSeaRegion"/> is the
+        /// one place that rectangle - and the handedness that puts the sea at LARGER x - lives.
+        /// </summary>
+        private Vector3 AboveWater(Vector3 position)
+        {
+            if (_sea == null || !World.SeaGeometry.InSeaRegion(_sea, position.x, position.z))
+                return position;
+
+            float floor = World.SeaSurface.Height(position.x, position.z) + waterClearance;
+            return position.y >= floor ? position : new Vector3(position.x, floor, position.z);
         }
 
         /// <summary>

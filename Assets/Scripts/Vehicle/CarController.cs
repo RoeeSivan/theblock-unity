@@ -150,6 +150,16 @@ namespace TheBlock.Vehicles
         public bool EngineDead { get; set; }
 
         /// <summary>
+        /// The engine has taken water and will not restart. Written only by
+        /// <see cref="WaterEntry"/>, and deliberately NOT a second writer on
+        /// <see cref="EngineDead"/> - <see cref="VehicleDamage"/> assigns that one from the car's
+        /// condition, so a shared flag would be overwritten within a frame (memory:
+        /// <c>one-flag-one-owner-heat-frozen</c>). Two owners, two flags, read together here and in
+        /// <see cref="TryEnter"/>.
+        /// </summary>
+        public bool Drowned { get; set; }
+
+        /// <summary>
         /// Full brakes, no throttle, steering still yours - the forced stop a cruiser imposes once it
         /// has held you at arrest range (<c>PoliceSystem</c>, 2026-08-17).
         ///
@@ -314,6 +324,11 @@ namespace TheBlock.Vehicles
             // cannot be discovered at runtime - which panels dent and which nodes come off.
             VehicleDamage.Ensure(gameObject);
 
+            // The sea, since 2026-08-18 - added here for the same reason as the two above, and it is
+            // not optional on any car: the cruisers chase you onto the beach, so they need to flood
+            // and sink there like everything else.
+            WaterEntry.Ensure(gameObject);
+
             // The belt to FuelTank.Configure's braces: the tank pushes itself onto us as it
             // attaches, and this catches the one case the push cannot - a reload that brought the
             // component back but not the reference. Correct by then, harmless before.
@@ -375,7 +390,7 @@ namespace TheBlock.Vehicles
             // The pull-over outranks both: it is the one state where the throttle is not yours, and
             // it is checked first so a dead engine cannot swallow it into the gentler coast brake.
             if (HeldStill) ForceStop();
-            else if (EngineDead) Coast();
+            else if (EngineDead || Drowned) Coast();
             else ApplyDrive(input.Throttle, input.Handbrake);
 
             ApplyDownforce();
@@ -519,7 +534,7 @@ namespace TheBlock.Vehicles
         /// action are drawn from one test, so a doorstep that says "Press E" cannot be one where E
         /// does nothing - the web build's cashier bug, and the reason the locked Huey has a line.
         /// </summary>
-        public bool TryEnter() => !EngineDead;
+        public bool TryEnter() => !EngineDead && !Drowned;
 
         /// <summary>
         /// Why E will not work here, in the words the player reads on the HUD - or null when it will.
@@ -622,6 +637,11 @@ namespace TheBlock.Vehicles
             // On Teleport rather than on Respawn so that the bust (U19), which teleports the car
             // rather than respawning it, also hands back a whole one.
             if (TryGetComponent<VehicleDamage>(out var damage)) damage.Repair();
+
+            // And it is dried out. On Teleport for the same reason the repair is: a car recovered
+            // from the seabed that kept its flood timer would sink again on the tarmac, dead engine
+            // and all, with no water anywhere near it.
+            if (TryGetComponent<WaterEntry>(out var water)) water.RestoreFromWater();
 
             _body.linearVelocity = Vector3.zero;
             _body.angularVelocity = Vector3.zero;

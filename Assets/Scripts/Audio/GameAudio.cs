@@ -316,6 +316,14 @@ namespace TheBlock.Audio
                 ? vehicles.ActiveVehicle
                 : null;
 
+            // A drowned engine is a silent one. Treated as "no vehicle" rather than as a special
+            // case, so the loop stops through the path that already knows how to stop it - the
+            // player is still sitting in the car, but there is nothing left running to hear.
+            if (driving != null &&
+                driving.GetTransform().TryGetComponent<WaterEntry>(out var water) &&
+                water.EngineDrowned)
+                driving = null;
+
             if (driving == null)
             {
                 if (_engineRunning && engine != null)

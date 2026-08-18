@@ -29,6 +29,10 @@ namespace TheBlock.Police
         [SerializeField] private VehicleEnterExit vehicles;
         [SerializeField] private Interior interior;
 
+        [Tooltip("For the water rule - a swimmer is off the police's map as surely as a car in the " +
+                 "sea is. Optional: without it only the vehicle half of the rule applies.")]
+        [SerializeField] private TheBlock.Player.PlayerController player;
+
         [Header("Debug")]
         [Tooltip("P adds one star, so the escalation can be play-tested without hunting three " +
                  "separate crowds. Debug-only, like T for the traffic and C for the crowd, and it " +
@@ -66,7 +70,25 @@ namespace TheBlock.Police
             if (runOver == null) runOver = FindAnyObjectByType<RunOverSystem>();
             if (vehicles == null) vehicles = FindAnyObjectByType<VehicleEnterExit>();
             if (interior == null) interior = FindAnyObjectByType<Interior>();
+            if (player == null) player = FindAnyObjectByType<TheBlock.Player.PlayerController>();
         }
+
+        /// <summary>
+        /// Is the player in the sea - swimming, or in a vehicle that is taking water?
+        ///
+        /// <b>The user's report, 2026-08-18: "driving into the water should not ignite the police".</b>
+        /// It never was a water rule. Until the same day an 8 m invisible wall stood on the waterline,
+        /// so aiming at the sea was a head-on crash and <see cref="OnCrashed"/> paid a star for it.
+        /// The wall has moved out to the plate's rim, which removes the cause - this is the rule that
+        /// replaces it, and it is GTA's own: water is not a crime, and going into it is one of the
+        /// ways to LOSE a pursuit, because nothing on four wheels can follow you there.
+        /// </summary>
+        private bool InWater =>
+            vehicles != null && vehicles.Mode == GameMode.Driving && vehicles.ActiveVehicle != null
+                ? WaterEntry.IsInWater(vehicles.ActiveVehicle.GetTransform())
+                : player != null && player.IsSwimming;
+
+        private float _inWater;
 
         /// <summary>
         /// Subscribes once, and can be called again after a mid-Play recompile has thrown the
@@ -89,7 +111,21 @@ namespace TheBlock.Police
             _sinceRunOver += Time.deltaTime;
             _sinceCrash += Time.deltaTime;
 
-            if (heat != null && interior != null) heat.Frozen = interior.Inside;
+            // ONE flag, ONE owner. `Heat.Frozen` is assigned here every frame, so the water rule has
+            // to be folded into this expression rather than written from WaterEntry - a second writer
+            // survives exactly one frame (memory: one-flag-one-owner-heat-frozen).
+            bool wet = InWater;
+            if (heat != null) heat.Frozen = (interior != null && interior.Inside) || wet;
+
+            // ...and staying in it sheds the stars you already had. A cruiser cannot follow onto
+            // water, so a pursuit that reaches the sea has nowhere left to go; leaving the meter
+            // running would make the shoreline a trap rather than the escape it is in GTA.
+            _inWater = wet ? _inWater + Time.deltaTime : 0f;
+            if (heat != null && heat.Stars > 0 && _inWater >= heat.Tuning.WaterEscapeSeconds)
+            {
+                heat.Clear();
+                _inWater = 0f;
+            }
 
             if (debugStarKey && heat != null && !Core.Pause.Frozen &&
                 UnityEngine.InputSystem.Keyboard.current?.pKey.wasPressedThisFrame == true)
@@ -142,6 +178,15 @@ namespace TheBlock.Police
             }
 
             if (_sinceCrash < heat.Tuning.CrashCooldown || !impact.Sensor.AtFault(impact))
+            {
+                Judged?.Invoke(impact, false);
+                return;
+            }
+
+            // Nothing that happens in the sea is a crime. The seabed is a real MeshCollider and a car
+            // that lands on it at 60 km/h reports a textbook head-on contact, which without this line
+            // would mint a star for the sin of driving into water.
+            if (WaterEntry.IsInWater(impact.Sensor))
             {
                 Judged?.Invoke(impact, false);
                 return;

@@ -58,6 +58,13 @@ namespace TheBlock.Police
         // own groundNormalY and minClosingSpeed and never read these. What reaches CrimeWatch has
         // already passed both, so the only crash number this file still owns is CrashCrimeSpeed.
 
+        [Tooltip("USER REQUEST 2026-08-18. Seconds in the sea - swimming, or in a vehicle that is " +
+                 "taking water - before the wanted level is wiped. GTA's own rule, and the honest " +
+                 "one here: nothing the police own can follow you onto water, so a pursuit that " +
+                 "reaches the shoreline has already ended. Short enough to be a tactic, long enough " +
+                 "that clipping the tide line at speed does not clear three stars by accident.")]
+        public float WaterEscapeSeconds = 4f;
+
         [Header("Escape - how a pursuit ends")]
         [Tooltip("DESIGN. escape.breakContact. Seconds of unbroken no-contact before stars start " +
                  "bleeding at all.")]

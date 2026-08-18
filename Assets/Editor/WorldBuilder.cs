@@ -206,7 +206,8 @@ namespace TheBlock.EditorTools
             if (options.Atmosphere) BuildAtmosphere(snapshot.Config, report);
             if (options.Ground) BuildGround(root.transform, snapshot.Config.Ground, snapshot.Config.Sea, report);
             if (options.Roads) BuildRoads(root.transform, snapshot.Config.Roads, report);
-            if (options.Sea) BuildSea(root.transform, snapshot.Config.Sea, options, report);
+            if (options.Sea)
+                BuildSea(root.transform, snapshot.Config.Sea, snapshot.Config.Ground, options, report);
 
             Transform districts = null;
             if (options.Districts)
@@ -463,7 +464,14 @@ namespace TheBlock.EditorTools
             box.center = new Vector3((near + far) * 0.5f, -0.1f, 0f); // top face at the plate's y
             report.Colliders++;
 
-            BuildWorldEdges(plane.transform, far, near, ground.Size, sea, report);
+            // ⚠ The FENCE does not stop where the FLOOR does, and since 2026-08-18 it must not.
+            // `near` is the waterline, and trimming the solid plate there is deliberate (see above).
+            // The fence used to be trimmed there too, which put an 8 m invisible wall on the
+            // waterline - the thing that made driving at the sea a head-on crash and a wanted level.
+            // The world ends at the plate's rim, so that is where its wall belongs; everything
+            // between is sea you can drive into. `BuildSea` puts a matching one over the sea's own
+            // z-strip, seated on the seabed rather than on y 0.
+            BuildWorldEdges(plane.transform, far, ground.Size * 0.5f, ground.Size, sea, report);
 
             SetDistrictStaticFlags(plane);
             report.Placed.Add(
@@ -483,11 +491,10 @@ namespace TheBlock.EditorTools
         /// 400 m stretch of plate edge at x = 430 with nothing on it at all, and past it no collider
         /// of any kind: the water surface has none. A car that reaches it falls forever.
         ///
-        /// <b>This fence takes nothing away.</b> Its seaward side sits at the same x as the shore
-        /// wall, so where the shore wall already exists it is a duplicate collider and changes
-        /// nothing; the beach and the swim are seaward of BOTH and are reached exactly as they were.
-        /// The other three sides are the same edge on the other side of the map - the same bug, just
-        /// further from anywhere anyone has driven yet.
+        /// <b>Its seaward side moved out to the plate's rim on 2026-08-18</b>, with the sea wall, and
+        /// for the reason written at the call site: on the waterline it was the wall a car rammed
+        /// when the player aimed at the sea, and `CrashSensor` + `CrimeWatch` turned that into a
+        /// wanted level. The three landward sides are unchanged.
         ///
         /// <b>Ignore Raycast</b>, for the reason <see cref="BuildShoreWall"/> gives in full: a wall
         /// is not a floor, and a downward probe started inside one reads its top as ground and lifts

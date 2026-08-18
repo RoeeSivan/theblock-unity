@@ -197,6 +197,10 @@ namespace TheBlock.Vehicles
             // to the police and silent on contact.
             CrashSensor.Ensure(gameObject);
 
+            // The sea. A bike drowns faster than a car does - the engine is between your knees and
+            // there is no cabin to keep water out - and it throws the rider as it goes.
+            WaterEntry.Ensure(gameObject);
+
             var snapshot = TheBlockConfig.Load();
             if (snapshot?.Config?.Vehicle == null)
             {
@@ -256,8 +260,11 @@ namespace TheBlock.Vehicles
 
             ApplySteering(steer, Time.fixedDeltaTime);
 
-            // The pull-over takes the throttle away and leaves the steering; see HoldStill.
+            // The pull-over takes the throttle away and leaves the steering; see HoldStill. A drowned
+            // engine coasts rather than returning early, for the reason the guard above spells out -
+            // a WheelCollider LATCHES its last torque, so "stop driving" has to be written.
             if (HeldStill) ForceStop();
+            else if (Drowned) Coast();
             else ApplyDrive(throttle, skid);
 
             ApplyDownforce();
@@ -442,8 +449,15 @@ namespace TheBlock.Vehicles
 
         // --- IEnterable --------------------------------------------------------------------------
 
-        /// <summary>Getting on always succeeds; the sequencing lives in VehicleEnterExit.</summary>
-        public bool TryEnter() => true;
+        /// <summary>
+        /// The engine has taken water and will not restart. Written only by <see cref="WaterEntry"/>.
+        /// A flag of its own, not a reuse - see <c>CarController.Drowned</c> for why two owners never
+        /// share one.
+        /// </summary>
+        public bool Drowned { get; set; }
+
+        /// <summary>Getting on succeeds unless it is a drowned bike; the sequencing lives in VehicleEnterExit.</summary>
+        public bool TryEnter() => !Drowned;
 
         /// <summary>Stepping off. Held here so the bike does not roll away with nobody on it.</summary>
         public void Exit()
@@ -490,6 +504,10 @@ namespace TheBlock.Vehicles
                 _body.linearVelocity = Vector3.zero;
                 _body.angularVelocity = Vector3.zero;
             }
+
+            // Dried out, for the reason CarController.Teleport gives: a bike fished off the seabed
+            // that kept its flood timer would sink again on the tarmac.
+            if (TryGetComponent<WaterEntry>(out var water)) water.RestoreFromWater();
 
             transform.SetPositionAndRotation(position, rotation);
             Physics.SyncTransforms();

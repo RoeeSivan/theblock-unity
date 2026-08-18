@@ -27,10 +27,22 @@ namespace TheBlock.EditorTools
         private const string BeachShaderName = "TheBlock/Beach";
         private const string WaterNormalMapPath = "Assets/Textures/waternormals.jpg";
 
-        /// <summary>Flat seabed carried past the foot of the wade ramp, so near water has a floor.</summary>
+        /// <summary>
+        /// Flat seabed carried past the foot of the wade ramp, so near water has a floor - the
+        /// fallback when there is no <c>config.ground</c> to size the sea floor against.
+        ///
+        /// ⚠ It used to be the ONLY answer, at 40 m, which put the seabed's seaward edge at Unity
+        /// x 505 - about 75 m of floor past the waterline. That was correct while the shore wall
+        /// stopped every vehicle at x 430 and the only thing seaward of it was a swimmer. Now that
+        /// the sea is drivable, a car sinking at x 520 would have had nothing under it at all and
+        /// would have fallen out of the world for <see cref="FallGuard"/> to catch. The sea floor
+        /// runs to the plate's own edge instead; see <see cref="SeaFloorSeawardX"/>.
+        /// </summary>
         private const float BeachDeepRun = 40f;
 
-        private static void BuildSea(Transform parent, TheBlockConfig.SeaSpec sea, Options options, Report report)
+        private static void BuildSea(
+            Transform parent, TheBlockConfig.SeaSpec sea, TheBlockConfig.GroundSpec ground,
+            Options options, Report report)
         {
             if (sea?.Beach == null || sea.Surface == null)
             {
@@ -40,9 +52,21 @@ namespace TheBlock.EditorTools
 
             var group = NewGroup("Sea", parent);
             BuildWaterSurface(group, sea, report);
-            BuildBeach(group, sea, options, report);
-            BuildShoreWall(group, sea, report);
+            BuildBeach(group, sea, ground, options, report);
+            BuildShoreWall(group, sea, ground, report);
         }
+
+        /// <summary>
+        /// How far out to sea the solid floor and the world's boundary run, in Unity x.
+        ///
+        /// The plate's own rim, when there is a <c>config.ground</c>: the sea is a place you can now
+        /// drive and sink in, so it needs a floor and a fence for exactly as far as the rest of the
+        /// world has them, and no further. Falls back to the old ramp-foot-plus-40 m when it does not.
+        /// </summary>
+        private static float SeaFloorSeawardX(TheBlockConfig.SeaSpec sea, TheBlockConfig.GroundSpec ground) =>
+            ground != null && ground.Size > 0f
+                ? ground.Size * 0.5f
+                : Convert.Pos(sea.ShoreX - sea.Beach.WadeRun - BeachDeepRun, 0f, 0f).x;
 
         // --- water -------------------------------------------------------------------------------
 
@@ -139,20 +163,27 @@ namespace TheBlock.EditorTools
         /// The sand: a grid displaced to the seabed ramp, and the floor the player descends into the
         /// water on. Solid - a MeshCollider - because the alternative is walking on the sea.
         /// </summary>
-        private static void BuildBeach(Transform parent, TheBlockConfig.SeaSpec sea, Options options, Report report)
+        private static void BuildBeach(
+            Transform parent, TheBlockConfig.SeaSpec sea, TheBlockConfig.GroundSpec ground,
+            Options options, Report report)
         {
             var b = sea.Beach;
 
-            // Landward edge meets the city ground; seaward edge clears the ramp's foot by
-            // BeachDeepRun so there is flat floor under the near water. Both expressed in the
-            // config's own frame and converted, so neither picks up a hand-written flip.
+            // Landward edge meets the city ground - converted from the config's own frame rather
+            // than re-derived with a sign flipped by hand. The seaward edge is the plate's rim: the
+            // whole sea is drivable now, so the floor has to reach as far as the fence does.
             var landward = Convert.Pos(sea.ShoreX + b.DryWidth, 0f, 0f).x;
-            var seaward = Convert.Pos(sea.ShoreX - b.WadeRun - BeachDeepRun, 0f, 0f).x;
+            var seaward = SeaFloorSeawardX(sea, ground);
             float width = Mathf.Abs(seaward - landward);
             var centre = new Vector3((landward + seaward) * 0.5f, 0f, sea.CenterZ);
 
+            // Segment the flat deep floor at roughly the density the ramp had rather than stretching
+            // the config's 96 over four times the run - the berm and the wade ramp are the only
+            // shape in it and both live in the first 60 m.
+            int segX = Mathf.Max(b.SegX, Mathf.CeilToInt(width / 2f));
+
             var mesh = BuildGrid(
-                "SeaBeach", centre, width, sea.Length, b.SegX, b.SegZ,
+                "SeaBeach", centre, width, sea.Length, segX, b.SegZ,
                 heightAt: x => SeaGeometry.SeabedHeight(sea, x));
             SaveGeneratedMesh(mesh, $"{GeneratedMeshFolder}/{mesh.name}.asset", report);
 
@@ -216,16 +247,31 @@ namespace TheBlock.EditorTools
         // --- shore wall --------------------------------------------------------------------------
 
         /// <summary>
-        /// The world's boundary at the waterline: a collider, no mesh. A car that reaches the sand
-        /// stops here instead of driving out to sea.
+        /// The world's boundary on the sea side: a collider, no mesh.
         ///
-        /// It sits on <b>Ignore Raycast</b>, which is Unity's answer to the web build's
+        /// <b>⚠ IT NO LONGER STANDS AT THE WATERLINE, and that move is the whole of the "driving into
+        /// the sea calls the police" bug.</b> Reported by the user 2026-08-18. There was never a water
+        /// rule involved: an 8 m invisible wall sat on Unity x 430 across all 600 m of coast, so
+        /// aiming a car at the sea was ramming a wall head-on. <c>CrashSensor</c> read the closing
+        /// speed, <c>CrimeWatch</c> compared it against <c>CrashCrimeSpeed</c> (6 m/s), and anything
+        /// over 21.6 km/h minted a star. The web build has the same wall for the same reason - it is
+        /// <c>sea.ts</c>'s west world boundary - and the port inherited it as scar tissue rather than
+        /// as design (port rule 5).
+        ///
+        /// It now sits at the PLATE'S RIM instead, which is where the world actually ends, so the
+        /// 270 m of sea between the sand and the rim is a place you can drive into, flood and sink
+        /// in. <see cref="TheBlock.Vehicles.WaterEntry"/> owns what happens once you do.
+        ///
+        /// It also starts at the seabed rather than at sea level: a wall whose foot is at y 0 leaves
+        /// a 3 m gap under it at <c>beach.deepY</c>, which a sinking car would slide straight out of.
+        ///
+        /// It stays on <b>Ignore Raycast</b>, which is Unity's answer to the web build's
         /// <c>markNonGround</c>. A wall is not a floor, and a downward probe started inside it - the
         /// side probe in the exit-a-vehicle path does exactly that - reads its top as ground and
-        /// lifts the caller 8 m into the air. The layer is excluded from the default raycast mask,
-        /// so probes miss it while collision is untouched.
+        /// lifts the caller 8 m into the air.
         /// </summary>
-        private static void BuildShoreWall(Transform parent, TheBlockConfig.SeaSpec sea, Report report)
+        private static void BuildShoreWall(
+            Transform parent, TheBlockConfig.SeaSpec sea, TheBlockConfig.GroundSpec ground, Report report)
         {
             var wallSpec = sea.Wall;
             if (wallSpec == null)
@@ -234,18 +280,22 @@ namespace TheBlock.EditorTools
                 return;
             }
 
-            var wall = new GameObject("Shore Wall") { layer = LayerMask.NameToLayer("Ignore Raycast") };
+            float x = SeaFloorSeawardX(sea, ground);
+            float foot = sea.Beach.DeepY;                       // the seabed out here, about -3
+            float height = wallSpec.Height + Mathf.Abs(foot);
+
+            var wall = new GameObject("Sea Wall") { layer = LayerMask.NameToLayer("Ignore Raycast") };
             wall.transform.SetParent(parent, worldPositionStays: false);
-            wall.transform.position = new Vector3(
-                SeaGeometry.ShoreX(sea), wallSpec.Height * 0.5f, sea.CenterZ);
+            wall.transform.position = new Vector3(x, foot + height * 0.5f, sea.CenterZ);
 
             var collider = wall.AddComponent<BoxCollider>();
-            collider.size = new Vector3(wallSpec.Thickness, wallSpec.Height, sea.Length);
+            collider.size = new Vector3(wallSpec.Thickness, height, sea.Length);
             report.Colliders++;
 
             report.Placed.Add(
-                $"Shore wall {wallSpec.Thickness:0.#} x {wallSpec.Height:0.#} x {sea.Length:0} m " +
-                $"@ Unity x {SeaGeometry.ShoreX(sea):0} (Ignore Raycast, collider only)");
+                $"Sea wall {wallSpec.Thickness:0.#} x {height:0.#} x {sea.Length:0} m @ Unity x {x:0} " +
+                $"(was the shore wall at x {SeaGeometry.ShoreX(sea):0}; moved seaward so the water is " +
+                "drivable - Ignore Raycast, collider only)");
         }
 
         // --- shared ------------------------------------------------------------------------------
@@ -261,6 +311,14 @@ namespace TheBlock.EditorTools
             material.SetFloat("_WadeRun", sea.Beach.WadeRun);
             material.SetFloat("_DeepY", sea.Beach.DeepY);
             material.SetFloat("_Level", sea.Level);
+
+            // The berm is the LANDWARD half of the same ramp and belongs to the same set of numbers:
+            // the sand mesh is built from it and the sand shader reads its wet band off it, so a
+            // mismatch is a tide line that does not sit on the beach's own shape. The water shader
+            // has no such properties and never looks landward of the shore; SetFloat on a property a
+            // shader lacks is a silent no-op, which is exactly the behaviour wanted here.
+            material.SetFloat("_BermRun", sea.Beach.DryWidth);
+            material.SetFloat("_BermHeight", SeaGeometry.BermHeight);
         }
 
         /// <summary>

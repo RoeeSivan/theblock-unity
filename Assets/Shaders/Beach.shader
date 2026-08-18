@@ -28,6 +28,11 @@ Shader "TheBlock/Beach"
         _WadeRun ("Wade run", Float) = 35
         _DeepY ("Seabed depth", Float) = -3
         _Level ("Sea level", Float) = 0
+
+        // The dry-sand berm. Without it `depth` is 0 across every metre of dry sand and the wet band
+        // resolves to 0.54 everywhere, so the gold above is never drawn. See TheBlock.World.SeaGeometry.
+        _BermRun ("Berm run (dry width)", Float) = 25
+        _BermHeight ("Berm crest height", Float) = 1.2
     }
 
     SubShader
@@ -67,6 +72,8 @@ Shader "TheBlock/Beach"
                 float _WadeRun;
                 float _DeepY;
                 float _Level;
+                float _BermRun;
+                float _BermHeight;
             CBUFFER_END
 
             struct Attributes
@@ -111,9 +118,13 @@ Shader "TheBlock/Beach"
             {
                 float3 positionWS = input.positionWS;
 
-                // Wet factor: 0 a little landward of the shore, 1 once under water.
+                // Wet factor: 0 a little landward of the shore, 1 once under water. The landward half
+                // is the BERM, and it is what makes the dry side genuinely dry - a flat 0 there puts
+                // `depth` at 0 over the whole beach, and smoothstep(-0.6, 0.5, 0) is 0.54, so all of
+                // it renders half-wet. Mirrors SeaGeometry.SeabedHeight exactly; the two must agree
+                // or the tide line does not sit on the mesh's own shape.
                 float seabed = positionWS.x <= _ShoreX
-                    ? 0.0
+                    ? _BermHeight * sin(saturate((_ShoreX - positionWS.x) / max(0.0001, _BermRun)) * 3.14159265)
                     : _DeepY * min((positionWS.x - _ShoreX) / _WadeRun, 1.0);
                 float depth = _Level - seabed;
                 float wet = smoothstep(-_WetBandDry, _WetBandSea, depth);
