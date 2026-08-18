@@ -39,11 +39,50 @@ namespace TheBlock.Boot
             SessionReset.Run();
         }
 
+        /// <summary>
+        /// One line per boot milestone, wall-clock since process start.
+        ///
+        /// <b>Why:</b> U30b round 1 measured a 2,154 ms hitch at t = 2.2 s that did not move between
+        /// runs and fired while texture memory was still 6 MB - so it was neither the texture load
+        /// nor anything the memory census could see. The two candidates were the async load's own
+        /// work and the frame that activates the world (every <c>Awake</c> in the scene, in one
+        /// frame), and nothing could tell them apart. Four timestamps could.
+        ///
+        /// <b>The answer, round 2, and it was the other one:</b>
+        ///
+        /// <code>
+        ///   0 → 1.90 s   engine startup - Metal, Mono, PhysX, subsystems. Before any script runs.
+        ///   2.17 s       LoadSceneAsync called, returns in 3 ms
+        ///   1.90 → 4.06 s  THE HITCH. One blocked frame, and it is the load itself.
+        ///   4.06 → 4.32 s  holdAtFull, 0.25 s, deliberate
+        ///   4.32 → 4.57 s  activation + EVERY Awake in the world = 245 ms
+        ///   → ~6.0 s     second hitch, 1.89 s: the texture upload (6 → 275 MB)
+        ///   → ~6.3 s     third hitch, 332 ms: the first frame with real geometry
+        /// </code>
+        ///
+        /// So the world's <c>Awake</c>s were never the problem - they are 4% of the boot - and the
+        /// hitch is Unity deserializing one very large scene on the main thread.
+        /// <c>Application.backgroundLoadingPriority = Low</c> was tried against it and moved nothing
+        /// (2168/4064 against 2159/4046, inside run-to-run noise): it paces INTEGRATION, which is the
+        /// 245 ms that was already cheap, not the deserialization that is not. It was reverted rather
+        /// than left in as a no-op that would read like a fix. Splitting the world into additive
+        /// scenes is the lever that would actually move it, and behind a loading screen this is not
+        /// worth that.
+        ///
+        /// Development-only: this is diagnostic noise in a release <c>Player.log</c>.
+        /// </summary>
+        [System.Diagnostics.Conditional("UNITY_EDITOR")]
+        [System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+        private static void Mark(string what) =>
+            Debug.Log($"BootLoader: {Time.realtimeSinceStartup * 1000f:0} ms - {what}");
+
         private IEnumerator Start()
         {
             screen?.SetProgress(0f, "Loading the city");
 
+            Mark("calling LoadSceneAsync");
             var load = SceneManager.LoadSceneAsync(worldScene, LoadSceneMode.Single);
+            Mark("LoadSceneAsync returned");
             if (load == null)
             {
                 // The one failure this scene can actually have, and it is a setup mistake rather
@@ -63,13 +102,40 @@ namespace TheBlock.Boot
                 yield return null;
             }
 
+            Mark("load parked at 0.9");
             screen?.SetProgress(1f, "Ready");
 
             // Unscaled, and long enough to paint: this scene runs before anything sets timeScale,
             // but the world it is about to hand over to opens frozen on the title screen.
             yield return new WaitForSecondsRealtime(Mathf.Max(0f, holdAtFull));
 
+            // Nothing may follow this line in the coroutine. A Single-mode activation unloads THIS
+            // scene, which destroys this object and kills the coroutine with it - so the far side of
+            // the activation has to be watched by something that outlives the scene. That is what
+            // the static hook below is for.
+            Mark("allowSceneActivation = true");
+            WatchActivation();
             load.allowSceneActivation = true;
+        }
+
+        /// <summary>
+        /// Times the activation frame from outside the scene that dies in it.
+        ///
+        /// <c>sceneLoaded</c> fires after every <c>Awake</c> in the world and before the first
+        /// <c>Start</c>, so the gap between the mark above and this one IS the integration plus
+        /// Awake cost - the half of the 2,154 ms that a coroutine in the dying scene can never see.
+        /// </summary>
+        [System.Diagnostics.Conditional("UNITY_EDITOR")]
+        [System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+        private static void WatchActivation()
+        {
+            UnityEngine.Events.UnityAction<Scene, LoadSceneMode> handler = null;
+            handler = (scene, mode) =>
+            {
+                Mark("scene '" + scene.name + "' activated - every Awake has run");
+                SceneManager.sceneLoaded -= handler;
+            };
+            SceneManager.sceneLoaded += handler;
         }
     }
 }

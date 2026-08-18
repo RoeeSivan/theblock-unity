@@ -1,4 +1,5 @@
 using System.Text;
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.Profiling;
 
@@ -57,6 +58,40 @@ namespace TheBlock.Core
         private long _lastTextureBytes;
         private int _hitches;
 
+        /// <summary>
+        /// The render counters, read live rather than reconstructed.
+        ///
+        /// <b>Why these and not a time-based profile.</b> U30b round 1 fixed everything the texture
+        /// census could see and the frame was still 44-77 ms in a chase. A census that reports only
+        /// memory cannot say why, because the answer turned out not to be memory at all: at the
+        /// parking lot the frame submits ~7,900 draw calls and ~21.9 M triangles, and a resolution
+        /// sweep from 7.31 MP down to 0.46 MP moved it by 11 ms out of 78. That is a geometry bound,
+        /// and geometry is exactly what these counters count.
+        ///
+        /// They are also what round 2 still owes: the six Tier 8 per-feature deltas are "how much
+        /// does this feature add", and a triangle and draw-call delta is a far steadier answer than
+        /// a millisecond one taken on a laptop whose thermal state nobody controls.
+        ///
+        /// <c>ProfilerRecorder</c> reads the counters the Player already maintains, so this costs a
+        /// few reads a frame and nothing at all in a release build, where the class does not install.
+        /// Every recorder is checked with <c>Valid</c> before it is printed - a counter that this
+        /// platform does not publish is reported as absent rather than silently read as zero, which
+        /// is the failure mode that would quietly turn a regression into "no change".
+        ///
+        /// ⚠ <b>There is no draw-call counter in a Player on Unity 6.5.</b> The obvious names
+        /// (<c>Draw Calls Count</c>, <c>Batches Count</c>) return <c>Valid == false</c>; only the
+        /// three <i>batched</i> draw-call counters exist, and they count what batching SAVED, not
+        /// what was submitted. <c>UnityEditor.UnityStats.drawCalls</c> has the real figure and is
+        /// Editor-only. So the honest per-frame number here is <c>SetPass Calls Count</c> plus the
+        /// triangle count, and a draw-call census has to be taken in the Editor. This was found by
+        /// probing rather than assumed - the first version of this class gated the whole block on
+        /// <c>Draw Calls Count</c> being valid and printed "counters unavailable" on a Player where
+        /// four of the six worked perfectly well.
+        /// </summary>
+        private ProfilerRecorder _setPassCalls, _triangles, _vertices, _shadowCasters, _skinned;
+
+        private bool _recordersStarted;
+
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         /// <summary>Installs itself when Play starts. Nothing to add to a scene, nothing to forget.</summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -70,8 +105,34 @@ namespace TheBlock.Core
 
         private void Start()
         {
+            StartRecorders();
             _lastTextureBytes = (long)Texture.currentTextureMemory;
             Debug.Log("FrameWatchdog: " + Census("start"));
+        }
+
+        private void StartRecorders()
+        {
+            _setPassCalls  = ProfilerRecorder.StartNew(ProfilerCategory.Render, "SetPass Calls Count");
+            _triangles     = ProfilerRecorder.StartNew(ProfilerCategory.Render, "Triangles Count");
+            _vertices      = ProfilerRecorder.StartNew(ProfilerCategory.Render, "Vertices Count");
+            _shadowCasters = ProfilerRecorder.StartNew(ProfilerCategory.Render, "Shadow Casters Count");
+            _skinned       = ProfilerRecorder.StartNew(ProfilerCategory.Render, "Visible Skinned Meshes Count");
+            _recordersStarted = true;
+        }
+
+        private void OnDestroy()
+        {
+            if (!_recordersStarted) return;
+
+            // Every one of these holds a native handle. The watchdog is DontDestroyOnLoad, so in
+            // normal play this runs once at quit - but a Quit to Title tears the object down with
+            // the scene it was installed from, and a leaked recorder per session is a leak.
+            _setPassCalls.Dispose();
+            _triangles.Dispose();
+            _vertices.Dispose();
+            _shadowCasters.Dispose();
+            _skinned.Dispose();
+            _recordersStarted = false;
         }
 
         private void Update()
@@ -149,8 +210,32 @@ namespace TheBlock.Core
             else
                 sb.Append("  |  streaming OFF");
 
+            AppendRender(sb);
             return sb.ToString();
         }
+
+        /// <summary>
+        /// The render counters, each one printed only if this Player publishes it.
+        ///
+        /// Per-recorder rather than all-or-nothing on purpose: the counter set differs between Unity
+        /// versions and platforms, and one missing name must not take the other four down with it.
+        /// </summary>
+        private void AppendRender(StringBuilder sb)
+        {
+            if (!_recordersStarted) return;
+
+            sb.Append("  |  setPass ").Append(Count(_setPassCalls))
+                .Append(" tris ").Append(Millions(_triangles))
+                .Append(" verts ").Append(Millions(_vertices))
+                .Append(" casters ").Append(Count(_shadowCasters))
+                .Append(" skinned ").Append(Count(_skinned));
+        }
+
+        private static string Count(ProfilerRecorder recorder) =>
+            recorder.Valid ? recorder.LastValue.ToString() : "n/a";
+
+        private static string Millions(ProfilerRecorder recorder) =>
+            recorder.Valid ? (recorder.LastValue / 1000000f).ToString("0.00") + "M" : "n/a";
 
         private static string Mb(ulong bytes) => (bytes / 1048576f).ToString("0") + " MB";
     }

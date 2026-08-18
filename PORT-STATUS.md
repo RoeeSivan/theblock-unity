@@ -228,6 +228,167 @@ unclear, re-test before inheriting.
 > *Ledger audited 2026-08-16: the U28b and U33 scene-rig debts are closed, a duplicated section and
 > four malformed table rows are fixed. Open-work census re-cut 2026-08-17 by the five decisions above.*
 
+### U30b round 2, 2026-08-18 - the solo half, and it found the real bound: the frame is GEOMETRY, not memory and not pixels
+
+> **Scope.** The user split round 2 in two: *"בוא נבצע את הדברים שאתה יכול לבצע ולהריץ לבד"* - the boot
+> hitch, the frame cap, the Graphics Ring Buffer line and the unresolved district textures - with the
+> standing rule *"לשפר ביצועים אבל לא לדפוק את הנראות ואת הפונקציונליות"*. **Nothing here changes how
+> the game looks or plays**; every render change was pixel-diffed against a noise floor before it was
+> kept. The half that needs a human at the wheel (the chase frames, the six Tier 8 deltas, U16's
+> crowd) is untouched and still owed.
+>
+> #### The headline, and it re-frames the whole campaign
+>
+> **The frame is bound by GEOMETRY.** A resolution sweep at the parking-lot pose, from the Player's
+> real 3420×2138 (7.31 MP) down to 855×534 (0.46 MP) - **16× fewer pixels** - moved the frame from
+> **77.7 ms to 66.6 ms**. Eleven milliseconds out of seventy-eight. The other 66.6 ms does not care
+> how many pixels there are.
+>
+> | pixels | frame |
+> | --- | --- |
+> | 3420×2138 (7.31 MP) | 77.7 ms |
+> | 2736×1710 (4.68 MP) | 70.2 ms |
+> | 1710×1069 (1.83 MP) | 66.8 ms |
+> | 1140×712 (0.81 MP) | 66.6 ms |
+> | 855×534 (0.46 MP) | 66.6 ms |
+>
+> **So `renderScale` is not the lever, and the question the user asked to have measured is answered:
+> leave it at 1.** It is also the answer for every other pixel-side setting - soft-shadow quality,
+> reflection-probe blending and box projection (there are **zero** reflection probes in the scene, so
+> those two are paying shader cost for nothing), MSAA. All of them would buy a slice of eleven
+> milliseconds. **Do not spend the campaign there.**
+>
+> What the frame actually submits, measured in the Editor at that pose and confirmed on the Player:
+>
+> | | Editor, parking-lot pose | Player, title screen, standing still |
+> | --- | --- | --- |
+> | draw calls | **7,899** | no counter exists in a Player - see below |
+> | SetPass calls | 149 | **151** |
+> | triangles | **21,851,322** | **13,470,000** |
+> | vertices | 27,099,035 | 19,850,000 |
+> | shadow casters | 500 | **3,708** |
+>
+> The scene holds 9.9 M triangles across 1,566 enabled renderers and 5,061 material slots; the frame
+> draws 21.9 M because the shadow cascades redraw the casters. SRP Batcher is on and working (149
+> SetPass against 7,899 draws), so batching is not the gap - the geometry is.
+>
+> #### ⚠ The jetski is 1,190,600 triangles, and there are two of them
+>
+> `Assets/Models/Vehicles/jetski.glb` is a **35.2 MB, 1.19 M-triangle** product-visualisation model
+> with **no LODGroup**, and the scene has two: the rideable one at the beach and `Chase Thief`'s
+> `Thief Ski`. **2.4 M triangles - a quarter of the entire scene's geometry - for two jetskis.** For
+> scale, the whole police helicopter is **26,478** triangles. A single vent grille on the jetski is
+> 126,496. Both were inside the camera frustum at the parking lot, ~600 m away, drawn in full.
+>
+> This is the same class of fault as round 1's helicopter: not a wrong number anywhere, an asset
+> nobody looked at. **It is the single biggest perf item in the project and it is NOT yet fixed** -
+> decimating it is a Blender pass on a real asset and wants the user's yes first. Ranked list below.
+>
+> #### What was changed, and what each change is worth
+>
+> **① `m_RequireOpaqueTexture` was on with zero consumers** (`PC_RPAsset.asset`). URP was copying the
+> full-screen colour buffer every frame for nobody: grepped `_CameraOpaqueTexture` across every
+> `.shader`, `.hlsl`, `.shadergraph` and `.cs` - no hits, there are no Shader Graph assets at all,
+> the project has exactly three hand-written shaders, and `TheBlock/Water` is `RenderType=Opaque,
+> Queue=Geometry` with no blend, so the sea does no refraction. **Now off.**
+> **Verified invisible, not argued:** the same camera pose rendered before and after and diffed
+> against a *noise floor* taken by rendering twice at the same setting - beach 33.60% of pixels
+> differ from run to run (the water animates) against 33.59% across the change; city 0.01% against
+> 0.01%. The change is indistinguishable from the animation. **Worth 0.5-3.9 ms (≈5.5% at the heavy
+> pose)**, and it also appears to have taken the Ring Buffer line with it (below).
+>
+> **② The Player rendered uncapped.** `vSyncCount: 0` on both quality levels and nothing anywhere
+> assigned `Application.targetFrameRate`. New `Assets/Scripts/Core/DisplaySettings.cs` sets **60**
+> at `BeforeSplashScreen`. Deliberately a soft cap and **not vSync**: with frames at 17-77 ms a
+> swap-interval cap has a cliff - miss 16.7 ms by a hair and the frame waits for the next one, so
+> 17 ms becomes 33 - which would make the game worse on exactly the frames that are currently fine.
+> Idle frame mean now sits at 17.4-18.2 ms.
+>
+> **③ `Ran out of Graphics Ring Buffer space` fired 4× in round 1 and 0× now** - lines 497, 877,
+> 2000, 2949 of the old log, none in either new run. Not chased further; it is gone.
+>
+> **④ The rebinder had a THIRD blind spot: plain scene objects.** Round 1 gave
+> `PrefabTextureRebinder` two sweeps - `.mat` assets under `Assets/Materials`, and prefabs under
+> `Assets/Prefabs`. `Chase Thief`'s `Thief Ski` is **neither a prefab nor a builder's output**, so it
+> kept `jetski.glb`'s own `texMain` and with it one 4096×2048 ARGB32, **85.3 MB resident from boot** -
+> while `Jetski.prefab` six metres away had been fixed. A **third sweep over the open scene** now
+> covers it (prefab instances deliberately skipped, so no prefab overrides are written), into
+> `Assets/Materials/Scene/Compressed`. **Worth 88.0 MB**: textures still bound raw to a `.glb` went
+> **272.4 MB → 184.4 MB**, resident texture memory on the Player **331 → 287 MB**, non-streaming
+> **236 → 192 MB**, and the `.app` **2,292 → 2,248 MB**.
+>
+> **⑤ `FrameWatchdog` now reports the render counters**, so every future measurement - the chase, the
+> six Tier 8 deltas - gets triangles and SetPass calls instead of only milliseconds on a laptop whose
+> thermal state nobody controls. ⚠ **There is no draw-call counter in a Player on Unity 6.5**: `Draw
+> Calls Count` and `Batches Count` both return `Valid == false`; only `SetPass Calls Count`,
+> `Triangles Count`, `Vertices Count`, `Shadow Casters Count` and `Visible Skinned Meshes Count`
+> exist, and `UnityEditor.UnityStats.drawCalls` is Editor-only. The first version of the class gated
+> the whole block on `Draw Calls Count` and printed *"render counters unavailable"* on a Player where
+> four of the six worked - each counter is now checked on its own.
+>
+> #### The 2,154 ms boot hitch is SOLVED as a diagnosis, and deliberately not fixed
+>
+> Timestamps in `BootLoader` split the boot, and **the ledger's own hypothesis was the wrong one**:
+>
+> ```
+>   0 → 1.90 s     engine startup - Metal, Mono, PhysX, subsystems. Before any script.
+>   2.17 s         LoadSceneAsync called; returns in 3 ms
+>   1.90 → 4.06 s  THE 2,164 ms HITCH. One blocked frame, and it is the load itself.
+>   4.06 → 4.32 s  holdAtFull, 0.25 s, deliberate
+>   4.32 → 4.57 s  activation + EVERY Awake in the world = 245 ms
+>   → ~6.0 s       second hitch, 1,892 ms: the texture upload (6 → 275 MB)
+>   → ~6.3 s       third hitch, 332 ms: first frame with real geometry (13.47 M tris)
+> ```
+>
+> **The world's `Awake`s are 4% of the boot.** The hitch is Unity deserializing one very large scene
+> on the main thread. `Application.backgroundLoadingPriority = Low` was tried and moved nothing
+> (2168/4064 against 2159/4046 - run-to-run noise): it paces *integration*, which is the 245 ms that
+> was already cheap. **It was reverted rather than left in as a no-op that reads like a fix.** The
+> lever that would actually move it is splitting the world into additive scenes, and behind a loading
+> screen that says "Loading the city" this is not worth that. **Closed as measured, not as fixed.**
+>
+> #### The remaining raw textures: the cheap idea was killed with numbers
+>
+> 184.4 MB across 41 textures is still bound raw, and it is all one shape: `TCom_ConcretePlates…`
+> and images literally named `Untitled`, where several embedded glTF images share a name, size and
+> alpha channel so `TextureCompressor.ResolveImageIndex` declines rather than guesses. The cheap fix
+> - "sub-asset order matches glTF image order" - was **tested against the 400 textures that already
+> resolve and killed: 42 agree, 358 disagree.** `AssetDatabase.LoadAllAssetsAtPath` sorts by name,
+> not creation order. A real resolver would have to compare pixels, or walk the glTF material →
+> texture → image graph instead of matching by name.
+>
+> **Not recommended next.** Memory is no longer the bound - round 1 took the hitches from 46 to 2 and
+> this round took another 44 MB - and 184 MB on a 16 GB machine buys no frames. It is hygiene, and it
+> ranks below the geometry.
+>
+> #### Two things checked and closed, no work needed
+>
+> - **`Standard(2sides).shader` is a Built-in-pipeline shader** (`ForwardBase`/`ForwardAdd`/
+>   `Deferred`/`Meta` - URP renders none of them) and four `M_policeofficer_*.mat` bind it. Grepped
+>   by guid: **nothing outside its own package folder references those materials**, and the shader is
+>   not in Always Included Shaders, so it is not in the build. `CopOfficerBuilder` writes its own URP
+>   materials. Nothing to do.
+> - **The U36 SSAO sweep is closed.** `Beach.shader` is the ONLY file in the project that declares
+>   `_SCREEN_SPACE_OCCLUSION`, and it now has all four passes. Memory
+>   `ssao-depthnormals-kills-the-sun` has no second victim.
+>
+> #### Round 3's queue, ranked by measured size
+>
+> 1. **Decimate `jetski.glb`** - 1.19 M → ~50 k triangles, ×2 in the scene. The largest single item
+>    in the project. Needs the user's yes and a close-range pixel diff. Blender MCP is available.
+> 2. **The rest of the geometry.** 13.47 M triangles standing still at the title screen, 3,708 shadow
+>    casters. `Reichman_SignHeb` alone is 97,588 triangles - a *sign*. A per-asset triangle census
+>    like the jetski one will find more.
+> 3. **Occlusion culling has never been baked** (`umbraDataSize = 0`) although 475 World renderers
+>    are already flagged `OccluderStatic` + `OccludeeStatic`. Its value is capped by the districts
+>    being single 280 k-triangle meshes - one visible corner draws all of it - but the 1,091 unflagged
+>    dynamic objects would be culled behind buildings, which is where both jetskis were.
+> 4. Shadow cascades and `m_ShadowDistance: 150` - a geometry cost, unlike the pixel-side settings.
+> 5. The 184 MB of unresolved textures. Hygiene, not frames.
+>
+> **Still owed and unchanged:** the six Tier 8 per-feature deltas, U36's frame measurement, U16's
+> crowd cost, every entry in Deferred. All of those need the user driving.
+
 ### U30a + U30b round 1, 2026-08-18 (`25210fa`) - the Player exists, and it says the problem was never the game code
 
 > ✅ **U30a is DONE.** `Builds/macOS-dev/The Block.app`, StandaloneOSX, Development, **Mono**, 0 errors.
@@ -290,20 +451,21 @@ y = 0.1) and deleted rather than raised - see the note on `ConnectorRoads`.
 stack to ~1,050 px against the panel's 1200×800 reference frame, so Audio and Back fell off the bottom
 of a 16:10 display. It fit in the Editor because the Game view there was taller. Now two columns.
 
-**What U30b still owes, worst first:**
+**What U30b still owed after round 1 - every line here was answered by round 2, above:**
 
-- **A 2,154 ms hitch at t=2.2 s, and it is NOT textures** - it fires at `tex current 6 MB`, before
-  anything has loaded, and it did not move at all between the two runs (2,157 → 2,154 ms). Scene load,
-  shader variant compilation and `Awake` are the candidates and none has been tested. The second boot
-  hitch DID move (1,935 → 1,501 ms) and that one is the texture load.
-- **The chase is 44-77 ms, not 16.** Ten times better than 300-400, still not smooth. Not yet attributed.
-- **`vSyncCount: 0` with no `Application.targetFrameRate`** - the Player renders uncapped, which costs
-  frame pacing and heat on a laptop for no visual gain. One line, untested.
-- **51 district textures are still raw**, declined by `ResolveImageIndex` because their name, size and
-  alpha match more than one embedded image (there are files literally called "Untitled"). Declining is
-  correct; resolving them needs a better discriminator, e.g. bufferView order.
-- **`Ran out of Graphics Ring Buffer space`** appeared once in the new run and not in the old one.
-- **The U35a/b/g per-feature deltas are untouched** - that debt is exactly as it was.
+- ~~**A 2,154 ms hitch at t=2.2 s, and it is NOT textures**~~ → **it is `LoadSceneAsync` itself, one
+  blocked frame.** Scene deserialization, not shader variants and not `Awake` (every `Awake` in the
+  world is 245 ms, 4% of the boot). Diagnosed, deliberately not fixed - see round 2.
+- ~~**The chase is 44-77 ms**~~ → **attributed: it is geometry.** 16× fewer pixels moves the frame
+  11 ms out of 78. Still owes a driven measurement, which needs the user.
+- ~~**`vSyncCount: 0` with no `Application.targetFrameRate`**~~ → **done**, `DisplaySettings.cs`, 60,
+  soft cap not vSync.
+- ~~**51 district textures are still raw**~~ → **43, of which 2 were a rebind blind spot (88.0 MB,
+  fixed) and 41 are genuinely ambiguous (184.4 MB).** The bufferView-order idea was tested and killed
+  42-to-358. Ranked last now: memory is no longer the bound.
+- ~~**`Ran out of Graphics Ring Buffer space`**~~ → **4× in round 1, 0× in both round-2 runs.** Gone.
+- **The U35a/b/g per-feature deltas are untouched** - that debt is exactly as it was, and it needs the
+  user driving.
 
 ### U35i, 2026-08-18 - the police helicopter is a solid object, and hitting a police vehicle is a crime - BUILT and USER-CONFIRMED - `a2e3438`
 
@@ -3719,7 +3881,7 @@ State: `todo` · `wip` (half-built - the notes column MUST say exactly what and 
 | id | unit | state | commit | notes |
 | --- | --- | --- | --- | --- |
 | U30a | macOS build - the game leaves the Editor | **done - user-confirmed 2026-08-18** | `25210fa` | ✅ **CLOSED.** `Builds/macOS-dev/The Block.app`, StandaloneOSX, Development + Autoconnect Profiler, **Mono** (the open choice below was settled: Mono, because IL2CPP is a perf decision and U30b had not measured a CPU bound yet). 0 errors, the user played a full session outside the Editor and reported *"ההתרשמות הכללית שלי היא טובה"*. `FrameWatchdog` now installs under `UNITY_EDITOR \|\| DEVELOPMENT_BUILD`, so `Player.log` carries the census lines - that is the instrument every U30b number is taken with. Full write-up in the **U30a + U30b round 1** section above. Original note, kept: **Split out 2026-08-16, and the split is the point: a build is a correctness job, a perf pass is a measurement job, and stripping debug keys is a shipping job. Three checkpoints, not one.** Build Profiles → macOS → Apple Silicon → a `.app`. **Nothing in this port has ever run outside the Editor**, so this is the first moment anything Player-only can surface - stripping, shader variants, a different memory ceiling, a different input stack. Two risks already checked and CLEARED: build scenes are set (`Boot` 0, `World` 1), and **zero scripts under `Assets/Scripts` reference `UnityEditor`** (the whole world-building toolchain lives in `Assets/Editor`, which a Player build excludes by construction). `/[Bb]uild/` is already gitignored, so output cannot bloat the repo. **The one open choice is the scripting backend**: Mono is the current default (`scriptingBackend` is empty in `ProjectSettings.asset`) - fast builds, but `Contents/Resources/Data/Managed/Assembly-CSharp.dll` is readable by anyone with ILSpy; IL2CPP is AOT, faster at runtime, slower to build, and much harder to read. **Done when the `.app` launches from Finder with Unity closed and one full mission completes inside it.** |
-| U30b | Perf pass - on the Player, not the Editor | **wip - round 1 landed 2026-08-18, round 2 open** | `25210fa` | ✅ **ROUND 1 IS DONE AND RE-MEASURED** - see the **U30a + U30b round 1** section above for the numbers. Headline: resident texture memory **1,213 → 331 MB**, hitches >300 ms **46 → 2**, worst sustained frame outside boot **326.8 → 77.3 ms**, the 3★ chase **300-400 → 44-77 ms**, shadow-atlas warnings **5 → 0**, the `.app` **3,032 → 2,292 MB**. Three root causes, all in the asset pipeline and none in the game code: builders other than the car builders never called the compressed rebind (`Helicopter.prefab` alone was 1,195 MB of raw 4096² ARGB32 resident from boot), U15's extraction floor of 1 MP skipped a tail it estimated at ~200 MB and the Player measured at 608 MB, and the pizzeria's three interior point lamps cast shadows - 6 cube faces each - from a room nobody was in. **Round 2's queue is the "What U30b still owes" list in that section**, worst first: the 2,154 ms boot hitch that is NOT textures, the 44-77 ms chase, `vSyncCount`/`targetFrameRate`, 51 unresolved district textures, one Graphics Ring Buffer line. **The six Tier 8 per-feature deltas are still owed and still untouched** - round 1 ran with all three toggles OFF, which is exactly the baseline they subtract from. Original framing, unchanged: ⚠ **THE USER RE-FRAMED THIS ROW, 2026-08-18:** *"U30B - this will be part of a big plan which we will check performance overall, and see where we can improve."* It is no longer the narrow "measure six Tier 8 deltas and sign them off" job the rest of this row describes - it is **the project-wide perf pass**, and it needs a plan of its own written before any measuring starts. What it now owns, in one place: the six `awaiting U30b` Tier 8 deltas (that debt is unchanged, just no longer the whole scope), **every entry in Deferred**, **U16's crowd cost, which the user flagged at its own play-test and which has never been re-measured**, and the ~800 ms hitches. Its output is a list of ranked improvements, not just a pass/fail per feature. **Sequencing is unchanged and matters more now: U30a first.** Profiling the Editor would spend the campaign's budget on ghosts a Player deletes for free. **Order settled by the user 2026-08-16: build first, then profile.** The reason is specific - the top suspect for the ~800 ms hitches is **synchronous shader-variant compilation, which exists only in the Editor**; a Player prebuilds its variants. Profiling first risks spending the budget on a ghost the build deletes for free. Same for the green blocks, diagnosed as Metal under memory pressure: the Editor holds a second copy of half the project, so "is there memory pressure" is not answerable from inside it. **Start with the one measurement that transfers either way: 1,513 ms at t≈6.1 s and four hitches inside the first 15 s**, which is world + crowd load - code structure, not renderer path. Needs a **Development Build** so the Profiler can attach; `FrameWatchdog` is `#if UNITY_EDITOR` and correctly does not ship, so the Player pass uses the Profiler instead. This unit owns every entry in **Deferred**. Old row's note, still true: watch texture memory - it killed web mobile |
+| U30b | Perf pass - on the Player, not the Editor | **wip - rounds 1 and 2 landed 2026-08-18, round 3 open** | `25210fa` | ✅ **ROUND 2 (the solo half) IS DONE** - see the **U30b round 2** section above. Headline: **the frame is bound by GEOMETRY, not memory and not pixels** - a 16× resolution cut moves it 11 ms out of 78, so `renderScale`, soft-shadow quality and reflection-probe settings are all the wrong place to spend, and the frame submits 7,899 draw calls and 21.9 M triangles at the parking lot. **`jetski.glb` is 1.19 M triangles with no LODGroup and the scene has two of them - 2.4 M, a quarter of all scene geometry, against 26,478 for the whole helicopter.** That is round 3's first item and it needs the user's yes. Landed this round, none of it visible: `m_RequireOpaqueTexture` off (a full-screen copy with zero consumers, pixel-diffed against a noise floor, 0.5-3.9 ms), `Application.targetFrameRate = 60` as a soft cap (`DisplaySettings.cs`), a **third rebinder sweep over the open scene** (`Thief Ski` was a plain scene object holding an 85.3 MB raw texture - 272.4 → 184.4 MB raw, Player resident 331 → 287 MB, `.app` 2,292 → 2,248 MB), and `FrameWatchdog` now logs triangles/SetPass/casters. The 2,154 ms boot hitch is **diagnosed** (`LoadSceneAsync` deserializing one big scene; every `Awake` in the world is only 245 ms) and deliberately left - `backgroundLoadingPriority` was tried, moved nothing, and was reverted. `Ran out of Graphics Ring Buffer space` 4× → 0×. **Round 3's queue, ranked, is at the end of that section.** Original round-1 note follows: ✅ **ROUND 1 IS DONE AND RE-MEASURED** - see the **U30a + U30b round 1** section above for the numbers. Headline: resident texture memory **1,213 → 331 MB**, hitches >300 ms **46 → 2**, worst sustained frame outside boot **326.8 → 77.3 ms**, the 3★ chase **300-400 → 44-77 ms**, shadow-atlas warnings **5 → 0**, the `.app` **3,032 → 2,292 MB**. Three root causes, all in the asset pipeline and none in the game code: builders other than the car builders never called the compressed rebind (`Helicopter.prefab` alone was 1,195 MB of raw 4096² ARGB32 resident from boot), U15's extraction floor of 1 MP skipped a tail it estimated at ~200 MB and the Player measured at 608 MB, and the pizzeria's three interior point lamps cast shadows - 6 cube faces each - from a room nobody was in. **Round 2's queue is the "What U30b still owes" list in that section**, worst first: the 2,154 ms boot hitch that is NOT textures, the 44-77 ms chase, `vSyncCount`/`targetFrameRate`, 51 unresolved district textures, one Graphics Ring Buffer line. **The six Tier 8 per-feature deltas are still owed and still untouched** - round 1 ran with all three toggles OFF, which is exactly the baseline they subtract from. Original framing, unchanged: ⚠ **THE USER RE-FRAMED THIS ROW, 2026-08-18:** *"U30B - this will be part of a big plan which we will check performance overall, and see where we can improve."* It is no longer the narrow "measure six Tier 8 deltas and sign them off" job the rest of this row describes - it is **the project-wide perf pass**, and it needs a plan of its own written before any measuring starts. What it now owns, in one place: the six `awaiting U30b` Tier 8 deltas (that debt is unchanged, just no longer the whole scope), **every entry in Deferred**, **U16's crowd cost, which the user flagged at its own play-test and which has never been re-measured**, and the ~800 ms hitches. Its output is a list of ranked improvements, not just a pass/fail per feature. **Sequencing is unchanged and matters more now: U30a first.** Profiling the Editor would spend the campaign's budget on ghosts a Player deletes for free. **Order settled by the user 2026-08-16: build first, then profile.** The reason is specific - the top suspect for the ~800 ms hitches is **synchronous shader-variant compilation, which exists only in the Editor**; a Player prebuilds its variants. Profiling first risks spending the budget on a ghost the build deletes for free. Same for the green blocks, diagnosed as Metal under memory pressure: the Editor holds a second copy of half the project, so "is there memory pressure" is not answerable from inside it. **Start with the one measurement that transfers either way: 1,513 ms at t≈6.1 s and four hitches inside the first 15 s**, which is world + crowd load - code structure, not renderer path. Needs a **Development Build** so the Profiler can attach; `FrameWatchdog` is `#if UNITY_EDITOR` and correctly does not ship, so the Player pass uses the Profiler instead. This unit owns every entry in **Deferred**. Old row's note, still true: watch texture memory - it killed web mobile |
 | U30c | Ship hardening - debug keys and shipping defaults | todo | | **LAST, and deliberately after the submission video is recorded**, because the debug keys are how the video reaches every feature in five minutes. What comes out or gets gated: `CrimeWatch.debugStarKey` (`P`, currently `true` and serialized in the scene, i.e. **it ships today**), U17's `T`, U16's `C`, `PowerUps.debugStock`, `CampaignRunner.debugStartMission` (−1 today, so inert but present). One judgement call, not a deletion: `Wallet.startingBalance` is **500** here against the web's **0** - it was set so there was something to lose before U20 paid anything, and it is rewritten by every `Build Store` / `Build World` run, so "fix it in the scene" is not a fix |
 | U31 | iOS / iPad | **dropped - the user's call, 2026-08-16** | | *"ipad אנחנו כנראה נראה מזה… זה לא רלוונטי להגשה."* **Out of the port's scope, not failed and not deferred.** `CLAUDE.md` always called iPad "a wanted bonus, never a constraint on design", and this is that sentence being cashed: the port ships to macOS. **The user may still try a build personally, for the engine experience** - that is a private experiment, not a unit, and nothing in this ledger waits on it. **What this closes elsewhere:** the dance's tappable arrows (Deferred) lose their only remaining trigger, and every "U31 inherits this" note in the ledger is now inert. **What it does NOT license:** ripping out iOS support. The module is installed, `PlayerSettings` has an iOS section, and touch input costs nothing while unused - deleting any of it would be work spent to make a future retry harder. Old row: free 7-day Xcode provisioning; $99 only for distribution |
 | U32 | Multiplayer | todo | | DEFERRED by decision - revisit only here |
