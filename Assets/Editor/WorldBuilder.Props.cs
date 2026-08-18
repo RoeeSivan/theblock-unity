@@ -106,6 +106,7 @@ namespace TheBlock.EditorTools
             ResetTexturePass();
 
             BuildProps(root.transform, snapshot.Config, snapshot.Npc, options, report);
+            AssetDatabase.SaveAssets();
 
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(
                 UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene());
@@ -242,6 +243,7 @@ namespace TheBlock.EditorTools
             lod.RecalculateBounds();
 
             if (options.CompressedTextures) ApplyCompressedTextures(root, report);
+            DropOcclusionVariant(root, kind, report);
 
             if (!AssetDatabase.IsValidFolder("Assets/Prefabs")) AssetDatabase.CreateFolder("Assets", "Prefabs");
             if (!AssetDatabase.IsValidFolder(PropPrefabFolder)) AssetDatabase.CreateFolder("Assets/Prefabs", "Props");
@@ -253,6 +255,43 @@ namespace TheBlock.EditorTools
                 $"props: {kind} prefab from {file} - {bounds.size.x:0.00} × {bounds.size.y:0.00} × " +
                 $"{bounds.size.z:0.00} m, {mass:0} kg, culled past {cullDistance:0} m");
             return prefab;
+        }
+
+        /// <summary>
+        /// The cone's material is the only one of the 120 compressed glTFast materials in the game
+        /// that arrives with the <c>_OCCLUSION</c> keyword on (Sketchfab packed its AO into the
+        /// metallic-roughness texture and glTFast wires it up). One material, one shader variant
+        /// nothing else ever compiles - so in the Editor the cones draw <b>cyan</b> until async
+        /// shader compilation catches up (the user: "the cones were light blue for a moment"), and
+        /// in a Player it is one more variant to build and to load on first sight. Baked AO on a
+        /// 0.7 m cone is invisible; the keyword goes, and the props share the keyword-less variant
+        /// 97 district materials already have. Only on the writable clones - a .glb sub-asset
+        /// material is read-only and any edit to it is lost on reimport.
+        /// </summary>
+        private static void DropOcclusionVariant(GameObject root, PropKind kind, Report report)
+        {
+            const string keyword = "_OCCLUSION";
+            int dropped = 0;
+            foreach (var renderer in root.GetComponentsInChildren<Renderer>(true))
+            {
+                foreach (var material in renderer.sharedMaterials)
+                {
+                    if (material == null || !material.IsKeywordEnabled(keyword)) continue;
+                    if (!IsGeneratedMaterial(material))
+                    {
+                        report.Warnings.Add(
+                            $"props: {kind} material '{material.name}' has {keyword} on a read-only .glb " +
+                            "material - run with compressed textures so the clone can drop it");
+                        continue;
+                    }
+                    material.DisableKeyword(keyword);
+                    if (material.HasProperty("occlusionTexture")) material.SetTexture("occlusionTexture", null);
+                    EditorUtility.SetDirty(material);
+                    dropped++;
+                }
+            }
+            if (dropped > 0)
+                report.Notes.Add($"props: {kind} - {keyword} dropped from {dropped} material(s), so it shares the common shader variant");
         }
 
         // --- layout ------------------------------------------------------------------------------

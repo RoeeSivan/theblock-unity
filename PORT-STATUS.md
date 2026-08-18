@@ -205,7 +205,19 @@ footprint + 2.5 m (the 7-Eleven and the pizza place both stand on the east pavem
 the gas station / auto shop / 7-Eleven any more (the user asked for the boulevard; those come back on
 request as one `Anchor` line). Cones unchanged (8). **98 props total.** Sampled in Play: 24/24
 benches asleep, 0° tilt, `Disturbed=false` at t = 4.5 s. Bake reads `snapshot.Npc.Strips`, so
-`BuildProps` takes the Npc spec; the scene is re-saved.
+`BuildProps` takes the Npc spec; the scene is re-saved. **The bench siting is USER-CONFIRMED the same
+morning** - *"הספסלים במקום טוב"* - and the reason it went wrong is memory
+`avenue-sideoffset-is-the-inner-lane`.
+
+**Same test, second finding - "the cones were light blue for a moment" (`הקונוסים היו בצבע תכלת
+לרגע`):** the Editor's async shader compilation placeholder. Of the 120 compressed glTFast materials
+in the game, the cone's is the ONLY one with the `_OCCLUSION` keyword (Sketchfab packed AO into its
+metallic-roughness texture; glTFast wires it up) - a shader variant nothing else ever compiles, so
+the first cone drawn shows cyan until it does. Editor-only (a Player has no placeholder), but a
+variant to build and load for nothing. **Fix:** `WorldBuilder.Props.DropOcclusionVariant` strips the
+keyword (and the occlusion slot) from the writable Compressed clone every build - AO on a 0.7 m
+cone is invisible - so the props share the keyword-less variant 97 district materials already
+have. `Build Props` now also `SaveAssets` so the clone edit lands.
 
 **Two halves, both in.** The user approved the vision and supplied three Sketchfab GLBs
 (`modern_bench_1`, `public_trash_bin_1`, `traffic_cone_game_ready`) - *"נוכל להשתמש ב-assets האלה
