@@ -94,16 +94,16 @@ unclear, re-test before inheriting.
 > a change of what "done" means - the graded artifacts are a video, a repo, a kanban board and a zip,
 > and only one of them is the game.
 >
-> ### 🚩 NEXT ACTION: **U30a - the macOS build.** U35h is user-confirmed 2026-08-18 (*"you can confirm U35H - looking good"*), so **no gameplay unit is open anywhere in this ledger**. U30a is the first time anything in this port runs outside the Editor.
+> ### 🚩 NEXT ACTION: **U30b round 2 - the boot hitches.** U30a is DONE and U30b's first round landed 2026-08-18 (section below): the Player exists, the baseline is measured, and the biggest finding is already fixed and re-measured. What is left of U30b is named at the bottom of that section, worst first: **a 2,154 ms hitch at t=2.2 s that is NOT textures** (it happens at `tex current 6 MB`), and a chase that is now 44-77 ms rather than 300-400.
 >
-> **⚠ U30b is no longer a single unit's checkpoint - the user re-framed it 2026-08-18:** *"U30B - this
+> **⚠ U30b is not a single unit's checkpoint - the user re-framed it 2026-08-18:** *"U30B - this
 > will be part of a big plan which we will check performance overall, and see where we can improve."*
 > Read as: it is a **whole-project performance campaign**, not the narrow "measure the five Tier 8
 > deltas" job the rows describe. The five `awaiting U30b` units still get their per-feature deltas -
-> that debt is unchanged - but they are now one input to a wider pass that also owns everything in
-> **Deferred**, U16's flagged crowd cost, and the ~800 ms hitches. **Plan it as its own session after
-> U30a exists**; do not start profiling in the Editor, which is the one thing the U30a-first order
-> was chosen to prevent.
+> that debt is unchanged - and round 1 has not touched them: **every number below was taken with all
+> three Tier 8 toggles OFF**, which is exactly the baseline those deltas subtract from. ~~do not start
+> profiling in the Editor~~ - that rule did its job and is spent; the Player is the instrument now,
+> and the Editor actively lies (see the census note in the section).
 >
 > ---
 >
@@ -197,6 +197,83 @@ unclear, re-test before inheriting.
 >
 > *Ledger audited 2026-08-16: the U28b and U33 scene-rig debts are closed, a duplicated section and
 > four malformed table rows are fixed. Open-work census re-cut 2026-08-17 by the five decisions above.*
+
+### U30a + U30b round 1, 2026-08-18 - the Player exists, and it says the problem was never the game code
+
+> ✅ **U30a is DONE.** `Builds/macOS-dev/The Block.app`, StandaloneOSX, Development, **Mono**, 0 errors.
+> The user played a full session and reported *"ההתרשמות הכללית שלי היא טובה"*. Nothing in this port
+> had ever run outside the Editor before today.
+>
+> ✅ **U30b round 1 is measured, fixed and RE-measured, all on the Player.** Both runs used the same
+> route and **all three Tier 8 toggles OFF**, so the pair is a valid before/after and the number is
+> still the baseline the U35a/b/g deltas subtract from.
+
+| | before | after |
+| --- | --- | --- |
+| `Texture.currentTextureMemory`, steady | 1,213 MB | **331 MB** |
+| `nonStreamingTextureMemory` | 1,134 MB | **236 MB** |
+| hitches >300 ms in a ~7 min session | **46** | **2** (both at boot) |
+| worst sustained frame mean, excluding boot | 326.8 ms | **77.3 ms** |
+| the 3★ chase window | 300-400 ms (2-3 fps) | **44-77 ms** |
+| `Reduced additional punctual light shadows…` | 5× | **0** |
+| `The Block.app` on disk | 3,032 MB | **2,292 MB** |
+
+**What was actually wrong, and none of it was the C# a session of static reading had been auditing.**
+A first pass over the whole codebase found the gameplay systems disciplined - the crowd is pooled and
+manually ticked, traffic and props are budgeted, hot raycasts are `NonAlloc`, and `Find*` calls are all
+in `Awake`. The faults were all in the asset pipeline, and only a Player census could see them:
+
+1. **`Helicopter.prefab` drew straight from `huey.glb`'s own materials - 7 × 4096² ARGB32, 1,195 MB
+   resident from boot** for a mission the player may never start. `TextureCompressor` had extracted the
+   compressed twins; nothing had ever pointed the prefab at them. `VehicleMaterials.Clone` +
+   `RebindCompressed` were wired into the CAR builders and nowhere else, so the helicopter, the jetski
+   (85 MB), the police car (88 MB), the buoy and the bench all shipped raw. **The rebind is now a shared
+   helper** (`VehicleMaterials.RebindHierarchy`), called by `MissionVehicleBuilder` on save so it cannot
+   regress, and by a new menu **The Block → Rebind Compressed Textures (prefabs + materials)** that
+   repairs what is already built without rebuilding it.
+2. **U15's extraction floor was set on an estimate that was wrong by 3×.** It skipped everything under
+   1 MP because the tail was *"~200 MB in total - not worth a second copy on disk"*. The census counted
+   **608 MB**: a 1000² RGB24 with mips is 5.3 MB and the districts have a lot of them. Floor is now
+   **256²**. Re-extraction wrote 115 new textures; 10,636 MB of raw sub-assets → 2,781 MB (3.8×), and
+   `Build World` rebound **1,518 texture slots**.
+3. **The `18 shadow maps in a 2048×2048 atlas` warning was the pizzeria's three interior lamps.** Six
+   cube faces each, rendered every frame from a room the player was not standing in.
+   `WorldBuilder.BuildInteriorLights` built them `LightShadows.Soft`; the builder's own comment - *"URP
+   culls per object, so three point lights nobody can see cost nothing"* - is true of the LIGHTING and
+   false of the SHADOWS. `Interior` now switches them with the door: Soft inside, None outside.
+
+**⚠ THE EDITOR CANNOT MEASURE THIS, and it fails in the direction that looks like success.** A census
+run in the Editor immediately after `Compress Textures` reported **13,354 MB** in `Assets/Models/City` -
+worse than before the fix, and almost exactly U15's remembered "12.9 GB raw". The cause is that
+`AssetDatabase.LoadAllAssetsAtPath` had just pulled every raw sub-asset in to extract it, and
+`Resources.FindObjectsOfTypeAll` counts them. **Take texture numbers on the Player or do not take them.**
+
+**Two roads the port never had** (user-reported, user-confirmed *"החיבור לתחנת דלק נראה טוב"*):
+`Road_LotBypass` (118 m) joins Road_11's dead end at the parking lot's north edge to Road_12's at its
+south, routed at x=303 - four metres OUTSIDE the lot's own edge, because straight down x≈296 would have
+painted asphalt over the lot's easternmost row of parked cars. `Road_GasApron` (12 m) is a stub off
+Road_11 to a forecourt that had no approach at all. A third, `Road_LotMouth`, was built, rendered,
+found to be buried under the lot's own surface (roads sit at `roads.y` = 0.02, the lot mesh reaches
+y = 0.1) and deleted rather than raised - see the note on `ConnectorRoads`.
+
+**The Settings screen did not fit on screen** and the user reported it. Six rows of button + blurb
+stack to ~1,050 px against the panel's 1200×800 reference frame, so Audio and Back fell off the bottom
+of a 16:10 display. It fit in the Editor because the Game view there was taller. Now two columns.
+
+**What U30b still owes, worst first:**
+
+- **A 2,154 ms hitch at t=2.2 s, and it is NOT textures** - it fires at `tex current 6 MB`, before
+  anything has loaded, and it did not move at all between the two runs (2,157 → 2,154 ms). Scene load,
+  shader variant compilation and `Awake` are the candidates and none has been tested. The second boot
+  hitch DID move (1,935 → 1,501 ms) and that one is the texture load.
+- **The chase is 44-77 ms, not 16.** Ten times better than 300-400, still not smooth. Not yet attributed.
+- **`vSyncCount: 0` with no `Application.targetFrameRate`** - the Player renders uncapped, which costs
+  frame pacing and heat on a laptop for no visual gain. One line, untested.
+- **51 district textures are still raw**, declined by `ResolveImageIndex` because their name, size and
+  alpha match more than one embedded image (there are files literally called "Untitled"). Declining is
+  correct; resolving them needs a better discriminator, e.g. bufferView order.
+- **`Ran out of Graphics Ring Buffer space`** appeared once in the new run and not in the old one.
+- **The U35a/b/g per-feature deltas are untouched** - that debt is exactly as it was.
 
 ### U35i, 2026-08-18 - the police helicopter is a solid object, and hitting a police vehicle is a crime - BUILT and USER-CONFIRMED - `a2e3438`
 

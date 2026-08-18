@@ -116,6 +116,31 @@ namespace TheBlock.World
         {
             CaptureStreet();
             Bind();
+            _lamps = GetComponentsInChildren<Light>(true);
+            SetLampShadows(inside);
+        }
+
+        /// <summary>
+        /// The room's three point lights - see <c>WorldBuilder.BuildInteriorLights</c>.
+        ///
+        /// <b>Their SHADOWS are switched with the door, and that is U30b's first measured saving.</b>
+        /// The builder's note that "URP culls per object, so three point lights nobody can see cost
+        /// nothing" is true of the lighting and false of the shadows: a shadow-casting point light is
+        /// six shadow-map faces rendered every frame the light is inside the shadow distance, whether
+        /// or not any lit surface is on screen. The first macOS Player logged it on every frame -
+        /// "Reduced additional punctual light shadows resolution by 4 to make 18 shadow maps fit in the
+        /// 2048x2048 shadow atlas" - 18 being exactly these three lamps × 6 faces, drawn over a district
+        /// from a room the player was not in. Soft shadows inside, none outside; nothing visible changes.
+        /// </summary>
+        private Light[] _lamps = System.Array.Empty<Light>();
+
+        private void SetLampShadows(bool on)
+        {
+            foreach (var lamp in _lamps)
+            {
+                if (lamp == null) continue;
+                lamp.shadows = on ? LightShadows.Soft : LightShadows.None;
+            }
         }
 
         /// <summary>
@@ -261,6 +286,7 @@ namespace TheBlock.World
             PaintInterior();
 
             inside = true;
+            SetLampShadows(true);
             Teleport(spawnPoint, spawnYaw);
         }
 
@@ -271,6 +297,7 @@ namespace TheBlock.World
             else PaintStreet();
 
             inside = false;
+            SetLampShadows(false);
             // Back out onto the pavement facing away from the storefront, as the web build does.
             Teleport(new Vector3(streetDoor.x, streetY, streetDoor.z), 90f);
         }

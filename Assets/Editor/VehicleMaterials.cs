@@ -172,6 +172,85 @@ namespace TheBlock.EditorTools
         }
 
         /// <summary>
+        /// The whole rebind for one built object: every renderer under <paramref name="root"/> whose
+        /// material is still a read-only .glb sub-asset gets a clone in <paramref name="cloneFolder"/>
+        /// pointed at the compressed twins, and every material that is already an asset of ours is
+        /// rebound in place. Returns the number of texture slots rebound.
+        ///
+        /// <b>Why this exists, U30b.</b> <see cref="Clone"/> + <see cref="RebindCompressed"/> were
+        /// wired into the car builders and nowhere else, so the helicopter, the jetski and the police
+        /// car (built before Compress Textures had extracted their .glbs) shipped with their raw
+        /// sub-asset textures. The first Player census put a number on it: the Huey alone was seven
+        /// 4096² ARGB32 textures, 1,195 MB resident from boot for a mission the player may never
+        /// start, and 1,134 MB of the 1,024 MB streaming budget was "non-streaming" - i.e. the
+        /// districts were being starved of mips by a helicopter in a hangar. One helper, called by
+        /// every builder that saves a prefab AND by the menu pass that fixes what is already built.
+        ///
+        /// A material is only cloned if the clone would actually change something - a probe copy is
+        /// rebound first and thrown away if nothing on it points at a twin - so a model whose textures
+        /// are all below <see cref="TextureCompressor.SkipBelowPixels"/> stays exactly as imported.
+        /// </summary>
+        public static int RebindHierarchy(
+            GameObject root, string cloneFolder, string prefix, HashSet<string> written,
+            ref int misses, ref int cloned, StringBuilder log = null)
+        {
+            var clones = new Dictionary<Material, Material>();
+            int rebound = 0;
+
+            foreach (var renderer in root.GetComponentsInChildren<Renderer>(true))
+            {
+                var materials = renderer.sharedMaterials;
+                bool changed = false;
+
+                for (int i = 0; i < materials.Length; i++)
+                {
+                    var material = materials[i];
+                    if (material == null) continue;
+
+                    var path = AssetDatabase.GetAssetPath(material);
+                    bool imported = path.EndsWith(".glb", StringComparison.OrdinalIgnoreCase);
+
+                    if (!imported)
+                    {
+                        // Ours already (a builder clone, a hand-made .mat): rebind in place.
+                        if (string.IsNullOrEmpty(path)) continue; // scene-only instance, nothing to save
+                        int n = RebindCompressed(material, ref misses);
+                        if (n > 0) { rebound += n; EditorUtility.SetDirty(material); }
+                        continue;
+                    }
+
+                    if (!clones.TryGetValue(material, out var clone))
+                    {
+                        // Probe first: is there anything to gain?
+                        var probe = new Material(material);
+                        int probeMisses = 0;
+                        int gain = RebindCompressed(probe, ref probeMisses);
+                        UnityEngine.Object.DestroyImmediate(probe);
+                        misses += probeMisses;
+
+                        clone = gain > 0 ? Clone(material, cloneFolder, prefix, written) : null;
+                        clones[material] = clone;
+                        if (clone != null)
+                        {
+                            cloned++;
+                            int m = 0;
+                            rebound += RebindCompressed(clone, ref m);
+                            log?.AppendLine($"  {prefix}: {material.name} → {clone.name} ({gain} texture slot(s) compressed)");
+                        }
+                    }
+
+                    if (clone == null) continue;
+                    materials[i] = clone;
+                    changed = true;
+                }
+
+                if (changed) renderer.sharedMaterials = materials;
+            }
+
+            return rebound;
+        }
+
+        /// <summary>
         /// Deletes anything in <paramref name="folder"/> this run did not write, and says so.
         ///
         /// A builder's material folder is build output that only that builder writes - which is also

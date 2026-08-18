@@ -29,6 +29,14 @@ namespace TheBlock.EditorTools
     public static class MissionVehicleBuilder
     {
         private const string PrefabFolder = "Assets/Prefabs/Vehicles";
+
+        /// <summary>
+        /// Clones of the .glb materials, rebound to compressed textures (U30b). Before this the
+        /// Helicopter prefab drew straight from huey.glb's sub-asset materials - 1,195 MB of raw
+        /// 4096² textures resident from boot. Same mechanism as every car builder.
+        /// </summary>
+        private const string MaterialFolder = "Assets/Materials/MissionVehicles";
+
         private const string HueyPath = "Assets/Models/Vehicles/huey.glb";
         private const string JetskiPath = "Assets/Models/Vehicles/jetski.glb";
         private const string BuoyPath = "Assets/Models/Props/buoy.glb";
@@ -301,6 +309,14 @@ namespace TheBlock.EditorTools
                 renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
                 renderer.receiveShadows = true;
             }
+
+            // Compressed twins in, raw sub-assets out - see MaterialFolder. Misses are reported, not
+            // hidden: a miss means Compress Textures has not run over this .glb yet.
+            var written = new System.Collections.Generic.HashSet<string>(System.StringComparer.Ordinal);
+            int misses = 0, cloned = 0;
+            int rebound = VehicleMaterials.RebindHierarchy(root, MaterialFolder, name, written, ref misses, ref cloned, log);
+            log.AppendLine($"  {name}: {rebound} texture slot(s) rebound onto compressed copies across {cloned} material(s)" +
+                           (misses > 0 ? $", {misses} MISS(ES) - run The Block → Compress Textures and rebuild" : string.Empty));
 
             var path = $"{PrefabFolder}/{name}.prefab";
             PrefabUtility.SaveAsPrefabAsset(root, path);

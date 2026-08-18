@@ -145,10 +145,13 @@ namespace TheBlock.EditorTools
                 light.color = TheBlockConfig.ColorFromHex(spec.Color);
                 light.intensity = spec.Intensity * InteriorLightScale;
                 light.range = spec.Distance;
-                light.shadows = LightShadows.Soft;
+                // No shadows AS BUILT. Interior.cs turns them Soft on Enter and None on Leave: the
+                // lighting is culled per object, the shadow maps are not - three shadowed point lights
+                // are 18 shadow faces a frame from a room the player is not in (U30b, first Player log).
+                light.shadows = LightShadows.None;
             }
 
-            report.Notes.Add($"Place_PizzaInterior: {cfg.Lights.Count} lamps, left on (URP culls them)");
+            report.Notes.Add($"Place_PizzaInterior: {cfg.Lights.Count} lamps, left on (URP culls them); shadows only while inside");
         }
 
         private static void BindInteriorComponent(

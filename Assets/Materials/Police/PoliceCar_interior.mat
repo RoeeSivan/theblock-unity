@@ -49,11 +49,11 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - baseColorTexture:
-        m_Texture: {fileID: -3260640993307099278, guid: 51a388594a9f9423db895f448d14948f, type: 3}
+        m_Texture: {fileID: 2800000, guid: a67ba9b9fb1d64751b500ac418151b5f, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - emissiveTexture:
-        m_Texture: {fileID: -7656184459702003963, guid: 51a388594a9f9423db895f448d14948f, type: 3}
+        m_Texture: {fileID: 2800000, guid: fcf0eb9af0e1547a2b15b683e95490fa, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - metallicRoughnessTexture:

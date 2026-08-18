@@ -49,7 +49,7 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - baseColorTexture:
-        m_Texture: {fileID: -7418166437116789001, guid: 51a388594a9f9423db895f448d14948f, type: 3}
+        m_Texture: {fileID: 2800000, guid: 45da823b095b54517a080f8316492e41, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - emissiveTexture:
@@ -57,7 +57,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - metallicRoughnessTexture:
-        m_Texture: {fileID: -6511799899745677353, guid: 51a388594a9f9423db895f448d14948f, type: 3}
+        m_Texture: {fileID: 2800000, guid: 14333fc3040ca48d1a21d5471de6dd7d, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - normalTexture:
@@ -69,7 +69,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - transmissionTexture:
-        m_Texture: {fileID: -5523929372558175593, guid: 51a388594a9f9423db895f448d14948f, type: 3}
+        m_Texture: {fileID: 2800000, guid: 82624dac53bf0469e96b065439831b20, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - unity_Lightmaps:

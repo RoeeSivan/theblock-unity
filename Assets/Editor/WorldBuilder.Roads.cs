@@ -95,6 +95,114 @@ namespace TheBlock.EditorTools
 
             // U35g: the auto shop's street is not in config.roads - see WorldBuilder.AutoShop.cs.
             if (material != null) BuildAutoShopRoads(group, material, roads.Y, report);
+
+            // U30b: three connectors the config never had - see ConnectorRoads.
+            if (material != null) BuildConnectorRoads(group, material, roads.Y, report);
+        }
+
+        /// <summary>
+        /// Streets the original never drew, because the original never had these places reachable.
+        ///
+        /// <b>Measured off the built scene, not guessed.</b> A top-down render of the district plus the
+        /// scene's own road-spline endpoints says what the gap is: <c>Road_11</c> runs south down
+        /// x≈296 and STOPS dead at z=−191, which is the parking lot's north edge; <c>Road_12</c>
+        /// starts again at (289, −301), the lot's south edge; and the gas station's forecourt begins at
+        /// x=306 with nothing but 6 m of grass between it and Road_11. So the network has two dead
+        /// ends facing each other across a car park, and a fuel stop with no approach.
+        ///
+        /// Three ribbons fix it, and the routing is chosen around what is already standing:
+        /// <list type="bullet">
+        /// <item><b>The lot bypass</b> runs at x=303, four metres OUTSIDE the lot's own east edge
+        /// (x max 299.4). Straight down x≈296 would have been shorter and would have painted asphalt
+        /// over the lot's easternmost row of parked cars - visible in the render, and the reason this
+        /// one bends.</item>
+        /// <item><b>The gas apron</b> is a 12 m stub east off Road_11 at the forecourt's own centre
+        /// line, z=−130.</item>
+        /// </list>
+        ///
+        /// <b>A third connector was built, rendered and deleted, and that is worth keeping written
+        /// down.</b> "Road_LotMouth" ran east-west across the lot to join the bypass to Road_05's stub.
+        /// It was invisible in the render for a reason the ledger already knows in another form: roads
+        /// are laid at <c>roads.y</c> = 0.02 and the parking-lot district's own surface reaches y=0.1,
+        /// so the ribbon was under it. Raising it would have worked and would still have been wrong -
+        /// it painted a carriageway straight through the marked bays. The lot is flat drivable asphalt
+        /// with no kerb, so a car leaves the bypass onto it anywhere; it needs no painted road at all.
+        ///
+        /// Not in <c>config.ts</c> and deliberately not added to it: the original repo is the spec and
+        /// is not to be edited (CLAUDE.md rule 4). Same shape as U35g's auto-shop street, which is why
+        /// it uses the same spline/ribbon path rather than a second mesh generator.
+        /// </summary>
+        private static readonly (string Name, Vector3[] Path)[] ConnectorRoads =
+        {
+            ("Road_LotBypass", new[]
+            {
+                new Vector3(295.8f, 0f, -191.4f),   // Road_11's south end
+                new Vector3(303f, 0f, -205f),
+                new Vector3(303f, 0f, -288f),
+                new Vector3(289.3f, 0f, -300.6f),   // Road_12's north end
+            }),
+            ("Road_GasApron", new[]
+            {
+                new Vector3(296.4f, 0f, -130f),     // on Road_11, at the forecourt's centre line
+                new Vector3(308f, 0f, -130f),
+            }),
+        };
+
+        /// <summary>Connectors built by an earlier run that are no longer in the table. Swept every build.</summary>
+        private static readonly string[] RetiredConnectorRoads = { "Road_LotMouth" };
+
+        /// <summary>The connectors, through the same spline/ribbon path as every config road.</summary>
+        private static void BuildConnectorRoads(Transform roads, Material material, float y, Report report)
+        {
+            float total = 0f;
+            int built = 0;
+
+            foreach (var retired in RetiredConnectorRoads)
+            {
+                var gone = roads.Find(retired);
+                if (gone != null) Object.DestroyImmediate(gone.gameObject);
+                var mesh = $"{GeneratedMeshFolder}/{retired}.asset";
+                if (AssetDatabase.LoadAssetAtPath<Mesh>(mesh) != null) AssetDatabase.DeleteAsset(mesh);
+            }
+
+            foreach (var (name, path) in ConnectorRoads)
+            {
+                var stale = roads.Find(name);
+                if (stale != null) Object.DestroyImmediate(stale.gameObject);
+
+                var points = new List<Vector3>(path.Length);
+                foreach (var p in path) points.Add(new Vector3(p.x, y, p.z));
+
+                var road = new GameObject(name);
+                road.transform.SetParent(roads, worldPositionStays: false);
+
+                var container = road.AddComponent<SplineContainer>();
+                container.Spline = BuildSpline(points);
+
+                var mesh = BuildRibbon(container.Spline, out float length);
+                if (mesh == null)
+                {
+                    report.Warnings.Add($"{name} skipped - shorter than one step");
+                    Object.DestroyImmediate(road);
+                    continue;
+                }
+
+                mesh.name = name;
+                var assetPath = $"{GeneratedMeshFolder}/{mesh.name}.asset";
+                if (AssetDatabase.LoadAssetAtPath<Mesh>(assetPath) != null) AssetDatabase.DeleteAsset(assetPath);
+                SaveGeneratedMesh(mesh, assetPath, report);
+
+                road.AddComponent<MeshFilter>().sharedMesh = mesh;
+                var renderer = road.AddComponent<MeshRenderer>();
+                renderer.sharedMaterial = material;
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; // flat on the ground
+                SetDistrictStaticFlags(road);
+
+                built++;
+                total += length;
+            }
+
+            report.Placed.Add($"Connectors {built} spline(s), {total:0} m - the lot bypass and the gas apron");
         }
 
         /// <summary>Config polyline → Unity-space points, degenerate ones dropped.</summary>

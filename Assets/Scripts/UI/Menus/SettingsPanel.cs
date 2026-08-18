@@ -54,78 +54,85 @@ namespace TheBlock.UI.Menus
             Apply(Progress.RadarOn);
         }
 
+        /// <summary>
+        /// Two columns, not one. Six rows of button + blurb stack to ~1,050 reference px in a single
+        /// column, and the panel's reference frame is 1200×800 - so on the first macOS Player
+        /// (16:10) the Audio section and Back sat below the bottom edge, unreachable. It fit in the
+        /// Editor only because the Game view there was taller. Display + Audio on the left, Gameplay
+        /// on the right, and the tallest column is ~530 px.
+        /// </summary>
         protected override void BuildContent(VisualElement overlay)
         {
             overlay.Add(MenuStyle.Wordmark("Settings", 44f));
-            overlay.Add(MenuStyle.Heading("Display"));
+
+            var columns = new VisualElement { name = "settings-columns" };
+            columns.style.flexDirection = FlexDirection.Row;
+            columns.style.alignItems = Align.FlexStart;
+            columns.style.justifyContent = Justify.Center;
+            columns.style.marginBottom = 8f;
+            overlay.Add(columns);
+
+            var left = SettingsColumn("settings-left");
+            var right = SettingsColumn("settings-right");
+            columns.Add(left);
+            columns.Add(right);
+
+            left.Add(MenuStyle.Heading("Display"));
 
             _radarButton = MenuStyle.Primary("Radar", () => Apply(!Progress.RadarOn));
-            _radarButton.style.marginBottom = 12f;
-            overlay.Add(_radarButton);
-
-            var note = MenuStyle.Body("The corner minimap. M still opens the full map with it off.");
-            note.style.maxWidth = 420f;
-            note.style.marginBottom = 22f;
-            overlay.Add(note);
+            Row(left, _radarButton, "The corner minimap. M still opens the full map with it off.");
 
             _dayNightButton = MenuStyle.Primary("Time of Day", () => ApplyDayNight(!Progress.DayNightOn));
-            _dayNightButton.style.marginBottom = 12f;
-            overlay.Add(_dayNightButton);
-
-            var dayNightNote = MenuStyle.Body(
+            Row(left, _dayNightButton,
                 "Cycle moves the sun through a 24-minute day - dawn, noon, dusk, night. " +
                 "Fixed is the daylight the game was built in, and costs nothing.");
-            dayNightNote.style.maxWidth = 420f;
-            dayNightNote.style.marginBottom = 22f;
-            overlay.Add(dayNightNote);
 
-            overlay.Add(MenuStyle.Heading("Gameplay"));
-
-            _ragdollButton = MenuStyle.Primary("Ragdolls", () => ApplyRagdolls(!Progress.RagdollsOn));
-            _ragdollButton.style.marginBottom = 12f;
-            overlay.Add(_ragdollButton);
-
-            var ragdollNote = MenuStyle.Body(
-                "Physics takes over a body that is hit by a vehicle. Off plays the animation the " +
-                "web build used instead.");
-            ragdollNote.style.maxWidth = 420f;
-            ragdollNote.style.marginBottom = 22f;
-            overlay.Add(ragdollNote);
-
-            _damageButton = MenuStyle.Primary("Vehicle Damage", () => ApplyDamage(Next(Progress.VehicleDamage)));
-            _damageButton.style.marginBottom = 12f;
-            overlay.Add(_damageButton);
-
-            var damageNote = MenuStyle.Body(
-                "Visual dents the bodywork, smokes and burns, and knocks parts off. Full lets a car " +
-                "die and explode. Off is the game as it was before.");
-            damageNote.style.maxWidth = 420f;
-            damageNote.style.marginBottom = 22f;
-            overlay.Add(damageNote);
-
-            _propsButton = MenuStyle.Primary("Street Props", () => ApplyProps(!Progress.BreakablePropsOn));
-            _propsButton.style.marginBottom = 12f;
-            overlay.Add(_propsButton);
-
-            var propsNote = MenuStyle.Body(
-                "Cones, bins and benches at the kerb that cars send flying, and traffic lights that " +
-                "topple when rammed. Off is the game as it was.");
-            propsNote.style.maxWidth = 420f;
-            propsNote.style.marginBottom = 22f;
-            overlay.Add(propsNote);
-
-            overlay.Add(MenuStyle.Heading("Audio"));
+            left.Add(MenuStyle.Heading("Audio"));
 
             _soundButton = MenuStyle.Primary("Sound", () => ApplySound(!Mute.SoundOn));
-            _soundButton.style.marginBottom = 12f;
-            overlay.Add(_soundButton);
+            Row(left, _soundButton, "Silences everything - engines, sirens, music, voices. N toggles it in play.");
 
-            var soundNote = MenuStyle.Body("Silences everything - engines, sirens, music, voices. N toggles it in play.");
-            soundNote.style.maxWidth = 420f;
-            soundNote.style.marginBottom = 22f;
-            overlay.Add(soundNote);
+            right.Add(MenuStyle.Heading("Gameplay"));
+
+            _ragdollButton = MenuStyle.Primary("Ragdolls", () => ApplyRagdolls(!Progress.RagdollsOn));
+            Row(right, _ragdollButton,
+                "Physics takes over a body that is hit by a vehicle. Off plays the animation the " +
+                "web build used instead.");
+
+            _damageButton = MenuStyle.Primary("Vehicle Damage", () => ApplyDamage(Next(Progress.VehicleDamage)));
+            Row(right, _damageButton,
+                "Visual dents the bodywork, smokes and burns, and knocks parts off. Full lets a car " +
+                "die and explode. Off is the game as it was before.");
+
+            _propsButton = MenuStyle.Primary("Street Props", () => ApplyProps(!Progress.BreakablePropsOn));
+            Row(right, _propsButton,
+                "Cones, bins and benches at the kerb that cars send flying, and traffic lights that " +
+                "topple when rammed. Off is the game as it was.");
 
             overlay.Add(MenuStyle.Secondary("Back", Close));
+        }
+
+        private static VisualElement SettingsColumn(string name)
+        {
+            var column = new VisualElement { name = name };
+            column.style.flexDirection = FlexDirection.Column;
+            column.style.alignItems = Align.Center;
+            column.style.width = 420f;
+            column.style.marginLeft = 24f;
+            column.style.marginRight = 24f;
+            return column;
+        }
+
+        /// <summary>One setting: the toggle button and the blurb under it, spaced like every row was.</summary>
+        private static void Row(VisualElement column, Button button, string blurb)
+        {
+            button.style.marginBottom = 12f;
+            column.Add(button);
+
+            var note = MenuStyle.Body(blurb);
+            note.style.maxWidth = 420f;
+            note.style.marginBottom = 22f;
+            column.Add(note);
         }
 
         private void Apply(bool radarOn)

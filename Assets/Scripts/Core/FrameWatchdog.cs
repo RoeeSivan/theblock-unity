@@ -24,7 +24,11 @@ namespace TheBlock.Core
     /// measure it, pause on the frame. This is the same instrument pointed at memory. It is
     /// deliberately general - every unit after this one gets it for free.
     ///
-    /// Editor-only by construction: the auto-install is compiled out of a player build.
+    /// Auto-installs in the Editor and in a <b>Development Build</b>, and is compiled out of a
+    /// release Player. U30b measures on the Player rather than the Editor (the ledger's rule), and
+    /// the Player needs the same census lines in <c>Player.log</c> or there is nothing to read
+    /// after a run. <c>SkinWatchdog</c> stays Editor-only: it pauses the Editor, which a Player
+    /// cannot do.
     /// </summary>
     [DisallowMultipleComponent]
     public class FrameWatchdog : MonoBehaviour
@@ -53,7 +57,7 @@ namespace TheBlock.Core
         private long _lastTextureBytes;
         private int _hitches;
 
-#if UNITY_EDITOR
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         /// <summary>Installs itself when Play starts. Nothing to add to a scene, nothing to forget.</summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Install()

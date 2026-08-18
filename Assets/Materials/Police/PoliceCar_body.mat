@@ -40,7 +40,7 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - baseColorTexture:
-        m_Texture: {fileID: -5390149515647955136, guid: 51a388594a9f9423db895f448d14948f, type: 3}
+        m_Texture: {fileID: 2800000, guid: 7cfc47bf4a07c47b6ad32c951d18c805, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - emissiveTexture:
@@ -48,7 +48,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - metallicRoughnessTexture:
-        m_Texture: {fileID: -8333767756695452246, guid: 51a388594a9f9423db895f448d14948f, type: 3}
+        m_Texture: {fileID: 2800000, guid: 0996bf79479d841b0ab3897204ebaeed, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - normalTexture:

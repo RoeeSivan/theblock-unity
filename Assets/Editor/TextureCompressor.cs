@@ -53,13 +53,21 @@ namespace TheBlock.EditorTools
         /// <summary>
         /// Textures below this are left alone.
         ///
-        /// The world's 393 textures are dominated by a handful of huge atlases: 21 at 16000x2000,
-        /// 101 at 2048², 40 at 2000². Everything from 1 MP up is 96% of the memory, and the tail
-        /// below it is ~200 MB in total - not worth a second copy on disk, an import round-trip, or
-        /// the ambiguity risk below, since duplicate image names cluster in exactly that tail
-        /// (there are seven images called "Untitled" in city 4 alone, all 512² or 1024²).
+        /// <b>Was 1 MP until U30b, and the reasoning was measured wrong.</b> U15 argued the tail under
+        /// 1 MP was "~200 MB in total - not worth a second copy on disk". The first Player census
+        /// counted it: 128 .glb sub-asset textures from the six procedural districts still resident
+        /// raw, <b>608 MB</b> - because a 1000×1000 RGB24 with mips is 5.3 MB and an ARGB32 one 10 MB,
+        /// and there are a lot of them (Street_Mashup 1000², ConcretePlates 1024², decal sheets
+        /// 1024×682, road roughness 1024×512 …). At 6:1 that tail is ~100 MB compressed. The floor is
+        /// now 256², under which a texture is ≤ 350 KB and genuinely not worth the round-trip.
+        ///
+        /// The ambiguity risk that argued for the high floor is handled where it lives, in
+        /// <see cref="ResolveImageIndex"/>: a texture whose name, size and alpha match more than one
+        /// embedded image is left uncompressed rather than guessed. Lowering the floor cannot make
+        /// that pick wrong, it can only make it decline more often - and a declined texture is
+        /// exactly as it was.
         /// </summary>
-        public const int SkipBelowPixels = 1024 * 1024;
+        public const int SkipBelowPixels = 256 * 256;
 
         /// <summary>
         /// glTFast appends this when one glTF image is sampled through more than one sampler, so the
