@@ -134,17 +134,19 @@ namespace TheBlock.EditorTools
             // points actually are in the world rather than where they are in the file.
             var nodes = NodeIndex(instance);
             var talk = FalafelNode(nodes, FalafelSpec.TalkNode, report);
+            var counter = FalafelNode(nodes, FalafelSpec.CounterNode, report);
             var vendorAt = FalafelNode(nodes, FalafelSpec.VendorNode, report);
 
             foreach (Transform child in instance.transform) SetDistrictStaticFlags(child.gameObject);
 
             BuildFalafelVendor(places, vendorAt, report);
-            BindFalafelRun(instance, talk, report);
+            BindFalafelRun(instance, counter, talk, report);
 
             report.Placed.Add(
                 $"{instance.name} @ {Fmt(instance.transform.position)} yaw {instance.transform.eulerAngles.y:0.#}° " +
                 $"({instance.GetComponentsInChildren<MeshFilter>(true).Length} meshes, FalafelRun on it, " +
-                $"talk point {Fmt(talk != null ? talk.position : Vector3.zero)} r{FalafelSpec.TalkRadius:0.#})");
+                $"counter {Fmt(counter != null ? counter.position : Vector3.zero)} r{FalafelSpec.CounterRadius:0.#}, " +
+                $"nudge {Fmt(talk != null ? talk.position : Vector3.zero)} r{FalafelSpec.TalkRadius:0.#})");
             return instance;
         }
 
@@ -216,10 +218,12 @@ namespace TheBlock.EditorTools
         /// HUD, the wallet, the bust - it finds in its own Awake; the talk point is the one fact
         /// that belongs to this model, so it is the only thing handed over.
         /// </summary>
-        private static void BindFalafelRun(GameObject instance, Transform talk, Report report)
+        private static void BindFalafelRun(
+            GameObject instance, Transform counter, Transform talk, Report report)
         {
             var run = instance.AddComponent<FalafelRun>();
             var serialized = new SerializedObject(run);
+            serialized.FindProperty("counterPoint").objectReferenceValue = counter;
             serialized.FindProperty("talkPoint").objectReferenceValue = talk;
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
@@ -240,9 +244,12 @@ namespace TheBlock.EditorTools
                     $"falafel customers - no prefab for {string.Join(", ", missing)}. " +
                     "Run The Block → Build Pedestrians; those drops will be a beacon with nobody under it.");
 
+            if (counter == null)
+                report.Warnings.Add(
+                    $"{FalafelSpec.ObjectName}: no counter point - rounds cannot be ordered at all");
             if (talk == null)
                 report.Warnings.Add(
-                    $"{FalafelSpec.ObjectName}: no talk point - rounds cannot be started at the stand");
+                    $"{FalafelSpec.ObjectName}: no talk point - the stand gives no sign it is open");
         }
     }
 }

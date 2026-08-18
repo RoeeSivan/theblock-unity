@@ -45,7 +45,10 @@ namespace TheBlock.Missions
     public class FalafelRun : MissionBehaviour
     {
         [Header("The stand - written by Build Falafel Stand")]
-        [Tooltip("fh_talk, the marker node on the pavement in front of the open bay.")]
+        [Tooltip("fh_counter, inside at the counter - where a round is actually ordered.")]
+        [SerializeField] private Transform counterPoint;
+
+        [Tooltip("fh_talk, out on the pavement. Only draws the 'go inside' nudge.")]
         [SerializeField] private Transform talkPoint;
 
         [Tooltip("Customer faces, cycled per drop. Deliberately NOT the pizza run's five.")]
@@ -180,11 +183,42 @@ namespace TheBlock.Missions
         // ── the stand ─────────────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Close enough to the counter to be served.
+        /// Standing in the shop, on foot.
         ///
-        /// <b>The same predicate behind both the prompt and the action</b>, the rule
-        /// <c>Interior.NearCounter</c> and <c>AutoShop.CanPaint</c> both keep - a prompt that offers
-        /// a key the key does not answer is the failure this arrangement exists to prevent.
+        /// <b>Two tests, and the second is not belt-and-braces.</b> The whole front of the stand is
+        /// an open bay, so a distance to the counter alone would be satisfied by someone leaning on
+        /// the glass from the pavement - and "he has to be inside" would be a lie the first time
+        /// anyone tried it. The box is the model's own footprint, applied in LOCAL space
+        /// (<c>InverseTransformPoint</c>) because the stand is yawed and nothing should have to be
+        /// re-derived if it is ever moved.
+        ///
+        /// On foot, because you cannot drive through a doorway 1.6 m wide - and because the round is
+        /// ordered from a counter, not a window.
+        /// </summary>
+        public bool Inside
+        {
+            get
+            {
+                if (_player == null) return false;
+                if (_vehicles != null && _vehicles.Mode != GameMode.OnFoot) return false;
+                var local = transform.InverseTransformPoint(_player.position);
+                return FalafelSpec.Interior.Contains(local);
+            }
+        }
+
+        /// <summary>
+        /// Inside AND at the counter - the one predicate behind both the prompt and the action, the
+        /// rule <c>Interior.NearCounter</c> and <c>AutoShop.CanPaint</c> both keep. A prompt that
+        /// offers a key the key does not answer is the failure this arrangement exists to prevent.
+        /// </summary>
+        public bool AtCounter =>
+            counterPoint != null && Inside &&
+            Flat(_player.position - counterPoint.position).sqrMagnitude <
+                FalafelSpec.CounterRadius * FalafelSpec.CounterRadius;
+
+        /// <summary>
+        /// Out on the pavement by the stand - the range of the "go inside" nudge and nothing more.
+        /// Measured from the vehicle while driving, so it reaches a rider who has pulled up.
         /// </summary>
         public bool AtStand =>
             talkPoint != null &&
@@ -354,14 +388,30 @@ namespace TheBlock.Missions
             if (keyboard != null && keyboard.fKey.wasPressedThisFrame) TryDeliver();
         }
 
+        /// <summary>
+        /// The counter, which is the only place a round can be ordered - the user's call after
+        /// playing the kerbside version: <i>"in order to start the mission he needs to be inside"</i>.
+        ///
+        /// The outside line is a NUDGE at door priority, not an offer: it names the key it cannot
+        /// answer nowhere, it says where to go. Without it a rider pulls up to a shop that gives no
+        /// sign it is open, which is exactly how a job goes unnoticed.
+        /// </summary>
         private void TickStand()
         {
-            if (!AtStand || !CanStart) return;
+            if (!CanStart) return;
 
-            _hud?.SetPrompt($"Press T for a falafel round - {FalafelSpec.DropsFor(level)} orders, ${Pay}");
+            if (AtCounter)
+            {
+                _hud?.SetPrompt($"Press T for a falafel round - {FalafelSpec.DropsFor(level)} orders, ${Pay}");
 
-            var keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.tKey.wasPressedThisFrame) Enter();
+                var keyboard = Keyboard.current;
+                if (keyboard != null && keyboard.tKey.wasPressedThisFrame) Enter();
+                return;
+            }
+
+            if (AtStand)
+                _hud?.SetPrompt("Falafel HaPaamonim - step inside to order a round",
+                    MissionHud.PromptDoor);
         }
 
         /// <summary>

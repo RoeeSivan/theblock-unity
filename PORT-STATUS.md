@@ -306,8 +306,39 @@ pizzeria cashier only looks right because her Mixamo rig binds in an A-pose.
 open with a modal), and no `F`-retry (`F` is the campaign's retry key; a repeatable job does not need
 one - you walk back to the stand).
 
-**The one number still on feel:** `TalkRadius = 6`. Derived, not guessed, but only the play-test says
-whether taking an order from the saddle feels right.
+#### U37a, 2026-08-18 - the order is placed INSIDE, at the counter - the user's call after playing it
+
+*"tested and its working really good, lets do that our character will have the ability to go inside
+and in order to start the mission he needs to be inside. we want to be able to see the person behind
+the cashier."* U37 shipped taking the order **from the saddle** at `TalkRadius`, argued for on
+ergonomics. Played, and reversed: the shop has an interior, and a job you order through a window
+never makes anyone look at it.
+
+- **A fourth marker**, `fh_counter`, at Blender `(0.90, 0.60)` - on the customer's side of the
+  counter, 1.55 m from the vendor, so the two face each other across it.
+- **`Inside` is a BOX, not a radius**, and the geometry is why: the whole front is an open bay, so a
+  distance to the counter alone is satisfied by someone leaning on the glass from the pavement -
+  which would have made "he has to be inside" a lie the first time anyone tried it. The test is the
+  model's own footprint in **local** space (`InverseTransformPoint`), so the yaw costs nothing and
+  moving the stand re-derives nothing. Same answer `SevenEleven` reached for its sales floor.
+  Plus `Mode == OnFoot`: the doorway is 1.6 m and you cannot drive through it.
+- **`TalkRadius` is demoted to a nudge**, at `PromptDoor` priority: *"Falafel HaPaamonim - step
+  inside to order a round"*. It is not the offer any more, but deleting it would leave a rider
+  pulling up to a shop that gives no sign it is open.
+
+**Measured in Play before hand-off, and one of the three answers a real question:** the floor reads
+**0.16 outside, in the doorway and inside** - flat, no step to trip the CharacterController; a
+`CapsuleCast` of the player's own 0.30 × 1.80 capsule through the door gap is **clear over 3.90 m**;
+and standing at `fh_counter` gives `inside=True atCounter=True`, with all three false out in the
+street. Ordering from the counter ran a full round, `$0 → $40`, level → 2. **The vendor is framed
+from the player's eye height at the counter** - head, torso and the menu board behind him.
+
+⚠ **The first walk-in sweep reported BLOCKED and it was the test, not the door**: the capsule was
+started with its base at y 0, below the 0.16 pavement, so it opened already inside the floor mesh.
+A sweep has to start standing on the ground.
+
+**The one number still on feel:** `CounterRadius = 2.2`, and whether the walk in from a parked bike
+is a beat or a chore.
 
 ### U30b round 2, 2026-08-18 (`347afdc`) - the solo half, and it found the real bound: the frame is GEOMETRY, not memory and not pixels
 

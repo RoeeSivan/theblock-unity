@@ -729,7 +729,8 @@ SHELL = "FalafelStand_Shell"
 # rotation of his own, only the place's yaw.
 MARKERS = [
     ("fh_vendor", (0.90, 2.15, 0.0)),    # behind the counter, facing the customer
-    ("fh_talk", (-0.15, -3.50, 0.0)),    # in front of the open bay, under the canopy
+    ("fh_counter", (0.90, 0.60, 0.0)),   # INSIDE, at the counter - where an order is placed
+    ("fh_talk", (-0.15, -3.50, 0.0)),    # outside under the canopy - only the "go in" nudge
     ("fh_pin", (0.0, 0.0, 0.0)),         # the map pin - the footprint's centre
 ]
 
