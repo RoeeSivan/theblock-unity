@@ -6,6 +6,28 @@
 // tide line lands exactly at the waterline rather than near it. No textures.
 //
 // Handedness: _ShoreX is Unity-space and the sea is at LARGER x. See TheBlock.World.SeaGeometry.
+//
+// ⚠ THE FOUR PASSES ARE NOT OPTIONAL, and this is the bug the user reported as "a black strip"
+// (2026-08-18). This shader used to be ONE pass plus `UsePass` for ShadowCaster and DepthOnly, and
+// it had no DepthNormals pass at all. The project's URP renderer runs SSAO with Source =
+// DepthNormals, so the AO prepass builds `_CameraNormalsTexture` from whatever every DepthNormals
+// pass writes - and a surface that writes nothing leaves garbage under its own pixels. URP then
+// does, inside UniversalFragmentPBR:
+//
+//     mainLight.color *= aoFactor.directAmbientOcclusion;
+//
+// so the SUN was multiplied to nothing and the sand was lit by sky ambient alone. Measured: albedo
+// (0.87, 0.78, 0.52) - correct gold - coming out as (0.345, 0.376, 0.318), a ratio of
+// (0.14, 0.21, 0.37) that is blue-dominant because it IS the sky. The beach was never the wrong
+// colour; it was the only lit surface in the game with no sun on it.
+//
+// `TheBlock/Water` never showed this because it does not declare _SCREEN_SPACE_OCCLUSION at all, so
+// nothing multiplies its light. That is why the sea looked right next to sand that did not, and why
+// this read as a beach problem for so long.
+//
+// The passes are also all written out - rather than `UsePass`ed from URP/Lit - so that every one of
+// them declares the SAME UnityPerMaterial CBUFFER. That is what the SRP Batcher requires, and
+// `UsePass` brought in URP/Lit's own layout, which never matched this one.
 Shader "TheBlock/Beach"
 {
     Properties
@@ -29,15 +51,47 @@ Shader "TheBlock/Beach"
         _DeepY ("Seabed depth", Float) = -3
         _Level ("Sea level", Float) = 0
 
-        // The dry-sand berm. Without it `depth` is 0 across every metre of dry sand and the wet band
-        // resolves to 0.54 everywhere, so the gold above is never drawn. See TheBlock.World.SeaGeometry.
-        _BermRun ("Berm run (dry width)", Float) = 25
-        _BermHeight ("Berm crest height", Float) = 1.2
+        // How far inland the sand stays wet. Flat dry sand puts `depth` at 0 everywhere, and the
+        // config's own wet band reads 0.54 there - the whole beach half-wet, gold never drawn - so the
+        // tide line is measured as a DISTANCE from the waterline. See TheBlock.World.SeaGeometry.
+        _TideRun ("Tide line run (m inland)", Float) = 5
+
+        // Diagnostic, and it stays because it is what found the SSAO fault above in one pass instead
+        // of an afternoon. 0 in every shipped material - a branch on a uniform, which every GPU here
+        // resolves for free. 1 = albedo only, 2 = lit but unfogged, 3 = the fog factor, 4 = the world
+        // normal. Set it from the material inspector or `material.SetFloat("_Debug", n)`.
+        _Debug ("Debug channel", Float) = 0
     }
 
     SubShader
     {
         Tags { "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" }
+
+        HLSLINCLUDE
+        #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+        // ONE layout, shared by every pass below. The SRP Batcher compares these across passes and
+        // drops the whole shader if they differ - which is what `UsePass "…/Lit/ShadowCaster"` did.
+        CBUFFER_START(UnityPerMaterial)
+            float4 _DryColor;
+            float4 _DryShadowColor;
+            float4 _WetColor;
+            float _GrainScale;
+            float _GrainStrength;
+            float _BlotchScale;
+            float _BlotchStrength;
+            float _WetBandDry;
+            float _WetBandSea;
+            float _DryRoughness;
+            float _WetRoughness;
+            float _ShoreX;
+            float _WadeRun;
+            float _DeepY;
+            float _Level;
+            float _TideRun;
+            float _Debug;
+        CBUFFER_END
+        ENDHLSL
 
         Pass
         {
@@ -53,28 +107,7 @@ Shader "TheBlock/Beach"
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
             #pragma multi_compile_fog
 
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
-
-            CBUFFER_START(UnityPerMaterial)
-                float4 _DryColor;
-                float4 _DryShadowColor;
-                float4 _WetColor;
-                float _GrainScale;
-                float _GrainStrength;
-                float _BlotchScale;
-                float _BlotchStrength;
-                float _WetBandDry;
-                float _WetBandSea;
-                float _DryRoughness;
-                float _WetRoughness;
-                float _ShoreX;
-                float _WadeRun;
-                float _DeepY;
-                float _Level;
-                float _BermRun;
-                float _BermHeight;
-            CBUFFER_END
 
             struct Attributes
             {
@@ -118,16 +151,13 @@ Shader "TheBlock/Beach"
             {
                 float3 positionWS = input.positionWS;
 
-                // Wet factor: 0 a little landward of the shore, 1 once under water. The landward half
-                // is the BERM, and it is what makes the dry side genuinely dry - a flat 0 there puts
-                // `depth` at 0 over the whole beach, and smoothstep(-0.6, 0.5, 0) is 0.54, so all of
-                // it renders half-wet. Mirrors SeaGeometry.SeabedHeight exactly; the two must agree
-                // or the tide line does not sit on the mesh's own shape.
-                float seabed = positionWS.x <= _ShoreX
-                    ? _BermHeight * sin(saturate((_ShoreX - positionWS.x) / max(0.0001, _BermRun)) * 3.14159265)
-                    : _DeepY * min((positionWS.x - _ShoreX) / _WadeRun, 1.0);
-                float depth = _Level - seabed;
-                float wet = smoothstep(-_WetBandDry, _WetBandSea, depth);
+                // Wet factor, measured as a DISTANCE inland from the waterline rather than from the
+                // seabed's height. Dry sand is flat at y 0 and so is sea level, so a height-based band
+                // reads 0.54 over the entire beach and the gold is never drawn anywhere - see
+                // SeaGeometry.TideRun. `max(s, 0)` keeps everything at or past the waterline fully
+                // wet, which makes the two sides continuous at the shore with no seam.
+                float inland = _ShoreX - positionWS.x;
+                float wet = 1.0 - smoothstep(0.0, max(0.0001, _TideRun), max(inland, 0.0));
 
                 float blotch = BeachNoise(positionWS.xz / _BlotchScale);
                 float3 drySand = lerp(_DryColor.rgb, _DryShadowColor.rgb, blotch * _BlotchStrength);
@@ -151,15 +181,143 @@ Shader "TheBlock/Beach"
                 inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(input.positionCS);
 
                 half4 color = UniversalFragmentPBR(inputData, surface);
+
+                if (_Debug > 0.5)
+                {
+                    if (_Debug < 1.5) return half4(sand, 1);
+                    if (_Debug < 2.5) return half4(color.rgb, 1);
+                    if (_Debug < 3.5) return half4(input.fogFactor.xxx, 1);
+                    return half4(inputData.normalWS * 0.5 + 0.5, 1);
+                }
+
                 color.rgb = MixFog(color.rgb, input.fogFactor);
                 return color;
             }
             ENDHLSL
         }
 
-        // Sand takes shadows and casts them - the wall of a dune reads wrong without this.
-        UsePass "Universal Render Pipeline/Lit/ShadowCaster"
-        UsePass "Universal Render Pipeline/Lit/DepthOnly"
+        // The pass whose absence made the sand dark. SSAO's DepthNormals source builds
+        // `_CameraNormalsTexture` from these, and a surface that never writes one is occluded by
+        // whatever was left in the buffer - which URP then multiplies the SUN by.
+        Pass
+        {
+            Name "DepthNormals"
+            Tags { "LightMode" = "DepthNormals" }
+
+            ZWrite On
+            Cull Back
+
+            HLSLPROGRAM
+            #pragma vertex DepthNormalsVert
+            #pragma fragment DepthNormalsFrag
+
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderVariablesFunctions.hlsl"
+
+            struct DepthNormalsAttributes
+            {
+                float4 positionOS : POSITION;
+                float3 normalOS : NORMAL;
+            };
+
+            struct DepthNormalsVaryings
+            {
+                float4 positionCS : SV_POSITION;
+                float3 normalWS : TEXCOORD0;
+            };
+
+            DepthNormalsVaryings DepthNormalsVert(DepthNormalsAttributes input)
+            {
+                DepthNormalsVaryings output = (DepthNormalsVaryings)0;
+                output.positionCS = TransformObjectToHClip(input.positionOS.xyz);
+                output.normalWS = TransformObjectToWorldNormal(input.normalOS);
+                return output;
+            }
+
+            half4 DepthNormalsFrag(DepthNormalsVaryings input) : SV_Target
+            {
+                return half4(NormalizeNormalPerPixel(input.normalWS), 0.0);
+            }
+            ENDHLSL
+        }
+
+        // Written out rather than `UsePass`ed, so it shares the CBUFFER above - see the header.
+        Pass
+        {
+            Name "ShadowCaster"
+            Tags { "LightMode" = "ShadowCaster" }
+
+            ZWrite On
+            ZTest LEqual
+            ColorMask 0
+            Cull Back
+
+            HLSLPROGRAM
+            #pragma vertex ShadowVert
+            #pragma fragment ShadowFrag
+            #pragma multi_compile_vertex _ _CASTING_PUNCTUAL_LIGHT_SHADOW
+
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
+
+            float3 _LightDirection;
+            float3 _LightPosition;
+
+            struct ShadowAttributes
+            {
+                float4 positionOS : POSITION;
+                float3 normalOS : NORMAL;
+            };
+
+            float4 ShadowVert(ShadowAttributes input) : SV_POSITION
+            {
+                float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
+                float3 normalWS = TransformObjectToWorldNormal(input.normalOS);
+
+                #if _CASTING_PUNCTUAL_LIGHT_SHADOW
+                    float3 lightDirectionWS = normalize(_LightPosition - positionWS);
+                #else
+                    float3 lightDirectionWS = _LightDirection;
+                #endif
+
+                float4 positionCS = TransformWorldToHClip(
+                    ApplyShadowBias(positionWS, normalWS, lightDirectionWS));
+
+                #if UNITY_REVERSED_Z
+                    positionCS.z = min(positionCS.z, UNITY_NEAR_CLIP_VALUE);
+                #else
+                    positionCS.z = max(positionCS.z, UNITY_NEAR_CLIP_VALUE);
+                #endif
+
+                return positionCS;
+            }
+
+            half4 ShadowFrag() : SV_Target { return 0; }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "DepthOnly"
+            Tags { "LightMode" = "DepthOnly" }
+
+            ZWrite On
+            ColorMask R
+            Cull Back
+
+            HLSLPROGRAM
+            #pragma vertex DepthOnlyVert
+            #pragma fragment DepthOnlyFrag
+
+            struct DepthOnlyAttributes { float4 positionOS : POSITION; };
+
+            float4 DepthOnlyVert(DepthOnlyAttributes input) : SV_POSITION
+            {
+                return TransformObjectToHClip(input.positionOS.xyz);
+            }
+
+            half4 DepthOnlyFrag() : SV_Target { return 0; }
+            ENDHLSL
+        }
     }
 
     FallBack "Universal Render Pipeline/Lit"

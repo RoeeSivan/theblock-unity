@@ -17,52 +17,41 @@ namespace TheBlock.World
     public static class SeaGeometry
     {
         /// <summary>
-        /// Crest height of the dry-sand BERM, metres above the city ground.
+        /// How wide the wet tide line is, in metres landward of the waterline.
         ///
-        /// <b>This is a Unity-side addition, and it is a bug fix rather than a flourish.</b> The web
-        /// build returns a flat 0 for every metre of dry sand, and both beach shaders key their wet
-        /// band off <c>depth = level - seabed</c>. Flat sand therefore sits at <c>depth = 0</c> from
-        /// the waterline to the city, and <c>smoothstep(-wetBandDry, wetBandSea, 0)</c> is <b>0.54</b>
-        /// - so every pixel of "dry" sand renders 54% blended into the dark wet tone, uniformly, with
-        /// no tide line anywhere. The gold <c>beach.look.dryColor</c> the config carries can never be
-        /// drawn at all. That is why the strip reads dull and dark instead of sandy.
+        /// <b>Why the sand needs this at all.</b> Both beach shaders - the web's and this port's -
+        /// used to key their wet band off <c>depth = level - seabed</c>. Dry sand is flat at 0 and sea
+        /// level is 0, so <c>depth</c> is exactly 0 across every metre of it and
+        /// <c>smoothstep(-wetBandDry, wetBandSea, 0)</c> is <b>0.54</b>: the whole beach renders 54%
+        /// blended into the dark wet tone, uniformly, with no tide line anywhere, and the gold
+        /// <c>beach.look.dryColor</c> the config carries is never drawn on a single pixel.
         ///
-        /// Giving the sand a berm - it rises off the waterline, crests, and comes back down to meet
-        /// the city ground - makes <c>depth</c> genuinely negative across most of the beach, which is
-        /// what the wet band was written to expect. It also happens to be what a real beach looks
-        /// like, and the tide line lands where the water is instead of covering everything.
+        /// A seabed height cannot express "how far from the water am I" on flat ground, so the shader
+        /// measures that distance directly instead. Everything at or past the waterline is soaked;
+        /// the sand dries out over this run. 5 m against a 25 m beach leaves most of it dry gold with
+        /// a band of damp sand at the water, which is what a beach looks like.
         ///
-        /// Sized against <c>beach.look.wetBandDry</c> (0.6 m): the crest has to clear it by enough
-        /// that the middle of the beach is fully dry. At 1.2 m over a 25 m run that is the inner ~67%
-        /// of the sand, with a ~4 m tide line at the water - and an 11% grade, which a car climbs
-        /// without noticing.
+        /// ⚠ A geometric BERM was tried first (2026-08-18) and reverted the same hour. It worked, and
+        /// it cost more than it was worth: raising the sand 1.2 m buried everything any builder had
+        /// placed on the beach at y 0 - the U27 Beach Dancer measured 1.12 m under the surface - and
+        /// every one of those would have needed its own fix. The dark sand turned out not to be the
+        /// wet band's fault anyway; see the header of <c>Beach.shader</c>.
         /// </summary>
-        public const float BermHeight = 1.2f;
+        public const float TideRun = 5f;
 
         /// <summary>Waterline X in Unity space.</summary>
         public static float ShoreX(TheBlockConfig.SeaSpec sea) => Convert.Pos(sea.ShoreX, 0f, 0f).x;
 
         /// <summary>
-        /// Seabed height (world Y) at a Unity world X. Landward of the shore the dry sand rises to a
-        /// berm and falls back to 0 at the city ground; seaward it is a linear ramp down to
-        /// <c>beach.deepY</c> over <c>beach.wadeRun</c> metres, flat again past the ramp's foot.
-        ///
-        /// A half sine is the berm's profile because BOTH ends have to be pinned: 0 at the waterline
-        /// (or the tide line starts on a step) and 0 at the landward edge (or the beach meets the
-        /// city as a 1.2 m cliff). Anything that only ramps up leaves one of those two.
+        /// Seabed height (world Y) at a Unity world X. Flat at 0 landward of the shore - dry sand,
+        /// flush with the city ground, and flush with everything placed on it - then a linear ramp
+        /// down to <c>beach.deepY</c> over <c>beach.wadeRun</c> metres, flat again past the ramp's
+        /// foot.
         /// </summary>
         public static float SeabedHeight(TheBlockConfig.SeaSpec sea, float unityX)
         {
             var shore = ShoreX(sea);
-            if (unityX <= shore)
-            {
-                // Landward: the dry-sand berm. `dryWidth` is the whole run from the waterline to the
-                // city ground, and it is the same number BuildBeach cuts the mesh's landward edge on.
-                var run = Mathf.Max(0.0001f, sea.Beach.DryWidth);
-                var rise = Mathf.Clamp01((shore - unityX) / run);
-                return BermHeight * Mathf.Sin(rise * Mathf.PI);
-            }
-
+            if (unityX <= shore) return 0f; // landward: dry sand at the waterline height
             var t = Mathf.Min((unityX - shore) / sea.Beach.WadeRun, 1f);
             return sea.Beach.DeepY * t;
         }

@@ -312,13 +312,11 @@ namespace TheBlock.EditorTools
             material.SetFloat("_DeepY", sea.Beach.DeepY);
             material.SetFloat("_Level", sea.Level);
 
-            // The berm is the LANDWARD half of the same ramp and belongs to the same set of numbers:
-            // the sand mesh is built from it and the sand shader reads its wet band off it, so a
-            // mismatch is a tide line that does not sit on the beach's own shape. The water shader
-            // has no such properties and never looks landward of the shore; SetFloat on a property a
-            // shader lacks is a silent no-op, which is exactly the behaviour wanted here.
-            material.SetFloat("_BermRun", sea.Beach.DryWidth);
-            material.SetFloat("_BermHeight", SeaGeometry.BermHeight);
+            // The tide line belongs to the same set: it is measured from the very `_ShoreX` above, so
+            // a mismatch is damp sand that does not meet the water. The water shader has no such
+            // property and never looks landward of the shore; SetFloat on a property a shader lacks
+            // is a silent no-op, which is exactly the behaviour wanted here.
+            material.SetFloat("_TideRun", SeaGeometry.TideRun);
         }
 
         /// <summary>
