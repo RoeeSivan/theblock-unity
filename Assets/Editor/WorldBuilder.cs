@@ -260,7 +260,7 @@ namespace TheBlock.EditorTools
             // U35h - after traffic, because the bins stand beside the poles it just placed and the
             // cones and benches read the network it just baked; and inside the build at all so the
             // prop prefabs' compressed-material clones are re-emitted before SweepGenerated runs.
-            BuildProps(root.transform, snapshot.Config, options, report);
+            BuildProps(root.transform, snapshot.Config, snapshot.Npc, options, report);
 
             if (options.Navigation)
                 BuildNavigation(root.transform, districts, snapshot.Config, trafficGraph, options, report);

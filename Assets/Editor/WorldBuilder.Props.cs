@@ -22,14 +22,21 @@ namespace TheBlock.EditorTools
     ///    the pavement and 0.8 m upstream, so 70 bins land where 70 poles already proved the kerb is;
     ///  * <b>cones</b> - a row of four along the kerb in front of the gas station and the auto shop,
     ///    on the road side of the pole line;
-    ///  * <b>benches</b> - two per anchor place (7-Eleven, pizza place, gas station, auto shop), on
-    ///    the pavement facing the road, either side of the place's own frontage.
+    ///  * <b>benches</b> - a row down each pavement of the downtown avenue, the boulevard: one every
+    ///    <see cref="BenchSpacing"/> m along the two long crowd strips of <c>npc.config.ts</c>
+    ///    (<c>west</c> and <c>east</c>, ~280 m each), set <see cref="BenchStripInset"/> m to the
+    ///    building side of the walkers' line and facing the road, skipping any place's frontage.
     ///
     /// "In front of" is the nearest point on the traffic network's centreline to the place's
     /// footprint, and "the pavement" is <c>lights.sideOffset</c> from that centreline - the same
-    /// number that put the poles at the kerb. Every candidate is snapped with <c>GroundY</c> and
-    /// tested with an overlap box against the world; anything inside a building or off the plate is
-    /// dropped and reported, never placed. The counts are the perf knob and the report prints them.
+    /// number that put the poles at the kerb. <b>Not on the avenue</b>: its one centreline runs
+    /// down the MEDIAN of a divided road, so <c>sideOffset</c> from it is the inner lane, which is
+    /// where the first cut's pizza-place benches stood (the user: "on the road, not the boulevard").
+    /// The benches therefore take their line from the crowd strips - the pavement the crowd
+    /// already proved walkable - not from the network. Every candidate is snapped with
+    /// <c>GroundY</c> and tested with an overlap box against the world; anything inside a building
+    /// or off the plate is dropped and reported, never placed. The counts are the perf knob and the
+    /// report prints them.
     ///
     /// Runs inside <b>Build World</b> (after traffic, because the bins need the poles and the
     /// compressed-texture material clones must be re-emitted or <c>SweepGenerated</c> deletes them)
@@ -51,9 +58,25 @@ namespace TheBlock.EditorTools
         private const float ConeSpacing = 1.3f;
         private const float ConeKerbOffset = -0.6f;
 
-        /// <summary>Benches: metres onto the pavement past the kerb line, and either side of the frontage.</summary>
-        private const float BenchInset = 1.6f;
-        private const float BenchSpread = 5f;
+        /// <summary>
+        /// The boulevard: the crowd strips (by <c>npc.config.ts</c> id) whose pavements get the
+        /// benches. Both run the length of the downtown avenue, one pavement each.
+        /// </summary>
+        private static readonly string[] BoulevardStrips = { "west", "east" };
+
+        /// <summary>
+        /// Benches: metres between them along the strip; metres in from either end of it (the ends
+        /// are junctions, with poles, bins and crossings); and metres to the building side of the
+        /// walkers' line. The crowd walks two lanes <c>npc.laneOffset</c> (1 m) either side of that
+        /// line, so 2 m puts the bench's front edge ~0.5 m clear of the outer lane - the people
+        /// pass in front of the benches, between them and the kerb.
+        /// </summary>
+        private const float BenchSpacing = 20f;
+        private const float BenchEndMargin = 14f;
+        private const float BenchStripInset = 2f;
+
+        /// <summary>Metres a bench keeps from any place's footprint - a storefront's door stays free.</summary>
+        private const float BenchPlaceClearance = 2.5f;
 
         [MenuItem("The Block/Build Props", priority = 9)]
         public static void BuildPropsOnly()
@@ -82,7 +105,7 @@ namespace TheBlock.EditorTools
             var options = new Options();
             ResetTexturePass();
 
-            BuildProps(root.transform, snapshot.Config, options, report);
+            BuildProps(root.transform, snapshot.Config, snapshot.Npc, options, report);
 
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(
                 UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene());
@@ -99,7 +122,7 @@ namespace TheBlock.EditorTools
 
         /// <summary>The pass. Idempotent: the previous host goes first.</summary>
         private static void BuildProps(
-            Transform root, TheBlockConfig.Root config, Options options, Report report)
+            Transform root, TheBlockConfig.Root config, TheBlockConfig.NpcSpec npc, Options options, Report report)
         {
             int layer = NpcBuilder.EnsureLayer(Breakable.PropsLayerName);
             if (layer <= 0)
@@ -119,7 +142,7 @@ namespace TheBlock.EditorTools
                 footprintScale: 1f, cullDistance: 100f, layer, options, report);
 
             var lights = config.Traffic?.Lights ?? new TheBlockConfig.LightsSpec();
-            var layout = BakeLayout(root, config, lights, report);
+            var layout = BakeLayout(root, config, npc, lights, report);
 
             var host = NewGroup(PropsHostName, root);
             var system = host.gameObject.AddComponent<PropSystem>();
@@ -235,7 +258,8 @@ namespace TheBlock.EditorTools
         // --- layout ------------------------------------------------------------------------------
 
         private static List<PropSystem.Entry> BakeLayout(
-            Transform root, TheBlockConfig.Root config, TheBlockConfig.LightsSpec lights, Report report)
+            Transform root, TheBlockConfig.Root config, TheBlockConfig.NpcSpec npc,
+            TheBlockConfig.LightsSpec lights, Report report)
         {
             var layout = new List<PropSystem.Entry>();
             Physics.SyncTransforms();
@@ -250,8 +274,8 @@ namespace TheBlock.EditorTools
             }
 
             var places = root.Find("Places");
-            var anchors = new List<(string Name, Vector3 Centre, bool Cones, bool Benches)>();
-            void Anchor(string objectName, bool cones, bool benches)
+            var anchors = new List<(string Name, Vector3 Centre)>();
+            void Anchor(string objectName)
             {
                 var place = places != null ? places.Find(objectName) : null;
                 if (place == null)
@@ -259,19 +283,17 @@ namespace TheBlock.EditorTools
                     report.Warnings.Add($"props: no {objectName} in the scene - nothing placed there");
                     return;
                 }
-                anchors.Add((objectName, FootprintCentre(place), cones, benches));
+                anchors.Add((objectName, FootprintCentre(place)));
             }
 
-            // NOT the police station: its kerb is the cruisers' bays. The cops spawn there at
+            // Cones. NOT the police station: its kerb is the cruisers' bays. The cops spawn there at
             // runtime - after this bake's overlap test - and the first Play sample found four cones
-            // and two benches standing inside parked cruisers, awake from frame one. A cone in the
-            // bay would also be a thing for a cop to wedge on leaving (memory:
-            // cop-wedges-leaving-the-station-bay). And NOT the spawn car park: it is 80 m off the
-            // graph, so "in front of" has no kerb to answer with.
-            Anchor("Place_GasStation", cones: true, benches: true);
-            Anchor(AutoShopSpec.ObjectName, cones: true, benches: true);
-            Anchor("Place_SevenEleven", cones: false, benches: true);
-            Anchor("Place_PizzaPlace", cones: false, benches: true);
+            // standing inside parked cruisers, awake from frame one. A cone in the bay would also be
+            // a thing for a cop to wedge on leaving (memory: cop-wedges-leaving-the-station-bay).
+            // And NOT the spawn car park: it is 80 m off the graph, so "in front of" has no kerb to
+            // answer with.
+            Anchor("Place_GasStation");
+            Anchor(AutoShopSpec.ObjectName);
 
             foreach (var anchor in anchors)
             {
@@ -281,37 +303,101 @@ namespace TheBlock.EditorTools
                     continue;
                 }
 
-                // `outward` points from the road toward the place. A bench faces the road, so it
-                // looks along -outward; a cone has no face.
-                float faceYaw = Quaternion.LookRotation(-outward, Vector3.up).eulerAngles.y;
-
-                if (anchor.Cones)
+                int placed = 0;
+                for (int i = 0; i < 4; i++)
                 {
-                    int placed = 0;
-                    for (int i = 0; i < 4; i++)
-                    {
-                        float s = (i - 1.5f) * ConeSpacing;
-                        var p = kerb + along * s + outward * ConeKerbOffset;
-                        if (TryPlace(layout, PropKind.Cone, p, faceYaw + 37f * i, new Vector3(0.5f, 0.74f, 0.5f), report))
-                            placed++;
-                    }
-                    report.Notes.Add($"props: {anchor.Name} - {placed}/4 cones on the kerb");
+                    float s = (i - 1.5f) * ConeSpacing;
+                    var p = kerb + along * s + outward * ConeKerbOffset;
+                    if (TryPlace(layout, PropKind.Cone, p, 37f * i, new Vector3(0.5f, 0.74f, 0.5f), report))
+                        placed++;
                 }
+                report.Notes.Add($"props: {anchor.Name} - {placed}/4 cones on the kerb");
+            }
 
-                if (anchor.Benches)
+            BakeBenches(layout, npc, network, places, report);
+
+            return layout;
+        }
+
+        /// <summary>
+        /// A row of benches down each boulevard pavement. The line is the crowd strip's own segment
+        /// (converted through <see cref="Convert"/>, like <c>CrowdBuilder</c>), the side of the
+        /// road is whichever way the strip lies from the nearest street centreline, and a bench
+        /// faces the road across the walkers' lanes. Anything within
+        /// <see cref="BenchPlaceClearance"/> of a place's footprint - the pizza place and the
+        /// 7-Eleven both stand on these pavements - is skipped, so no bench sits in a doorway.
+        /// </summary>
+        private static void BakeBenches(
+            List<PropSystem.Entry> layout, TheBlockConfig.NpcSpec npc, TrafficNetwork network,
+            Transform places, Report report)
+        {
+            if (npc?.Strips == null || npc.Strips.Count == 0)
+            {
+                report.Warnings.Add("props: the config snapshot has no crowd strips - no benches; run tools/export-config.sh");
+                return;
+            }
+
+            var footprints = new List<Bounds>();
+            if (places != null)
+            {
+                foreach (Transform place in places)
                 {
-                    int placed = 0;
-                    foreach (float s in new[] { -BenchSpread, BenchSpread })
-                    {
-                        var p = kerb + along * s + outward * BenchInset;
-                        if (TryPlace(layout, PropKind.Bench, p, faceYaw, new Vector3(1.3f, 0.45f, 0.56f), report))
-                            placed++;
-                    }
-                    report.Notes.Add($"props: {anchor.Name} - {placed}/2 benches on the pavement");
+                    var renderers = place.GetComponentsInChildren<Renderer>(true);
+                    if (renderers.Length == 0) continue;
+                    var b = renderers[0].bounds;
+                    foreach (var r in renderers) b.Encapsulate(r.bounds);
+                    b.Expand(new Vector3(BenchPlaceClearance * 2f, 100f, BenchPlaceClearance * 2f));
+                    footprints.Add(b);
                 }
             }
 
-            return layout;
+            foreach (string id in BoulevardStrips)
+            {
+                var strip = npc.Strips.FirstOrDefault(s => s.Id == id);
+                if (strip == null)
+                {
+                    report.Warnings.Add($"props: no crowd strip '{id}' in npc.config.ts - that pavement gets no benches");
+                    continue;
+                }
+
+                var a = Convert.Pos(strip.A.Raw);
+                var b = Convert.Pos(strip.B.Raw);
+                var dir = b - a;
+                dir.y = 0f;
+                float length = dir.magnitude;
+                if (length < BenchEndMargin * 2f) continue;
+                dir /= length;
+
+                var mid = (a + b) * 0.5f;
+                if (!NearestKerb(network, mid, 0f, out _, out _, out var roadToStrip))
+                {
+                    report.Warnings.Add($"props: strip '{id}' is nowhere near a street - skipped");
+                    continue;
+                }
+                // The strip is a pavement, so it runs beside its street. `outward` is the strip's own
+                // normal on the side away from the road - squared to the strip, so a centreline that
+                // is not quite parallel to it does not skew the row.
+                var outward = Vector3.Cross(Vector3.up, dir);
+                if (Vector3.Dot(outward, roadToStrip) < 0f) outward = -outward;
+                float faceYaw = Quaternion.LookRotation(-outward, Vector3.up).eulerAngles.y;
+
+                int placed = 0, wanted = 0, doorways = 0;
+                for (float s = BenchEndMargin; s <= length - BenchEndMargin; s += BenchSpacing)
+                {
+                    wanted++;
+                    var p = a + dir * s + outward * BenchStripInset;
+                    if (footprints.Any(f => f.Contains(new Vector3(p.x, f.center.y, p.z))))
+                    {
+                        doorways++;
+                        continue;
+                    }
+                    if (TryPlace(layout, PropKind.Bench, p, faceYaw, new Vector3(1.3f, 0.45f, 0.56f), report))
+                        placed++;
+                }
+                report.Notes.Add(
+                    $"props: boulevard '{id}' - {placed}/{wanted} benches every {BenchSpacing:0} m " +
+                    $"({doorways} skipped at storefronts)");
+            }
         }
 
         /// <summary>
