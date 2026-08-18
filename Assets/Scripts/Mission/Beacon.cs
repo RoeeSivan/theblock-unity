@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using TheBlock.Core;
+using TheBlock.Vfx;
 using UnityEngine;
 
 namespace TheBlock.Missions
@@ -169,21 +170,21 @@ namespace TheBlock.Missions
             var key = ((Color32)color).GetHashCode();
             if (_materials.TryGetValue(key, out var cached) && cached != null) return cached;
 
-            var shader = Shader.Find("Universal Render Pipeline/Unlit");
-            var material = new Material(shader) { name = $"Beacon_{ColorUtility.ToHtmlStringRGB(color)}" };
+            // Additive transparent, cloned from the checked-in template. Doing the keyword dance
+            // here instead - which is what this did - leaves a material that is transparent in the
+            // Editor and OPAQUE in a built Player, because the variant the keyword selects is only
+            // compiled for keywords that some material ASSET in the build has on. See
+            // TheBlock.Vfx.VfxMaterials.
+            var material = VfxMaterials.Build(
+                VfxBlend.UnlitAdditive, null, $"Beacon_{ColorUtility.ToHtmlStringRGB(color)}");
 
-            // Additive transparent. URP's inspector writes all of these together, and setting the
-            // blend factors without the keyword and the queue leaves an opaque material that merely
-            // claims to be transparent.
-            material.SetFloat("_Surface", 1f);
-            material.SetFloat("_Blend", 2f); // 2 = Additive
+            // ONE/ONE, not the template's SrcAlpha/One. URP's own "Additive" scales the source by
+            // alpha, and this pin drives alpha for its pop and its BeamOpacity - so taking URP's
+            // factors would quietly dim a beacon that has been signed off. Blend factors are plain
+            // material floats and survive into a build untouched; it is only the KEYWORD that has to
+            // come from the asset, and that came with the clone.
             material.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.One);
             material.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.One);
-            material.SetFloat("_ZWrite", 0f);
-            material.SetFloat("_AlphaClip", 0f);
-            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-            material.DisableKeyword("_ALPHATEST_ON");
-            material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
 
             // A SetColor on a property the shader does not have is a silent no-op - the fault that
             // left the Mustang the wrong colour for four units. Say so rather than render black.

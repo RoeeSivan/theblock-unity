@@ -570,36 +570,19 @@ namespace TheBlock.Vfx
         }
 
         /// <summary>
-        /// A transparent particle material built at runtime - <see cref="Blood"/>'s keyword dance,
-        /// with an additive variant for the flame.
+        /// A transparent particle material, cloned from the checked-in template and given this
+        /// system's generated puff.
         ///
-        /// Setting the blend floats alone is not enough: URP picks the variant off the KEYWORD, so a
-        /// material with the right numbers and no <c>_SURFACE_TYPE_TRANSPARENT</c> renders opaque.
+        /// <b>It used to be built here with <c>Shader.Find</c> + <c>EnableKeyword</c>, and that is
+        /// what made the built Player's smoke a swarm of black squares</b> while the Editor looked
+        /// correct - <see cref="VfxMaterials"/> holds the explanation in full. Nothing about the look
+        /// changed; only where the transparency comes from.
         /// </summary>
         private Material BuildMaterial(Texture2D texture, string name, bool additive)
         {
-            var shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
-            if (shader == null)
-            {
-                Debug.LogWarning("DamageFx: no URP particle shader. Falling back to URP/Unlit.");
-                shader = Shader.Find("Universal Render Pipeline/Unlit");
-            }
-
-            var material = new Material(shader) { name = name };
+            var material = VfxMaterials.Build(
+                additive ? VfxBlend.ParticleAdditive : VfxBlend.ParticleAlpha, texture, name);
             _materials.Add(material);
-
-            material.SetTexture("_BaseMap", texture);
-            material.SetFloat("_Surface", 1f);
-            material.SetFloat("_Blend", additive ? 1f : 0f);
-            material.SetFloat("_ZWrite", 0f);
-            material.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
-            material.SetFloat("_DstBlend", (float)(additive
-                ? UnityEngine.Rendering.BlendMode.One
-                : UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha));
-            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-            material.DisableKeyword("_ALPHATEST_ON");
-            material.SetOverrideTag("RenderType", "Transparent");
-            material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
             return material;
         }
     }

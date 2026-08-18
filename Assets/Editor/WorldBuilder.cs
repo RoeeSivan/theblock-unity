@@ -134,6 +134,53 @@ namespace TheBlock.EditorTools
         [MenuItem("The Block/Build World + NavMesh (slow)", priority = 2)]
         public static void BuildWorldWithNavigationMenu() => Build(new Options { Navigation = true });
 
+        /// <summary>
+        /// Just the fence, on the world already in the scene.
+        ///
+        /// A hole in the world edge is a one-object fix, and <c>Build World</c> is a minutes-long
+        /// pass that re-imports every district and rewrites every material binding to correct it -
+        /// which is a large diff and a large risk for four box colliders. This finds the existing
+        /// <c>Ground</c>, throws its <c>World Edges</c> away and asks
+        /// <see cref="BuildWorldEdges"/> for a new one from the same config numbers the full build
+        /// would use, so the two cannot drift.
+        /// </summary>
+        [MenuItem("The Block/Rebuild World Bounds", priority = 3)]
+        public static void RebuildWorldBoundsMenu()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogError("WorldBuilder: stop Play mode first - edits made in play are discarded.");
+                return;
+            }
+
+            var snapshot = TheBlockConfig.Load(reload: true);
+            var ground = snapshot.Config?.Ground;
+            if (ground == null || ground.Size <= 0f)
+            {
+                Debug.LogError("WorldBuilder: no `ground` section in the config - nothing to fence.");
+                return;
+            }
+
+            var plane = GameObject.Find("Ground");
+            if (plane == null)
+            {
+                Debug.LogError("WorldBuilder: no `Ground` object in the open scene. Build World first.");
+                return;
+            }
+
+            var report = new Report();
+            BuildGroundFloor(plane.transform, ground, snapshot.Config.Sea, report);
+            BuildWorldEdgesPass(plane.transform.parent, snapshot.Config, report);
+
+            // A scene edited from a menu item is not dirty by itself, so Save would write nothing and
+            // report success (memory: editor-created-objects-need-markscenedirty).
+            EditorSceneManager.MarkSceneDirty(plane.scene);
+            foreach (var line in report.Warnings) Debug.LogWarning("WorldBuilder: " + line);
+
+            foreach (var line in report.Placed) Debug.Log("WorldBuilder: " + line);
+            Debug.Log($"WorldBuilder: world floor + edges rebuilt ({report.Colliders} colliders). SAVE THE SCENE.");
+        }
+
         public class Options
         {
             /// <summary>
@@ -262,6 +309,11 @@ namespace TheBlock.EditorTools
             // cones and benches read the network it just baked; and inside the build at all so the
             // prop prefabs' compressed-material clones are re-emitted before SweepGenerated runs.
             BuildProps(root.transform, snapshot.Config, snapshot.Npc, options, report);
+
+            // Dead last of the geometry passes, because it MEASURES the floor rather than assuming
+            // it: the fence follows the seaward edge of whatever is actually solid, and a district
+            // built after it would be a stretch of road with a wall across the middle of it.
+            if (options.Ground) BuildWorldEdgesPass(root.transform, snapshot.Config, report);
 
             if (options.Navigation)
                 BuildNavigation(root.transform, districts, snapshot.Config, trafficGraph, options, report);
@@ -452,26 +504,13 @@ namespace TheBlock.EditorTools
             var material = LoadOrCreateGroundMaterial(ground, report);
             if (material != null) groundRenderer.sharedMaterial = material;
 
-            var floor = new GameObject("Ground Floor");
-            floor.transform.SetParent(plane.transform, worldPositionStays: false);
-            float far = -ground.Size * 0.5f;                                  // landward edge, Unity -x
-            float near = sea != null ? SeaGeometry.ShoreX(sea) : ground.Size * 0.5f; // waterline
-            var box = floor.AddComponent<BoxCollider>();
-            box.size = new Vector3(Mathf.Abs(near - far), 0.2f, ground.Size);
-            // The plate is a generated mesh at scale 1 now (it was a 10 m Plane primitive scaled up),
-            // so the box is already in metres and needs no scale correction.
-            floor.transform.localPosition = Vector3.zero;
-            box.center = new Vector3((near + far) * 0.5f, -0.1f, 0f); // top face at the plate's y
-            report.Colliders++;
+            BuildGroundFloor(plane.transform, ground, sea, report);
+            float far = -ground.Size * 0.5f;
+            float near = sea != null ? SeaGeometry.ShoreX(sea) : ground.Size * 0.5f;
 
-            // ⚠ The FENCE does not stop where the FLOOR does, and since 2026-08-18 it must not.
-            // `near` is the waterline, and trimming the solid plate there is deliberate (see above).
-            // The fence used to be trimmed there too, which put an 8 m invisible wall on the
-            // waterline - the thing that made driving at the sea a head-on crash and a wanted level.
-            // The world ends at the plate's rim, so that is where its wall belongs; everything
-            // between is sea you can drive into. `BuildSea` puts a matching one over the sea's own
-            // z-strip, seated on the seabed rather than on y 0.
-            BuildWorldEdges(plane.transform, far, ground.Size * 0.5f, ground.Size, sea, report);
+            // THE FENCE IS NOT BUILT HERE ANY MORE. It measures the floor it is fencing, and at this
+            // point in the build the only floor that exists is this plate - no districts, no seabed.
+            // `Build` runs it last; see BuildWorldEdgesPass.
 
             SetDistrictStaticFlags(plane);
             report.Placed.Add(
@@ -496,12 +535,31 @@ namespace TheBlock.EditorTools
         /// when the player aimed at the sea, and `CrashSensor` + `CrimeWatch` turned that into a
         /// wanted level. The three landward sides are unchanged.
         ///
+        /// <b>⚠ 2026-08-18, and this is the SECOND report of the same fall.</b> Moving the seaward
+        /// side out to the plate's rim (above) was right for the 600 m the sea covers and wrong for
+        /// everything else, because <b>the FLOOR out there is the SEABED, and the seabed is the sea's
+        /// own z-strip and nothing wider</b>. Probed: at z 0 and z 54 there is beach down to y −3 all
+        /// the way out to x 690; at z 60, z −560 and z −650 the plate answers at x 420 and there is
+        /// NOTHING from x 435 to the fence at x 698. That is a 270 m wide strip, ~640 m of it north
+        /// of the water and ~150 m south, with a fence 270 m too far out to catch anything. The user
+        /// drove up the beach past the end of the water and fell at (502.8, 65.4) - eleven metres
+        /// north of where the seabed stops.
+        ///
+        /// So the seaward side is now THREE walls, not one: at the plate's rim across the sea's
+        /// z-strip, where the seabed really does carry on, and <b>back at the waterline north and
+        /// south of it</b>, where it does not. Nothing is rendered out there either, so the fence and
+        /// the visible world end in the same place.
+        ///
         /// <b>Ignore Raycast</b>, for the reason <see cref="BuildShoreWall"/> gives in full: a wall
         /// is not a floor, and a downward probe started inside one reads its top as ground and lifts
         /// the caller into the air.
         /// </summary>
+        /// <param name="near">The plate's rim - where the seabed and the sea wall end.</param>
+        /// <param name="waterline">Where the plate's own COLLIDER stops. The only floor past it is
+        /// the seabed, and the seabed exists only across the sea's z-strip.</param>
         private static void BuildWorldEdges(
-            Transform parent, float far, float near, float size, TheBlockConfig.SeaSpec sea, Report report)
+            Transform parent, float far, float near, float waterline, float size,
+            TheBlockConfig.SeaSpec sea, Report report)
         {
             // The shore wall's own dimensions where the config has them, so the two agree by
             // construction rather than by two numbers that happen to match today.
@@ -516,15 +574,16 @@ namespace TheBlock.EditorTools
             float midX = (near + far) * 0.5f;
             float spanX = Mathf.Abs(near - far);
 
-            Edge("Seaward", new Vector3(near, height * 0.5f, 0f), new Vector3(thickness, height, size));
+            int segments = BuildSeawardFence(waterline, near, half, height, thickness, Edge);
+
             Edge("Landward", new Vector3(far, height * 0.5f, 0f), new Vector3(thickness, height, size));
             Edge("North", new Vector3(midX, height * 0.5f, half), new Vector3(spanX, height, thickness));
             Edge("South", new Vector3(midX, height * 0.5f, -half), new Vector3(spanX, height, thickness));
 
             report.Placed.Add(
-                $"World edges: 4 walls {height:0.#} m high around the solid plate, Unity x " +
-                $"[{Mathf.Min(far, near):0}, {Mathf.Max(far, near):0}] z [{-half:0}, {half:0}] " +
-                "(Ignore Raycast, colliders only)");
+                $"World edges: {height:0.#} m walls, landward x {far:0}, north/south z ±{half:0}, and " +
+                $"a seaward fence of {segments} segment(s) swept along the real edge of the floor " +
+                $"between x {waterline:0} and {near:0} (Ignore Raycast, colliders only)");
 
             void Edge(string name, Vector3 centre, Vector3 sizeOf)
             {
@@ -534,6 +593,199 @@ namespace TheBlock.EditorTools
                 wall.AddComponent<BoxCollider>().size = sizeOf;
                 report.Colliders++;
             }
+        }
+
+        // --- the plate's floor ----------------------------------------------------------------------
+
+        /// <summary>
+        /// The plate's solid part: <b>every square metre of green is walkable</b>, and only the
+        /// water's own footprint is not.
+        ///
+        /// <b>The trim at the waterline was right for one reason and wrong everywhere else.</b> U12
+        /// stopped the collider at the shore because the plate is solid at y −0.05 while the beach
+        /// ramps down to −3: an untrimmed plate holds the player on an invisible sheet a few
+        /// centimetres under the water and the whole beach becomes scenery. True - but only across
+        /// the <b>sea's own 600 m of z</b>. North and south of it there is no water and no beach; the
+        /// plate is plain green ground, drawn out to the rim, with nothing under it. The user, on the
+        /// third report of the same fall: *"השטח הזה אמור להיות שטח ירוק רגיל… כל שטח ירוק הוא שטח
+        /// שאפשר ללכת עליו"*.
+        ///
+        /// So the floor is three boxes: everything landward of the waterline, plus the seaward
+        /// remainder north and south of the water. The hole is filled rather than fenced, which is
+        /// also what stops the fence from having to cut across District 7's road.
+        /// </summary>
+        private static void BuildGroundFloor(
+            Transform plane, TheBlockConfig.GroundSpec ground, TheBlockConfig.SeaSpec sea, Report report)
+        {
+            for (int i = plane.childCount - 1; i >= 0; i--)
+            {
+                var child = plane.GetChild(i);
+                if (child.name.StartsWith("Ground Floor", StringComparison.Ordinal))
+                    UnityEngine.Object.DestroyImmediate(child.gameObject);
+            }
+
+            float half = ground.Size * 0.5f;
+            float far = -half;                                                    // landward, Unity -x
+            float waterline = sea != null ? SeaGeometry.ShoreX(sea) : half;
+
+            Slab("Ground Floor", (waterline + far) * 0.5f, 0f, Mathf.Abs(waterline - far), ground.Size);
+
+            if (sea == null || sea.Length <= 0f) return;
+
+            float stripMin = sea.CenterZ - sea.Length * 0.5f;
+            float stripMax = sea.CenterZ + sea.Length * 0.5f;
+            float seawardWidth = half - waterline;
+            if (seawardWidth <= 0.1f) return;
+
+            float north = half - stripMax;
+            if (north > 0.1f)
+                Slab("Ground Floor Seaward North", waterline + seawardWidth * 0.5f,
+                    stripMax + north * 0.5f, seawardWidth, north);
+
+            float south = stripMin + half;
+            if (south > 0.1f)
+                Slab("Ground Floor Seaward South", waterline + seawardWidth * 0.5f,
+                    -half + south * 0.5f, seawardWidth, south);
+
+            // The plate is a generated mesh at scale 1 (it was a 10 m Plane primitive scaled up), so
+            // every box is already in metres and needs no scale correction.
+            void Slab(string name, float centreX, float centreZ, float width, float depth)
+            {
+                var floor = new GameObject(name);
+                floor.transform.SetParent(plane, worldPositionStays: false);
+                floor.transform.localPosition = Vector3.zero;
+                var box = floor.AddComponent<BoxCollider>();
+                box.size = new Vector3(width, 0.2f, depth);
+                box.center = new Vector3(centreX, -0.1f, centreZ);   // top face at the plate's y
+                report.Colliders++;
+            }
+        }
+
+        // --- the seaward fence, measured ------------------------------------------------------------
+
+        /// <summary>Z resolution of the sweep. Fine enough to follow a street, coarse enough to be fast.</summary>
+        private const float FenceSliceZ = 5f;
+
+        /// <summary>X resolution of the edge search within one slice.</summary>
+        private const float FenceStepX = 2f;
+
+        /// <summary>Metres of clearance left between the last solid ground and the wall.</summary>
+        private const float FenceMargin = 2.5f;
+
+        /// <summary>
+        /// The seaward wall, placed where the FLOOR ACTUALLY ENDS at each z rather than at one x.
+        ///
+        /// <b>Third report of the same fall, and the second wrong answer.</b> A single wall at the
+        /// plate's rim (x 700) left ~640 m of open void north of the water; moving it back to the
+        /// waterline (x 429) sealed that and <b>cut District 7's upper road in half</b> - the user:
+        /// *"we should have the ability to drive through this whole road, the one that is
+        /// perpendicular to the sea"*. Both are the same mistake: the seaward edge of the solid world
+        /// is not a straight line. It is the plate to x 430 in most places, the seabed out to the rim
+        /// across the sea's 600 m, and District 7's own mesh out past x 500 where that road runs.
+        ///
+        /// So it is measured. One downward probe per <see cref="FenceStepX"/> metres, walking seaward
+        /// from inside the plate until the floor runs out, once per <see cref="FenceSliceZ"/> metre
+        /// slice; the wall goes <see cref="FenceMargin"/> m past the last solid sample and adjacent
+        /// slices that agree are merged into one box. ~24k raycasts, a second or two, and it cannot
+        /// disagree with the world because it is reading the world.
+        ///
+        /// <b>Two consecutive misses end a slice, not one.</b> A 2 m seam between a district and the
+        /// plate is a crack a fence should span, not stop at - stopping there would wall off the road
+        /// behind it, which is exactly the bug this replaces.
+        /// </summary>
+        /// <returns>How many boxes it took.</returns>
+        private static int BuildSeawardFence(
+            float waterline, float rim, float half, float height, float thickness,
+            Action<string, Vector3, Vector3> edge)
+        {
+            // Seated below the seabed: a wall whose foot is at y 0 leaves a 3 m gap under it out
+            // where the beach has dropped to -3, and a sinking car slides straight out through it.
+            const float Foot = -4f;
+            float tall = height + Mathf.Abs(Foot);
+            float centreY = Foot + tall * 0.5f;
+
+            int slices = Mathf.Max(1, Mathf.CeilToInt(half * 2f / FenceSliceZ));
+            var wallX = new float[slices];
+
+            for (int i = 0; i < slices; i++)
+            {
+                float z = -half + (i + 0.5f) * FenceSliceZ;
+                float solid = SeawardSolidEdge(z, waterline - 10f, rim);
+
+                // Quantised, so a road's ragged mesh edge does not become fifty one-slice boxes.
+                float x = Mathf.Clamp(solid + FenceMargin, waterline, rim);
+                wallX[i] = Mathf.Ceil(x / FenceStepX) * FenceStepX;
+            }
+
+            int built = 0;
+            int start = 0;
+            for (int i = 1; i <= slices; i++)
+            {
+                if (i < slices && Mathf.Approximately(wallX[i], wallX[start])) continue;
+
+                float z0 = -half + start * FenceSliceZ;
+                float z1 = -half + i * FenceSliceZ;
+                edge($"Seaward {built:00}",
+                    new Vector3(wallX[start], centreY, (z0 + z1) * 0.5f),
+                    new Vector3(thickness, tall, z1 - z0));
+                built++;
+                start = i;
+            }
+
+            return built;
+        }
+
+        /// <summary>
+        /// The largest x at this z that still has something solid under it, searching seaward from
+        /// <paramref name="from"/>. Ignore Raycast is excluded, so the fence never measures itself or
+        /// the sea wall.
+        /// </summary>
+        private static float SeawardSolidEdge(float z, float from, float to)
+        {
+            float last = from;
+            int misses = 0;
+
+            for (float x = from; x <= to; x += FenceStepX)
+            {
+                bool hit = Physics.Raycast(
+                    new Vector3(x, 80f, z), Vector3.down, out _, 200f,
+                    Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+
+                if (hit) { last = x; misses = 0; continue; }
+                if (++misses >= 2) break;
+            }
+
+            return last;
+        }
+
+        /// <summary>
+        /// The fence pass: throw the old one away and measure a new one against the world as it now
+        /// stands. Shared by the full build and <c>Rebuild World Bounds</c> so the two cannot drift.
+        /// </summary>
+        private static void BuildWorldEdgesPass(Transform root, TheBlockConfig.Root config, Report report)
+        {
+            var ground = config?.Ground;
+            if (ground == null || ground.Size <= 0f)
+            {
+                report.Warnings.Add("world edges skipped - config has no `ground` section");
+                return;
+            }
+
+            var plane = root.Find("Ground");
+            if (plane == null)
+            {
+                report.Warnings.Add("world edges skipped - no `Ground` object to fence");
+                return;
+            }
+
+            var stale = plane.Find("World Edges");
+            if (stale != null) UnityEngine.Object.DestroyImmediate(stale.gameObject);
+
+            var sea = config.Sea;
+            float far = -ground.Size * 0.5f;
+            float waterline = sea != null ? SeaGeometry.ShoreX(sea) : ground.Size * 0.5f;
+
+            BuildWorldEdges(plane, far, ground.Size * 0.5f, waterline, ground.Size, sea, report);
         }
 
         /// <summary>

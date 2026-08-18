@@ -193,11 +193,32 @@ namespace TheBlock.Vfx
                 });
             overLifetime.color = new ParticleSystem.MinMaxGradient(gradient);
 
+            // THE DROPLETS LAND AND STAY. The web's update loop reads
+            // `if (p[k+1] <= b.groundY) continue` - a droplet that reaches the ground stops dead and
+            // lies there for the rest of its life, which is what makes a spray read as blood hitting
+            // a road rather than as a firework. Unity's port had gravity and nothing to land ON, so
+            // every droplet fell through the street and the effect was over in the air.
+            //
+            // `dampen = 1` is the whole trick: 100% of the speed is lost on contact, so the droplet
+            // parks exactly where it hit instead of rolling or bouncing. Quality Medium collides with
+            // STATIC colliders only, through a cached plane per particle - which is both the cheap
+            // path and the correct one here, because a droplet should splash on the road, not ride
+            // the ragdoll it came out of.
+            var collision = _spray.collision;
+            collision.enabled = true;
+            collision.type = ParticleSystemCollisionType.World;
+            collision.mode = ParticleSystemCollisionMode.Collision3D;
+            collision.quality = ParticleSystemCollisionQuality.Medium;
+            collision.dampen = 1f;
+            collision.bounce = 0f;
+            collision.lifetimeLoss = 0f;
+            collision.radiusScale = 0.4f;
+            collision.sendCollisionMessages = false;
+
             var renderer = host.GetComponent<ParticleSystemRenderer>();
             renderer.renderMode = ParticleSystemRenderMode.Billboard;
             renderer.alignment = ParticleSystemRenderSpace.View;
-            renderer.sharedMaterial = BuildMaterial(
-                "Universal Render Pipeline/Particles/Unlit", DropTexture(), "Blood Drop");
+            renderer.sharedMaterial = BuildMaterial(VfxBlend.ParticleAlpha, DropTexture(), "Blood Drop");
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             renderer.receiveShadows = false;
 
@@ -207,7 +228,7 @@ namespace TheBlock.Vfx
         private void BuildStains()
         {
             var mesh = QuadMesh();
-            var material = BuildMaterial("Universal Render Pipeline/Unlit", SplatTexture(), "Blood Stain");
+            var material = BuildMaterial(VfxBlend.UnlitAlpha, SplatTexture(), "Blood Stain");
 
             _stains = new Stain[Mathf.Max(1, maxPools)];
             for (int i = 0; i < _stains.Length; i++)
@@ -280,6 +301,13 @@ namespace TheBlock.Vfx
             stain.Transform.localScale = Vector3.one * 0.001f;
             stain.T = 0f;
             stain.Life = Mathf.Max(life <= 0f ? poolGrow + poolHold + poolFade : life, MinimumLife);
+
+            // Tinted HERE and not left to the first Update. The colour lives in a property block, and
+            // the block is empty until Update writes one - so a stain enabled after this component
+            // has already ticked spent its first frame as a WHITE splat on the road. One frame is
+            // plenty to see when it is a metre wide and the camera is looking straight at it.
+            Tint(stain, poolOpacity);
+
             stain.Transform.gameObject.SetActive(true);
         }
 
@@ -313,10 +341,18 @@ namespace TheBlock.Vfx
                     ? poolOpacity
                     : poolOpacity * (1f - (stain.T - fadeStart) / poolFade);
 
-                stain.Renderer.GetPropertyBlock(_block);
-                _block.SetColor(BaseColorId, new Color(color.r, color.g, color.b, alpha));
-                stain.Renderer.SetPropertyBlock(_block);
+                Tint(stain, alpha);
             }
+        }
+
+        /// <summary>This stain's colour at this opacity, through its own property block.</summary>
+        private void Tint(Stain stain, float alpha)
+        {
+            if (stain.Renderer == null) return;
+            _block ??= new MaterialPropertyBlock();
+            stain.Renderer.GetPropertyBlock(_block);
+            _block.SetColor(BaseColorId, new Color(color.r, color.g, color.b, alpha));
+            stain.Renderer.SetPropertyBlock(_block);
         }
 
         // --- the two textures, drawn rather than authored ----------------------------------------
@@ -447,35 +483,18 @@ namespace TheBlock.Vfx
         // --- the two materials -------------------------------------------------------------------
 
         /// <summary>
-        /// A transparent, unlit, tinted material built at runtime.
+        /// A transparent, unlit, tinted material - cloned from the checked-in template and given one
+        /// of this file's generated textures.
         ///
-        /// Runtime rather than an asset a builder writes, unlike every material in <c>WorldBuilder</c>:
-        /// these two have no authored content at all - their textures are generated in this file - so
-        /// an asset would be a checked-in copy of code that already exists. The keyword and blend
-        /// dance is what URP's shader GUI does when you flip Surface Type to Transparent; setting the
-        /// float alone changes nothing, because the variant is chosen by the keyword.
+        /// The textures stay procedural for the reasons above; only the SHADER SETUP moved out to an
+        /// asset, and it had to. Doing the keyword dance at runtime is correct in the Editor and
+        /// silently wrong in a built Player, where the droplets came out as opaque squares -
+        /// <see cref="VfxMaterials"/> explains why.
         /// </summary>
-        private Material BuildMaterial(string shaderName, Texture2D texture, string name)
+        private Material BuildMaterial(VfxBlend blend, Texture2D texture, string name)
         {
-            var shader = Shader.Find(shaderName);
-            if (shader == null)
-            {
-                Debug.LogWarning($"Blood: no shader '{shaderName}'. Falling back to URP/Unlit.");
-                shader = Shader.Find("Universal Render Pipeline/Unlit");
-            }
-
-            var material = new Material(shader) { name = name };
+            var material = VfxMaterials.Build(blend, texture, name);
             _materials.Add(material);
-            material.SetTexture("_BaseMap", texture);
-            material.SetFloat("_Surface", 1f);   // transparent
-            material.SetFloat("_Blend", 0f);     // alpha
-            material.SetFloat("_ZWrite", 0f);
-            material.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
-            material.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-            material.DisableKeyword("_ALPHATEST_ON");
-            material.SetOverrideTag("RenderType", "Transparent");
-            material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
             return material;
         }
 
