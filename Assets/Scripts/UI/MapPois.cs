@@ -97,6 +97,16 @@ namespace TheBlock.UI
                 Icon = AutoShopSpec.MapIcon,
             });
 
+            // Not a config place either - the falafel stand is the game's repeatable street job, and
+            // the pin reads the same field the builder placed the model with.
+            MapRegistry.AddPoi(new MapPoi
+            {
+                Name = FalafelSpec.MapLabel,
+                Position = FalafelSpec.Position,
+                Kind = MapPoiKind.Marker,
+                Icon = FalafelSpec.MapIcon,
+            });
+
             // One pin for the whole lot - the web build found per-car POIs stacked unreadably. The
             // point is hand-authored in map-pois.ts, not derived from lotCars.bounds, so it is
             // hand-copied here the same way.

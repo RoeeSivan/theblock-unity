@@ -292,6 +292,7 @@ namespace TheBlock.EditorTools
                 EnsureFuel(root.transform, report);
                 BuildLotCars(places, snapshot.Config.LotCars, options, report);
                 BuildAutoShop(places, options, report); // U35g - Unity-authored, see WorldBuilder.AutoShop.cs
+                BuildFalafelStand(places, options, report); // U37 - likewise, see WorldBuilder.Falafel.cs
             }
 
             // Last, and it has to be: the traffic pass raycasts for the street surface under every

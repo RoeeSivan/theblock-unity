@@ -420,6 +420,14 @@ namespace TheBlock.Missions
                 return;
             }
 
+            // A FREE-ROAM STREET JOB WINS OVER BOTH, and this is the only place that can say so.
+            // The objective, the clock and the counter are LATCHED setters, unlike the arbitrated
+            // prompt, and this method rewrites all three every frame - so a job writing its own
+            // would be clobbered inside the same frame, by whichever component Unity called second.
+            // One flag, one owner: while a job is running it draws them and the campaign stands
+            // down. It clears them itself on the way out, which is what hands the screen back.
+            if (FreeRoamJob.Active != null) return;
+
             // THE RUNNING MISSION WINS OVER THE CURSOR when the two differ. Normally they are the
             // same object, because a mission is entered from the step it belongs to - but a
             // REPLAYED step is not: U28 left the dance danceable after it is cleared, and by then

@@ -63,6 +63,12 @@ namespace TheBlock.Core
             // through a corpse.
             DamageBudget.Clear();
             Vfx.DamageFx.ResetCaches();
+
+            // The falafel round's HUD ownership flag. Same shape once more - a static with no
+            // per-frame writer to heal it - and getting it wrong is the worst failure on this list:
+            // a flag left set from the previous world stands the campaign's whole HUD down, so the
+            // next run has no objective line, no clock and no way to see why.
+            FreeRoamJob.Clear();
         }
     }
 }
