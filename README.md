@@ -56,6 +56,34 @@ Playing from `World.unity` directly skips the shell and starts you in the city.
 > First open takes a while: Unity imports ~2 GB of source assets and bakes shader variants. That is
 > once, not every launch.
 
+### ⚠ A fresh clone has no people, no traffic and no props until you build them
+
+**This is expected, and it is four menu items.** Some folders are deliberately not in git, because
+they are *derived* - prefabs whose GUIDs point into an Asset Store pack, materials cloned from
+generated textures, a baked NavMesh. Committing them would commit dangling references, and the pack
+they depend on alone is half of this account's free Git LFS quota. So they are rebuilt on the
+machine that opens the project, from tracked sources, by the same menu items that made them
+originally.
+
+Drive into the city without doing this and it is empty: **no pedestrians, no moving traffic, no
+street props, and no NavMesh for the police to chase you over.** Nothing is broken; nothing has been
+built yet.
+
+1. **Get the pedestrian pack.** *NPC Casual set 00* by **Chepatack**, free on the Unity Asset Store.
+   Add it to your account, then in Unity open **Window → Package Manager → My Assets**, find it and
+   **Import**. It must land at `Assets/npc_casual_set_00/`. This is the one step that is not just a
+   click inside this project - the pack is a re-downloadable dependency, not a source asset, and at
+   505 MB it cannot live in the repo.
+2. **The Block → Build Pack Pedestrians** - the crowd. Twelve pack bodies × 5 faces × 6 shirt tints;
+   writes `Assets/Prefabs/Npc/` and `Assets/Materials/Npc/`.
+3. **The Block → Build Traffic Cars** - the driving cars, into `Assets/Prefabs/Traffic/`.
+4. **The Block → Build World + NavMesh (slow)** - the city itself, the parked lot cars, the street
+   graph, the props and the NavMesh. Minutes, not seconds; the plain **Build World** does the same
+   without re-baking navigation, which is the slow part.
+
+Then press Play. If the pavements are still empty, step 1 did not land where Unity expects it -
+check that `Assets/npc_casual_set_00/` exists before re-running step 2.
+
 ## Controls
 
 ### On foot

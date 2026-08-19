@@ -212,9 +212,20 @@ namespace TheBlock.EditorTools
                 locationPathName = outputPath,
                 target = BuildTarget.StandaloneOSX,
                 targetGroup = BuildTargetGroup.Standalone,
-                options = development
-                    ? BuildOptions.Development | BuildOptions.ConnectWithProfiler | BuildOptions.AllowDebugging
-                    : BuildOptions.None,
+                // Development ALONE, and the two flags that used to sit beside it are gone
+                // deliberately. `ConnectWithProfiler` makes the Player broadcast and wait for a
+                // profiler to attach before it will create its Metal surface - a black window and
+                // a `Remaining time:30s` countdown in Player.log - and with the Editor running it
+                // was observed not to time out at all: 171 s with no surface and no first scene.
+                //
+                // Nothing in this project needs them. `FrameWatchdog` and `PerfProbe` read the
+                // counters themselves through `ProfilerRecorder`, which is a Player-side API and
+                // wants no connection, and `PerfProbe`'s sweep launches this binary 44 times - a
+                // 30 s handshake on each would be 22 minutes of waiting for data nobody reads.
+                //
+                // `BuildOptions.Development` on its own is what actually matters: it defines
+                // DEVELOPMENT_BUILD, which is the symbol both of those classes compile under.
+                options = development ? BuildOptions.Development : BuildOptions.None,
             };
 
             Debug.Log(

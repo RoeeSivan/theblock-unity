@@ -101,17 +101,48 @@ unclear, re-test before inheriting.
 >
 > ### 🚩 NEXT ACTION: **U37a + U37b's play-test** - the ONE outstanding gameplay confirmation. U37 itself is user-confirmed (*"tested and its working really good"*); what has never been played is **U37a**, which moved the order INSIDE the shop, and **U37b**, which made the shop enterable after the user found it was not. **The test:** Play → **Continue, never New Game** (`new-game-wipes-the-test-balance` - the wallet IS the thing being measured) → ride to the stand opposite the pizzeria → outside, the prompt should only *nudge you in*; **walk straight in** - the doorway is 1.90 m with 1.70 m of measured clearance and nothing in it now → at the counter the prompt reads `Press T for a falafel round` and the cashier is visible behind it → run a round → then lose one on the clock and confirm the streak falls back to round 1 and a fresh round can be started. Watch for what a synthetic test cannot judge: whether walking in reads as obvious rather than fiddly, whether the raised striped valance still looks right from the street, and whether the campaign's own objective line and clock still draw once the job is over (that is the `DriveHud` guard's regression). ⚠ **The falafel vendor was rebuilt under U38** (he is `Ped_02m_01`), so confirm he is idling and not T-posed.
 >
-> ### After that: **U30b round 2 - the boot hitches.** U30a is DONE and U30b's first round landed 2026-08-18 (section below): the Player exists, the baseline is measured, and the biggest finding is already fixed and re-measured. What is left of U30b is named at the bottom of that section, worst first: **a 2,154 ms hitch at t=2.2 s that is NOT textures** (it happens at `tex current 6 MB`), and a chase that is now 44-77 ms rather than 300-400. ⚠ **U37 owes it a frame measurement too**, like the six Tier 8 rows: it adds a 41k-triangle place with an always-animating skinned NPC on it. **U38 owes one as well and is expected to hand time back** - it already measured −22 ms at the densest crowd pose in the Editor, and the Player has never seen it.
+> ### ✅ U30b round 3 landed 2026-08-19 - the deltas are MEASURED and the debt is nearly closed. Section below.
 >
-> ### ⚠ Two open items U38 uncovered and did NOT close
+> **Seven of the eight owed per-feature deltas are settled**, taken unattended on the Player by a new
+> harness (`PerfProbe` + `tools/perf-sweep.sh` + `tools/perf-report.py`, 44 launches, one per
+> configuration). **U35a, U35b, U35g, U35h, U36 and U37 all cost nothing measurable** - each lands
+> inside a ±2.26 ms noise floor with a near-zero geometry delta, and that debt is discharged, not
+> deferred. **U35c/i costs 17.1 ms** and it is not its mesh. **U38 is the one still open**, and the
+> reason is written up honestly below: a live crowd never holds still, so it cannot be A/B-ed this
+> way. U38's own Editor measurement (−22 ms) remains the best evidence there is.
 >
-> - **The seaward ground plate.** `GroundY` misread the plate as a street in the two `Ground Floor
->   Seaward …` regions, which put 113 of 687 crowd seeds 16 cm underground. The crowd table is fixed
->   and re-baked; **zebras, lanes and anything else baked against those regions still carry the same
->   error** and need a re-bake to clear it. Full account on the U38 row.
-> - **`Assets/Prefabs/Npc/` is gitignored**, so a fresh clone has no pedestrians at all until the
->   pack is re-imported and `Build Pack Pedestrians` is run. Already true before U38; it now covers
->   the whole crowd rather than one vendor. **Belongs in the submission README.**
+> **The census found something the ledger never listed, and it is bigger than the jetski:** the
+> **101 parked lot cars are 4.28 M triangles**, 43% of the world, +10.30 M drawn and **+8.1 ms**.
+> One parked Tesla is 52,096 triangles. Ranked list at the end of the section.
+>
+> **The jetski is FIXED and verified:** 1,190,600 → 210,850 triangles, and on the Player the pair
+> went from **8.98 M drawn triangles to 1.83 M** and from 4.06 ms to 1.63 ms. Kept because it passed
+> a close-range pixel diff at 0.900% against a **0.000%** noise floor - and the first attempt did NOT
+> pass and was reverted.
+>
+> ### After that: **the boot hitch, and it is diagnosed rather than open.** **A 2,154 ms hitch at
+> t=2.2 s that is NOT textures** (it happens at `tex current 6 MB`) - round 3 reproduced it on all 44
+> launches at a consistent 2.2-2.7 s between `LoadSceneAsync returned` and `load parked at 0.9`,
+> which confirms round 2's diagnosis (Unity deserializing one large scene on the main thread) and
+> closes it as measured, not fixed. Still genuinely owed: **the chase frames** (44-77 ms), the one
+> measurement no harness can take, because it needs a human being pursued.
+>
+> ### ⚠ The two items U38 left open - BOTH CLOSED 2026-08-19, and the first one was wrong
+>
+> - **The seaward ground plate - THE LEDGER'S CLAIM DID NOT SURVIVE MEASUREMENT.** This block used to
+>   say *"zebras, lanes and anything else baked against those regions still carry the same error"*.
+>   That was a hypothesis, never a measurement, and a new read-only auditor (**The Block → Audit
+>   Baked Ground**) settled it: **zebra crossings 0/230 wrong, crowd lane points 0/3656, road carves
+>   0/172, crowd seeds 2/687, traffic edges 2/6590.** Nothing needed the re-bake the ledger
+>   prescribed. What the audit DID find is something nobody had looked for: **one traffic light
+>   hanging 9.9 m in the air** over the seafront at (486.4, 9.90, 321.1), while its own zebra sat at
+>   0.00 and the other 232 lights sat between −0.05 and 0.15. Fixed, and the auditor now reports
+>   traffic lights ALL AGREE. Memory: `deferred-hypothesis-needs-falsifier` earned its keep.
+> - **The gitignored pedestrian pack - IN THE README NOW, and the gap was wider than recorded.** It is
+>   not only `Assets/Prefabs/Npc/`: `/Assets/Prefabs/Traffic/`, `/Assets/Prefabs/Props/`,
+>   `/Assets/Navigation/` and `/Assets/Traffic/` are all derived and all ignored, so a fresh clone has
+>   **no pedestrians, no traffic cars, no street props and no NavMesh**. `README.md` → *Running it*
+>   now carries the ordered recovery: import the Chepatack pack, then three menu items.
 >
 > ### U36 is DONE - user-confirmed 2026-08-18 ✅
 >
@@ -242,6 +273,148 @@ unclear, re-test before inheriting.
 >
 > *Ledger audited 2026-08-16: the U28b and U33 scene-rig debts are closed, a duplicated section and
 > four malformed table rows are fixed. Open-work census re-cut 2026-08-17 by the five decisions above.*
+
+### U30b round 3, 2026-08-19 - the deltas are measured by a machine, and the biggest item in the project was never on the list
+
+> **The ask, in the user's words:** *"האם אפשר לבצע את הבדיקות הבא באופן אוטומטי? כלומר אתה מריץ משהו
+> ואני רק מקבל אישור ממך שביצענו את הדיאגנוסטיקה"* - can these run themselves. The answer turned out
+> to be yes for six of seven, and the standing rule was restated and honoured throughout:
+> *"לשפר ביצועים אבל לא לדפוק את הנראות"*.
+
+#### The harness, and the one design decision it turns on
+
+**New: `Assets/Scripts/Core/PerfProbe.cs`** (Development Player only, compiled out of a release, the
+same guard `FrameWatchdog` uses), **`tools/perf-sweep.sh`**, **`tools/perf-report.py`**.
+
+**One launch per configuration.** The obvious harness toggles a feature mid-session and re-samples;
+that is wrong here because `Progress`' switches are `PlayerPrefs` read at `Awake` all over the world,
+so a mid-run flip leaves half the scene in the old state. The probe writes its config *before* the
+world exists, measures one thing, restores the user's settings and quits. 44 launches, ~18 minutes,
+nobody watching.
+
+**Three things it got wrong first, all caught by smoke-testing one run before committing 44 to it:**
+
+- **`open`, never the raw binary.** Running `…app/Contents/MacOS/TheBlockUnity` backgrounded from a
+  shell starts a process the window server never activates: Unity picks its Metal device and blocks,
+  `Player.log` stops one line before `Metal RecreateSurface`, and what a person sees is **a black
+  screen forever** - 171 s observed, no timeout, no error. The same bundle double-clicked runs
+  perfectly. The user reporting *"i managed to open the game"* is what proved the build innocent.
+- **`ConnectWithProfiler | AllowDebugging` removed from `PlayerBuilder`.** They made the Player
+  broadcast and wait ~30 s before drawing, for data nothing in this project reads - `ProfilerRecorder`
+  is Player-side and wants no connection. 44 launches × 30 s is 22 minutes of waiting.
+- **Poll for the world, never a frame count.** The first probe waited five frames, found no
+  `GameFlow`, and sampled the TITLE SCREEN while reporting it as the parking lot. `BootLoader` does
+  not activate the world until ~4.1 s. The result was real, wrong, and carried nothing to say so.
+
+`tools/perf-report.py` refuses a run whose probe could not reach its pose, and prints a **noise
+floor** taken from repeated identical baselines. Two guards were added after the first parse lied:
+a Δms with ~zero Δtris is labelled **drift, not a delta**, and arms whose visible-skinned counts
+disagree are labelled **UNSETTLED** rather than averaged.
+
+#### The table - noise floor ±2.26 ms, from three runs of an identical baseline
+
+| unit | Δ frame | Δ tris drawn | verdict |
+| --- | --- | --- | --- |
+| U35a ragdolls | +0.16 ms | −0.01 M | **free** |
+| U35b vehicle damage | −0.17 ms | −0.00 M | **free** |
+| U35g auto shop | +0.15 ms | +0.21 M | **free** |
+| U35h breakable street props | +1.03 ms | +0.04 M | **free** |
+| U36 sea + beach + water entry | +0.89 ms | −0.09 M | **free** |
+| U37 falafel stand | −10.60 ms | +0.06 M | **drift, not a delta** |
+| U38 crowd | +25.85 ms | +1.36 M | **UNSETTLED - still owed** |
+| U35c/i police helicopter | **+17.14 ms** | +1.47 M | **real** |
+| — 101 parked lot cars | **+8.07 ms** | +10.30 M | **real** |
+| — both jetskis (before the fix) | **+4.06 ms** | +8.98 M | **real, now fixed** |
+
+**U37 is the row worth reading twice.** It says the falafel stand *hands back* 10.6 ms, which cannot
+be true - removing a place does not make the game faster. Its geometry delta is +0.06 M, i.e.
+nothing, and the four sequential runs drifted 50 → 68 ms. That is a thermal ramp on a laptop running
+VS Code at 180% CPU beside the measurement, and it is exactly why `Δtris` is the column to trust:
+**triangle counts are exact and cannot drift; milliseconds can.**
+
+**U38 could not be measured and this is not noise, it is a limitation.** Even after the settle
+detector was rewritten to wait for the crowd to stop streaming, the two `on` runs sampled at **0 and
+880 visible skinned meshes**. A live crowd never holds still - `CrowdSpawner` is budgeted per frame
+by design and pedestrians walk in and out of the cull radius forever - so there is no steady state to
+wait for and no A/B to take. **U38's own Editor measurement (−22 ms) stands as the best evidence**,
+and a teleport-based Player harness is the wrong instrument for it.
+
+#### The census: the parked cars are the biggest item in the project
+
+**New: `Assets/Editor/GeometryCensus.cs`** (**The Block → Geometry Census**), Edit mode, read-only,
+ranked by `triangles × instances` - because a 5k prop placed 233 times outweighs a 100k landmark
+placed once. Scene total **9.95 M triangles across 1,581 renderers**, of which **9.92 M cast
+shadows**.
+
+| asset | in scene | note |
+| --- | --- | --- |
+| `Lot/tesla.glb` | **2.08 M** | 40 parked cars × 52,096 triangles each |
+| `Lot/avenger.glb` | **1.53 M** | 43 cars |
+| `jetski.glb` | 2.38 M | 2 in scene - **fixed, see below** |
+| `Lot/audi.glb` | 0.67 M | 18 cars |
+| `Props/traffic-light.glb` | 0.54 M | 233 poles at 2,300 each - fine |
+| `reichman.glb` → `Reichman_SignHeb` | 0.10 M | **97,588 triangles for a sign** |
+
+**The lot cars total 4.28 M - 43% of the world's geometry - and their LODGroup has exactly ONE
+level**, so it is a cull group, not an LOD chain, and nothing above is double-counted.
+
+#### The jetski: reverted once, then fixed properly
+
+**COLLAPSE decimation failed and was reverted.** 1,190,600 → 50,221 triangles looked plausible in a
+log and destroyed the model: rendered at 3 m the hull was shattered into shards, the panel lines were
+broken and the seat was torn. It differed in 2.071% of pixels against a **0.000%** noise floor.
+
+**PLANAR is the right tool for this asset and it passed.** A product-visualisation model is smooth
+curves and flat panels, and `DISSOLVE` merges only coplanar faces while `delimit={NORMAL}` refuses to
+cross a hard edge. At 7.5°: **1,190,600 → 210,850 triangles, 5.6× lighter, 0.900% of pixels, mean
+0.38/255** - shading gradients on curves, not shape. Textures verified intact (1 image, 4096×2048,
+15 materials, identical both sides) and **0 null material slots**, so no magenta.
+
+**Confirmed on the Player afterwards:** the pair went from **8.98 M drawn triangles to 1.83 M** and
+from **4.06 ms to 1.63 ms**. The file went 35 MB → 7.7 MB, which is honest - 1.19 M triangles really
+were ~33 MB of it.
+
+⚠ **Even a 1° dissolve removed 44% of the model.** That much of it was coplanar filler, and it is the
+reason to suspect the same of every other product-vis asset in the project.
+
+**New: `tools/decimate-glb.py` + `tools/decimate-glb.sh`.** Headless, PLANAR by default, backs the
+original up outside the repo, and **fails loudly if the file was not rewritten** - the first version
+reported success on an untouched file, because `blender -b file.glb` does not open a `.glb` at all
+(only `.blend`), so it silently ran on the default cube.
+
+#### The ground audit: the ledger's open item was wrong
+
+**New: `Assets/Editor/GroundBakeAudit.cs`** (**The Block → Audit Baked Ground**), read-only. Re-probes
+every baked height and diffs it against a fresh `GroundY`. Result: **zebra crossings 0/230 wrong,
+crowd lanes 0/3656, road carves 0/172, traffic lights 0/233** (after the fix below), **crowd seeds
+2/687**, **traffic edges 2/6590**. The prescribed re-bake was not needed anywhere.
+
+**What it found instead:** `Light_083_135` at **(486.4, 9.90, 321.1)** - one traffic light 9.9 m in
+the air over the seafront, its own zebra on the ground at 0.00, the other 232 lights between −0.05
+and 0.15. `GroundY` returns −0.050 there; the baked value was a `groundy-lowest-hit-can-be-a-roof`
+survivor that hit `Plane.018` at 9.899. Fixed in the scene, one line of YAML.
+
+**Left, and deliberately:** 12 of 97 traffic nodes store exactly `y = 0.000` where a probe says
+0.05-0.157. All twelve being exactly zero says they were never ground-probed - nodes are graph
+junctions and every height that is read comes from the edge points - so this is by design, not rot.
+
+#### Ranked, worst first, with what each one costs the picture
+
+1. **The 101 parked lot cars** - +8.1 ms, +10.30 M drawn, +2,970 shadow casters. The largest item in
+   the project. A planar pass is the obvious first try given what it did to the jetski. **Changes
+   pixels; gate on a close-range diff.**
+2. **The police helicopter's spotlight** - +17.1 ms for a 26,478-triangle model that adds 1.47 M
+   *drawn* triangles. That is its 512 shadow map re-rendering the world, not its mesh. 3★ only.
+   **Changes pixels (its shadow).**
+3. **Occlusion culling has never been baked** (`umbraDataSize = 0`). **Changes nothing visible at
+   all** - the same image, minus what is hidden. The safest item on this list.
+4. **Shadow distance and cascades** - a geometry cost, unlike every pixel-side setting round 2 ruled
+   out. Now measurable: the sweep reports `casters`.
+5. **`Reichman_SignHeb`, 97,588 triangles for a sign.** Hygiene.
+
+**Deliberately not done:** nothing was decimated except the jetski, and no shadow or culling setting
+was touched - each of those changes the picture, and the rule is one change, one diff, one
+confirmation.
 
 ### U38, 2026-08-19 - a crowd of strangers: 12 bodies × 30 looks, and it made the frame FASTER - USER-CONFIRMED ✅
 

@@ -161,3 +161,17 @@ Assets/Police_officer.meta
 # falafel stand's sign. Apple's licence, so it stays local - tools/build-falafel.py regenerates
 # it from the system .ttc when it is missing.
 /source-assets/fonts/
+
+# U30b's performance sweep output - 44+ Player.log copies per run, one per configuration. They are
+# EVIDENCE, not source: tools/perf-report.py turns them into the table that goes in the ledger, and
+# the table is what is worth keeping. Re-runnable with tools/perf-sweep.sh.
+/perf-sweep-out/
+/perf-recheck-out/
+
+# Written by Unity's Performance Testing package when it builds a development Player. Empty stubs
+# (`{"MeasurementCount":-1}`), regenerated on every build, and they land in Assets/Resources so
+# they would otherwise ship inside the game.
+/Assets/Resources/PerformanceTestRunInfo.json
+/Assets/Resources/PerformanceTestRunInfo.json.meta
+/Assets/Resources/PerformanceTestRunSettings.json
+/Assets/Resources/PerformanceTestRunSettings.json.meta
