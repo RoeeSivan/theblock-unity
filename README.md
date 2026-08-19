@@ -1,7 +1,7 @@
 # The Block - Unity
 
-**A Florentin joyride, rebuilt in Unity.** A small, genuinely playable GTA-style 3D open world set in
-Florentin, Tel Aviv - walk it, swim it, drive it, ride it, fly it, and play a four-mission campaign
+**A joyride, rebuilt in Unity.** A small, genuinely playable GTA-style 3D open world.
+ walk it, swim it, drive it, ride it, fly it, and play a four-mission campaign
 through to a win screen.
 
 Solo final project for the course _From idea to app using AI_.
