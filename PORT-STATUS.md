@@ -2480,10 +2480,23 @@ on a private repo are collaborator-only**. A friend gets a 404. It stays the rig
 spends **no LFS bandwidth**. *(Repo visibility taken from `CLAUDE.md` §4 - `gh` is not installed on
 this machine, so it was not re-verified against GitHub.)*
 
-**Windows - BUILT 2026-08-19, and NOT YET RUN ANYWHERE.** The module went in
+**Windows - BUILT 2026-08-19, and it RENDERS CORRECTLY.** The module went in
 (`PlaybackEngines/WindowsStandaloneSupport`) and `Builds/Windows/TheBlockUnity/` is 2.1 GB, zipped
-to **1,166,763,945 B / 1.09 GiB, 230 files**. ⚠ **Nobody has launched it** - see the test note below,
-and do not send it to anyone until someone has.
+to **1,166,763,945 B / 1.09 GiB, 230 files**.
+
+✅ **Launched 2026-08-19 in the Windows 11 ARM VM, through the real path** - Drive → browser
+download → Extract All → SmartScreen → Run anyway. The user's verdict: *"הכל נראה טוב"*. **No
+magenta, no opaque squares, the city draws** - so the Metal → DirectX shader recompile survived, and
+`Shader.Find`'s Always Included list carried across from the macOS build as predicted. **That was
+the whole question this test existed to answer, and it passed.**
+
+It was *"איטי בטירוף, אין מה לנסוע"*, and that measures the VM, not the build: an x86_64 binary
+under ARM emulation on a paravirtualised GPU. **A broken build looks broken, not slow** - the
+correct render is the proof the slowness is environmental. Do not read a frame number off it.
+
+⚠ **Open, 2026-08-20: the user is testing it on a real PC** and will report back. That is the first
+time this project runs on native Windows hardware, and it is the only source of a Windows frame
+number worth having.
 
 - **The scripting backend is not a decision.** `Variations/` holds `win64_player_*_mono`,
   `win_arm64_*_mono`, `win32_*_mono` - **no IL2CPP variation exists**, because IL2CPP for Windows
