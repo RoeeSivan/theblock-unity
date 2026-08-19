@@ -78,6 +78,19 @@ namespace TheBlock.EditorTools
         [MenuItem("The Block/Build macOS Player (Development)", priority = 42)]
         public static void BuildDevelopment() => RunBuild(development: true);
 
+        private const string QuietKey = "theblock.builder.quiet";
+        private static bool QuietBuilds => EditorPrefs.GetBool(QuietKey, false);
+
+        [MenuItem("The Block/Quiet Builds", priority = 43)]
+        private static void ToggleQuiet() => EditorPrefs.SetBool(QuietKey, !QuietBuilds);
+
+        [MenuItem("The Block/Quiet Builds", true)]
+        private static bool ToggleQuietValidate()
+        {
+            Menu.SetChecked("The Block/Quiet Builds", QuietBuilds);
+            return true;
+        }
+
         /// <summary>
         /// The two settings a Player needs and the Editor does not, applied idempotently.
         ///
@@ -260,14 +273,21 @@ namespace TheBlock.EditorTools
                 $"    lipo -archs \"{binary}/\"*\n" +
                 $"  Expect: x86_64 arm64");
 
-            EditorUtility.DisplayDialog(
-                "Build succeeded",
-                $"{megabytes:N0} MB in {summary.totalTime:mm\\:ss}\n\n{outputPath}\n\n" +
-                "Next: quit Unity and launch it from Finder, then check a mission beacon is " +
-                "coloured rather than magenta.",
-                "OK");
+            // The success dialog is modal, so it blocks the Editor until somebody clicks OK - which
+            // is right when a person picked the menu item, and wrong when the performance harness is
+            // rebuilding the Player for the fourth time that hour. `The Block/Quiet Builds` toggles
+            // it; it is per-user EditorPrefs, so the shipped default is still the dialog.
+            if (!QuietBuilds)
+            {
+                EditorUtility.DisplayDialog(
+                    "Build succeeded",
+                    $"{megabytes:N0} MB in {summary.totalTime:mm\\:ss}\n\n{outputPath}\n\n" +
+                    "Next: quit Unity and launch it from Finder, then check a mission beacon is " +
+                    "coloured rather than magenta.",
+                    "OK");
 
-            EditorUtility.RevealInFinder(outputPath);
+                EditorUtility.RevealInFinder(outputPath);
+            }
         }
     }
 }

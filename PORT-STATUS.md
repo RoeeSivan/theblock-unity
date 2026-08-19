@@ -120,6 +120,57 @@ unclear, re-test before inheriting.
 > a close-range pixel diff at 0.900% against a **0.000%** noise floor - and the first attempt did NOT
 > pass and was reverted.
 >
+> ### ✅ U30b round 4 landed 2026-08-19 - occlusion culling is baked and PROVED free; the parked cars are NOT decimatable, and the world has no LODs at all. Section below.
+>
+> ⚠ **One thing is owed on it and it is the user's: a drive around the city.** The pixel diff is
+> exact but it is **one pose**. Occlusion culling's failure mode is not "looks slightly different",
+> it is a building or a car **popping in** as the camera moves - and the only way that shows up is
+> movement. `smallestHole 1.0` means Umbra treats gaps under a metre as closed; the streets here are
+> ten metres wide so it should be safe, and it has not been watched. If anything pops: lower
+> `smallestHole` to 0.5 in **Window → Rendering → Occlusion Culling** and re-bake, or revert the
+> single asset and the scene's `m_OcclusionCullingData` line.
+>
+> Round 3 ended with a ranked list. The user picked its first two items and asked, before either was
+> done, *"how much do these actually buy us?"* - so both were measured rather than argued, and **one
+> of the two answers was no.**
+>
+> - **Occlusion culling: BAKED, KEPT, and it changes nothing visible.** In the city it removes
+>   **5,963,800 drawn triangles (−25%) and 37 SetPass calls (−17%)** - `17,962,088` with it against
+>   `23,925,888` without, and the two "on" runs agreed **to the triangle**. On open ground it does
+>   nothing (parking lot −0.9%, beach 0%), which is what an occluder-free view should do. **Proved
+>   free by a pixel diff taken in the Player: outside the player's own body and the HUD, exactly
+>   ZERO pixels differ.** Cost: `Assets/Scenes/World/OcclusionCullingData.asset`, 1 MB of text, and a
+>   47-second re-bake **that has to be re-run whenever world geometry moves**.
+> - **PLANAR on the parked cars: MEASURED, FAILED, REVERTED.** Round 3's memory named them "the
+>   obvious next candidate" after the jetski gave back 44% at a 1° dissolve. They gave back **0.2%**.
+>   Even at 20° - the loosest angle the tool searches - tesla went 52,096 → 48,123 (**1.1×**) and audi
+>   1.1×; only avenger reached 1.6×. All three restored from their backups, `git status` clean. **A
+>   high triangle count is not evidence of waste**; the jetski was filler, a car is curvature.
+>
+> ### 🔎 What the failed attempt found instead, and it is the biggest remaining lever
+>
+> **There is not one real LOD in this game.** 334 `LODGroup`s exist - 101 parked cars and 233 street
+> lights - and **every one has `lodCount == 1`**, which is a cull distance wearing an LODGroup's
+> clothes. Nothing else in the world (districts, props, places, vehicles) has even that.
+>
+> At `screenRelativeTransitionHeight` 0.0069 on a 5.03 m car with `QualitySettings.lodBias` at **2**,
+> a parked Tesla holds all 52,096 of its triangles out to roughly **1,260 m** - and the scene's linear
+> fog ends at 1,312 m, so they are drawn at full detail long after the fog has erased them.
+>
+> Priced with a global `lodBias` 2.0 → 0.4 (a measuring instrument, **not** a proposal):
+>
+> | pose | triangles | SetPass | shadow casters |
+> | --- | --- | --- | --- |
+> | falafel | 17.45 M → **9.68 M** (−45%) | 176 → 138 | 2,917 → **749 (−74%)** |
+> | lot | 23.11 M → 18.41 M (−20%) | — | — |
+> | beach | 2.40 M → 2.07 M (−13%) | — | — |
+>
+> ⚠ **Read the arithmetic before believing the headline.** `lodBias` can only touch those 334
+> objects, whose raw geometry totals 4.82 M - yet 7.77 M went away. The ratio of 1.6 is the cars and
+> lamps being submitted for the camera **and again for the shadow maps**. And the 74% caster figure is
+> exactly why `lodBias 0.4` is not the recommendation: it is a blunt global knob and things would pop.
+> The targeted version - **a real LOD1 for the lot cars** - is on the ranked list below.
+>
 > ### After that: **the boot hitch, and it is diagnosed rather than open.** **A 2,154 ms hitch at
 > t=2.2 s that is NOT textures** (it happens at `tex current 6 MB`) - round 3 reproduced it on all 44
 > launches at a consistent 2.2-2.7 s between `LoadSceneAsync returned` and `load parked at 0.9`,
@@ -273,6 +324,77 @@ unclear, re-test before inheriting.
 >
 > *Ledger audited 2026-08-16: the U28b and U33 scene-rig debts are closed, a duplicated section and
 > four malformed table rows are fixed. Open-work census re-cut 2026-08-17 by the five decisions above.*
+
+### U30b round 4, 2026-08-19 - occlusion is free and the parked cars are not the jetski
+
+> **The ask:** the user took round 3's ranked list, said *"בוא נבצע את 1 ו2 על פי ההמלצה שלך. את הצללים
+> נשאיר אני אוהב אותם"* - do items 1 and 2, **leave the shadows alone** - and then, before either was
+> started, *"לפני שאנחנו מבצעים את השינויים האלה, בכמה הם עוזרים לנו מבחינת ביצועים?"* How much do they
+> buy. That question is the whole shape of this round: **both were priced by measurement, and one of
+> the two answers was no.** Item 4 (the chase frames) stays deferred by the user.
+
+#### The freeze, and why the first sweep had to be thrown away
+
+The first occlusion sweep produced two runs of the **same** configuration at **20,776,780** and
+**24,396,210** triangles - the exact counter, not a millisecond. `live-crowd-has-no-steady-state`
+had already recorded that the crowd cannot be A/B-ed; what round 4 found is that it also **poisons
+the measurement of anything else**, because a delta of 1.8 M cannot be read off a pair that
+disagrees with itself by 3.6 M, and repeating does not average out a world with no steady state.
+
+**`PerfProbe -perfFreeze on`** switches `CrowdSpawner` and `TrafficSystem` off in **both** arms.
+Both `Instantiate(prefab, transform)`, so deactivating the system takes every pedestrian and every
+traffic car with it, and what is left is the static world - where 9.9 M of the 9.95 M triangles live
+anyway. Two runs of one configuration then agreed **to the triangle** (`17,962,088`, twice).
+
+`tools/perf-sweep.sh` gained `FREEZE=on` and a `SWEEP="feature:pose ..."` override, so a follow-up
+runs two rows instead of forty-four.
+
+#### Occlusion culling - KEPT
+
+No `OcclusionArea` existed and nothing had ever been baked (`umbraDataSize 0`), so Umbra would have
+taken the whole scene bounds: **3835 × 2163 × 1704 m**, including a pooled crowd parked at y = −2000
+and a sea plane reaching x = 2830. A 1400 × 65 × 1400 view volume over the ground plane at
+`smallestOccluder 10`, `smallestHole 1.0` bakes in **47 seconds** to 1 MB.
+
+| pose | occlusion ON | OFF | delta |
+| --- | --- | --- | --- |
+| **falafel** (city street) | **17,962,088** tris / 188 SetPass | 23,925,888 / 225 | **−5.96 M (−25%), −37 (−17%)** |
+| lot (open ground) | 22.75 M | 22.95 M | −0.9% |
+| beach | 2.40 M | 2.40 M | 0% |
+
+**Proved free, not argued free.** `-perfShot` makes the Player write a PNG of its settled view;
+three were taken at the falafel pose - `on`, `off`, `on` again - and `tools/pixel-diff.py` (new)
+compares the third against the first as the noise floor. Every differing pixel in the whole frame is
+the **outline of the player's own idle animation**. Masking the character and the HUD: **0 pixels
+differ in the world, in both the floor and the test.**
+
+⚠ **This could not have been checked in the Editor.** `Camera.Render()` on a hand-made camera in edit
+mode does **not** consult the baked data - both arms of that attempt reported the identical
+`19,144,358` triangles, so its pixel diff would have read 0% whether occlusion worked or not. The
+control failing is the only reason the mistake was caught.
+
+⚠ **The bake is a build artifact and goes stale.** Move a building, add a district, re-run
+`Build World` - and it must be re-baked (`StaticOcclusionCulling.GenerateInBackground()`), or it
+culls against a world that no longer exists.
+
+#### PLANAR on the parked cars - MEASURED, FAILED, REVERTED
+
+| file | before | 1° | 20° (loosest the tool searches) |
+| --- | --- | --- | --- |
+| `Lot/tesla.glb` | 52,096 | 51,969 | 48,123 — **1.1×** |
+| `Lot/audi.glb` | 37,423 | 37,379 | 32,999 — **1.1×** |
+| `Lot/avenger.glb` | 35,523 | 34,885 | 22,424 — 1.6× |
+
+Round 3's estimate - extrapolated from the jetski's 5.6× and stated as an extrapolation - was ~5 ms.
+The real answer is nothing. All three restored from their `$TMPDIR` backups; `git status` clean.
+`planar-not-collapse-for-cad-assets` rewritten: **a high triangle count is not evidence of waste**,
+and the 1° row is the cheap test that tells you which kind of asset you have.
+
+#### Also: builds no longer need a click
+
+`PlayerBuilder` gained **The Block → Quiet Builds** (checked menu item, `EditorPrefs`, off by
+default). The success dialog is modal and blocks the Editor until somebody clicks OK - right for a
+person, wrong for a harness rebuilding the Player four times in an hour.
 
 ### U30b round 3, 2026-08-19 - the deltas are measured by a machine, and the biggest item in the project was never on the list
 

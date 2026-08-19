@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.IO;
 using System.Text;
 using Unity.Profiling;
 using UnityEngine;
@@ -49,6 +50,8 @@ namespace TheBlock.Core
         private static bool _on = true;
         private static string _poseName = "lotcars";
         private static int _repeat = 0;
+        private static bool _freeze;
+        private static string _shotPath;
 
         [Tooltip("Frames discarded before sampling starts: streaming, the crowd's spawn ramp and " +
                  "the shadow cascades all settle inside this window.")]
@@ -112,6 +115,8 @@ namespace TheBlock.Core
                     case "-perfState":   if (i + 1 < argv.Length) _on = argv[i + 1] == "on"; break;
                     case "-perfPose":    if (i + 1 < argv.Length) _poseName = argv[i + 1]; break;
                     case "-perfRepeat":  if (i + 1 < argv.Length) int.TryParse(argv[i + 1], out _repeat); break;
+                    case "-perfFreeze":  if (i + 1 < argv.Length) _freeze = argv[i + 1] == "on"; break;
+                    case "-perfShot":    if (i + 1 < argv.Length) _shotPath = argv[i + 1]; break;
                 }
             }
 
@@ -151,11 +156,22 @@ namespace TheBlock.Core
             QualitySettings.vSyncCount = 0;
 
             ApplySceneToggle();
+            if (_freeze) FreezeWorld();
 
             if (TryPose(_poseName, out var position, out float yaw)) yield return MoveTo(position, yaw);
             else Fail($"unknown pose '{_poseName}'");
 
             yield return Settle();
+
+            // A frame the Player actually drew, saved to disk, so a change that is supposed to be
+            // invisible can be PROVED invisible instead of argued.
+            //
+            // It has to happen here rather than in the Editor: `Camera.Render()` on a hand-made
+            // camera in edit mode does NOT consult the baked occlusion data - both arms of that
+            // attempt reported the same 19,144,358 triangles, so the control failed and its pixel
+            // diff would have read 0% whether occlusion worked or not. In a Player it does apply,
+            // which the 17.96 M / 23.90 M pair at this pose already shows.
+            if (!string.IsNullOrEmpty(_shotPath)) yield return Screenshot();
 
             yield return Sample();
 
@@ -331,6 +347,7 @@ namespace TheBlock.Core
               .Append(" state=").Append(_on ? "on" : "off")
               .Append(" pose=").Append(_poseName)
               .Append(" repeat=").Append(_repeat)
+              .Append(" freeze=").Append(_freeze ? 1 : 0)
               .Append(" frames=").Append(counted)
               .Append(" frameMs=").Append((frameSum / Mathf.Max(1, counted) * 1000d).ToString("0.000"))
               .Append(" worstMs=").Append((worst * 1000f).ToString("0.0"))
@@ -365,6 +382,28 @@ namespace TheBlock.Core
             if (_feature == "heli")
             {
                 if (_on) SpawnHelicopter();
+                return;
+            }
+
+            // Occlusion culling is the one arm that is not a scene object. The baked data is either
+            // consulted or ignored, and nothing else about the world differs between the arms - which
+            // makes it the cleanest A/B here, since both arms run the same build off the same bake.
+            if (_feature == "occlusion")
+            {
+                foreach (var cam in Camera.allCameras) cam.useOcclusionCulling = _on;
+                Debug.Log($"{Tag}: occlusion culling {(_on ? "on" : "off")} on {Camera.allCameras.Length} cameras");
+                return;
+            }
+
+            // Also a proposal rather than a feature. All 101 parked cars carry a SINGLE-level
+            // LODGroup - which is a cull distance wearing an LODGroup's clothes, and at
+            // screenRelativeTransitionHeight 0.0069 on a 5 m car it holds all 52,096 triangles out to
+            // roughly 630 m. lodBias scales that distance for every LODGroup at once, so this arm
+            // prices a tighter cull without editing 101 objects to find out it was not worth it.
+            if (_feature == "lodbias")
+            {
+                if (_on) QualitySettings.lodBias = 0.4f;
+                Debug.Log($"{Tag}: lodBias {QualitySettings.lodBias}");
                 return;
             }
 
@@ -420,6 +459,59 @@ namespace TheBlock.Core
 
             Instantiate(prefab, at, Quaternion.Euler(0f, yaw, 0f));
             Debug.Log($"{Tag}: police helicopter spawned at {at}");
+        }
+
+        /// <summary>
+        /// Empties the world of everything that moves, in BOTH arms of a comparison.
+        ///
+        /// <b>This is the instrument for anything whose delta is smaller than the crowd.</b> The
+        /// first occlusion sweep put two identical `on` runs at 20.78 M and 24.40 M triangles - the
+        /// exact counter, not a millisecond - because the crowd and the traffic had streamed to
+        /// different states by the time each run sampled. A 1.8 M delta cannot be read off a pair
+        /// that disagrees with itself by 3.6 M, and no number of repeats fixes a world that has no
+        /// steady state to average towards (see the `live-crowd-has-no-steady-state` note).
+        ///
+        /// Switching the two systems off is enough to take their output with them: `CrowdSpawner`
+        /// and `TrafficSystem` both `Instantiate(prefab, transform)`, so every pedestrian and every
+        /// traffic car is a child of the thing being deactivated.
+        ///
+        /// What is measured afterwards is the STATIC world, which is where 9.9 M of the 9.95 M
+        /// triangles live anyway - and it is deterministic, so two runs of one configuration should
+        /// now agree to the triangle.
+        /// </summary>
+        /// <summary>
+        /// Writes one PNG of the settled view. <c>CaptureScreenshot</c> is queued rather than
+        /// immediate - it lands at the end of a later frame - so this waits for the file to appear
+        /// instead of assuming, and gives up loudly rather than letting a run report a shot it
+        /// never took.
+        /// </summary>
+        private IEnumerator Screenshot()
+        {
+            if (File.Exists(_shotPath)) File.Delete(_shotPath);
+            ScreenCapture.CaptureScreenshot(_shotPath);
+
+            for (int i = 0; i < 240 && !File.Exists(_shotPath); i++) yield return null;
+
+            if (File.Exists(_shotPath)) Debug.Log($"{Tag}: shot {_shotPath}");
+            else Fail($"screenshot never appeared at {_shotPath}");
+
+            // The capture resizes the back buffer for a frame; sampling straight after would price
+            // that instead of the view.
+            for (int i = 0; i < 30; i++) yield return null;
+        }
+
+        private void FreezeWorld()
+        {
+            Deactivate2("TheBlock.Npc.CrowdSpawner");
+            Deactivate2("TheBlock.Traffic.TrafficSystem");
+        }
+
+        private void Deactivate2(string typeName)
+        {
+            var system = FindAnyObjectByType(FindType(typeName)) as MonoBehaviour;
+            if (system == null) { Debug.LogWarning($"{Tag}: no {typeName} to freeze"); return; }
+            system.gameObject.SetActive(false);
+            Debug.Log($"{Tag}: froze {typeName} ({system.gameObject.name})");
         }
 
         private void DisableCrowd()

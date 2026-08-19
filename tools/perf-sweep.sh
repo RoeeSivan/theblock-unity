@@ -31,6 +31,9 @@ TIMEOUT="${TIMEOUT:-180}"
 
 # feature:pose. baseline is not padding - both its arms are identical, so the spread between them
 # is this machine's noise floor on the day, and every other delta is read against it.
+#
+# Overridable, because a follow-up almost never wants all eleven: SWEEP="occlusion:lotcars
+# occlusion:falafel" tools/perf-sweep.sh out/ re-runs two rows instead of forty-four.
 MATRIX=(
   "baseline:lotcars"
   "crowd:crowd"
@@ -44,6 +47,7 @@ MATRIX=(
   "falafel:falafel"
   "heli:station"
 )
+if [ -n "${SWEEP:-}" ]; then MATRIX=($SWEEP); fi
 
 if [ ! -x "$BIN" ]; then
   echo "perf-sweep: no Player at $BIN" >&2
@@ -81,8 +85,13 @@ for entry in "${MATRIX[@]}"; do
       #
       # `open -n` registers with LaunchServices and gives the app a real GUI session. It returns
       # immediately, so the wait below polls for the process instead of using `wait`.
+      # FREEZE=on empties the world of the crowd and the traffic in BOTH arms. Use it for any
+      # delta smaller than they are: two identical `on` runs of the occlusion arm sampled 3.6 M
+      # triangles apart because the streaming had reached different states, and no amount of
+      # repeating averages out a world that never holds still. See PerfProbe.FreezeWorld.
       open -n "$APP" --args \
-        -perfFeature "$feature" -perfState "$state" -perfPose "$pose" -perfRepeat "$repeat"
+        -perfFeature "$feature" -perfState "$state" -perfPose "$pose" -perfRepeat "$repeat" \
+        -perfFreeze "${FREEZE:-off}"
 
       # Wait for it to APPEAR first. `open` returns before the process exists, so polling straight
       # for "is it gone" would read the gap before launch as a finished run and record nothing.
