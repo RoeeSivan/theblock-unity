@@ -2480,15 +2480,51 @@ on a private repo are collaborator-only**. A friend gets a 404. It stays the rig
 spends **no LFS bandwidth**. *(Repo visibility taken from `CLAUDE.md` §4 - `gh` is not installed on
 this machine, so it was not re-verified against GitHub.)*
 
+**Windows - BUILT 2026-08-19, and NOT YET RUN ANYWHERE.** The module went in
+(`PlaybackEngines/WindowsStandaloneSupport`) and `Builds/Windows/TheBlockUnity/` is 2.1 GB, zipped
+to **1,166,763,945 B / 1.09 GiB, 230 files**. ⚠ **Nobody has launched it** - see the test note below,
+and do not send it to anyone until someone has.
+
+- **The scripting backend is not a decision.** `Variations/` holds `win64_player_*_mono`,
+  `win_arm64_*_mono`, `win32_*_mono` - **no IL2CPP variation exists**, because IL2CPP for Windows
+  needs the Visual Studio toolchain on Windows itself. A Mac host builds Mono or nothing.
+  `ProjectSettings.asset` already reads `scriptingBackend: Standalone: 0` (Mono), so nothing was
+  changed. Architecture: **Intel 64-bit** - which also runs on Windows-on-ARM through emulation.
+- **Switch Platform was CHEAP, against the prediction made an hour earlier that `Library/` would
+  balloon.** 15 GB → 18 GB, and free disk 29 → 26 GiB with the 1.1 GB zip included. The reason is
+  specific and worth keeping: **macOS and Windows are both desktop and share the BC texture
+  formats**, so the artifact database reused nearly all of it and only the shader variants
+  recompiled - Metal → DirectX. A desktop↔desktop switch is not the iOS↔desktop switch the warning
+  was borrowed from.
+- ⚠ **The build dialog escaped `.gitignore`, and this is the trap of the unit.** The output folder
+  is typed by hand into a save panel, and it landed at **the project root** as
+  `theblockunitywindows/`. `.gitignore` line 6 covers `/[Bb]uilds/` and nothing else, so
+  `git check-ignore` returned **not ignored**: 2.1 GB of Player was one `git add -A` from being
+  committed. Moved to `Builds/Windows/TheBlockUnity/`, re-verified ignored. **The macOS path cannot
+  do this** - `PlayerBuilder.cs` hardcodes `OutputDirectory`; the window asks, and a human answers.
+- **On Windows the game is a FOLDER, not a file.** `TheBlockUnity.exe` alone is 667 KB and does
+  nothing without `TheBlockUnity_Data/`, `UnityPlayer.dll`, `MonoBleedingEdge/` and the D3D12/
+  dstorage DLLs beside it. The whole directory travels, which is why the zip's root is
+  `TheBlockUnity/`. `TheBlockUnity_BurstDebugInformation_DoNotShip` (752 K) is excluded - its name
+  is the instruction, same as on macOS.
+- **Gatekeeper's counterpart is SmartScreen**, and `xattr` is meaningless there. Unsigned `.exe` →
+  *"Windows protected your PC"* → **More info → Run anyway**. Same shape of problem, different
+  words, and the recipient still needs telling in advance.
+- **Test it in the VM that is already on this machine:**
+  `~/Virtual Machines.localized/Windows 11 64-bit Arm.vmwarevm`. **What it can answer:** does it
+  launch, do the menus draw, is the city rendered rather than opaque squares, are the mission
+  beacons coloured rather than magenta (`Shader.Find` at runtime - the top suspect, and the whole
+  reason `FixPlayerSettings` exists). **What it cannot answer: performance.** An x86_64 build under
+  emulation inside a VM on a virtual GPU produces a frame rate that means nothing about any real
+  machine - do not read U30b numbers off it.
+- ⚠ **Switch the Editor back to macOS when done.** `PlayerBuilder.Preflight` refuses to build while
+  the active target is not `StandaloneOSX`, and U30b round 3 still needs a macOS Player.
+- **Do NOT rename `productName`/`companyName` to tidy the exe name.** It already reads
+  `TheBlockUnity`, so there is nothing to gain, and the rename orphans the macOS save file - see
+  `PlayerBuilder.cs`'s own note. That is a U30c decision, after the video.
+
 **The other platforms, so they are not re-litigated:**
 
-- **Windows: no build, and do not improvise one.** `PlaybackEngines/` holds only
-  `MacStandaloneSupport`, `WebGLSupport`, `iOSSupport` - the module is not installed. Adding it is
-  Hub → Installs → gear → **Windows Build Support (Mono)**, but the project has **never been built
-  or run on Windows**: shader variants recompile for DirectX rather than Metal, and memory
-  `runtime-keyword-variant-is-stripped` is precisely a variant that looks right in the Editor and
-  renders opaque squares in a Player. **Needs a real Windows machine to test on before anyone
-  receives it.**
 - **WebGL is not viable** at 2.1 GB of assets, and needs no work: the browser answer already exists
   and shipped - `Finalproject` on Vercel.
 - **"Clone and press Play" is not a distribution path.** Per `README.md`, a fresh clone is an empty
