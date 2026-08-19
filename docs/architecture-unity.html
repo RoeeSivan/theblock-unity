@@ -1,0 +1,925 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Block — Unity Architecture</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%B1%3C/text%3E%3C/svg%3E" />
+
+<style>
+  html {
+    color-scheme: light dark;
+  }
+  body {
+    margin: 0;
+    padding: 0;
+  }
+  img {
+    max-width: 100%;
+  }
+  :root {
+    --bg: #fbfaf7;
+    --fg: #1c1b19;
+    --muted: #6b675f;
+    --line: #ddd8cf;
+    --panel: #f2efe8;
+    --accent: #b4501e;
+    --accent-soft: #f6e7de;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      --bg: #16151a;
+      --fg: #ece9e3;
+      --muted: #9d988e;
+      --line: #33313a;
+      --panel: #201f26;
+      --accent: #ec8a55;
+      --accent-soft: #2c2118;
+    }
+  }
+  :root[data-theme='dark'] {
+    --bg: #16151a;
+    --fg: #ece9e3;
+    --muted: #9d988e;
+    --line: #33313a;
+    --panel: #201f26;
+    --accent: #ec8a55;
+    --accent-soft: #2c2118;
+  }
+  :root[data-theme='light'] {
+    --bg: #fbfaf7;
+    --fg: #1c1b19;
+    --muted: #6b675f;
+    --line: #ddd8cf;
+    --panel: #f2efe8;
+    --accent: #b4501e;
+    --accent-soft: #f6e7de;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: ui-sans-serif, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 56px 28px 96px;
+  }
+  header.top {
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 28px;
+    margin-bottom: 44px;
+  }
+  h1 {
+    font-size: clamp(28px, 4vw, 40px);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    font-weight: 650;
+    text-wrap: balance;
+    margin: 0 0 14px;
+  }
+  .sub {
+    color: var(--muted);
+    font-size: 17px;
+    max-width: 70ch;
+    margin: 0;
+  }
+  .kicker {
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 11.5px;
+    font-weight: 650;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+  h2 {
+    font-size: 22px;
+    letter-spacing: -0.01em;
+    font-weight: 650;
+    text-wrap: balance;
+    margin: 56px 0 6px;
+  }
+  h3 {
+    font-size: 15px;
+    font-weight: 650;
+    margin: 30px 0 6px;
+  }
+  p {
+    max-width: 74ch;
+    margin: 0 0 14px;
+  }
+  .muted {
+    color: var(--muted);
+  }
+  code,
+  .mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.88em;
+  }
+  code {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  ol.flow {
+    max-width: 74ch;
+    padding-left: 20px;
+    margin: 0 0 14px;
+  }
+  ol.flow > li {
+    margin-bottom: 9px;
+  }
+
+  .stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 28px;
+    margin: 22px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .stats b {
+    color: var(--fg);
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+  }
+
+  figure {
+    margin: 26px 0 8px;
+  }
+  .scroll {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--panel);
+    padding: 14px;
+  }
+  figure svg {
+    display: block;
+    min-width: 640px;
+    width: 100%;
+    height: auto;
+    color: var(--fg);
+  }
+  figcaption {
+    color: var(--muted);
+    font-size: 13.5px;
+    max-width: 78ch;
+    margin-top: 12px;
+  }
+
+  svg text {
+    fill: currentColor;
+    font-family: ui-sans-serif, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  svg .t {
+    font-size: 12.5px;
+    font-weight: 650;
+  }
+  svg .s {
+    font-size: 11px;
+    fill: var(--muted);
+  }
+  svg .m {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 10.5px;
+    fill: var(--muted);
+  }
+  svg .lbl {
+    font-size: 10.5px;
+    fill: var(--muted);
+  }
+  svg .lbl-a {
+    font-size: 10.5px;
+    fill: var(--accent);
+  }
+  svg .num {
+    font-size: 10.5px;
+    font-weight: 650;
+  }
+  svg .box {
+    fill: var(--bg);
+    stroke: currentColor;
+    stroke-width: 1.2;
+  }
+  svg .box-a {
+    fill: var(--accent-soft);
+    stroke: var(--accent);
+    stroke-width: 1.5;
+  }
+  svg .frame {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.1;
+    stroke-dasharray: 6 5;
+    opacity: 0.5;
+  }
+  svg .edge {
+    stroke: currentColor;
+    stroke-width: 1.3;
+    fill: none;
+  }
+  svg .edge-a {
+    stroke: var(--accent);
+    stroke-width: 1.5;
+    fill: none;
+  }
+  svg .edge-d {
+    stroke: currentColor;
+    stroke-width: 1.3;
+    fill: none;
+    stroke-dasharray: 5 4;
+  }
+  svg .ring {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.1;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 14px;
+    margin: 14px 0 8px;
+  }
+  th,
+  td {
+    text-align: left;
+    vertical-align: top;
+    padding: 9px 12px 9px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  th {
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    font-weight: 650;
+  }
+  td:first-child {
+    font-weight: 600;
+    white-space: nowrap;
+    padding-right: 20px;
+  }
+  .tablewrap {
+    overflow-x: auto;
+  }
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 14px 18px;
+    border-radius: 0 8px 8px 0;
+    margin: 24px 0;
+  }
+  .callout p {
+    margin: 0;
+  }
+  footer {
+    margin-top: 64px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <header class="top">
+    <p class="kicker">The Block · Unity 6</p>
+    <h1>APIs, tools &amp; libraries — and the flow between them</h1>
+    <p class="sub">
+      An Israeli GTA-style 3D mini open world built in Unity 6 (URP) and
+      shipped as a macOS app. Four diagrams: what the game calls while you play, the order the engine
+      calls it in every frame, what the Editor does long before the game runs, and the AI toolchain
+      that drives all of it.
+    </p>
+    <ul class="stats">
+      <li><b>162</b> runtime scripts, <b>38,923</b> lines</li>
+      <li><b>54</b> Editor scripts, <b>20,602</b> lines</li>
+      <li><b>52</b> build menu items</li>
+      <li><b>Unity 6000.5.8f1</b>, URP</li>
+    </ul>
+  </header>
+
+  <p class="kicker">1 — Runtime</p>
+  <h2>What the app actually calls while you play</h2>
+  <p>
+    The whole game is <strong>one macOS process</strong>. There is no server, no database, no login
+    and no LLM at runtime — and no network at all: nothing is fetched while you play, because every
+    mesh, texture, clip and scene is already inside the <code>.app</code>. The game talks to Unity's
+    own subsystems and to nothing else.
+  </p>
+  <p>
+    Most of what is installed is Editor-side; six subsystems do work while the game is running. The
+    one API that reaches the disk is <code>PlayerPrefs</code>, and it holds eleven keys.
+  </p>
+
+  <figure>
+    <div class="scroll">
+      <svg
+        viewBox="0 0 1000 500"
+        role="img"
+        aria-label="Runtime architecture: the built macOS app launches one process containing the Unity engine loop, which drives URP on Metal, PhysX, the Input System, Mecanim plus NavMesh, UI Toolkit and the audio mixer; the only call that leaves the process writes PlayerPrefs to disk."
+      >
+        <defs>
+          <marker id="r1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="currentColor" />
+          </marker>
+          <marker id="r1x" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="var(--accent)" />
+          </marker>
+        </defs>
+
+        <rect class="box" x="20" y="155" width="190" height="90" rx="8" />
+        <text class="t" x="115" y="187" text-anchor="middle">TheBlock.app</text>
+        <text class="s" x="115" y="206" text-anchor="middle">macOS Standalone</text>
+        <text class="m" x="115" y="228" text-anchor="middle">Builds/macOS · 2.1 GB</text>
+
+        <line class="edge" x1="210" y1="200" x2="248" y2="200" marker-end="url(#r1)" />
+        <text class="lbl" x="229" y="192" text-anchor="middle">launch</text>
+
+        <rect class="frame" x="252" y="28" width="728" height="346" rx="10" />
+        <text class="s" x="270" y="50">One process — no server · no request · no LLM</text>
+
+        <rect class="box-a" x="525" y="64" width="200" height="48" rx="6" />
+        <text class="t" x="625" y="86" text-anchor="middle">Unity engine loop</text>
+        <text class="s" x="625" y="102" text-anchor="middle">60 fps target, vSync off</text>
+
+        <line class="edge" x1="625" y1="112" x2="625" y2="134" />
+        <line class="edge" x1="350" y1="134" x2="900" y2="134" />
+        <line class="edge" x1="350" y1="134" x2="350" y2="148" marker-end="url(#r1)" />
+        <line class="edge" x1="460" y1="134" x2="460" y2="148" marker-end="url(#r1)" />
+        <line class="edge" x1="570" y1="134" x2="570" y2="148" marker-end="url(#r1)" />
+        <line class="edge" x1="680" y1="134" x2="680" y2="148" marker-end="url(#r1)" />
+        <line class="edge" x1="790" y1="134" x2="790" y2="148" marker-end="url(#r1)" />
+        <line class="edge" x1="900" y1="134" x2="900" y2="148" marker-end="url(#r1)" />
+
+        <rect class="box" x="300" y="150" width="100" height="94" rx="6" />
+        <text class="t" x="350" y="180" text-anchor="middle">URP 17.5</text>
+        <text class="s" x="350" y="200" text-anchor="middle">Metal</text>
+        <text class="m" x="350" y="222" text-anchor="middle">1 main light</text>
+
+        <rect class="box" x="410" y="150" width="100" height="94" rx="6" />
+        <text class="t" x="460" y="180" text-anchor="middle">PhysX</text>
+        <text class="s" x="460" y="200" text-anchor="middle">cars, bodies</text>
+        <text class="m" x="460" y="222" text-anchor="middle">50 Hz step</text>
+
+        <rect class="box" x="520" y="150" width="100" height="94" rx="6" />
+        <text class="t" x="570" y="180" text-anchor="middle">Input</text>
+        <text class="s" x="570" y="200" text-anchor="middle">polled keys</text>
+        <text class="m" x="570" y="222" text-anchor="middle">Keyboard</text>
+
+        <rect class="box" x="630" y="150" width="100" height="94" rx="6" />
+        <text class="t" x="680" y="180" text-anchor="middle">Mecanim</text>
+        <text class="s" x="680" y="200" text-anchor="middle">+ NavMesh</text>
+        <text class="m" x="680" y="222" text-anchor="middle">rigs, agents</text>
+
+        <rect class="box" x="740" y="150" width="100" height="94" rx="6" />
+        <text class="t" x="790" y="180" text-anchor="middle">UI Toolkit</text>
+        <text class="s" x="790" y="200" text-anchor="middle">HUD, menus</text>
+        <text class="m" x="790" y="222" text-anchor="middle">C#, no UXML</text>
+
+        <rect class="box" x="850" y="150" width="100" height="94" rx="6" />
+        <text class="t" x="900" y="180" text-anchor="middle">Audio</text>
+        <text class="s" x="900" y="200" text-anchor="middle">7 mixer buses</text>
+        <text class="m" x="900" y="222" text-anchor="middle">27 clips</text>
+
+        <polyline class="edge-a" points="545,112 545,124 274,124 274,432 296,432" marker-end="url(#r1x)" />
+        <text class="lbl-a" x="286" y="300">the one call that reaches the disk</text>
+
+        <rect class="box-a" x="300" y="400" width="340" height="64" rx="8" />
+        <text class="t" x="470" y="428" text-anchor="middle">PlayerPrefs</text>
+        <text class="m" x="470" y="450" text-anchor="middle">theblock.unlocked · theblock.cash · theblock.character · …</text>
+
+        <text class="lbl" x="660" y="428">11 keys — mission unlocks, cash, settings.</text>
+        <text class="lbl" x="660" y="446">The only state that outlives the process.</text>
+      </svg>
+    </div>
+    <figcaption>
+      A browser build has to fetch its world; this one does not. Everything the game needs was
+      resolved at import and build time (diagram 3), so at play time there is no loader, no
+      <code>UnityWebRequest</code> anywhere in the codebase, and nothing that can 404.
+    </figcaption>
+  </figure>
+
+  <p class="kicker">2 — Flow</p>
+  <h2>Which API is called, and when</h2>
+
+  <h3>Phase A — boot, behind the loading bar</h3>
+  <p>
+    The game has two scenes: <code>Boot.unity</code>, which is a bar and nothing else, and
+    <code>World.unity</code>, which is the entire city. <code>BootLoader</code> drives the handoff,
+    and the four numbers below were measured on the Player, not guessed.
+  </p>
+  <ol class="flow">
+    <li>
+      <strong>~1.9 s</strong> — Unity's own startup: Metal, Mono, PhysX, subsystems. No script of
+      mine has run yet.
+    </li>
+    <li>
+      <code>SessionReset.Run()</code> in <code>Awake</code>, <em>before</em> the load — a Quit to
+      Title comes back through this scene with the previous world's registries still populated.
+    </li>
+    <li>
+      <code>SceneManager.LoadSceneAsync("World")</code> with
+      <code>allowSceneActivation = false</code>. Unity stops a held load at
+      <code>progress == 0.9</code>, which maps cleanly onto a bar that caps itself at 99 %.
+      <strong>~2.2 s</strong>, and it is one blocked frame: deserializing a 7.8 MB scene.
+    </li>
+    <li>
+      Activation — <strong>245 ms</strong> for every <code>Awake</code> in the world at once — then
+      the texture upload, <strong>~1.9 s</strong>, and the first frame with real geometry.
+    </li>
+    <li>
+      <code>GameFlow</code> shows the title menu at <code>Time.timeScale = 0</code>.
+      <strong>The title screen is not a scene</strong>: it is a UI Toolkit overlay on the loaded,
+      frozen city, so it costs nothing to leave.
+    </li>
+  </ol>
+
+  <h3>Phase B — menu</h3>
+  <p>
+    Every panel in <code>UI/Menus</code> is dumb: it draws itself and raises a callback.
+    <code>GameFlow</code> owns all the decisions — who is on screen, what <code>Esc</code> does, and
+    when the clock starts. <em>Continue</em> reads <code>PlayerPrefs</code> and restores the
+    unlocked mission; <em>New Game</em> clears it. Then <code>timeScale</code> goes to 1 and the loop
+    below starts running for real.
+  </p>
+
+  <h3>Phase C — every frame</h3>
+
+  <figure>
+    <div class="scroll">
+      <svg
+        viewBox="0 0 1180 250"
+        role="img"
+        aria-label="The per-frame call order in Unity: FixedUpdate zero to n times at 50 hertz, then the PhysX solve and collision callbacks, then Update, then the engine's animation update, then LateUpdate, then the URP render; the engine schedules the next frame."
+      >
+        <defs>
+          <marker id="f1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="currentColor" />
+          </marker>
+        </defs>
+
+        <rect class="box" x="25" y="60" width="155" height="100" rx="7" />
+        <circle class="ring" cx="45" cy="80" r="10" />
+        <text class="num" x="45" y="84" text-anchor="middle">1</text>
+        <text class="t" x="102" y="110" text-anchor="middle">FixedUpdate</text>
+        <text class="s" x="102" y="128" text-anchor="middle">0–n times, 50 Hz</text>
+        <text class="m" x="102" y="148" text-anchor="middle">CarController</text>
+
+        <line class="edge" x1="180" y1="110" x2="216" y2="110" marker-end="url(#f1)" />
+
+        <rect class="box-a" x="220" y="60" width="155" height="100" rx="7" />
+        <circle class="ring" cx="240" cy="80" r="10" />
+        <text class="num" x="240" y="84" text-anchor="middle">2</text>
+        <text class="t" x="297" y="110" text-anchor="middle">PhysX solve</text>
+        <text class="s" x="297" y="128" text-anchor="middle">contacts, wheels</text>
+        <text class="m" x="297" y="148" text-anchor="middle">OnCollisionEnter</text>
+
+        <line class="edge" x1="375" y1="110" x2="411" y2="110" marker-end="url(#f1)" />
+
+        <rect class="box" x="415" y="60" width="155" height="100" rx="7" />
+        <circle class="ring" cx="435" cy="80" r="10" />
+        <text class="num" x="435" y="84" text-anchor="middle">3</text>
+        <text class="t" x="492" y="110" text-anchor="middle">Update</text>
+        <text class="s" x="492" y="128" text-anchor="middle">input · missions · AI</text>
+        <text class="m" x="492" y="148" text-anchor="middle">CampaignRunner</text>
+
+        <line class="edge" x1="570" y1="110" x2="606" y2="110" marker-end="url(#f1)" />
+
+        <rect class="box" x="610" y="60" width="155" height="100" rx="7" />
+        <circle class="ring" cx="630" cy="80" r="10" />
+        <text class="num" x="630" y="84" text-anchor="middle">4</text>
+        <text class="t" x="687" y="110" text-anchor="middle">animation</text>
+        <text class="s" x="687" y="128" text-anchor="middle">engine, not script</text>
+        <text class="m" x="687" y="148" text-anchor="middle">Animator · Agent</text>
+
+        <line class="edge" x1="765" y1="110" x2="801" y2="110" marker-end="url(#f1)" />
+
+        <rect class="box" x="805" y="60" width="155" height="100" rx="7" />
+        <circle class="ring" cx="825" cy="80" r="10" />
+        <text class="num" x="825" y="84" text-anchor="middle">5</text>
+        <text class="t" x="882" y="110" text-anchor="middle">LateUpdate</text>
+        <text class="s" x="882" y="128" text-anchor="middle">camera · HUD · map</text>
+        <text class="m" x="882" y="148" text-anchor="middle">FollowCamera</text>
+
+        <line class="edge" x1="960" y1="110" x2="996" y2="110" marker-end="url(#f1)" />
+
+        <rect class="box-a" x="1000" y="60" width="155" height="100" rx="7" />
+        <circle class="ring" cx="1020" cy="80" r="10" />
+        <text class="num" x="1020" y="84" text-anchor="middle">6</text>
+        <text class="t" x="1077" y="110" text-anchor="middle">URP render</text>
+        <text class="s" x="1077" y="128" text-anchor="middle">minimap RT, screen</text>
+        <text class="m" x="1077" y="148" text-anchor="middle">Camera.Render</text>
+
+        <polyline class="edge" points="1077,160 1077,205 102,205 102,162" marker-end="url(#f1)" />
+        <text class="lbl" x="590" y="197" text-anchor="middle">
+          the engine schedules the next frame — nothing in this project writes the loop
+        </text>
+      </svg>
+    </div>
+    <figcaption>
+      This order is Unity's, not mine: a script does not call the next system, it registers a method
+      in one of these slots. That is the whole architectural difference from a hand-written frame
+      loop, and it decides where code has to live. Wheels and throttle are in
+      <strong>FixedUpdate</strong> (box 1) because a force applied at frame rate is a different car
+      on a fast machine; the follow camera and the HUD are in <strong>LateUpdate</strong> (box 5)
+      because reading a transform in the same slot that writes it costs a frame of lag. Ten scripts
+      sit in box 1, nine in box 5, and exactly one — the skinning watchdog — needed an explicit
+      <code>[DefaultExecutionOrder(1000)]</code> to run last within its slot.
+    </figcaption>
+  </figure>
+
+  <p>
+    Three systems worth naming, because they are what the boxes above are mostly running:
+    <code>CampaignRunner</code> is the campaign's single reactor — cursor, police rules, retry key,
+    payout, HUD lines — and owns no gameplay of its own; a mission spawns its own actors and is only
+    ever asked for a <code>MissionStatus</code>. <code>CrimeWatch</code> and <code>Heat</code> hold
+    the wanted level, and <code>PoliceSystem</code> spawns cop cars that drive on PhysX wheels while
+    the officer who gets out walks on a <code>NavMeshAgent</code>. <code>TrafficSystem</code> and
+    <code>CrowdSpawner</code> keep the city populated around the player and recycle everything
+    behind them.
+  </p>
+
+  <p class="kicker">3 — Editor time</p>
+  <h2>The pipeline that runs before the game ever does</h2>
+  <p>
+    In a browser build, loading art is a runtime problem. In Unity it is an <em>import</em> problem,
+    and that is where most of this project's tooling lives: <strong>54 Editor scripts, 20,602
+    lines</strong>, exposing a <strong>52-item <code>The Block</code> menu</strong>. Those builders
+    are the reason the scene is reproducible — the city, the cars, the HUD, the missions and the
+    police are all generated by a menu item from constants in <code>TheBlockConfig</code>, never
+    dragged into place by hand.
+  </p>
+
+  <figure>
+    <div class="scroll">
+      <svg
+        viewBox="0 0 1000 430"
+        role="img"
+        aria-label="Editor-time pipeline: 52 glb and fbx source models are imported by glTFast, textures are extracted and compressed, producing 38 prefabs; the 52-item The Block menu builds those into World.unity, which is baked for NavMesh and then built by BuildPipeline into the macOS app."
+      >
+        <defs>
+          <marker id="e1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="currentColor" />
+          </marker>
+          <marker id="e1x" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="var(--accent)" />
+          </marker>
+        </defs>
+
+        <text class="lbl" x="222" y="72" text-anchor="middle">on import</text>
+        <text class="lbl" x="462" y="72" text-anchor="middle">extract + BC7</text>
+        <text class="lbl" x="702" y="72" text-anchor="middle">rebind</text>
+
+        <rect class="box" x="30" y="84" width="180" height="80" rx="7" />
+        <text class="t" x="120" y="112" text-anchor="middle">52 .glb / .fbx</text>
+        <text class="s" x="120" y="131" text-anchor="middle">Sketchfab · Mixamo, CC0</text>
+        <text class="m" x="120" y="152" text-anchor="middle">Assets/Models</text>
+
+        <line class="edge" x1="210" y1="124" x2="232" y2="124" marker-end="url(#e1)" />
+
+        <rect class="box" x="236" y="84" width="190" height="80" rx="7" />
+        <text class="t" x="331" y="112" text-anchor="middle">glTFast + Draco</text>
+        <text class="s" x="331" y="131" text-anchor="middle">meshes, materials</text>
+        <text class="m" x="331" y="152" text-anchor="middle">Humanoid avatars</text>
+
+        <line class="edge" x1="426" y1="124" x2="448" y2="124" marker-end="url(#e1)" />
+
+        <rect class="box" x="452" y="84" width="190" height="80" rx="7" />
+        <text class="t" x="547" y="112" text-anchor="middle">TextureCompressor</text>
+        <text class="s" x="547" y="131" text-anchor="middle">glTF textures ship raw</text>
+        <text class="m" x="547" y="152" text-anchor="middle">+ PrefabTextureRebinder</text>
+
+        <line class="edge" x1="642" y1="124" x2="664" y2="124" marker-end="url(#e1)" />
+
+        <rect class="box" x="668" y="84" width="180" height="80" rx="7" />
+        <text class="t" x="758" y="112" text-anchor="middle">38 prefabs</text>
+        <text class="s" x="758" y="131" text-anchor="middle">cars · people · props</text>
+        <text class="m" x="758" y="152" text-anchor="middle">Assets/Prefabs</text>
+
+        <polyline class="edge" points="758,164 758,190 500,190 500,214" marker-end="url(#e1)" />
+
+        <rect class="box-a" x="180" y="216" width="640" height="82" rx="8" />
+        <text class="t" x="500" y="246" text-anchor="middle">The Block ▸ Build … — 52 menu items</text>
+        <text class="s" x="500" y="266" text-anchor="middle">54 Editor scripts · 20,602 lines · every object placed from code</text>
+        <text class="m" x="500" y="287" text-anchor="middle">WorldBuilder · CarBuilder · CrowdBuilder · HudBuilder · MissionBuilder · …</text>
+
+        <line class="edge" x1="300" y1="298" x2="300" y2="330" marker-end="url(#e1)" />
+        <line class="edge" x1="700" y1="330" x2="700" y2="298" marker-end="url(#e1)" />
+
+        <rect class="box" x="150" y="332" width="300" height="80" rx="7" />
+        <text class="t" x="300" y="360" text-anchor="middle">World.unity</text>
+        <text class="s" x="300" y="379" text-anchor="middle">one scene, 7.8 MB</text>
+        <text class="m" x="300" y="400" text-anchor="middle">+ NavMesh bake (AI Navigation)</text>
+
+        <line class="edge" x1="450" y1="372" x2="546" y2="372" marker-end="url(#e1)" />
+        <text class="lbl" x="498" y="364" text-anchor="middle">Build macOS Player</text>
+
+        <rect class="box-a" x="550" y="332" width="300" height="80" rx="7" />
+        <text class="t" x="700" y="360" text-anchor="middle">BuildPipeline.BuildPlayer</text>
+        <text class="s" x="700" y="379" text-anchor="middle">StandaloneOSX, Mono</text>
+        <text class="m" x="700" y="400" text-anchor="middle">→ TheBlock.app, 2.1 GB</text>
+      </svg>
+    </div>
+    <figcaption>
+      Two Unity behaviours forced the middle of this chain and are worth calling out: textures that
+      arrive inside a <code>.glb</code> have no importer of their own, so they stay uncompressed
+      until <code>Compress Textures</code> extracts them and
+      <code>Rebind Compressed Textures</code> points every prefab and material at the extracted copy;
+      and importers, not menu passes, hold the settings — a Library wipe re-imports from the
+      <code>.meta</code>, so anything applied once by hand quietly reverts.
+    </figcaption>
+  </figure>
+
+  <p class="kicker">4 — Toolchain</p>
+  <h2>How the work gets done</h2>
+  <p>
+    The course's subject is building with AI, so this is not a footnote: the Editor, Blender and the
+    measurement runs are all driven from one Claude Code session over the
+    <strong>Model Context Protocol</strong>. Two MCP servers are connected, and each is a real
+    process on the machine rather than a cloud service — <em>nothing here is a paid tier</em>: no
+    Unity Cloud, no Asset Store, no Unity AI credits.
+  </p>
+
+  <figure>
+    <div class="scroll">
+      <svg
+        viewBox="0 0 1000 380"
+        role="img"
+        aria-label="Development toolchain: Claude Code drives MCP for Unity over local JSON-RPC into the Unity Editor, the Blender MCP over TCP into Blender and the python asset scripts, and shell scripts that launch the built Player with PerfProbe to produce measurement CSVs."
+      >
+        <defs>
+          <marker id="t1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="currentColor" />
+          </marker>
+        </defs>
+
+        <rect class="box-a" x="30" y="20" width="940" height="66" rx="8" />
+        <text class="t" x="500" y="48" text-anchor="middle">Claude Code (Opus 5) — the AI pair-programmer</text>
+        <text class="s" x="500" y="68" text-anchor="middle">
+          writes the C#, drives the Editor and Blender over MCP, runs the CLIs, keeps the decision ledger
+        </text>
+
+        <line class="edge-d" x1="185" y1="86" x2="185" y2="128" marker-end="url(#t1)" />
+        <line class="edge-d" x1="500" y1="86" x2="500" y2="128" marker-end="url(#t1)" />
+        <line class="edge-d" x1="815" y1="86" x2="815" y2="128" marker-end="url(#t1)" />
+
+        <rect class="box" x="60" y="130" width="250" height="80" rx="7" />
+        <text class="t" x="185" y="158" text-anchor="middle">MCP for Unity</text>
+        <text class="s" x="185" y="177" text-anchor="middle">JSON-RPC, HTTP local</text>
+        <text class="m" x="185" y="198" text-anchor="middle">127.0.0.1:8080</text>
+
+        <line class="edge" x1="185" y1="210" x2="185" y2="248" marker-end="url(#t1)" />
+
+        <rect class="box" x="60" y="250" width="250" height="80" rx="7" />
+        <text class="t" x="185" y="278" text-anchor="middle">Unity Editor</text>
+        <text class="s" x="185" y="297" text-anchor="middle">menu items · scene · console</text>
+        <text class="m" x="185" y="318" text-anchor="middle">6000.5.8f1, URP</text>
+
+        <rect class="box" x="375" y="130" width="250" height="80" rx="7" />
+        <text class="t" x="500" y="158" text-anchor="middle">Blender MCP</text>
+        <text class="s" x="500" y="177" text-anchor="middle">socket to a live Blender</text>
+        <text class="m" x="500" y="198" text-anchor="middle">TCP 9876</text>
+
+        <line class="edge" x1="500" y1="210" x2="500" y2="248" marker-end="url(#t1)" />
+
+        <rect class="box" x="375" y="250" width="250" height="80" rx="7" />
+        <text class="t" x="500" y="278" text-anchor="middle">Blender + tools/*.py</text>
+        <text class="s" x="500" y="297" text-anchor="middle">decimate · merge · convert</text>
+        <text class="m" x="500" y="318" text-anchor="middle">decimate-glb · blend-to-glb</text>
+
+        <rect class="box" x="690" y="130" width="250" height="80" rx="7" />
+        <text class="t" x="815" y="158" text-anchor="middle">perf-sweep.sh</text>
+        <text class="s" x="815" y="177" text-anchor="middle">launches the Player, headless</text>
+        <text class="m" x="815" y="198" text-anchor="middle">44 runs, unattended</text>
+
+        <line class="edge" x1="815" y1="210" x2="815" y2="248" marker-end="url(#t1)" />
+
+        <rect class="box" x="690" y="250" width="250" height="80" rx="7" />
+        <text class="t" x="815" y="278" text-anchor="middle">PerfProbe in the Player</text>
+        <text class="s" x="815" y="297" text-anchor="middle">frame ms, triangles, memory</text>
+        <text class="m" x="815" y="318" text-anchor="middle">ProfilerRecorder → CSV</text>
+      </svg>
+    </div>
+    <figcaption>
+      The right-hand column is the rule this project runs on: the Editor lies about performance, so
+      every number that decided a trade-off was taken from a real macOS Player by
+      <code>PerfProbe</code> and reduced by <code>perf-report.py</code> — and
+      <code>FrameWatchdog</code> stays compiled into development builds to catch the hitch that only
+      happens when nobody is watching. Source control is git + Git LFS to a private GitHub repo; the
+      kanban board is pushed to Trello's REST API from a JSON source of truth.
+    </figcaption>
+  </figure>
+
+  <div class="callout">
+    <p>
+      <strong>Where the two engines meet.</strong> Physics constants do not port: PhysX is not
+      Rapier, so every mass, friction and suspension number here was re-derived by feel. What ported
+      is the game — the map, the missions, the payouts and the feel — through
+      <code>TheBlockConfig</code>, one static class of constants that every Editor builder reads.
+    </p>
+  </div>
+
+  <p class="kicker">Inventory</p>
+  <h2>Every API, tool and library, and when it runs</h2>
+
+  <h3>Runtime — inside the shipped app</h3>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>What it is</th>
+          <th>When it is called</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Unity 6000.5.8f1</td>
+          <td>The engine and its frame loop; Mono scripting backend, macOS Standalone</td>
+          <td>From launch to quit — it calls the game, not the reverse</td>
+        </tr>
+        <tr>
+          <td>URP 17.5</td>
+          <td>Universal Render Pipeline on Metal; one main directional light, no bloom</td>
+          <td>Last step of every frame; <code>DayNightCycle</code> rewrites its lighting</td>
+        </tr>
+        <tr>
+          <td>PhysX</td>
+          <td><code>Rigidbody</code>, <code>WheelCollider</code>, colliders, raycasts, ragdolls</td>
+          <td><code>FixedUpdate</code> at a fixed 0.02 s step — 50 Hz</td>
+        </tr>
+        <tr>
+          <td>Input System 1.20</td>
+          <td>Polled directly through <code>Keyboard.current</code> — no callbacks, no rebinding</td>
+          <td>Every <code>Update</code>, in whichever mode owns input</td>
+        </tr>
+        <tr>
+          <td>Mecanim (Animator)</td>
+          <td>Humanoid state machines for the player, pedestrians and cops</td>
+          <td>Engine-driven, between <code>Update</code> and <code>LateUpdate</code></td>
+        </tr>
+        <tr>
+          <td>AI Navigation 2.0</td>
+          <td><code>NavMesh</code> baked from the city; <code>NavMeshAgent</code> on foot actors</td>
+          <td>Pedestrian wandering; a cop leaving the car to make an arrest</td>
+        </tr>
+        <tr>
+          <td>UI Toolkit</td>
+          <td>HUD, map, title, pause, settings, shop, paint — built in C#, zero UXML/USS</td>
+          <td>Panels on demand; HUD latches every frame in <code>LateUpdate</code></td>
+        </tr>
+        <tr>
+          <td>Audio + AudioMixer</td>
+          <td>Master plus 6 buses; 27 clips across Voice / Music / Engine / Ambient / Sfx</td>
+          <td>Per game event; the mixer is built by an Editor tool, not by hand</td>
+        </tr>
+        <tr>
+          <td><code>AudioClip.Create</code></td>
+          <td>The UI cues, synthesised to PCM once and cached as ordinary clips</td>
+          <td>First time each cue is asked for, then never again</td>
+        </tr>
+        <tr>
+          <td><code>RenderTexture</code></td>
+          <td>A second orthographic camera renders the minimap</td>
+          <td><code>LateUpdate</code>, before the main camera draws</td>
+        </tr>
+        <tr>
+          <td><code>PlayerPrefs</code></td>
+          <td>The save: mission unlocks, character, and every settings toggle</td>
+          <td>On every change — 9 <code>theblock.*</code> keys</td>
+        </tr>
+        <tr>
+          <td><code>ProfilerRecorder</code></td>
+          <td><code>FrameWatchdog</code> and <code>PerfProbe</code> read the engine's own counters</td>
+          <td>Development builds only, behind <code>DEVELOPMENT_BUILD</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Editor &amp; toolchain — on my machine</h3>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>What it is</th>
+          <th>When it runs</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>The Block menu</td>
+          <td>52 menu items over 54 Editor scripts that generate the entire scene from code</td>
+          <td>On demand — <code>Build World</code>, <code>Build Menus</code>, <code>Build Police Car</code>, …</td>
+        </tr>
+        <tr>
+          <td>glTFast 6.19 + Draco 5.4</td>
+          <td>glTF/GLB import: meshes, materials, Draco-compressed geometry</td>
+          <td>Asset import, in the Editor. Never at runtime</td>
+        </tr>
+        <tr>
+          <td>Custom AssetPostprocessors</td>
+          <td>Audio, texture and character import settings that survive a Library wipe</td>
+          <td>Automatically, on every (re)import</td>
+        </tr>
+        <tr>
+          <td>Splines 2.9</td>
+          <td>Road and lot curves used while generating the world</td>
+          <td><code>WorldBuilder</code> only — build time, not play time</td>
+        </tr>
+        <tr>
+          <td>MCP for Unity 10.1</td>
+          <td>Local JSON-RPC bridge that lets Claude Code drive the Editor</td>
+          <td>Throughout development, <code>127.0.0.1:8080</code></td>
+        </tr>
+        <tr>
+          <td><code>BuildPipeline.BuildPlayer</code></td>
+          <td>Scripted macOS build, release and development, with the scene list pinned</td>
+          <td><code>The Block ▸ Build macOS Player</code></td>
+        </tr>
+        <tr>
+          <td>git + Git LFS</td>
+          <td>Version control; LFS carries every model, texture and clip</td>
+          <td>Every commit — the ledger records the hash per unit</td>
+        </tr>
+        <tr>
+          <td>Trello REST API</td>
+          <td>The kanban board, pushed from a JSON source of truth — 117 cards</td>
+          <td><code>tools/kanban/push-to-trello.mjs</code>, on demand</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Content pipeline — offline, never shipped as code</h3>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>What it is</th>
+          <th>When it runs</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Claude Code (Opus 5)</td>
+          <td>Writes the C#, drives every tool below, and maintains the project's decision ledger</td>
+          <td>Continuously, through the whole port</td>
+        </tr>
+        <tr>
+          <td>Blender + Blender MCP</td>
+          <td>Mesh repair, decimation, merges and FBX→GLB, driven over MCP</td>
+          <td>Whenever a model needs work Unity's importer cannot do</td>
+        </tr>
+        <tr>
+          <td><code>tools/*.py</code></td>
+          <td>Headless Blender scripts: decimate, convert, prep props, build the falafel stand</td>
+          <td>Once per asset, from the shell</td>
+        </tr>
+        <tr>
+          <td>Mixamo</td>
+          <td>Humanoid rigs and animation clips; imported as Humanoid so the bone prefix drops</td>
+          <td>Sourcing only</td>
+        </tr>
+        <tr>
+          <td>Sketchfab · Quaternius · Kenney</td>
+          <td>CC0 districts, vehicles and street props</td>
+          <td>Sourcing only</td>
+        </tr>
+        <tr>
+          <td><code>perf-sweep.sh</code> + <code>perf-report.py</code></td>
+          <td>Launches the built Player 44 times unattended and reduces the CSVs</td>
+          <td>Once per performance question</td>
+        </tr>
+        <tr>
+          <td><code>pixel-diff.py</code></td>
+          <td>Compares two renders against a measured noise floor — animated water differs from itself</td>
+          <td>When a visual change has to be proven, not claimed</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <footer>
+    The Block — Unity 6 (URP), macOS. Repository:
+    <code>github.com/RoeeSivan/theblock-unity</code> · every figure on this page was read from the
+    repository, not estimated.
+  </footer>
+</div>
+
+</body>
+</html>
