@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>The Block — Unity Architecture</title>
+<title>The Block - Unity Architecture</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%B1%3C/text%3E%3C/svg%3E" />
 
 <style>
@@ -295,7 +295,7 @@
 <div class="page">
   <header class="top">
     <p class="kicker">The Block · Unity 6</p>
-    <h1>APIs, tools &amp; libraries — and the flow between them</h1>
+    <h1>APIs, tools &amp; libraries - and the flow between them</h1>
     <p class="sub">
       An Israeli GTA-style 3D mini open world built in Unity 6 (URP) and
       shipped as a macOS app. Four diagrams: what the game calls while you play, the order the engine
@@ -310,11 +310,11 @@
     </ul>
   </header>
 
-  <p class="kicker">1 — Runtime</p>
+  <p class="kicker">1 - Runtime</p>
   <h2>What the app actually calls while you play</h2>
   <p>
     The whole game is <strong>one macOS process</strong>. There is no server, no database, no login
-    and no LLM at runtime — and no network at all: nothing is fetched while you play, because every
+    and no LLM at runtime - and no network at all: nothing is fetched while you play, because every
     mesh, texture, clip and scene is already inside the <code>.app</code>. The game talks to Unity's
     own subsystems and to nothing else.
   </p>
@@ -348,7 +348,7 @@
         <text class="lbl" x="229" y="192" text-anchor="middle">launch</text>
 
         <rect class="frame" x="252" y="28" width="728" height="346" rx="10" />
-        <text class="s" x="270" y="50">One process — no server · no request · no LLM</text>
+        <text class="s" x="270" y="50">One process - no server · no request · no LLM</text>
 
         <rect class="box-a" x="525" y="64" width="200" height="48" rx="6" />
         <text class="t" x="625" y="86" text-anchor="middle">Unity engine loop</text>
@@ -400,7 +400,7 @@
         <text class="t" x="470" y="428" text-anchor="middle">PlayerPrefs</text>
         <text class="m" x="470" y="450" text-anchor="middle">theblock.unlocked · theblock.cash · theblock.character · …</text>
 
-        <text class="lbl" x="660" y="428">11 keys — mission unlocks, cash, settings.</text>
+        <text class="lbl" x="660" y="428">11 keys - mission unlocks, cash, settings.</text>
         <text class="lbl" x="660" y="446">The only state that outlives the process.</text>
       </svg>
     </div>
@@ -411,10 +411,10 @@
     </figcaption>
   </figure>
 
-  <p class="kicker">2 — Flow</p>
+  <p class="kicker">2 - Flow</p>
   <h2>Which API is called, and when</h2>
 
-  <h3>Phase A — boot, behind the loading bar</h3>
+  <h3>Phase A - boot, behind the loading bar</h3>
   <p>
     The game has two scenes: <code>Boot.unity</code>, which is a bar and nothing else, and
     <code>World.unity</code>, which is the entire city. <code>BootLoader</code> drives the handoff,
@@ -422,11 +422,11 @@
   </p>
   <ol class="flow">
     <li>
-      <strong>~1.9 s</strong> — Unity's own startup: Metal, Mono, PhysX, subsystems. No script of
+      <strong>~1.9 s</strong> - Unity's own startup: Metal, Mono, PhysX, subsystems. No script of
       mine has run yet.
     </li>
     <li>
-      <code>SessionReset.Run()</code> in <code>Awake</code>, <em>before</em> the load — a Quit to
+      <code>SessionReset.Run()</code> in <code>Awake</code>, <em>before</em> the load - a Quit to
       Title comes back through this scene with the previous world's registries still populated.
     </li>
     <li>
@@ -436,7 +436,7 @@
       <strong>~2.2 s</strong>, and it is one blocked frame: deserializing a 7.8 MB scene.
     </li>
     <li>
-      Activation — <strong>245 ms</strong> for every <code>Awake</code> in the world at once — then
+      Activation - <strong>245 ms</strong> for every <code>Awake</code> in the world at once - then
       the texture upload, <strong>~1.9 s</strong>, and the first frame with real geometry.
     </li>
     <li>
@@ -446,16 +446,16 @@
     </li>
   </ol>
 
-  <h3>Phase B — menu</h3>
+  <h3>Phase B - menu</h3>
   <p>
     Every panel in <code>UI/Menus</code> is dumb: it draws itself and raises a callback.
-    <code>GameFlow</code> owns all the decisions — who is on screen, what <code>Esc</code> does, and
+    <code>GameFlow</code> owns all the decisions - who is on screen, what <code>Esc</code> does, and
     when the clock starts. <em>Continue</em> reads <code>PlayerPrefs</code> and restores the
     unlocked mission; <em>New Game</em> clears it. Then <code>timeScale</code> goes to 1 and the loop
     below starts running for real.
   </p>
 
-  <h3>Phase C — every frame</h3>
+  <h3>Phase C - every frame</h3>
 
   <figure>
     <div class="scroll">
@@ -524,7 +524,7 @@
 
         <polyline class="edge" points="1077,160 1077,205 102,205 102,162" marker-end="url(#f1)" />
         <text class="lbl" x="590" y="197" text-anchor="middle">
-          the engine schedules the next frame — nothing in this project writes the loop
+          the engine schedules the next frame - nothing in this project writes the loop
         </text>
       </svg>
     </div>
@@ -535,15 +535,15 @@
       <strong>FixedUpdate</strong> (box 1) because a force applied at frame rate is a different car
       on a fast machine; the follow camera and the HUD are in <strong>LateUpdate</strong> (box 5)
       because reading a transform in the same slot that writes it costs a frame of lag. Ten scripts
-      sit in box 1, nine in box 5, and exactly one — the skinning watchdog — needed an explicit
+      sit in box 1, nine in box 5, and exactly one - the skinning watchdog - needed an explicit
       <code>[DefaultExecutionOrder(1000)]</code> to run last within its slot.
     </figcaption>
   </figure>
 
   <p>
     Three systems worth naming, because they are what the boxes above are mostly running:
-    <code>CampaignRunner</code> is the campaign's single reactor — cursor, police rules, retry key,
-    payout, HUD lines — and owns no gameplay of its own; a mission spawns its own actors and is only
+    <code>CampaignRunner</code> is the campaign's single reactor - cursor, police rules, retry key,
+    payout, HUD lines - and owns no gameplay of its own; a mission spawns its own actors and is only
     ever asked for a <code>MissionStatus</code>. <code>CrimeWatch</code> and <code>Heat</code> hold
     the wanted level, and <code>PoliceSystem</code> spawns cop cars that drive on PhysX wheels while
     the officer who gets out walks on a <code>NavMeshAgent</code>. <code>TrafficSystem</code> and
@@ -551,13 +551,13 @@
     behind them.
   </p>
 
-  <p class="kicker">3 — Editor time</p>
+  <p class="kicker">3 - Editor time</p>
   <h2>The pipeline that runs before the game ever does</h2>
   <p>
     In a browser build, loading art is a runtime problem. In Unity it is an <em>import</em> problem,
     and that is where most of this project's tooling lives: <strong>54 Editor scripts, 20,602
     lines</strong>, exposing a <strong>52-item <code>The Block</code> menu</strong>. Those builders
-    are the reason the scene is reproducible — the city, the cars, the HUD, the missions and the
+    are the reason the scene is reproducible - the city, the cars, the HUD, the missions and the
     police are all generated by a menu item from constants in <code>TheBlockConfig</code>, never
     dragged into place by hand.
   </p>
@@ -611,7 +611,7 @@
         <polyline class="edge" points="758,164 758,190 500,190 500,214" marker-end="url(#e1)" />
 
         <rect class="box-a" x="180" y="216" width="640" height="82" rx="8" />
-        <text class="t" x="500" y="246" text-anchor="middle">The Block ▸ Build … — 52 menu items</text>
+        <text class="t" x="500" y="246" text-anchor="middle">The Block ▸ Build … - 52 menu items</text>
         <text class="s" x="500" y="266" text-anchor="middle">54 Editor scripts · 20,602 lines · every object placed from code</text>
         <text class="m" x="500" y="287" text-anchor="middle">WorldBuilder · CarBuilder · CrowdBuilder · HudBuilder · MissionBuilder · …</text>
 
@@ -637,18 +637,18 @@
       arrive inside a <code>.glb</code> have no importer of their own, so they stay uncompressed
       until <code>Compress Textures</code> extracts them and
       <code>Rebind Compressed Textures</code> points every prefab and material at the extracted copy;
-      and importers, not menu passes, hold the settings — a Library wipe re-imports from the
+      and importers, not menu passes, hold the settings - a Library wipe re-imports from the
       <code>.meta</code>, so anything applied once by hand quietly reverts.
     </figcaption>
   </figure>
 
-  <p class="kicker">4 — Toolchain</p>
+  <p class="kicker">4 - Toolchain</p>
   <h2>How the work gets done</h2>
   <p>
     The course's subject is building with AI, so this is not a footnote: the Editor, Blender and the
     measurement runs are all driven from one Claude Code session over the
     <strong>Model Context Protocol</strong>. Two MCP servers are connected, and each is a real
-    process on the machine rather than a cloud service — <em>nothing here is a paid tier</em>: no
+    process on the machine rather than a cloud service - <em>nothing here is a paid tier</em>: no
     Unity Cloud, no Asset Store, no Unity AI credits.
   </p>
 
@@ -666,7 +666,7 @@
         </defs>
 
         <rect class="box-a" x="30" y="20" width="940" height="66" rx="8" />
-        <text class="t" x="500" y="48" text-anchor="middle">Claude Code (Opus 5) — the AI pair-programmer</text>
+        <text class="t" x="500" y="48" text-anchor="middle">Claude Code (Opus 5) - the AI pair-programmer</text>
         <text class="s" x="500" y="68" text-anchor="middle">
           writes the C#, drives the Editor and Blender over MCP, runs the CLIs, keeps the decision ledger
         </text>
@@ -715,7 +715,7 @@
     <figcaption>
       The right-hand column is the rule this project runs on: the Editor lies about performance, so
       every number that decided a trade-off was taken from a real macOS Player by
-      <code>PerfProbe</code> and reduced by <code>perf-report.py</code> — and
+      <code>PerfProbe</code> and reduced by <code>perf-report.py</code> - and
       <code>FrameWatchdog</code> stays compiled into development builds to catch the hitch that only
       happens when nobody is watching. Source control is git + Git LFS to a private GitHub repo; the
       kanban board is pushed to Trello's REST API from a JSON source of truth.
@@ -726,7 +726,7 @@
     <p>
       <strong>Where the two engines meet.</strong> Physics constants do not port: PhysX is not
       Rapier, so every mass, friction and suspension number here was re-derived by feel. What ported
-      is the game — the map, the missions, the payouts and the feel — through
+      is the game - the map, the missions, the payouts and the feel - through
       <code>TheBlockConfig</code>, one static class of constants that every Editor builder reads.
     </p>
   </div>
@@ -734,7 +734,7 @@
   <p class="kicker">Inventory</p>
   <h2>Every API, tool and library, and when it runs</h2>
 
-  <h3>Runtime — inside the shipped app</h3>
+  <h3>Runtime - inside the shipped app</h3>
   <div class="tablewrap">
     <table>
       <thead>
@@ -748,7 +748,7 @@
         <tr>
           <td>Unity 6000.5.8f1</td>
           <td>The engine and its frame loop; Mono scripting backend, macOS Standalone</td>
-          <td>From launch to quit — it calls the game, not the reverse</td>
+          <td>From launch to quit - it calls the game, not the reverse</td>
         </tr>
         <tr>
           <td>URP 17.5</td>
@@ -758,11 +758,11 @@
         <tr>
           <td>PhysX</td>
           <td><code>Rigidbody</code>, <code>WheelCollider</code>, colliders, raycasts, ragdolls</td>
-          <td><code>FixedUpdate</code> at a fixed 0.02 s step — 50 Hz</td>
+          <td><code>FixedUpdate</code> at a fixed 0.02 s step - 50 Hz</td>
         </tr>
         <tr>
           <td>Input System 1.20</td>
-          <td>Polled directly through <code>Keyboard.current</code> — no callbacks, no rebinding</td>
+          <td>Polled directly through <code>Keyboard.current</code> - no callbacks, no rebinding</td>
           <td>Every <code>Update</code>, in whichever mode owns input</td>
         </tr>
         <tr>
@@ -777,7 +777,7 @@
         </tr>
         <tr>
           <td>UI Toolkit</td>
-          <td>HUD, map, title, pause, settings, shop, paint — built in C#, zero UXML/USS</td>
+          <td>HUD, map, title, pause, settings, shop, paint - built in C#, zero UXML/USS</td>
           <td>Panels on demand; HUD latches every frame in <code>LateUpdate</code></td>
         </tr>
         <tr>
@@ -798,7 +798,7 @@
         <tr>
           <td><code>PlayerPrefs</code></td>
           <td>The save: mission unlocks, character, and every settings toggle</td>
-          <td>On every change — 9 <code>theblock.*</code> keys</td>
+          <td>On every change - 9 <code>theblock.*</code> keys</td>
         </tr>
         <tr>
           <td><code>ProfilerRecorder</code></td>
@@ -809,7 +809,7 @@
     </table>
   </div>
 
-  <h3>Editor &amp; toolchain — on my machine</h3>
+  <h3>Editor &amp; toolchain - on my machine</h3>
   <div class="tablewrap">
     <table>
       <thead>
@@ -823,7 +823,7 @@
         <tr>
           <td>The Block menu</td>
           <td>52 menu items over 54 Editor scripts that generate the entire scene from code</td>
-          <td>On demand — <code>Build World</code>, <code>Build Menus</code>, <code>Build Police Car</code>, …</td>
+          <td>On demand - <code>Build World</code>, <code>Build Menus</code>, <code>Build Police Car</code>, …</td>
         </tr>
         <tr>
           <td>glTFast 6.19 + Draco 5.4</td>
@@ -838,7 +838,7 @@
         <tr>
           <td>Splines 2.9</td>
           <td>Road and lot curves used while generating the world</td>
-          <td><code>WorldBuilder</code> only — build time, not play time</td>
+          <td><code>WorldBuilder</code> only - build time, not play time</td>
         </tr>
         <tr>
           <td>MCP for Unity 10.1</td>
@@ -853,18 +853,18 @@
         <tr>
           <td>git + Git LFS</td>
           <td>Version control; LFS carries every model, texture and clip</td>
-          <td>Every commit — the ledger records the hash per unit</td>
+          <td>Every commit - the ledger records the hash per unit</td>
         </tr>
         <tr>
           <td>Trello REST API</td>
-          <td>The kanban board, pushed from a JSON source of truth — 117 cards</td>
+          <td>The kanban board, pushed from a JSON source of truth - 117 cards</td>
           <td><code>tools/kanban/push-to-trello.mjs</code>, on demand</td>
         </tr>
       </tbody>
     </table>
   </div>
 
-  <h3>Content pipeline — offline, never shipped as code</h3>
+  <h3>Content pipeline - offline, never shipped as code</h3>
   <div class="tablewrap">
     <table>
       <thead>
@@ -907,7 +907,7 @@
         </tr>
         <tr>
           <td><code>pixel-diff.py</code></td>
-          <td>Compares two renders against a measured noise floor — animated water differs from itself</td>
+          <td>Compares two renders against a measured noise floor - animated water differs from itself</td>
           <td>When a visual change has to be proven, not claimed</td>
         </tr>
       </tbody>
@@ -915,7 +915,7 @@
   </div>
 
   <footer>
-    The Block — Unity 6 (URP), macOS. Repository:
+    The Block - Unity 6 (URP), macOS. Repository:
     <code>github.com/RoeeSivan/theblock-unity</code> · every figure on this page was read from the
     repository, not estimated.
   </footer>
