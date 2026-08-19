@@ -118,10 +118,7 @@ namespace TheBlock.EditorTools
         /// </summary>
         private static GameObject BuildFalafelStand(Transform places, Options options, Report report)
         {
-            var stale = places.Find(FalafelSpec.ObjectName);
-            if (stale != null) Object.DestroyImmediate(stale.gameObject);
-            var staleVendor = places.Find(FalafelVendorName);
-            if (staleVendor != null) Object.DestroyImmediate(staleVendor.gameObject);
+            SweepStaleFalafel(places);
 
             var instance = Instantiate(FalafelSpec.ModelUrl, "Falafel Stand", places, report, out _);
             if (instance == null) return null;
@@ -155,6 +152,37 @@ namespace TheBlock.EditorTools
                 $"counter {Fmt(counter != null ? counter.position : Vector3.zero)} r{FalafelSpec.CounterRadius:0.#}, " +
                 $"nudge {Fmt(talk != null ? talk.position : Vector3.zero)} r{FalafelSpec.TalkRadius:0.#})");
             return instance;
+        }
+
+        /// <summary>
+        /// Removes every previous stand and vendor under Places, <b>including one left under the
+        /// model file's own name</b>.
+        ///
+        /// ⚠ THIS IS WIDER THAN IT LOOKS AND THE REASON IS A BUG THAT SHIPPED. The sweep used to be
+        /// two <c>places.Find</c> calls, for <c>Place_FalafelStand</c> and <c>Falafel_Vendor</c>.
+        /// U37b (`154954e`) left a second, complete stand in the scene named <c>falafel-stand</c> -
+        /// the raw asset name, unrotated, at the world ORIGIN, 41,098 triangles standing in the
+        /// middle of downtown - and because it did not carry either of those two names, every
+        /// subsequent build swept right past it. It survived three commits and was found by a
+        /// footprint query, not by anyone looking at it; the user saw it in a play-test and
+        /// reasonably concluded the shop had moved.
+        ///
+        /// A name-keyed sweep only cleans up the names it already knows, so this one also matches
+        /// the model file's stem. Anything the builder can create, the builder must be able to
+        /// destroy.
+        /// </summary>
+        private static void SweepStaleFalafel(Transform places)
+        {
+            var modelStem = System.IO.Path.GetFileNameWithoutExtension(FalafelSpec.ModelUrl);
+            var doomed = new List<GameObject>();
+
+            foreach (Transform child in places)
+                if (child.name == FalafelSpec.ObjectName ||
+                    child.name == FalafelVendorName ||
+                    child.name == modelStem)
+                    doomed.Add(child.gameObject);
+
+            foreach (var go in doomed) Object.DestroyImmediate(go);
         }
 
         private static Transform FalafelNode(

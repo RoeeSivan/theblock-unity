@@ -27,8 +27,15 @@ from PIL import Image
 VISIBLE = 8  # per-channel 0-255 difference below which nobody is going to notice anything
 
 
+CROP = None  # (x, y, w, h), set by --crop
+
+
 def load(path: str) -> np.ndarray:
-    return np.asarray(Image.open(path).convert("RGB"), dtype=np.int16)
+    image = np.asarray(Image.open(path).convert("RGB"), dtype=np.int16)
+    if CROP is None:
+        return image
+    x, y, w, h = CROP
+    return image[y:y + h, x:x + w]
 
 
 def compare(a: np.ndarray, b: np.ndarray, label: str) -> float:
@@ -48,9 +55,27 @@ def compare(a: np.ndarray, b: np.ndarray, label: str) -> float:
 
 
 def main() -> None:
-    if len(sys.argv) < 4:
-        raise SystemExit("usage: pixel-diff.py <floor-a.png> <floor-b.png> <changed.png> [...]")
+    global CROP
 
+    args = sys.argv[1:]
+    # --crop x,y,w,h restricts every comparison to one rectangle.
+    #
+    # ⚠ CROP, NEVER ZOOM, when what is being measured is an LOD. Screen coverage is the INPUT to
+    # LODGroup's own test, so narrowing the camera's field of view to fill the frame with the subject
+    # tells Unity the subject is nearer and it hands back a different LOD than the one under test.
+    # That is not a subtle bias - at a 7.5° lens a car 46 m away kept LOD0 and the "LOD0 vs LOD1"
+    # comparison was LOD0 against LOD0. Render wide, at the game's own lens, and cut the rectangle
+    # out here.
+    if "--crop" in args:
+        i = args.index("--crop")
+        CROP = tuple(int(v) for v in args[i + 1].split(","))
+        del args[i:i + 2]
+
+    if len(args) < 3:
+        raise SystemExit(
+            "usage: pixel-diff.py [--crop x,y,w,h] <floor-a.png> <floor-b.png> <changed.png> [...]")
+
+    sys.argv = [sys.argv[0]] + args
     reference = load(sys.argv[1])
 
     print("noise floor - two renders that should be identical:")

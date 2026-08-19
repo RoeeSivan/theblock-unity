@@ -99,7 +99,19 @@ unclear, re-test before inheriting.
 >
 > ### ✅ U38 is DONE - user-confirmed 2026-08-19. The crowd is twelve pack bodies at 360 looks, and it made the frame ~22 ms FASTER. Section below.
 >
-> ### 🚩 NEXT ACTION: **U37a + U37b's play-test** - the ONE outstanding gameplay confirmation. U37 itself is user-confirmed (*"tested and its working really good"*); what has never been played is **U37a**, which moved the order INSIDE the shop, and **U37b**, which made the shop enterable after the user found it was not. **The test:** Play → **Continue, never New Game** (`new-game-wipes-the-test-balance` - the wallet IS the thing being measured) → ride to the stand opposite the pizzeria → outside, the prompt should only *nudge you in*; **walk straight in** - the doorway is 1.90 m with 1.70 m of measured clearance and nothing in it now → at the counter the prompt reads `Press T for a falafel round` and the cashier is visible behind it → run a round → then lose one on the clock and confirm the streak falls back to round 1 and a fresh round can be started. Watch for what a synthetic test cannot judge: whether walking in reads as obvious rather than fiddly, whether the raised striped valance still looks right from the street, and whether the campaign's own objective line and clock still draw once the job is over (that is the `DriveHud` guard's regression). ⚠ **The falafel vendor was rebuilt under U38** (he is `Ped_02m_01`), so confirm he is idling and not T-posed.
+> ### 🚩 NEXT ACTION: **the user's visual check on U39, then U37a + U37b's play-test.**
+>
+> **U39's check is small and specific:** ride to the falafel stand opposite the pizzeria and confirm
+> ① there is now exactly **one** stand and the one that stood in the road is gone, ② pedestrians walk
+> **around** it rather than through it (watch the east pavement - one lane now bends east behind the
+> stand, the other stays kerb-side), and ③ nothing about the stand itself changed - it never moved,
+> and the vendor is still at his counter. Then, at the car park, confirm the parked cars look
+> unchanged: **the LOD1 was reverted, so they should be exactly as before**, and the only live change
+> is that a car now stops being drawn at 350 m instead of ~710-950 m. That last one is the single
+> thing worth a sceptical look - a car winking out at 350 m would be visible popping, and the fog does
+> not meaningfully begin to hide anything until far past it.
+>
+> **Then U37a + U37b's play-test** - the ONE outstanding gameplay confirmation. U37 itself is user-confirmed (*"tested and its working really good"*); what has never been played is **U37a**, which moved the order INSIDE the shop, and **U37b**, which made the shop enterable after the user found it was not. **The test:** Play → **Continue, never New Game** (`new-game-wipes-the-test-balance` - the wallet IS the thing being measured) → ride to the stand opposite the pizzeria → outside, the prompt should only *nudge you in*; **walk straight in** - the doorway is 1.90 m with 1.70 m of measured clearance and nothing in it now → at the counter the prompt reads `Press T for a falafel round` and the cashier is visible behind it → run a round → then lose one on the clock and confirm the streak falls back to round 1 and a fresh round can be started. Watch for what a synthetic test cannot judge: whether walking in reads as obvious rather than fiddly, whether the raised striped valance still looks right from the street, and whether the campaign's own objective line and clock still draw once the job is over (that is the `DriveHud` guard's regression). ⚠ **The falafel vendor was rebuilt under U38** (he is `Ped_02m_01`), so confirm he is idling and not T-posed.
 >
 > ### ✅ U30b round 3 landed 2026-08-19 - the deltas are MEASURED and the debt is nearly closed. Section below.
 >
@@ -122,13 +134,19 @@ unclear, re-test before inheriting.
 >
 > ### ✅ U30b round 4 landed 2026-08-19 - occlusion culling is baked and PROVED free; the parked cars are NOT decimatable, and the world has no LODs at all. Section below.
 >
-> ⚠ **One thing is owed on it and it is the user's: a drive around the city.** The pixel diff is
-> exact but it is **one pose**. Occlusion culling's failure mode is not "looks slightly different",
-> it is a building or a car **popping in** as the camera moves - and the only way that shows up is
-> movement. `smallestHole 1.0` means Umbra treats gaps under a metre as closed; the streets here are
-> ten metres wide so it should be safe, and it has not been watched. If anything pops: lower
-> `smallestHole` to 0.5 in **Window → Rendering → Occlusion Culling** and re-bake, or revert the
-> single asset and the scene's `m_OcclusionCullingData` line.
+> ✅ **The drive was done and occlusion is confirmed, 2026-08-19** - *"נסיעה בוצעה. נראה הכל כרגיל"*.
+> Nothing pops. The bake stays. If anything ever does: lower `smallestHole` to 0.5 in
+> **Window → Rendering → Occlusion Culling** and re-bake, or revert the single asset and the scene's
+> `m_OcclusionCullingData` line.
+>
+> ### ⚠ U39 landed 2026-08-19 and it is HALF a null result. The falafel work is real; the LOD1 the user asked for CANNOT BE BUILT. Section below.
+>
+> **The two the user asked for after that drive:** ① the duplicate falafel stand in the road, and
+> ② *"בוא נצבע את LOD1"*. ① is **done and verified**. ② is **not deliverable** - and the reason is
+> measured, not argued: Blender's COLLAPSE tears these car bodies apart below ~80% of their triangles,
+> PLANAR does nothing on them, and there is no interior to drop because the .glbs group by material.
+> A decimated LOD1 does not exist to switch to. What DID come out of it is three real bugs in the
+> LOD arithmetic, all of which had been shipping since U17 wearing an assert that could not fail.
 >
 > Round 3 ended with a ranked list. The user picked its first two items and asked, before either was
 > done, *"how much do these actually buy us?"* - so both were measured rather than argued, and **one
@@ -324,6 +342,133 @@ unclear, re-test before inheriting.
 >
 > *Ledger audited 2026-08-16: the U28b and U33 scene-rig debts are closed, a duplicated section and
 > four malformed table rows are fixed. Open-work census re-cut 2026-08-17 by the five decisions above.*
+
+### U39, 2026-08-19 - the second falafel stand, the lane through the first, and an LOD1 that cannot exist
+
+> **The ask, after the user's confirming drive:** *"1. אני רואה שהמקום של הפלאפל זז... 2. בוא נצבע את
+> LOD1. תעשה את שניהם ולאחר מכן אני אבדוק ויזואלית."* The first item was re-scoped by the user once
+> they saw the evidence - *"there are 2 falafel stands which i did not notice - you can just remove
+> the one which is in the road"*, then *"so the original is just perfect, we just need to make sure
+> people do not walk through it."*
+
+#### ✅ Part 1 - the orphan stand, and the builder hole that let it in
+
+The stand never moved. `FalafelSpec.Position` is `(20.25, 0, −96.9)` in every commit since U37, and
+`Falafel_Vendor` was present and correct at `(22.40, 0, −97.80)` throughout. What the user saw was a
+**second, complete stand at the world origin** - `World/Places/falafel-stand`, 7 renderers,
+**41,098 triangles**, unrotated - which entered in `154954e` (U37b) and sat in the middle of downtown
+across three commits.
+
+It was invisible to the builder because `BuildFalafelStand` swept stale copies by
+`places.Find(FalafelSpec.ObjectName)` = `"Place_FalafelStand"`, and this one carried the raw asset
+name. `SweepStaleFalafel` now also sweeps any child named after the model file.
+
+**Verified:** `Places` 11 → 10 children, triangles `4,586,067 → 4,544,969` - exactly −41,098.
+
+#### ✅ Part 2 - the lane that walked pedestrians through it
+
+Pedestrians have **no `NavMeshAgent`** (a deliberate U16 reversal), so they follow authored
+`LanePath` polylines and carving the NavMesh would have changed nothing. `path 0` - a 141-point strip
+running the whole east pavement - passed straight through the stand's footprint at
+`(19.2, 0.2, −100.3)`. `Place_SevenEleven` had the identical fault at `(−19.1, 0.2, 0.7)`; both are
+fixed in the same pass, because leaving one of two known-bad places unrouted is how a fixed bug
+comes back.
+
+⚠ **Detouring per POINT does not work, and was tried twice** (at 4 m and at 8 m of push). Every
+individual sample cleared the building and four lanes still crossed it, because a polyline is its
+**segments**: a moved sample beside an unmoved neighbour leaves a diagonal that cuts back through.
+`DetourRuns` offsets a whole blocked RUN, padded by two samples either side, and prices both
+directions before picking. The result is then re-resampled at even arc length, which is not optional -
+`LanePath.At(s)` maps `s → point` assuming even spacing, so a detour that displaces samples without
+re-resampling makes walkers visibly speed up and slow down through the bend.
+
+**Verified:** builder reports `footprints 6 place(s) routed around, 0 lane(s) STILL crossing one`, and
+an independent segment-level re-check across all **76 lanes × 6 places** finds **0**.
+
+#### ❌ Part 3 - LOD1 for the 101 parked cars: NOT DELIVERABLE
+
+**This is the honest headline: the thing the user asked for cannot be built with the tools here, and
+the speckled version that nearly shipped was caught by its own control arm.**
+
+A 20% COLLAPSE twin was made, wired, built and rendered in the Player - and at the switch distance
+the car was **visibly wrecked**: body speckled like static, greenhouse gone black. A ratio ladder,
+rendered headless side-on, says where the cliff is:
+
+| ratio | triangles | verdict |
+| --- | --- | --- |
+| 80% | 41,684 | clean, indistinguishable |
+| 60% | 31,272 | panel gaps opening, roof edge breaking |
+| 45% | 23,463 | visibly torn |
+| 20% | 10,430 | shell ripped open, interior showing through |
+
+**80% is the most it survives, and 1.25× is not an LOD.** PLANAR was already measured useless on the
+same asset (52,096 → 48,123 even at 20°). Two further routes were tried and closed:
+
+- **Clearing the glTF's custom split normals is not the fix.** The speckle looked exactly like
+  interpolated split normals and it is not - the torn geometry renders identically with and without
+  them. `tools/decimate-glb.py` keeps `drop_custom_normals` anyway; it is correct on its own terms.
+- **There is no interior to drop.** These .glbs group BY MATERIAL: `bodyshell` is 46,224 of the
+  52,096 triangles under names like `bonnet.005` and `chassis.008`.
+
+The `_lod1.glb` files were deleted and the LOD1 wiring left in place, unused and silent. A real LOD1
+for these needs an **authored** low-poly body, not a decimated one.
+
+#### ⚠ What Part 3 DID find: three LOD bugs, and an assert that could not fail
+
+The pixel gate only caught the wrecked mesh because of a **control arm** - a third render forced to
+LOD1. Without it the comparison read `0.000% differ` and looked like a perfect pass. It was
+comparing LOD0 with LOD0, three separate times, for three different reasons:
+
+1. **The Editor does not apply LOD at all** on a hand-made `Camera.Render()` - both arms reported the
+   identical 7,824,283 triangles. Moved to the Player.
+2. **Moving the camera across the switch** (44 m vs 46 m) buries the signal in parallax.
+3. **Narrowing the fov to frame the car** changes the answer, because screen coverage IS the input to
+   the LOD test. At a 7.5° lens a car 46 m away kept LOD0.
+
+Fixing the instrument exposed the real faults. `Lod1Distance` said 45 m; the Player switched at
+**136 m**:
+
+- **`lodBias` MULTIPLIES the measured screen height; `ScreenHeightAt` divided by it.** With this
+  project's bias of 2 that is `lodBias²` = **4× too far**, in the direction that keeps the expensive
+  mesh alive.
+- **The lens came from `Camera.main`, which is 60° in the open scene.** The game runs **75°** from
+  `TheBlockConfig.Camera.Fov`. New `GameplayFov()` reads the same number the game reads.
+- **`AssertLodDistances` re-derived the distance with the same formula**, so it agreed with itself and
+  reported a contented 45.0 m on all three models while the Player switched at 136. It is kept - it
+  catches a wrong SIZE, which is what caught the scale-37.4 avenger - but it is documented as unable
+  to catch a wrong RELATION.
+
+The authority is now `PerfProbe.MeasureSwitchDistance` (`-perfLodShot`), which renders the subject
+three times from one position at each distance 10→400 m - pinned LOD0, pinned LOD1, free - and asks
+which pinned frame the free one matches. Post-fix it reads **LOD0 to 45 m, LOD1 from 50 m, nothing
+past 355 m**, on a 5 m step, against constants of 45 and 350.
+
+⚠ A first version scored "first distance where anything differs" and returned 10 m: two renders of the
+SAME level disagree on edge pixels, and that noise scales with screen coverage (257 px at 10 m, 0 at
+125 m). Scoring against both pinned levels cancels it.
+
+#### 📉 And the cull distance fix is worth ~0 ms, which is also measured
+
+The committed thresholds put the parked cars' cull at roughly **710-950 m** by model. They now cull
+at exactly **350.0 m**, verified across import scales 1.00, 1.42 and 37.40. It buys nothing:
+
+| pose | with all 101 cars | with them deleted | Δ |
+| --- | --- | --- | --- |
+| `crowd` (~505 m from the lot) | 4.79-4.86 M tris | 4.80-5.19 M | **none** |
+| `autoshop` (~536 m) | 4.92-5.32 M | 4.94-5.01 M | **none** |
+| `lotcars` (standing in it) | 22.6 M, 214 setPass, 3,828 casters | 11.8-12.2 M, 169-176, ~813 | **−10.8 M, −42, −3,015, ~−17 ms** |
+
+Frustum and occlusion culling already remove the lot from city views - **deleting all 101 cars
+changes nothing there** - and from inside the lot the farthest car is 120 m, so a 350 m cull never
+fires. The cull fix is correctness, not performance.
+
+**The prize is still sitting there and is now precisely sized:** from the lot pose, **66 of the 101
+cars are between 45 m and 120 m**. A working LOD1 would have made those 5× lighter - most of that
+10.8 M triangles. That is exactly what an authored low-poly body would buy, and nothing else will.
+
+⚠ Frame-time numbers this round are noisy (a baseline arm read 147.9 ms against its twin's 14.5 ms)
+because the Editor was open and building throughout. The geometry counters are exact and the ~17 ms
+lot delta held across all three repeats.
 
 ### U30b round 4, 2026-08-19 - occlusion is free and the parked cars are not the jetski
 
@@ -4591,6 +4736,8 @@ pollute it. A sub-unit the user has played is **`built - user-confirmed, awaitin
 | U37 | פלאפל הפעמונים - a repeatable falafel round, the game's first income faucet | **built 2026-08-18, awaiting the play-test** | (pending) | **The user's ask:** *"we need more way for our character to make money"* - and it is a real gap, not a nice-to-have: every campaign payout is once-per-run through `Payouts`, while power-ups, paint, fuel and fines all keep charging, so a cleared campaign is a wallet that can only go down. **Its own section is above** - the asset, the placement, the job, and the one campaign edit. `tools/build-falafel.py` models the whole shop in Blender from two of the user's photographs (2.1 MB, 41,418 tris, six meshes, ZERO textures) with the Coca-Cola wordmark in Snell Roundhand Black plus two hand-built swashes, and the real 10bis menu on the board. Placed at (20.25, 0, −96.9) yaw −90° **opposite the pizzeria**, in the measured 20 m gap between `Bench_075` and `Bench_076` - **location user-approved on sight**. Three marker empties (`fh_vendor`/`fh_talk`/`fh_pin`) carry the geometry through glTFast rather than three C# coordinates. `FalafelRun` is a `MissionBehaviour` **deliberately NOT in `Campaign.Missions`** and structurally safe from adoption - `MissionBuilder` drops any mission with no `campaignText` row, and `"falafel"` has none, so **do not add one**. T at the stand from the saddle; an escalating streak 3/150 s/$40 → 6/210 s/$100, reset to round 1 by the clock or a bust; paid straight into `Wallet`, never `Payouts`; the 🎒 bag is not consumable here. ⚠ **One line in `CampaignRunner.DriveHud`**: the objective/clock/counter are LATCHED and it rewrites them every frame, so `FreeRoamJob.Active` stands the campaign down while a job owns them (and is cleared in `SessionReset`). ⚠ **Free-roam police rules apply on purpose** - `ApplyPoliceRules` clears heat on its rising edge, so covering this job would make the counter a wanted-level launderer. ⚠ **The vendor arrived T-posed**: the crowd prefabs are `CullCompletely`, so off-screen the Animator never runs and the rig sits in a T bind pose - `AlwaysAnimate` in the builder, U19e's trap from the other side. Proved in Play before hand-off: 3/3 delivered, $0→$40 once, level→2, round 2 = 4 drops/$55, `Fail()` → round 1 paying nothing, 0 stray actors |
 | U33 | Day/night cycle | done | `4ec2978` | **User-confirmed 2026-08-16** (*"i like the lighting… feature good"*). ⚠ **CORRECTED 2026-08-16: this row used to open "the first thing in this repo that is not a port of anything", and that is FALSE.** The original has a day/night cycle - `src/world/day-night.ts` + `day-night-state.ts`, committed there 2026-06-17, 13 keyframe stops, a sun arc and a moon fill light - sitting at `enabled: false` in `config.ts`, frozen at noon. What is true is only the narrower claim: **in the SHIPPED web build the sun never moves.** So U33 ports a default-off feature and independently arrives at the same default. The sharpest evidence that nobody read the original before building it: that config's own comment reads *"GTA-like pace = 2880 (48 min/day)"* - **the exact number this unit landed on after the user asked for half speed, and recorded as the user's call.** The IMPLEMENTATION is genuinely independent and the mechanism notes below all stand; it is the provenance that was wrong. **Why the correction matters beyond tidiness: the submission video states which features were invented and which were ported, and this row was the source for that claim.** It ships behind **Settings → Display → Time of Day**, default **Fixed**, and Fixed is not "close to" the old look: `DayNightCycle.RestoreBuilt` replays the scene as WorldBuilder left it, `renderPostProcessing` goes false so URP schedules **no post pass at all**, and ambient stays `Skybox`. Off costs 0 ms and every screenshot approved in U11-U27 still reproduces. **One light does the sun AND the moon** - URP's main light is the brightest directional and a second would demote to an additional light with no shadows, so it swings a full 360° (`pitch = (hour − 6) × 15`) and mirrors to the far side of the sky below the horizon; intensity ramps to 0 across ±2° of the crossing so the 180° flip is invisible. **Ambient is `Trilight`, never `DynamicGI.UpdateEnvironment`** - three lerped colours instead of a 1-3 ms skybox re-convolution - and that fixes a dead line from U13 as a side effect: `Interior` wrote `ambientLight`, which `AmbientMode.Skybox` ignores, so the pizzeria's warm ambient had never once rendered. **Night is CHEAPER than day**: below the horizon `shadows = None` drops the four 2048² cascades. Grading is Tonemapping·ColorAdjustments·WhiteBalance only - **Bloom was cut on cost**, 6-8 blur passes against a 20.7 ms frame. `SkyPalette` is 13 stops, **static and code-only on purpose** (a `[SerializeField]` palette is dead the moment the scene saves it). `Assets/Scripts/World/{DayNightCycle,SkyPalette}.cs`, built into the scene by **The Block → Build Day-Night** (`Assets/Editor/DayNightBuilder.cs`), which also has a **(Test Mode)** twin: cycle forced on, a full day in 2 min, `[` `]` step an hour, `\` holds the clock, and a corner banner so it cannot be left on silently. ⚠ **`Interior`'s per-Enter `RenderSettings` snapshot was DELETED** - it was U26's Radar/`display` bug again, two owners of one field. Day length **2880 s = 48 min**, GTA V's pace, the user's call. ⚠ **The scene rig is not in this unit's commit - it landed in `a269a6b` and the debt is closed** (verified 2026-08-16: `DayNightCycle` is on the `Directional Light` in the committed scene); `World.unity` was carrying U28's unsaved work at the time, so the rig rode in with the next scene commit. The menu item rebuilds it in one click if it is ever lost |
 | U34 | Collisions have consequences | **done - user-confirmed 2026-08-16** | `9bd360c` | ✅ *"לגבי ריסוק מחדש אתה יכול לסמן את זה כגמור זה מתנהג כמו שצריך."* **The unit exists because of one discovery: `CrashSensor` had been attached to NOTHING since U19** - no prefab, no scene object, no `AddComponent` anywhere - so `CrimeWatch.OnCrashed` and the crash thump were both subscribed to an event that could not fire, and every collision in this game had been silent and free for fourteen units. It was found by grepping the `.meta` guid rather than the class name, which is the only search that distinguishes "referenced" from "merely compiled"; memory `static-event-with-no-publisher`. The fix is `CrashSensor.Ensure(gameObject)` from `CarController.Bind` and `MotorcycleController.Bind` - **not a prefab field, on purpose**, because `Build Drivable Cars` regenerates those prefabs and that is the likeliest story of how it was lost to begin with. **Three things followed from having impacts at all.** ① **A wall and a car are different crimes.** `PoliceTuning.VehicleCrashCrimeSpeed = 2.5f` (9 km/h) against the wall's `CrashCrimeSpeed = 6f` (22 km/h): ramming a car is a hit-and-run with a victim, scraping a bollard is geometry being forgiven, and the web build could not tell them apart at all. The test is `Impact.HitVehicle`, read off the **collider's own hierarchy** and never off `Impact.Other` - a parked filler is a static collider with no Rigidbody and arrives indistinguishable from a wall, and a traffic car promoted inside the same callback has no body yet either. ⚠ **A cruiser is excluded and that is a feedback loop, not politeness**: cops crowd you and touch you constantly, so a low bar against police contact mints a crime every cooldown, which spawns another cop and resets the give-up clock - a pursuit that cannot end because it is happening. Hitting one hard is still a crime, judged by the wall's line. ② **`TrafficCar` retuned** - `wreckSpeed` 6→3 (6 m/s is faster than most of a queue ever moves, so every collision inside a jam was a car hitting a wall), `wreckMomentumShare` 0.55→0.9 (PhysX has already spent most of the energy on the contact by the time this runs, so a share under ~0.8 reads as hitting a parked skip), `wreckMaxSpeed` 14→20, and the hard-coded 0.25 spin became `wreckSpin = 0.45`. ③ **`LotCar` takes a hit** - U13 gave 101 parked fillers a box collider and nothing else, making them immovable walls in the one place you are most likely to be driving badly. **A static collider still receives collision callbacks**, which is what lets a filler stay static until the frame it is struck and only then take a Rigidbody, so the usual dynamic count is zero and the worst case is a handful. The push direction comes from the CONTACT POINT, never from `Collision.impulse` or `relativeVelocity` - both carry a sign that depends on which body the callback fired on, and "away from where I was struck" cannot be backwards. Centre of mass drops into the sills or a car-sized box goes over on its roof at the first kerb. `Wrecked` bars promotion, per `TrafficSystem.NearestStopped`'s rule: promoting a wreck would swap a shunted, spinning car for a pristine one standing neatly in its stall |
+
+| U39 | The second falafel stand, the lane through it, and an LOD1 that cannot exist | **built 2026-08-19, awaiting the user's visual check** | (pending) | **Three parts, and one of them is an honest failure.** Full section above. **① The orphan stand:** a second complete `falafel-stand` (7 renderers, 41,098 tris) had sat at the world origin since `154954e`, invisible to `SweepStaleFalafel` because it carried the raw asset name instead of `Place_FalafelStand`. Deleted; the sweep now also matches the model file's name. `Places` 11 → 10 children, exactly −41,098 triangles. The real stand never moved and is untouched. **② The lane through it:** pedestrians have no `NavMeshAgent`, so they follow authored `LanePath`s and carving the NavMesh would do nothing. `path 0` ran through the stand's footprint; `Place_SevenEleven` had the identical fault. ⚠ Detouring per POINT fails - a polyline is its segments, so a moved sample beside an unmoved one leaves a diagonal cutting back through. `DetourRuns` offsets a whole padded run and re-resamples at even arc length (`LanePath.At(s)` assumes even spacing). Verified 0 crossings across 76 lanes × 6 places. **③ LOD1 for the parked cars: NOT DELIVERABLE, and the wrecked version nearly shipped.** COLLAPSE tears these bodies below ~80% (60% opens the panel gaps, 20% rips the shell open with the interior showing); PLANAR does nothing (52,096 → 48,123 at 20°); clearing the glTF custom split normals is NOT the cause and does not help; and there is no interior to drop because the .glbs group by material. The `_lod1.glb` files were deleted. A real LOD1 needs an **authored** low-poly body. **What it did find:** the pixel gate read `0.000% differ` three separate times while comparing LOD0 with LOD0 - the Editor never applies LOD on a hand-made `Camera.Render()`, moving the camera across the switch buries the signal in parallax, and narrowing the fov changes the LOD decision being measured. Only an explicit forced-LOD1 **control arm** exposed it. Behind that: `lodBias` MULTIPLIES the screen height and `ScreenHeightAt` divided by it (`lodBias²` = 4× too far), the lens came from `Camera.main` (60°) instead of `TheBlockConfig.Camera.Fov` (75°), and `AssertLodDistances` re-derived with the same formula so it could never fail - 45 m of intent was arriving at **136 m**. Now measured by `PerfProbe.MeasureSwitchDistance`: LOD0 to 45 m, LOD1 from 50 m, gone past 355 m. **The cull fix is worth ~0 ms and that is measured too:** deleting all 101 cars changes nothing at `crowd` or `autoshop` (frustum + occlusion already remove them), and inside the lot the farthest car is 120 m so a 350 m cull never fires. The lot itself costs **10.8 M triangles, 42 setPass, 3,015 shadow casters and ~17 ms** when you stand in it, with **66 of 101 cars between 45 m and 120 m** - precisely the prize an authored LOD1 would take |
 
 ---
 

@@ -57,6 +57,33 @@ namespace TheBlock.EditorTools
         /// <summary>Points used to measure how many seeds are ever within the cull radius at once.</summary>
         private const int DensitySamples = 4000;
 
+        /// <summary>How far sideways a lane sample may be pushed to get out of a building, and in
+        /// what increments.
+        ///
+        /// <b>Eight, and four was measured to be too few.</b> The east-pavement lane runs 5.4 m
+        /// inside פלאפל הפעמונים's 7 m footprint, and the near side - east, 2.1 m away - is the
+        /// building the stand backs onto, so <c>SamplePosition</c> rightly refuses it. The only way
+        /// out is 5.8 m west, onto the strip of pavement between the stand and a kerb that is 6.75 m
+        /// away. At 4 m both directions failed and four lanes stayed inside a wall.
+        ///
+        /// Raising the cap cannot make a good detour worse: the loop tries every push in ascending
+        /// order and takes the first that works, so the smallest one still wins.</summary>
+        private const float DetourStepM = 0.25f;
+        private const float DetourMaxM = 8f;
+
+        /// <summary>Metres of daylight a detoured sample must keep between itself and the wall -
+        /// roughly a pedestrian's shoulder, so nobody walks with an arm inside the glazing.</summary>
+        private const float DetourClearanceM = 0.4f;
+
+        /// <summary>Samples of run-up and run-out either side of a blocked stretch, so the diagonal
+        /// into and out of a detour happens clear of the building rather than across its corner.
+        /// Two samples is 4 m at <see cref="LaneSampleM"/>.</summary>
+        private const int DetourRunPad = 2;
+
+        /// <summary>Renderer bounds are generous - a canopy overhangs the pavement it does not
+        /// block - so a footprint is pulled in this far on each side before it counts as a wall.</summary>
+        private const float FootprintInsetM = 0.35f;
+
         [MenuItem("The Block/Bake Crowd Seeds", priority = 23)]
         public static void BuildMenu() => Build();
 
@@ -184,6 +211,11 @@ namespace TheBlock.EditorTools
             int walkers = 0;
             float laneMetres = 0f;
 
+            // The buildings a lane may not walk through. Read once - they do not move between
+            // strips, and each one costs a GetComponentsInChildren.
+            var footprints = PlaceFootprints();
+            int bent = 0;
+
             foreach (var strip in npc.Strips)
             {
                 var a = Convert.Pos(strip.A.Raw);
@@ -201,7 +233,9 @@ namespace TheBlock.EditorTools
                 for (int lane = 0; lane < 2; lane++)
                 {
                     float sign = lane == 0 ? 1f : -1f;
-                    var path = Resample(a + side * sign, b + side * sign);
+                    var path = Resample(a + side * sign, b + side * sign, footprints);
+                    foreach (var point in path.Points)
+                        if (Blocked(point, footprints)) { bent++; break; }
                     int pathId = paths.Count;
                     paths.Add(path);
                     laneMetres += path.Length;
@@ -232,6 +266,18 @@ namespace TheBlock.EditorTools
             log.AppendLine(
                 $"  strips         {npc.Strips.Count} → {paths.Count} lane(s), {laneMetres:0} m, " +
                 $"{paths.Sum(p => p.Points.Length)} LUT point(s), {walkers} walker(s)");
+            log.AppendLine(
+                $"  footprints     {footprints.Count} place(s) routed around, " +
+                $"{bent} lane(s) STILL crossing one");
+
+            // A lane that could not be routed out of a building in DetourMaxM is a lane authored
+            // straight through the middle of something, and the honest answer is to say so rather
+            // than shove somebody into the carriageway. Loud, because the fault it replaces went
+            // unnoticed until a player walked through a falafel stand.
+            if (bent > 0)
+                Debug.LogWarning(
+                    $"CrowdBuilder: {bent} lane(s) still pass through a Place after a {DetourMaxM:0.#} m " +
+                    "detour - widen DetourMaxM or move the strip in config.ts");
 
             // --- density ------------------------------------------------------------------------
 
@@ -367,20 +413,223 @@ namespace TheBlock.EditorTools
             return false;
         }
 
-        /// <summary>A straight lane, resampled so every sample carries its own baked ground height.</summary>
-        private static CrowdSeedTable.LanePath Resample(Vector3 a, Vector3 b)
+        /// <summary>
+        /// A lane, resampled so every sample carries its own baked ground height - and bent around
+        /// anything standing on the pavement.
+        ///
+        /// <b>Why a straight line was not enough.</b> The strips in <c>config.ts</c> are pairs of
+        /// endpoints and this used to interpolate straight between them, asking only how high the
+        /// ground was. Nothing ever asked whether a sample landed INSIDE a building, and on
+        /// 2026-08-19 the user found the answer: pedestrians walked clean through פלאפל הפעמונים.
+        /// A footprint query then found lane 0 - the 141-point strip that runs the whole east
+        /// pavement, z −140.9 to +138.5 - passing through the stand at (19.2, 0.2, −100.3), and
+        /// <c>Place_SevenEleven</c> with exactly the same fault on lane 2.
+        ///
+        /// <b>Carving the NavMesh would not have fixed it.</b> Pedestrians have no
+        /// <c>NavMeshAgent</c> - a deliberate U16 reversal - so a lane-follower reads
+        /// <c>_path.At(_state.S)</c> and walks wherever the polyline goes, whatever the NavMesh
+        /// says. The polyline is the thing that has to move.
+        /// </summary>
+        private static CrowdSeedTable.LanePath Resample(Vector3 a, Vector3 b, List<Bounds> blockers)
         {
-            float length = Vector3.Distance(new Vector3(a.x, 0f, a.z), new Vector3(b.x, 0f, b.z));
-            int samples = Mathf.Max(2, Mathf.CeilToInt(length / LaneSampleM) + 1);
+            float straight = Vector3.Distance(new Vector3(a.x, 0f, a.z), new Vector3(b.x, 0f, b.z));
+            int samples = Mathf.Max(2, Mathf.CeilToInt(straight / LaneSampleM) + 1);
+
+            var tangent = b - a;
+            tangent.y = 0f;
+            var side = Vector3.Cross(Vector3.up, tangent.normalized);
+
+            var flat = new Vector3[samples];
+            for (int i = 0; i < samples; i++) flat[i] = Vector3.Lerp(a, b, i / (float)(samples - 1));
+
+            DetourRuns(flat, side, blockers);
 
             var points = new Vector3[samples];
             for (int i = 0; i < samples; i++)
+                points[i] = new Vector3(flat[i].x, WorldBuilder.GroundY(flat[i]), flat[i].z);
+
+            // ⚠ RE-RESAMPLE, AND THIS IS NOT TIDINESS. `LanePath.At(s)` maps arc length to a point as
+            // `s / Length * segments` - it ASSUMES the samples are evenly spaced and does no search.
+            // A detour displaces some of them sideways, so leaving the polyline as-is would make
+            // every walker visibly speed up and slow down through the bend.
+            return EvenlySpaced(points);
+        }
+
+        /// <summary>
+        /// Moves each blocked stretch of a lane sideways <b>as a whole run</b>, in place.
+        ///
+        /// ⚠ <b>MOVING ONLY THE BLOCKED SAMPLES DOES NOT WORK, AND IT LOOKS LIKE IT SHOULD.</b> That
+        /// was the first version: push each sample that lands inside a building out to the nearest
+        /// clear pavement. Every push individually succeeded - a probe at (21.0, −100.0) had a clean
+        /// answer 2.5 m east - and the bake still reported four lanes inside a wall, because a
+        /// polyline is its SEGMENTS, not its points. A sample jogged 2.5 m sideways while its
+        /// neighbour 2 m along stayed put leaves a diagonal that cuts straight back through the
+        /// corner, and <see cref="EvenlySpaced"/> then samples points along it.
+        ///
+        /// So a blocked stretch is widened by <see cref="DetourRunPad"/> samples at each end and the
+        /// whole run is offset by ONE vector: the lane steps out before the building, runs parallel
+        /// past it, and steps back after - and both diagonals happen in clear air.
+        /// </summary>
+        private static void DetourRuns(Vector3[] flat, Vector3 side, List<Bounds> blockers)
+        {
+            var blocked = new bool[flat.Length];
+            var any = false;
+            for (int i = 0; i < flat.Length; i++)
+                if (blocked[i] = Blocked(flat[i], blockers)) any = true;
+
+            if (!any) return;
+
+            for (int i = 0; i < flat.Length; i++)
             {
-                var flat = Vector3.Lerp(a, b, i / (float)(samples - 1));
-                points[i] = new Vector3(flat.x, WorldBuilder.GroundY(flat), flat.z);
+                if (!blocked[i]) continue;
+
+                int end = i;
+                while (end + 1 < flat.Length && blocked[end + 1]) end++;
+
+                int from = Mathf.Max(0, i - DetourRunPad);
+                int to = Mathf.Min(flat.Length - 1, end + DetourRunPad);
+
+                var offset = RunOffset(flat, from, to, side, blockers);
+                if (offset != Vector3.zero)
+                    for (int k = from; k <= to; k++) flat[k] += offset;
+
+                i = end;
+            }
+        }
+
+        /// <summary>
+        /// The single smallest sideways offset that gets every sample of a run onto clear, walkable
+        /// pavement - or <c>Vector3.zero</c> if neither side has one inside
+        /// <see cref="DetourMaxM"/>.
+        ///
+        /// Both directions are priced in full and the cheaper wins, so a lane clips the near side of
+        /// a building rather than swinging around the far side of it.
+        /// </summary>
+        private static Vector3 RunOffset(
+            Vector3[] flat, int from, int to, Vector3 side, List<Bounds> blockers)
+        {
+            float best = float.MaxValue;
+            var chosen = Vector3.zero;
+
+            for (int sign = 0; sign < 2; sign++)
+            {
+                var direction = sign == 0 ? side : -side;
+
+                for (float push = DetourStepM; push <= DetourMaxM; push += DetourStepM)
+                {
+                    if (push >= best) break;
+
+                    var ok = true;
+                    for (int k = from; k <= to && ok; k++)
+                    {
+                        var candidate = flat[k] + direction * push;
+
+                        // Clear by a shoulder, not merely outside the box - a sample sitting exactly
+                        // on the wall puts a 0.6 m capsule half inside it.
+                        if (Blocked(candidate, blockers, DetourClearanceM)) { ok = false; break; }
+
+                        // Clear of the building is only half of it. The other side of a narrow
+                        // pavement is the carriageway, and a lane of pedestrians strolling up the
+                        // middle of the road is a worse bug than the one being fixed.
+                        ok = NavMesh.SamplePosition(
+                            candidate, out _, SnapRadius, NavMesh.AllAreas);
+                    }
+
+                    if (!ok) continue;
+
+                    best = push;
+                    chosen = direction * push;
+                    break;
+                }
             }
 
-            return new CrowdSeedTable.LanePath { Points = points, Length = Mathf.Max(length, 0.01f) };
+            return chosen;
+        }
+
+        private static bool Blocked(Vector3 point, List<Bounds> blockers, float margin = 0f)
+        {
+            for (int i = 0; i < blockers.Count; i++)
+            {
+                var b = blockers[i];
+                if (point.x > b.min.x - margin && point.x < b.max.x + margin &&
+                    point.z > b.min.z - margin && point.z < b.max.z + margin)
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Rebuilds a polyline at a constant arc length, which is the spacing
+        /// <see cref="CrowdSeedTable.LanePath.At"/> assumes.
+        /// </summary>
+        private static CrowdSeedTable.LanePath EvenlySpaced(Vector3[] raw)
+        {
+            var cumulative = new float[raw.Length];
+            for (int i = 1; i < raw.Length; i++)
+            {
+                var step = raw[i] - raw[i - 1];
+                step.y = 0f;
+                cumulative[i] = cumulative[i - 1] + step.magnitude;
+            }
+
+            float total = cumulative[raw.Length - 1];
+            if (total < 0.01f)
+                return new CrowdSeedTable.LanePath { Points = raw, Length = 0.01f };
+
+            int count = Mathf.Max(2, Mathf.CeilToInt(total / LaneSampleM) + 1);
+            var points = new Vector3[count];
+            int cursor = 0;
+
+            for (int i = 0; i < count; i++)
+            {
+                float want = total * i / (count - 1);
+                while (cursor < raw.Length - 2 && cumulative[cursor + 1] < want) cursor++;
+
+                float span = cumulative[cursor + 1] - cumulative[cursor];
+                float t = span < 1e-4f ? 0f : (want - cumulative[cursor]) / span;
+                points[i] = Vector3.Lerp(raw[cursor], raw[cursor + 1], t);
+            }
+
+            return new CrowdSeedTable.LanePath { Points = points, Length = total };
+        }
+
+        /// <summary>
+        /// The XZ footprints a lane may not pass through: everything under <c>World/Places</c> that
+        /// has geometry and is not a car, an NPC or the off-world interior set.
+        ///
+        /// Shrunk by <see cref="FootprintInsetM"/> because these are renderer bounds, and a falafel
+        /// stand's canopy overhangs the pavement by most of a metre. Walking under a canopy is fine;
+        /// walking through the counter is not.
+        /// </summary>
+        private static List<Bounds> PlaceFootprints()
+        {
+            var footprints = new List<Bounds>();
+            var places = GameObject.Find("World/Places");
+            if (places == null) return footprints;
+
+            foreach (Transform child in places.transform)
+            {
+                if (!child.gameObject.activeInHierarchy) continue;
+                if (child.name == "LotCars") continue;                       // parked cars, not buildings
+                if (child.name.StartsWith("Falafel_Vendor")) continue;       // a person, and he moves
+                if (child.position.x < -500f) continue;                      // the interior set at x −1000
+
+                var renderers = child.GetComponentsInChildren<Renderer>(false);
+                if (renderers.Length == 0) continue;
+
+                var bounds = renderers[0].bounds;
+                foreach (var renderer in renderers) bounds.Encapsulate(renderer.bounds);
+
+                footprints.Add(new Bounds(
+                    new Vector3(bounds.center.x, 0f, bounds.center.z),
+                    new Vector3(
+                        Mathf.Max(0.1f, bounds.size.x - FootprintInsetM * 2f),
+                        1f,
+                        Mathf.Max(0.1f, bounds.size.z - FootprintInsetM * 2f))));
+            }
+
+            return footprints;
         }
 
         /// <summary>Every district's world bounds - the port of <c>worldMap.districts()</c>.</summary>

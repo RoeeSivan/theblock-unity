@@ -52,6 +52,7 @@ namespace TheBlock.Core
         private static int _repeat = 0;
         private static bool _freeze;
         private static string _shotPath;
+        private static string _lodShotDir;
 
         [Tooltip("Frames discarded before sampling starts: streaming, the crowd's spawn ramp and " +
                  "the shadow cascades all settle inside this window.")]
@@ -117,6 +118,7 @@ namespace TheBlock.Core
                     case "-perfRepeat":  if (i + 1 < argv.Length) int.TryParse(argv[i + 1], out _repeat); break;
                     case "-perfFreeze":  if (i + 1 < argv.Length) _freeze = argv[i + 1] == "on"; break;
                     case "-perfShot":    if (i + 1 < argv.Length) _shotPath = argv[i + 1]; break;
+                    case "-perfLodShot": if (i + 1 < argv.Length) _lodShotDir = argv[i + 1]; break;
                 }
             }
 
@@ -172,6 +174,7 @@ namespace TheBlock.Core
             // diff would have read 0% whether occlusion worked or not. In a Player it does apply,
             // which the 17.96 M / 23.90 M pair at this pose already shows.
             if (!string.IsNullOrEmpty(_shotPath)) yield return Screenshot();
+            if (!string.IsNullOrEmpty(_lodShotDir)) LodShots();
 
             yield return Sample();
 
@@ -395,11 +398,34 @@ namespace TheBlock.Core
                 return;
             }
 
-            // Also a proposal rather than a feature. All 101 parked cars carry a SINGLE-level
-            // LODGroup - which is a cull distance wearing an LODGroup's clothes, and at
-            // screenRelativeTransitionHeight 0.0069 on a 5 m car it holds all 52,096 triangles out to
-            // roughly 630 m. lodBias scales that distance for every LODGroup at once, so this arm
-            // prices a tighter cull without editing 101 objects to find out it was not worth it.
+            // What the parked cars' cull is worth, priced on one build in one frame.
+            //
+            // All 101 carry a SINGLE-level LODGroup - a cull distance wearing an LODGroup's clothes.
+            // "off" pins every one of them to LOD0, which for a single-level group means it is drawn
+            // at ANY distance; "on" hands the choice back and they cull at 350 m. So the two arms
+            // differ in exactly one thing: whether the cull happens.
+            //
+            // ⚠ THIS IS NOT THE FULL U39 DELTA, IT IS THE UPPER BOUND ON IT. Before U39 the cull was
+            // not absent, it was mis-derived: thresholds of 0.0069 / 0.0081 / 0.0105 in the committed
+            // scene put it at roughly 710-950 m depending on the model, not at infinity. Cars beyond
+            // that were already being dropped, so the real gain is this number minus whatever those
+            // far cars cost. Quoting this as "what U39 won" overstates it.
+            if (_feature == "lotcull")
+            {
+                var lot = GameObject.Find("World/Places/LotCars");
+                if (lot == null) { Fail("no LotCars to pin"); return; }
+
+                int pinned = 0;
+                foreach (var group in lot.GetComponentsInChildren<LODGroup>(true))
+                {
+                    group.ForceLOD(_on ? -1 : 0);
+                    pinned++;
+                }
+
+                Debug.Log($"{Tag}: {pinned} lot cars {(_on ? "culling at 350 m" : "pinned on at any distance")}");
+                return;
+            }
+
             if (_feature == "lodbias")
             {
                 if (_on) QualitySettings.lodBias = 0.4f;
@@ -498,6 +524,202 @@ namespace TheBlock.Core
             // The capture resizes the back buffer for a frame; sampling straight after would price
             // that instead of the view.
             for (int i = 0; i < 30; i++) yield return null;
+        }
+
+        /// <summary>
+        /// Measures where one parked car actually drops to LOD1, then shoots four frames across that
+        /// switch so the drop can be judged by pixels rather than by argument.
+        ///
+        /// ⚠ <b>THIS CANNOT BE DONE IN THE EDITOR, AND THE CONTROL PROVED IT.</b> A hand-made camera
+        /// rendering in edit mode reported the identical 7,824,283 triangles at 44 m and at 46 m -
+        /// LOD selection is not applied on that path, exactly as baked occlusion is not. Its pixel
+        /// diff would have read 0.000% whether the LOD worked or not. In a Player,
+        /// <c>Camera.Render()</c> goes through the real culling path.
+        ///
+        /// ⚠ <b>DO NOT NARROW THE FIELD OF VIEW TO FRAME THE CAR.</b> Screen coverage IS the input to
+        /// the LOD test, so zooming in tells <c>LODGroup</c> the car is nearer and it hands back
+        /// LOD0 - which is exactly what happened: at a 7.5° lens the <c>auto</c> arm rendered LOD0
+        /// and the comparison was LOD0 against LOD0, wearing a 6.6% difference that came entirely
+        /// from the forced arm. Keep the game's own lens, render large, crop in the diff.
+        ///
+        /// ⚠ <b>DO NOT TRUST A COMPUTED SWITCH DISTANCE.</b> The builder's own arithmetic said 45 m
+        /// and its assert agreed, because the assert re-derived the number with the same formula -
+        /// a check that can only ever confirm itself. The real switch was at 181 m. So the distance
+        /// is MEASURED here, by <see cref="MeasureSwitchDistance"/>, before anything is shot.
+        /// </summary>
+        private void LodShots()
+        {
+            var target = GameObject.Find("World/Places/LotCars/LotCar_Tesla_000");
+            if (target == null) { Fail("no LotCar_Tesla_000 to shoot"); return; }
+
+            var body = target.GetComponentInChildren<Renderer>();
+            if (body == null) { Fail("LotCar_Tesla_000 has no renderer"); return; }
+            var centre = body.bounds.center;
+
+            var group = target.GetComponent<LODGroup>();
+            if (group == null) { Fail("LotCar_Tesla_000 has no LODGroup"); return; }
+
+            var go = new GameObject("__LodShotCam") { hideFlags = HideFlags.DontSave };
+            var cam = go.AddComponent<Camera>();
+            if (Camera.main != null) cam.CopyFrom(Camera.main);
+            cam.enabled = false;
+
+            var direction = new Vector3(0.6f, 0.22f, 0.77f).normalized;
+
+            var lods = group.GetLODs();
+            Debug.Log($"{Tag}: LODGroup size {group.size:0.000}  lodBias {QualitySettings.lodBias}  " +
+                      $"fov {cam.fieldOfView:0.0}  thresholds " +
+                      string.Join(", ", System.Array.ConvertAll(lods, l => l.screenRelativeTransitionHeight.ToString("0.00000"))));
+
+            float measured = MeasureSwitchDistance(cam, group, centre, direction);
+            if (measured < 0f) { Fail("never found a distance where LOD1 takes over"); Destroy(go); return; }
+
+            // Shoot just PAST the measured switch, so `auto` is genuinely serving LOD1.
+            float distance = measured + 1f;
+            Debug.Log($"{Tag}: LOD1 takes over at {measured:0} m; shooting at {distance:0} m");
+
+            // Large, because the lens is the game's own 60° and the car is small at this range. The
+            // diff crops to the middle afterwards; zooming the camera instead would change the LOD
+            // decision being measured.
+            var rt = new RenderTexture(2400, 1600, 24, RenderTextureFormat.Default);
+            rt.Create();
+            cam.targetTexture = rt;
+
+            // ⚠ ONE CAMERA POSITION, NOT TWO. Shooting either side of the switch sounds like the
+            // right test and is not: moving the camera changes the perspective and the framing, so
+            // the diff is dominated by parallax and reads 1.998% whatever the meshes do. Here the
+            // camera never moves and the ONLY variable is which mesh LODGroup hands over.
+            //
+            //   full-a / full-b  LOD0 twice          -> the noise floor
+            //   lean             LOD1, forced        -> the arm under test
+            //   auto             LODGroup's own pick -> MUST match `lean`, or the switch is not
+            //                                          happening here and the comparison is between
+            //                                          LOD0 and LOD0, which is vacuous and would
+            //                                          read as a clean pass.
+            int[] forced = { 0, 1, -1, 0 };
+            string[] tags = { "lod-full-a", "lod-lean", "lod-auto", "lod-full-b" };
+
+            cam.transform.position = centre + direction * distance;
+            cam.transform.rotation = Quaternion.LookRotation(centre - cam.transform.position);
+
+            for (int i = 0; i < forced.Length; i++)
+            {
+                group.ForceLOD(forced[i]);        // -1 hands the choice back to the distance test
+                cam.Render();
+
+                var previous = RenderTexture.active;
+                RenderTexture.active = rt;
+                var tex = new Texture2D(2400, 1600, TextureFormat.RGB24, false);
+                tex.ReadPixels(new Rect(0, 0, 2400, 1600), 0, 0);
+                tex.Apply();
+                RenderTexture.active = previous;
+
+                File.WriteAllBytes(Path.Combine(_lodShotDir, tags[i] + ".png"), tex.EncodeToPNG());
+                Destroy(tex);
+                Debug.Log($"{Tag}: {tags[i]} at {distance:0} m, forceLOD {forced[i]}");
+            }
+
+            group.ForceLOD(-1);
+            cam.targetTexture = null;
+            rt.Release();
+            Destroy(rt);
+            Destroy(go);
+        }
+
+        /// <summary>
+        /// The distance at which <c>LODGroup</c> stops handing back LOD0, found by asking it.
+        ///
+        /// At each candidate distance the car is rendered THREE times from ONE camera position -
+        /// pinned to LOD0, pinned to LOD1, and left to choose - and the free frame is scored against
+        /// both pinned ones. Whichever it resembles is the level it picked. The switch is the first
+        /// distance where it stops resembling LOD0.
+        ///
+        /// ⚠ <b>"THE FIRST DISTANCE WHERE ANYTHING DIFFERS" DOES NOT WORK, AND WAS TRIED.</b> Two
+        /// renders of the SAME pinned level are not identical - edge pixels disagree by a unit or
+        /// two, and the count scales with how much screen the car covers, so it reads 257 differing
+        /// pixels at 10 m and 0 at 125 m. Against a fixed floor that noise IS the signal, and the
+        /// sweep duly reported the switch at the nearest distance it sampled. Comparing against both
+        /// pinned levels normalises it away: the noise is present in both scores and cancels.
+        ///
+        /// This exists because every closed-form version of this number has been wrong, and the
+        /// asserts written from the same closed form all agreed with it.
+        /// </summary>
+        private static float MeasureSwitchDistance(Camera cam, LODGroup group, Vector3 centre, Vector3 direction)
+        {
+            const int Width = 900, Height = 600;
+            var rt = new RenderTexture(Width, Height, 24, RenderTextureFormat.Default);
+            rt.Create();
+            var previousTarget = cam.targetTexture;
+            cam.targetTexture = rt;
+
+            var full = new Texture2D(Width, Height, TextureFormat.RGB24, false);
+            var lean = new Texture2D(Width, Height, TextureFormat.RGB24, false);
+            var chosen = new Texture2D(Width, Height, TextureFormat.RGB24, false);
+
+            float found = -1f;
+            var trace = new System.Text.StringBuilder();
+
+            for (float distance = 10f; distance <= 400f; distance += 5f)
+            {
+                cam.transform.position = centre + direction * distance;
+                cam.transform.rotation = Quaternion.LookRotation(centre - cam.transform.position);
+
+                group.ForceLOD(0);
+                Grab(cam, rt, full, Width, Height);
+                group.ForceLOD(1);
+                Grab(cam, rt, lean, Width, Height);
+                group.ForceLOD(-1);
+                Grab(cam, rt, chosen, Width, Height);
+
+                int toFull = CountDiffering(chosen, full);
+                int toLean = CountDiffering(chosen, lean);
+                int apart = CountDiffering(full, lean);
+
+                // `apart` is how much the two levels differ from each other at all. Where it is zero
+                // the two meshes are indistinguishable at this range and the question has no answer -
+                // say so rather than picking one.
+                string verdict = apart == 0 ? "-" : (toLean < toFull ? "LEAN" : "full");
+                trace.Append($"{distance:0}:{verdict}({toFull}/{toLean}/{apart}) ");
+
+                if (apart > 0 && toLean < toFull && found < 0f) found = distance;
+            }
+
+            Debug.Log($"{Tag}: LOD sweep - distance:pick(diff-to-LOD0/diff-to-LOD1/LOD0-vs-LOD1) {trace}");
+
+            group.ForceLOD(-1);
+            cam.targetTexture = previousTarget;
+            Destroy(full);
+            Destroy(lean);
+            Destroy(chosen);
+            rt.Release();
+            Destroy(rt);
+            return found;
+        }
+
+        private static void Grab(Camera cam, RenderTexture rt, Texture2D into, int width, int height)
+        {
+            cam.Render();
+            var previous = RenderTexture.active;
+            RenderTexture.active = rt;
+            into.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+            into.Apply();
+            RenderTexture.active = previous;
+        }
+
+        private static int CountDiffering(Texture2D a, Texture2D b)
+        {
+            var left = a.GetPixels32();
+            var right = b.GetPixels32();
+            int differing = 0;
+            for (int i = 0; i < left.Length; i++)
+            {
+                // 4/255, not 0: the renderer disagrees with itself by a unit or two on edge pixels,
+                // and a floor of zero would report a "switch" at the very first distance sampled.
+                if (Mathf.Abs(left[i].r - right[i].r) > 4 ||
+                    Mathf.Abs(left[i].g - right[i].g) > 4 ||
+                    Mathf.Abs(left[i].b - right[i].b) > 4) differing++;
+            }
+            return differing;
         }
 
         private void FreezeWorld()
