@@ -175,3 +175,6 @@ Assets/Police_officer.meta
 /Assets/Resources/PerformanceTestRunInfo.json.meta
 /Assets/Resources/PerformanceTestRunSettings.json
 /Assets/Resources/PerformanceTestRunSettings.json.meta
+
+# Generated preview of the kanban board - re-made by tools/kanban/render-html.mjs.
+tools/kanban/board.html

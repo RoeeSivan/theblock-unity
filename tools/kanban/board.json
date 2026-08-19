@@ -1,0 +1,1629 @@
+{
+  "board": {
+    "name": "The Block — Final Project",
+    "desc": "Israeli GTA-style 3D mini open world set in Florentin, Tel Aviv. Built twice: Phase 1 in Three.js + Rapier + Vite + TypeScript (Apr–Aug 2026), then rebuilt in Unity 6 (URP) after the 2026-08-12 engine pivot — the Unity build is what gets submitted. Course: From Idea To Reality - App Using AI, 2026. Phase 1 repo: https://github.com/RoeeSivan/Finalproject · Phase 2 repo: https://github.com/RoeeSivan/theblock-unity",
+    "prefs_background": "blue"
+  },
+  "lists": [
+    "Backlog",
+    "To Do",
+    "In Progress",
+    "Done",
+    "Cancelled / Parked"
+  ],
+  "labels": [
+    {
+      "name": "World & Assets",
+      "color": "green"
+    },
+    {
+      "name": "Vehicles",
+      "color": "blue"
+    },
+    {
+      "name": "Missions & Campaign",
+      "color": "purple"
+    },
+    {
+      "name": "NPC & AI",
+      "color": "orange"
+    },
+    {
+      "name": "Audio",
+      "color": "sky"
+    },
+    {
+      "name": "Performance",
+      "color": "red"
+    },
+    {
+      "name": "Infra & Deploy",
+      "color": "black"
+    },
+    {
+      "name": "UI & HUD",
+      "color": "pink"
+    },
+    {
+      "name": "Docs & Course",
+      "color": "yellow"
+    },
+    {
+      "name": "Unity port",
+      "color": "lime"
+    }
+  ],
+  "cards": [
+    {
+      "list": "Backlog",
+      "name": "Add an 8th city district",
+      "labels": [
+        "World & Assets"
+      ],
+      "desc": "The world is 7 stylized district GLBs placed side by side. Adding another is a mechanical run of the `add-city` skill. Never scheduled — the campaign is finishable without it."
+    },
+    {
+      "list": "Backlog",
+      "name": "More drivable cars",
+      "labels": [
+        "Vehicles"
+      ],
+      "desc": "`config.vehicle.cars` is data-driven and `main.ts` auto-loads every entry, so a new car is a Blender pass + one config block (see the `addcar` skill). Blocked only by finding CC0 models with a separable driver door."
+    },
+    {
+      "list": "Backlog",
+      "name": "HUD consistency pass",
+      "labels": [
+        "UI & HUD"
+      ],
+      "desc": "Objective panel, carry indicator, timer and speed readout grew mission by mission and don't share a visual language. Cosmetic only — listed in ROADMAP Phase 4, never pulled."
+    },
+    {
+      "list": "Cancelled / Parked",
+      "name": "⏸ Put the live URL in README.md",
+      "labels": [
+        "Infra & Deploy",
+        "Docs & Course"
+      ],
+      "desc": "`README.md:9` in the Three.js repo still holds the placeholder `_(link added at first deploy)_`, and the Vercel deployment has been live since 2026-08-02.\n\n**⏸ Parked by the pivot, 2026-08-16.** The Three.js repo is frozen: its only change for the port is one additive script, `scripts/export-config.mjs`, and touching anything else is ruled out — it is the spec the Unity build is measured against, and the first half of the submission's story. A cosmetic README edit is not worth breaking that rule for.",
+      "start": "2026-08-16T18:10:00+03:00",
+      "due": "2026-08-16T18:10:00+03:00"
+    },
+    {
+      "list": "Done",
+      "name": "Instructor invited to both repos",
+      "labels": [
+        "Docs & Course"
+      ],
+      "desc": "✅ **Done 2026-08-19.** Submission requirement #1: a private GitHub repo with the instructor invited as a collaborator, committed and pushed **throughout** rather than at the end.\n\nInvited to **both** repos, which is the user's own call — the pivot is presented as what it is rather than hidden:\n\n- Phase 1, Three.js — https://github.com/RoeeSivan/Finalproject (110 commits from 2026-04-17)\n- Phase 2, Unity — https://github.com/RoeeSivan/theblock-unity (from 2026-08-12)",
+      "start": "2026-08-19T10:00:00+03:00",
+      "due": "2026-08-19T10:00:00+03:00"
+    },
+    {
+      "list": "Cancelled / Parked",
+      "name": "⏸ Fix the mission count in ROADMAP.md",
+      "labels": [
+        "Docs & Course"
+      ],
+      "desc": "`ROADMAP.md` in the Three.js repo still describes a 5-mission game. Mission 5 was cancelled on 2026-08-01 and the shipped campaign is 4 missions; that repo's `CLAUDE.md` is corrected, its ROADMAP is not.\n\n**⏸ Parked by the pivot, 2026-08-16** — same reason as the README card: the Three.js repo is frozen at `export-config.mjs`. The Unity port's own docs state 4 missions correctly.",
+      "start": "2026-08-16T18:10:00+03:00",
+      "due": "2026-08-16T18:10:00+03:00"
+    },
+    {
+      "list": "In Progress",
+      "name": "Kanban board + submission package",
+      "labels": [
+        "Docs & Course",
+        "Unity port"
+      ],
+      "start": "2026-08-04T11:00:00+03:00",
+      "due": "2026-10-01T18:00:00+03:00",
+      "desc": "Reconstruct the project's real history as a kanban board, per the final-project brief (\"work using trello, or any other kanban board\").\n\n**Authored twice, because the project changed engines underneath it.** Round 1 (2026-08-04) covered the Three.js phase — 71 commits, 2026-04-17 → 08-03. Round 2 (2026-08-19) re-authored the whole board after the pivot and added the Unity port's 39 units, 172 commits, 2026-08-12 → 08-19.\n\n**Every card date and every commit hash here is real, read off `git log` in both repos** plus the two projects' decision ledgers. Trello derives a card's created-date from its id and it cannot be backdated, so this board is an accurate *record* of the project rather than an artifact that existed from day one.\n\nThe dataset lives in the repo and the board is generated from it: `tools/kanban/board.json` → `push-to-trello.mjs`. The board is never edited by hand.",
+      "checklist": [
+        "2026-08-04 · Author the Three.js card dataset from git history + decision notes",
+        "2026-08-04 · Publish round 1 to Trello",
+        "2026-08-19 · Port the tooling into the Unity repo (tools/kanban/)",
+        "2026-08-19 · Re-author the dataset for both phases, 39 Unity units added",
+        "Publish the two-phase board to Trello",
+        "Capture the final board screenshot",
+        "Attach the screenshot to the moodle PDF"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Project repo + Git LFS setup",
+      "labels": [
+        "Infra & Deploy"
+      ],
+      "start": "2026-04-17T14:26:00+03:00",
+      "due": "2026-04-17T14:26:00+03:00",
+      "desc": "Private GitHub repo initialised with Git LFS tracking for binaries (`*.glb, gltf, fbx, png, jpg, psd, wav, mp3`). LFS was set up on day one, which is what later made a 300 MB+ art pipeline survivable.",
+      "checklist": [
+        "2026-04-17 14:26 · 6618271 · Initialize project repo with .gitignore and Git LFS tracking"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Engine pivot #2: Unreal → Three.js + Rapier + Vite + TS",
+      "labels": [
+        "Infra & Deploy"
+      ],
+      "start": "2026-04-30T17:31:00+03:00",
+      "due": "2026-05-03T00:20:00+03:00",
+      "desc": "Second and final engine decision, 13 days after the first. Unreal died on the same thing Unity did: tooling complexity for a solo beginner. The browser stack won because it ships as a URL — which is exactly what the final project has to deliver.\n\nStack: Three.js (render) · Rapier via `@dimforge/rapier3d-compat` WASM (physics) · Vite (build) · TypeScript strict. This stack has not moved since.",
+      "checklist": [
+        "2026-04-30 17:31 · 9ba0cf5 · first set up",
+        "2026-04-30 19:25 · c7c6927 · reset — clean Three.js scaffold"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Core loop: walk, drive, enter/exit a car",
+      "labels": [
+        "Vehicles"
+      ],
+      "start": "2026-05-03T00:20:00+03:00",
+      "due": "2026-05-03T20:46:00+03:00",
+      "desc": "The `onFoot | entering | driving | exiting` control-mode state machine, with only the active entity reading input and driving the camera. Entering plays a door-open sequence (door opens → character hides → door closes → chase cam); exiting reverses it.\n\nDriving is deliberately kinematic/arcade — speed + heading + friction + speed-scaled steering — after a Rapier-impulse model felt wrong.",
+      "checklist": [
+        "2026-05-03 00:20 · 2c6c28a · a good base",
+        "2026-05-03 20:46 · fa8026a · push"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Blender MCP asset pipeline",
+      "labels": [
+        "World & Assets"
+      ],
+      "start": "2026-05-03T22:35:00+03:00",
+      "due": "2026-05-03T22:35:00+03:00",
+      "desc": "Drove Blender directly from the AI agent over MCP to inspect, orient, scale and recentre downloaded models. This became the standard way every asset entered the project — and later got codified into the `add-place` / `add-city` / `addcar` project skills.",
+      "checklist": [
+        "2026-05-03 22:35 · d52d9e8 · played around with blender mcp claude"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Scope pivot: small finishable game, not a tech demo",
+      "labels": [
+        "Docs & Course"
+      ],
+      "start": "2026-05-30T14:24:00+03:00",
+      "due": "2026-05-30T15:48:00+03:00",
+      "desc": "The defining decision of the project. Target redefined as a **small but genuinely playable** mini open-world: a linear mission campaign plus 6 shared systems, with a real win state.\n\nExplicitly dropped: combat, weapons, a full living-world sim. Success criterion set as \"playable start-to-finish\", with \"tech demo = failure\" written into the project guide. Every later scope call was measured against this."
+    },
+    {
+      "list": "Done",
+      "name": "Florentin world — first city districts",
+      "labels": [
+        "World & Assets"
+      ],
+      "start": "2026-05-31T23:00:00+03:00",
+      "due": "2026-06-02T22:54:00+03:00",
+      "desc": "World approach settled: prebuilt stylized district GLBs placed side by side in a real-metre world at y=0, made solid with a physics trimesh. OSM extrusion, Mapbox and Google Photorealistic 3D Tiles were all evaluated and rejected as too heavy for the timeline.",
+      "checklist": [
+        "2026-05-31 23:00 · d966061 · two cities",
+        "2026-06-02 22:54 · b9e6baf · added reichman building"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Pizza place + interior, 7 districts, GTA-style map",
+      "labels": [
+        "World & Assets",
+        "UI & HUD"
+      ],
+      "start": "2026-06-01T21:16:00+03:00",
+      "due": "2026-06-01T21:22:00+03:00",
+      "desc": "The first enter-able interior (The Block Pizza — later the hub of mission 1), the world grown to 7 districts, and the GTA-style minimap + full map.\n\nThe map is a data-driven runtime registry: districts auto-register their Box3 and places call `addPoi`, over a baked top-down snapshot for the roads. M / click / Esc.",
+      "checklist": [
+        "2026-06-01 21:16 · 94c9cbb · pizza place + interior, 7 city districts, GTA-style map",
+        "2026-06-01 21:22 · 04dc566 · edited claude files"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "add-place / add-city project skills",
+      "labels": [
+        "Infra & Deploy"
+      ],
+      "start": "2026-06-01T21:16:00+03:00",
+      "due": "2026-06-01T21:16:00+03:00",
+      "desc": "Turned the repeatable Sketchfab → Blender → game pipeline into two reusable skills plus a `glb-inspect` helper, so adding a district or an interactive place stopped being a bespoke debugging session each time.",
+      "checklist": [
+        "2026-06-01 21:16 · edb45ca · add-place / add-city project skills + glb-inspect"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Performance pass v1",
+      "labels": [
+        "Performance"
+      ],
+      "start": "2026-06-06T00:30:00+03:00",
+      "due": "2026-06-06T00:30:00+03:00",
+      "desc": "First measured perf work, against the standing rule that every added element is checked against a ~60 fps budget and every new asset passes a gltf-transform diet before it lands.",
+      "checklist": [
+        "2026-06-06 00:30 · 5743b88 · progress in performance"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Assignment 4 / Exercise 3 — research, POC, video, submit",
+      "labels": [
+        "Docs & Course"
+      ],
+      "start": "2026-06-06T00:00:00+03:00",
+      "due": "2026-06-13T23:59:00+03:00",
+      "desc": "Course milestone that gated the final project. Four parts: competition research written up in the shared course sheet · a proof of concept proving the project was feasible · a 2-minute video · submission.\n\nThe POC was defined as **mission 1 playable end-to-end** — the thing that proved this was a game and not a tech demo.",
+      "checklist": [
+        "Competition research + course sheet filled",
+        "POC: mission 1 playable end-to-end",
+        "2-minute video",
+        "Submitted"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Roads",
+      "labels": [
+        "World & Assets"
+      ],
+      "start": "2026-06-07T13:39:00+03:00",
+      "due": "2026-06-07T13:39:00+03:00",
+      "desc": "Road surfaces laid through the districts — the geometry that traffic, the police pursuit and the minimap all later keyed off.",
+      "checklist": [
+        "2026-06-07 13:39 · 52e30fc · added roads"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Mission contract + mission manager",
+      "labels": [
+        "Missions & Campaign"
+      ],
+      "start": "2026-06-08T01:45:00+03:00",
+      "due": "2026-06-08T23:26:00+03:00",
+      "desc": "Shared system #6. A mission is an ordered list of objectives with `advance()` logic, emitting events the HUD listens to; the last objective completing ends the mission. `MissionHandle` is the common contract every mission implements, which is what later made lifecycle/cleanup fixable in one place.",
+      "checklist": [
+        "2026-06-08 01:45 · 30a0604 · sunday",
+        "2026-06-08 23:26 · e60a837 · mission contract"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Mission 1 — Pizza Lila Run",
+      "labels": [
+        "Missions & Campaign"
+      ],
+      "start": "2026-06-08T12:05:00+03:00",
+      "due": "2026-06-08T12:05:00+03:00",
+      "desc": "Wolt-style pizza delivery on a motorcycle: 3 drop-offs with a soft tip-timer. The campaign opener, and the project's proof-of-concept milestone.",
+      "checklist": [
+        "2026-06-08 12:05 · 1461b79 · solid base of mission 1"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Mission 2",
+      "labels": [
+        "Missions & Campaign"
+      ],
+      "start": "2026-06-09T16:59:00+03:00",
+      "due": "2026-06-09T16:59:00+03:00",
+      "desc": "Second campaign mission, built on the marker + trigger and pickup shared systems.",
+      "checklist": [
+        "2026-06-09 16:59 · 9630549 · mission 2 complete — ready for manual testing"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Mission 3 — helicopter rooftop rescue",
+      "labels": [
+        "Missions & Campaign"
+      ],
+      "start": "2026-06-09T22:07:00+03:00",
+      "due": "2026-06-09T22:07:00+03:00",
+      "desc": "Fly a helicopter and pick survivors off rooftops. The helicopter was brought back into scope on 2026-06-09 specifically for this mission, having been dropped in the May scope pivot. `src/mission/rescue-*.ts`.",
+      "checklist": [
+        "2026-06-09 22:07 · 3b45436 · mission 3 ready for testing"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Traffic system v2 — road graph, turns, braking, lights",
+      "labels": [
+        "NPC & AI",
+        "Vehicles"
+      ],
+      "start": "2026-06-10T22:38:00+03:00",
+      "due": "2026-06-11T15:09:00+03:00",
+      "desc": "Ambient cars driving a marked road graph with random turns at junctions, distance braking, and working traffic lights (GLB models with their own emissive discs). `src/world/traffic-*.ts`, with the pure decision geometry later split into `traffic-ai.ts` so it's testable without Three.js.",
+      "checklist": [
+        "2026-06-10 22:38 · 68c1eb0 · injecting moving cars",
+        "2026-06-10 23:46 · 8419a16 · groundwork for cars in all cities",
+        "2026-06-11 15:09 · 95077b5 · added traffic light physics"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Mission 4 — Hummus Run Gone Wrong (jetski chase)",
+      "labels": [
+        "Missions & Campaign"
+      ],
+      "start": "2026-06-11T11:50:00+03:00",
+      "due": "2026-06-12T21:51:00+03:00",
+      "desc": "Sea chase on a jetski — the campaign finale. Chase logic, buoy course and thief AI. Retry (`F`) later had to be made to work on foot too, since a beach timeout otherwise meant swimming back out.",
+      "checklist": [
+        "2026-06-11 11:50 · aad71c7 · jetski mission — for manual testing",
+        "2026-06-11 16:47 · 529590a · base for jetski mission",
+        "2026-06-12 21:51 · 7acb6a1 · ready to close and fine tune"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "NPC crowd system — auto-detected sidewalks",
+      "labels": [
+        "NPC & AI"
+      ],
+      "start": "2026-06-12T21:51:00+03:00",
+      "due": "2026-06-19T00:29:00+03:00",
+      "desc": "Wandering pedestrians. The win here was giving up on hand-painting walkable areas: sidewalks are auto-detected from GLB material names via a top-down mask (`walkable.ts`), so a new district gets pedestrians for free.",
+      "checklist": [
+        "2026-06-12 21:51 · 7acb6a1 · crowd system base",
+        "2026-06-19 00:29 · 2073b14 · added people to city 7"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Characters → GLB (Mixamo FBX diet)",
+      "labels": [
+        "Performance",
+        "World & Assets"
+      ],
+      "start": "2026-06-13T15:06:00+03:00",
+      "due": "2026-06-13T22:24:00+03:00",
+      "desc": "Converted the skinned Mixamo characters from FBX to GLB. The recipe that made animation clips usable at all: Blender export + `gltf-transform optimize --simplify false` took a 55 MB animation FBX to 0.8 MB.",
+      "checklist": [
+        "2026-06-13 15:06 · d895111",
+        "2026-06-13 21:53 · 4057fe9 · before converting",
+        "2026-06-13 22:24 · 177f731 · converting NPCs to GLB"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Beach dance rhythm mini-game",
+      "labels": [
+        "Missions & Campaign"
+      ],
+      "start": "2026-06-13T00:00:00+03:00",
+      "due": "2026-06-13T17:45:00+03:00",
+      "desc": "Side content: a rhythm/dance mini-game on the beach (`src/minigame/rhythm`), with its own `rhythm-test.html` harness page. Drove the Mixamo animation-clip diet recipe that the whole character pipeline then used."
+    },
+    {
+      "list": "Done",
+      "name": "Car geometry optimization + ?perfrec perf tour",
+      "labels": [
+        "Performance"
+      ],
+      "start": "2026-06-13T23:01:00+03:00",
+      "due": "2026-06-13T23:01:00+03:00",
+      "desc": "Cars decimated and meshes merged in Blender — parking-lot triangles went 159M → 37M. Added `?perfrec`, a scripted camera tour that records frame timings so perf changes could be compared against a fixed route instead of vibes.",
+      "checklist": [
+        "2026-06-13 23:01 · b2d3163 · optimize car geometry + add ?perfrec perf tour"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Cinematic trailer pipeline",
+      "labels": [
+        "Docs & Course"
+      ],
+      "start": "2026-06-14T21:20:00+03:00",
+      "due": "2026-06-15T00:16:00+03:00",
+      "desc": "7 tuned `?cine` camera shots, an in-canvas clip recorder bound to a hotkey, `?chase` / `?heli` auto-mount deep links, and a `build_trailer.py` assembly step. Built for the June trailer — and directly reusable for the final 5-minute submission video.",
+      "checklist": [
+        "2026-06-14 21:20 · 4418759 · before video",
+        "2026-06-15 00:16 · e5ec5bf · canvas clip recorder + tuned cine shots + capture helpers"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Trailer submitted",
+      "labels": [
+        "Docs & Course"
+      ],
+      "start": "2026-06-16T00:00:00+03:00",
+      "due": "2026-06-16T23:59:00+03:00",
+      "desc": "Course trailer deadline met. With the window closed, focus went back to a finishable campaign plus performance."
+    },
+    {
+      "list": "Done",
+      "name": "Rename to \"The Block\" + decompose main.ts",
+      "labels": [
+        "Infra & Deploy"
+      ],
+      "start": "2026-06-15T22:09:00+03:00",
+      "due": "2026-06-16T23:08:00+03:00",
+      "desc": "Naming resolved (product = The Block, pizza = The Block Pizza, Florentin kept as the setting) and the god-file broken up: `main.ts` 1143 → 597 lines, with the state-machine handlers moved to `game/transitions.ts`, run-state to `game/game-state.ts`, plus `game/modes`, `game/campaign-setup`, `ui/hud-driver` and `world/traffic-ai`.\n\nPrettier config (100-char, single quotes) and an ESLint gate landed in the same pass, so `npm run lint` became a real check.",
+      "checklist": [
+        "2026-06-15 22:09 · f2b4b4f · rename to The Block + decompose main.ts",
+        "2026-06-15 22:09 · ac11e29 · make npm run lint pass again",
+        "2026-06-16 20:56 · 961e9ef · add prettier config + format repo",
+        "2026-06-16 22:04 · f7d450c · extract dev paint/road tools into dev/map-dev-tools.ts",
+        "2026-06-16 22:04 · 17f2a91 · extract pure decision geometry into world/traffic-ai.ts",
+        "2026-06-16 22:38 · cb95ed8 · extract transitions + run-state out of main.ts"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "dev-links.html — one-click test menu",
+      "labels": [
+        "Infra & Deploy"
+      ],
+      "start": "2026-06-16T22:42:00+03:00",
+      "due": "2026-06-16T22:42:00+03:00",
+      "desc": "A single page of deep links into any game state: `?mission=N`, `?heli`, `?chase`, `?cine=<shot>`, `?perf`, `?perfrec`, `?wanted`, `?time=<0..1>`. Removed the need to replay the campaign from the start to test anything late in it — probably the highest leverage-per-line change in the repo.",
+      "checklist": [
+        "2026-06-16 22:42 · c661386 · dev-links.html — one-click test deep-links"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Day/night cycle",
+      "labels": [
+        "World & Assets"
+      ],
+      "start": "2026-06-16T23:08:00+03:00",
+      "due": "2026-06-17T00:48:00+03:00",
+      "desc": "Time-of-day system with a `?time` dev link, adding zero draw calls. Shipped defaulting to **off** (frozen noon — the look already signed off on) and gated to street scenes only, so it couldn't regress the campaign's appearance.",
+      "checklist": [
+        "2026-06-16 23:08 · 2c47c84 · in the middle of adding the dayNight feature",
+        "2026-06-17 00:48 · 4a6c34c · added the daynight feature"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Lecturer performance review — Tier 0",
+      "labels": [
+        "Performance"
+      ],
+      "start": "2026-06-17T20:35:00+03:00",
+      "due": "2026-06-17T20:59:00+03:00",
+      "desc": "Acted on 5 performance findings raised in a lecturer review. Tier 0 shipped: frame-loop gating for idle systems, minimap throttling, frustum-split districts, merged NPC meshes, and lazy-loading the jetski-chase assets (thief + buoy) on first start instead of at boot.\n\nThe crowd count was deliberately **kept** rather than cut — the living city was worth the frames.",
+      "checklist": [
+        "2026-06-17 20:35 · 1a886a0 · frustum-split districts, merge NPC meshes, gate idle systems",
+        "2026-06-17 20:45 · bc212a2 · lazy-load jetski-chase assets on first start",
+        "2026-06-17 20:59 · 49bf693 · docs updated"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Driving feel pass",
+      "labels": [
+        "Vehicles"
+      ],
+      "start": "2026-06-18T17:33:00+03:00",
+      "due": "2026-06-18T17:33:00+03:00",
+      "desc": "Handling tuning on the arcade driving model.",
+      "checklist": [
+        "2026-06-18 17:33 · 069feeb · driving"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Main menu",
+      "labels": [
+        "UI & HUD"
+      ],
+      "start": "2026-06-19T00:49:00+03:00",
+      "due": "2026-06-19T00:49:00+03:00",
+      "desc": "Front-end menu — the first thing that made the build read as a product rather than a scene that boots straight into gameplay.",
+      "checklist": [
+        "2026-06-19 00:49 · e5101d7 · added menu"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Car radio",
+      "labels": [
+        "Audio",
+        "Vehicles"
+      ],
+      "start": "2026-06-19T15:07:00+03:00",
+      "due": "2026-07-31T17:39:00+03:00",
+      "desc": "GTA-style radio: SomaFM streams, playing only while driving a car or bike, station switching on `]` `[` `\\`. Plain `<audio>`, graceful \"unavailable\" fallback, zero per-frame cost.\n\nWent silent in late July — the cause was SomaFM returning 403 to a localhost `Referer`. Fixed with `<meta name=\"referrer\" content=\"same-origin\">`.",
+      "checklist": [
+        "2026-06-19 15:07 · 4c04b22 · added radio system",
+        "2026-07-31 17:39 · silent-radio bug fixed (Referer 403)"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Campaign spine — missions chained end-to-end",
+      "labels": [
+        "Missions & Campaign"
+      ],
+      "start": "2026-06-20T21:52:00+03:00",
+      "due": "2026-06-20T21:52:00+03:00",
+      "desc": "The four missions wired into one linear campaign with a real win state — the point at which the deliverable defined back in May actually existed.",
+      "checklist": [
+        "2026-06-20 21:52 · 4e024fc · Campaign spine"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Performance pass v2 — the geometry diagnosis",
+      "labels": [
+        "Performance"
+      ],
+      "start": "2026-06-22T00:16:00+03:00",
+      "due": "2026-06-22T00:16:00+03:00",
+      "desc": "The diagnosis flipped: the bottleneck was **geometry**, ~44M triangles, not draw calls. The hog was instanced cars at 21.3M tris with `frustumCulled = false`.\n\nFixed with Blender car decimation into an LOD set, a traffic count-cull, static district freezing and a per-model palette. Parking-lot triangles 44M → 11M; the beach 24M → 1.4M.",
+      "checklist": [
+        "2026-06-22 00:16 · 086ffb2 · car LOD decimation + traffic count-cull + static district freeze"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Location-aware ambient soundscape",
+      "labels": [
+        "Audio"
+      ],
+      "start": "2026-06-22T18:40:00+03:00",
+      "due": "2026-06-22T18:40:00+03:00",
+      "desc": "Ambient beds that change with where the player is — street versus beach.",
+      "checklist": [
+        "2026-06-22 18:40 · e3713cf · location-aware ambient soundscape (street + beach)"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Police pursuit + wanted level",
+      "labels": [
+        "NPC & AI",
+        "Vehicles"
+      ],
+      "start": "2026-06-22T20:30:00+03:00",
+      "due": "2026-08-01T15:58:00+03:00",
+      "desc": "Wanted stars and a pursuit of up to 3 cop cars, as a free-roam consequence of bad driving — deliberately never a mission.\n\nThe hardest bug of the project: cops would not chase. **Six stacked causes.** Ended by *reconfiguring* rather than debugging further — all street-graph routing was deleted (police.ts 800 → 686 lines) so cops simply drive straight at the player, and they spawn near the player when the station is far.\n\nThe real physical blocker was found only by building a headless Rapier repro against the actual GLBs: a **zero-thickness painted lane sheet** whose edge, inside the character controller's skin, read as a 60.7° wall.\n\nEscape model settled 2026-08-02: break line of sight and you're clear in 12/17/23 s by star level, or stop committing crimes and a hard cap clears you in 45/70/95 s. Invariant: no stars ⇒ no cops.",
+      "checklist": [
+        "2026-06-22 20:30 · 7bf2bac · police pursuit (wanted level) — Stage 0 + 1",
+        "2026-06-23 19:19 · e68923f · police car chase — ready for manual testing",
+        "2026-08-01 15:58 · a9d9011 · cops feature fixed — playtested solid",
+        "2026-08-02 22:03 · escape timings settled"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "FBX → GLB conversion — 304 MB to 9.3 MB",
+      "labels": [
+        "Performance",
+        "World & Assets"
+      ],
+      "start": "2026-07-31T18:15:00+03:00",
+      "due": "2026-07-31T20:58:00+03:00",
+      "desc": "All 11 skinned character rigs converted with `blender/fbx2glb.py` + gltf-transform. **32× smaller.**\n\nThe recipe only works with `--texture-compress webp --texture-size 1024` (otherwise textures pass through at 2048) **and** `--compress draco` (the meshopt default won't load). Side effect: the GLBs are in metres, so every Mixamo `scale` value in config moved ×100.",
+      "checklist": [
+        "2026-07-31 18:15 · 5b96ec7 · before the FBX→GLB conversion",
+        "2026-07-31 20:58 · 1403ac1 · fixed character graphics"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Shrink the shipped payload + write the README",
+      "labels": [
+        "Infra & Deploy"
+      ],
+      "start": "2026-07-31T21:43:00+03:00",
+      "due": "2026-07-31T21:44:00+03:00",
+      "desc": "`public/` pruned 1.2 GB → 96 MB, giving a ~90 MB `dist/`. 555 MB of source art that no build step reads was untracked to keep clone and CI LFS bandwidth sane. README written.",
+      "checklist": [
+        "2026-07-31 21:43 · af6c01e · shrink the shipped payload and add a README",
+        "2026-07-31 21:44 · 54bd312 · untrack source art that no build step reads"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Mission lifecycle, retry and briefings",
+      "labels": [
+        "Missions & Campaign"
+      ],
+      "start": "2026-08-01T11:19:00+03:00",
+      "due": "2026-08-01T11:19:00+03:00",
+      "desc": "The pass that made the campaign survive being played, found by actually playtesting it end-to-end:\n\n· The helicopter rescue could sample **zero** rooftop spots, making completion unreachable and the run a guaranteed timeout.\n· `MissionHandle` gained `cleanup?()`, called on the completion edge — finished missions had been leaving delivered pedestrians, rescued survivors and 9 buoys plus their Rapier colliders in the world forever.\n· The pizza `T` gate excluded `failed`, so a retry played the whole briefing, fade and teleport and then spawned nothing.\n· Retry keys collided: `R` fired while in the helicopter/jetski (both poll it for respawn), and chase retry `F` didn't work on foot — a beach timeout meant swimming back out.\n· Missions 3 and 4 got briefing cards. Mission 4's copy already existed in `chase.config.ts` and had **never been rendered**.",
+      "checklist": [
+        "2026-08-01 11:19 · 303a372 · make missions survive being finished, plus four perf wins"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Performance pass — four cheap wins",
+      "labels": [
+        "Performance"
+      ],
+      "start": "2026-08-01T11:19:00+03:00",
+      "due": "2026-08-01T11:19:00+03:00",
+      "desc": "· The minimap was bypassing its 12 fps throttle during a pursuit — a full canvas repaint every frame at the worst possible moment.\n· `day-night.ts` ran `apply()` every street frame even with the cycle disabled; now only when time actually changes.\n· Police `nearestEdgePoint` got an AABB pre-filter plus a 0.5 s per-cop throttle.\n· `nearestGap` now skips distance-culled cars.",
+      "checklist": [
+        "2026-08-01 11:19 · 303a372 · four perf wins"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Live deployment — push to main, link updates",
+      "labels": [
+        "Infra & Deploy"
+      ],
+      "start": "2026-08-02T16:08:00+03:00",
+      "due": "2026-08-02T16:08:00+03:00",
+      "desc": "Continuous deployment on Vercel: push to `main` → build → the live link updates. **The submission is this link.**\n\nThe one setting that makes it work is Vercel's **Git LFS toggle** — with it off, every model 404s as a pointer file (`Unexpected token 'v', \"version ht\"`). CLI `vercel --prod` deploys are ruled out: the Hobby plan caps CLI uploads at 100 MB and `dist/` is ~90 MB.",
+      "checklist": [
+        "2026-08-02 16:08 · 896a59e · check the vercel link is working"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Carjacking — steal any stopped traffic car",
+      "labels": [
+        "Vehicles"
+      ],
+      "start": "2026-08-02T18:35:00+03:00",
+      "due": "2026-08-02T18:35:00+03:00",
+      "desc": "`E` steals any **stopped** ambient traffic car anywhere in the city — the street twin of the parking-lot promotion path: `traffic.claim(id)` → `transitions.hijackTrafficCar`.\n\nDesign calls: the car waits 5 s for you · the simulation slot is **recycled** far away rather than retired (a car's id is its index in `cars[]`, so pushing a new one would corrupt it) · no wanted level for the theft.\n\nAlso fixed here: `player.setSolid()`, because the walking capsule had been staying solid but un-ticked in the lane while you drove — an invisible wall in traffic.",
+      "checklist": [
+        "2026-08-02 18:35 · be0aac9 · added the stealing car feature"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Run over pedestrians + blood VFX",
+      "labels": [
+        "NPC & AI",
+        "Vehicles"
+      ],
+      "start": "2026-08-02T21:26:00+03:00",
+      "due": "2026-08-02T22:03:00+03:00",
+      "desc": "Hit a pedestrian at ≥12 km/h and they're launched, land, lie, fade — and then that same person walks back onto their sidewalk. Recovery is free because `pedestrian.ts` keeps its own position and rewrites the transform once it's ticked again.\n\nMotion model: the animation clip's **root motion is the knockback**; code adds only the vertical arc, since the clip's own vertical is flat. Blood spray plus a ground stain whose lifetime is *derived from the body's timeline*, so a stain can't outlive its victim.\n\nReliability fix the same day: the pedestrian capsule (0.3) plus the controller skin parked the vehicle exactly on a strict inequality boundary, making head-on hits a coin flip and bike hits impossible. Solved with Rapier interaction groups ghosting pedestrians above 12 km/h.\n\nTuned live on `/runover-test.html`.",
+      "checklist": [
+        "2026-08-02 21:26 · c56c0b3 · run over pedestrians, with blood",
+        "2026-08-02 22:03 · 2a4769a · fixed run over and fine tune the cop chase"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Run-over sound — screams + body thud",
+      "labels": [
+        "Audio"
+      ],
+      "start": "2026-08-03T14:21:00+03:00",
+      "due": "2026-08-03T14:21:00+03:00",
+      "desc": "Impact now plays a scream drawn from a male or female pool plus a synthesised body thud. Six CC0 clips, credited in `public/audio/sfx/CREDITS.md`.\n\nDesign calls: gender pools rather than per-character voices · the thud is included · **no spatial audio on purpose**, since the victim is always directly under your own bumper.\n\nSpam control is the whole problem — a crowd goes down in a single frame — hence `maxConcurrent: 2` and `minGapSec: 0.18`.",
+      "checklist": [
+        "2026-08-03 14:21 · f0fde83 · run over sounds"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "Code cleanup",
+      "labels": [
+        "Infra & Deploy"
+      ],
+      "start": "2026-08-03T15:04:00+03:00",
+      "due": "2026-08-03T15:04:00+03:00",
+      "desc": "Dead code removed across 30 files — 670 deletions against 86 insertions.",
+      "checklist": [
+        "2026-08-03 15:04 · 405c9bf · code cleanup"
+      ]
+    },
+    {
+      "list": "Cancelled / Parked",
+      "name": "❌ Engine: Unity (April attempt)",
+      "labels": [
+        "Infra & Deploy"
+      ],
+      "start": "2026-04-17T14:54:00+03:00",
+      "due": "2026-04-17T21:23:00+03:00",
+      "desc": "**Abandoned after ~7 hours.** Unity 6.4 project scaffolded, then dropped for Unreal. Cause: tooling complexity for a solo developer new to game development.\n\n**⚠ REOPENED 2026-08-12, and this time it stuck** — see `🔀 Engine pivot #3` in Done. This card is kept exactly as it was written, because the difference between the two attempts is the whole argument: in April there was no game and Unity was where the work would have to be invented. In August there was a finished, shipped Three.js game to serve as the spec, and the port had something concrete to be measured against every single unit.",
+      "checklist": [
+        "2026-04-17 14:54 · 6f0ea60 · Scaffold Unity 6.4 project",
+        "2026-04-17 15:09 · 9857ade · settings"
+      ]
+    },
+    {
+      "list": "Cancelled / Parked",
+      "name": "❌ Engine: Unreal",
+      "labels": [
+        "Infra & Deploy"
+      ],
+      "start": "2026-04-17T21:23:00+03:00",
+      "due": "2026-04-30T17:31:00+03:00",
+      "desc": "**Abandoned after 13 days**, for the same reason Unity was: tooling friction ate all the time. Two pivots in two weeks is what set the project's standing rule — favour \"working thing on screen\" over perfect architecture. Do not reopen.",
+      "checklist": [
+        "2026-04-17 21:23 · fb77447 · Pivot engine from Unity to Unreal"
+      ]
+    },
+    {
+      "list": "Cancelled / Parked",
+      "name": "❌ Real-world map data (OSM / Mapbox / Google 3D Tiles)",
+      "labels": [
+        "World & Assets"
+      ],
+      "desc": "Three routes to a real Florentin geometry were evaluated and all rejected: OSM/GeoJSON footprint extrusion, Mapbox, and Google Photorealistic 3D Tiles. Too heavy for the timeline and the frame budget. Replaced by hand-placed stylized district GLBs — Florentin is kept as the *setting*, not as surveyed geometry."
+    },
+    {
+      "list": "Cancelled / Parked",
+      "name": "❌ Combat / weapons / full living-world sim",
+      "labels": [
+        "Missions & Campaign"
+      ],
+      "start": "2026-05-30T14:24:00+03:00",
+      "due": "2026-05-30T14:24:00+03:00",
+      "desc": "Cut in the 2026-05-30 scope pivot to protect a finishable campaign. The correct call: everything that shipped after this date exists because these didn't."
+    },
+    {
+      "list": "Cancelled / Parked",
+      "name": "❌ Mission 5 — LLM NPC dialogue → \"Lose the Cops\"",
+      "labels": [
+        "Missions & Campaign"
+      ],
+      "start": "2026-06-20T00:00:00+03:00",
+      "due": "2026-08-01T00:00:00+03:00",
+      "desc": "**Cancelled 2026-08-01.** Originally an LLM-driven NPC conversation mission (Anthropic SDK behind a server-side proxy, scripted fallback line on the critical path), later reworked into a police-pursuit finale, then cut entirely.\n\nConsequences, all deliberate: the campaign is **4 missions**, there is no `src/llm/`, no SDK dependency and no backend, and police pursuit stays a free-roam consequence of bad driving rather than a mission."
+    },
+    {
+      "list": "Cancelled / Parked",
+      "name": "⏸ Sky + sun shadows + golden hour",
+      "labels": [
+        "World & Assets"
+      ],
+      "start": "2026-07-31T00:00:00+03:00",
+      "due": "2026-07-31T00:00:00+03:00",
+      "desc": "**Parked.** Fully implemented, reviewed on screen, judged worse than the existing flat-noon look, and reverted in full. Low priority — the current look was already signed off."
+    },
+    {
+      "list": "Cancelled / Parked",
+      "name": "❌ Game-feel FX (FOV kick, camera shake, tyre smoke, speed lines)",
+      "labels": [
+        "Vehicles"
+      ],
+      "start": "2026-08-02T16:31:00+03:00",
+      "due": "2026-08-02T16:31:00+03:00",
+      "desc": "**Rejected on sight and fully reverted, 2026-08-02.** Built as a \"wow\" pass: FOV kick under acceleration, camera shake, tyre smoke, skid marks, speed lines.\n\nLesson recorded and acted on: no more camera/screen-space effects — wow should come from *content* (cinematic mission intros, a win/credits sequence, reacting pedestrians). Carjacking and the run-over mechanic were what got built instead, and both shipped."
+    },
+    {
+      "list": "Cancelled / Parked",
+      "name": "⏸ City 3 district — broken source GLB",
+      "labels": [
+        "World & Assets"
+      ],
+      "start": "2026-06-17T20:20:00+03:00",
+      "due": "2026-06-17T20:20:00+03:00",
+      "desc": "**Parked.** The procedural-city-3 source GLB is visually broken, so the planned frustum-split of that district was deferred and it sits on the original joined, non-culled build. Needs a fix in Blender before the perf work is worth redoing."
+    },
+    {
+      "list": "Cancelled / Parked",
+      "name": "⏸ Flying cars",
+      "labels": [
+        "Vehicles"
+      ],
+      "start": "2026-08-01T15:57:00+03:00",
+      "due": "2026-08-01T15:57:00+03:00",
+      "desc": "**Known issue, deliberately deferred 2026-08-01.** Cars occasionally lift off the road. Not fixed because *which* cars do it was never established, and the prime suspects (`copSurfaceY` taking the highest hit, `followGroundY` ratcheting upward) sit inside the police pursuit code that had only just been stabilised after six stacked bugs. Not worth destabilising a playtested campaign this close to submission."
+    },
+    {
+      "list": "Done",
+      "name": "🔀 Engine pivot #3: Three.js → Unity 6 (URP)",
+      "labels": [
+        "Infra & Deploy",
+        "Docs & Course",
+        "Unity port"
+      ],
+      "start": "2026-08-12T19:46:00+03:00",
+      "due": "2026-08-16T18:19:01+03:00",
+      "desc": "**The project moved engines a third time, and this one stuck.** The shipped Three.js game becomes the *spec* and Unity 6000.5.8f1 (URP) rebuilds it — to learn a second engine and to use the advantages the web build had to work around.\n\n**2026-08-16 this stopped being a side project: the Unity build is what gets submitted, with a 1 Oct 2026 deadline.** Every gap against the web build became a graded decision rather than a nice-to-have, and the deliverable stopped being only the game.\n\nThe instructor is invited to **both** repos, so the pivot is presented rather than hidden:\n\n- Phase 1 — https://github.com/RoeeSivan/Finalproject\n- Phase 2 — https://github.com/RoeeSivan/theblock-unity\n\nNote the irony one column to the right: `❌ Engine: Unity` was abandoned on day one of this project, in April, for tooling friction. It came back in August because this time there was a finished game to port.",
+      "checklist": [
+        "2026-08-12 19:46 · dacca07 · Scaffold the Unity 6 URP project",
+        "2026-08-12 19:58 · 3bbadf2 · PORT-STATUS ledger, scope widened to the full game",
+        "2026-08-16 18:10 · 9023a5a · The pivot recorded — the Unity build is the submission",
+        "2026-08-16 18:19 · 4034b6b · README — the instructor's landing page",
+        "2026-08-19 · Instructor invited to both repos"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U0 — Unity project setup: MCP, git, LFS, the ledger",
+      "labels": [
+        "Infra & Deploy",
+        "Unity port"
+      ],
+      "start": "2026-08-12T19:46:00+03:00",
+      "due": "2026-08-12T20:04:00+03:00",
+      "desc": "Unity **6000.5.8f1** (Apple Silicon) from the Universal 3D / URP template. MCP for Unity v10.1.2 on HTTP Local :8080 so the Editor is drivable from the CLI. Git + Git LFS, private remote pushed.\n\n**No Unity Cloud, no Unity AI, no Unity Version Control** — Unity Personal only, nothing paid.\n\n`PORT-STATUS.md` starts here and is the project's living ledger: conversation history is never a source of truth.",
+      "checklist": [
+        "2026-08-12 19:46 · dacca07 · Unity 6 URP project scaffolded",
+        "2026-08-12 19:58 · 3bbadf2 · PORT-STATUS ledger added, scope = the full game"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U1 — glTF import path: glTFast + Draco",
+      "labels": [
+        "World & Assets",
+        "Unity port"
+      ],
+      "start": "2026-08-12T20:20:00+03:00",
+      "due": "2026-08-12T20:20:49+03:00",
+      "desc": "glTFast 6.19.0 + Draco 5.4.3, proving the whole asset route end to end on the downtown district. `World.unity` becomes build scene 0.\n\nThe asset needed **zero** fixup — which is what made it the right first unit. The facade tint the web build applies in code at load became a real material asset instead.",
+      "checklist": [
+        "2026-08-12 20:20 · 5a0b58f · downtown imported and solid"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U2 — Character import: Mixamo FBX as Humanoid",
+      "labels": [
+        "World & Assets",
+        "Unity port"
+      ],
+      "start": "2026-08-12T20:59:00+03:00",
+      "due": "2026-08-13T00:12:00+03:00",
+      "desc": "`JoeAvatar`, isHuman, 52 bones; `Joe_Idle` / `Joe_Walk` looping.\n\n**Humanoid retargeting makes the `mixamorig7:` bone-prefix problem moot** — the suffix varies per Mixamo export, so any name-based rig would have broken on the next download. The web build fights this with a namespace-stripping pass.\n\nExtracted textures do not bind themselves; the materials were rebound by hand in the scene.",
+      "checklist": [
+        "2026-08-12 20:59 · 13cea9f · Joe as Humanoid with a looping walk",
+        "2026-08-12 21:10 · 5b2d85f · rebind Joe's materials in the scene"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U3 — Handedness: the `Convert` helper, negate X",
+      "labels": [
+        "World & Assets",
+        "Unity port"
+      ],
+      "start": "2026-08-12T20:49:00+03:00",
+      "due": "2026-08-12T20:49:30+03:00",
+      "desc": "Three.js is right-handed Y-up; Unity is **left-handed** Y-up. glTFast negates **X** on import and passes Y and Z through.\n\nSo: `Convert.Pos(p) => (-p.x, p.y, p.z)` and `Convert.Yaw(y) => -y`, in **one static helper, one place — never an inlined sign flip**. The importer flips mesh data, but every hand-authored number in `config.ts` (district offsets, spawns, road polylines, waypoints, POIs) does not flip itself, and missing one mirrors that thing against everything else so it looks *almost* right.\n\nVerified 8/8 against the placed scene objects, not assumed. `Assets/Scripts/Core/Convert.cs`.",
+      "checklist": [
+        "2026-08-12 20:49 · 16fe0ee · Convert helper, city 7, the 7-Eleven"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U4 + U5 — The offline pipeline: `export-config.mjs` → `WorldBuilder`",
+      "labels": [
+        "Infra & Deploy",
+        "World & Assets",
+        "Unity port"
+      ],
+      "start": "2026-08-13T09:18:00+03:00",
+      "due": "2026-08-13T09:18:57+03:00",
+      "desc": "**The arrow this port is proudest of, and it has no counterpart in the original.** `config.ts` → `export-config.mjs` → `theblock-config.json` → `WorldBuilder` (Editor) → baked `ScriptableObject`s. The runtime casts no rays for any of it.\n\nThis is also the **only** change the Three.js repo ever receives, so the exporter emits the **whole** config rather than a subset — a subset would have forced re-editing the original at U12, U13 and U17. 61 KB, byte-identical across runs, zero dependencies (Node 22 strips TypeScript types natively).\n\n`WorldBuilder` is menu **The Block → Build World**. User-confirmed 2026-08-13: the user's own run reproduced the report line for line — 9 placed, 4 missing, 96 colliders.",
+      "checklist": [
+        "2026-08-13 09:18 · 62d917a · generate the world from config.ts instead of placing it by hand"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U6 — Character controller + chase camera",
+      "labels": [
+        "Unity port"
+      ],
+      "start": "2026-08-13T09:30:00+03:00",
+      "due": "2026-08-13T09:30:55+03:00",
+      "desc": "`CharacterController` with `stepOffset` replaces the web build's hand-rolled collide-and-slide.\n\n**Tank controls stayed** — they are the design, not scar tissue. `Assets/Scripts/Player/{PlayerController,FollowCamera}.cs`. User-confirmed 2026-08-13: the controls feel right.",
+      "checklist": [
+        "2026-08-13 09:30 · 1905f94 · on-foot movement and a chase camera"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U7 + U7b — Animator state machine, and swimming",
+      "labels": [
+        "Unity port"
+      ],
+      "start": "2026-08-13T10:03:00+03:00",
+      "due": "2026-08-15T11:48:52+03:00",
+      "desc": "Idle / walk / run / jump, generated by **The Block → Build Joe Animator** and driven by `PlayerAnimator.cs`. User-confirmed 2026-08-13.\n\n**U7b, swimming, was not in the original 32 units — the sequence had no row for it and the port would have silently lost it.** It belongs to U7's state machine but needed U12's sea to exist. `Pose.Swim` outranks every other pose, a buoyancy spring replaces gravity outright, and the player had to be let *through* the shore wall it shares with the cars (`excludeLayers`, Unity's answer to the web's `obstacleFilter`).",
+      "checklist": [
+        "2026-08-13 10:03 · 2525c3b · animator state machine for Joe",
+        "2026-08-15 11:48 · 3190b43 · U7b swimming — the sea had no swimming because no unit asked for it"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U8 — Drivable car: Rigidbody + WheelColliders",
+      "labels": [
+        "Vehicles",
+        "Unity port"
+      ],
+      "start": "2026-08-13T11:42:00+03:00",
+      "due": "2026-08-13T11:42:46+03:00",
+      "desc": "**Not a port of the kinematic `vehicle.ts`** — a real Rigidbody on 4 WheelColliders, with suspension and real collisions. Rapier's numbers are void here; everything was re-derived by feel.\n\n`Assets/Scripts/Vehicle/{CarController,CarWheel,CarSpawner}.cs`; the prefab is generated by `Assets/Editor/CarBuilder.cs`. User-confirmed 2026-08-13.\n\n⚠ U17b later found this unit's paint never applied: it wrote `_BaseColor` on a glTFast material whose property is `baseColorFactor`, so the Mustang was its model's native dark green rather than the config's red for four days.",
+      "checklist": [
+        "2026-08-13 11:42 · b789c5a · drivable Mustang on Rigidbody + WheelColliders"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U9 — Enter / exit, and the seated driver",
+      "labels": [
+        "Vehicles",
+        "Unity port"
+      ],
+      "start": "2026-08-13T14:55:00+03:00",
+      "due": "2026-08-13T14:55:23+03:00",
+      "desc": "`E` and a real door. Both of the web build's enter paths: the 5.47 s entry clip for a car with a seat block, and the timed door swing for everything else.\n\n**One Joe is reparented into the seat instead of a second skinned body being mounted** — a decision that paid a dividend four months later at U29, where the web build's roster has to reach five separately-built rigs and this one reaches two.\n\nCaught and fixed a wrong X in `Convert.ModelOffset`: model-local offsets keep their X, only Z flips. User-confirmed 2026-08-13.",
+      "checklist": [
+        "2026-08-13 14:55 · a86df20 · get in and out on E, with a door and a driver"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U10 — Motorcycle",
+      "labels": [
+        "Vehicles",
+        "Unity port"
+      ],
+      "start": "2026-08-15T08:24:00+03:00",
+      "due": "2026-08-15T08:24:59+03:00",
+      "desc": "Rigidbody + 2 WheelColliders + an always-on upright stabiliser + a visual lean — **not** the original's kinematic model. It leans, has real suspension and real collisions.\n\n`IEnterable` gained `UsesEntryAnimation` + `ShowRiderOnQuickMount` so one enter/exit machine still serves both vehicle kinds; vehicles self-register with `EnterableRegistry`.\n\n**Two faults caught building it:** a `[SerializeField]` on an interface that Unity was never serializing (no value, no warning), and a speed cap that held 22.6 m/s against 20 because cutting torque stops acceleration, not motion. User-confirmed 2026-08-15: riding feels right.",
+      "checklist": [
+        "2026-08-15 08:24 · 80f7fa4 · ride the motorcycle, on two wheels that lean"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U11 — All 9 districts render clean",
+      "labels": [
+        "World & Assets",
+        "Unity port"
+      ],
+      "start": "2026-08-15T08:47:00+03:00",
+      "due": "2026-08-15T08:47:08+03:00",
+      "desc": "Placement shipped in U5; this is the three rendering faults that survived it.\n\n**Foliage:** the white shards were a spurious V flip in glTFast's `_ST`, not the blend mode, plus a real alpha-clip pass that rebinds to generated URP/Lit materials because `_AlphaClip` on an imported glTFast material is inert.\n\n**Cities 2/3:** the baked-in parked cars are cut out at the **submesh** level at build time — 86% of the mesh — out of collision as well as sight. The web build has no edit-time step that could do this.\n\n**Caught:** a substring pattern list that alpha-clipped every road, because \"tree\" is inside \"CityGen_Streets\". User-confirmed 2026-08-15.",
+      "checklist": [
+        "2026-08-15 08:47 · 21857c3 · green trees, no ghost cars"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U12 — Roads on splines, ground, sea",
+      "labels": [
+        "World & Assets",
+        "Unity port"
+      ],
+      "start": "2026-08-15T09:13:00+03:00",
+      "due": "2026-08-15T12:40:00+03:00",
+      "desc": "Roads are `com.unity.splines` + a generated ribbon, **not** the web's per-segment stretched tile: 1864 m of spline against 1859.5 m of polyline, corners actually curved, markings continuous through them. The `SplineContainer`s survive as U17's and U19's centreline.\n\nSea is `sea-surface.ts` ported into `Assets/Shaders/{Water,Beach}.shader` — URP ships no water — unlit on purpose, since the original does its own lighting. The beach is a displaced MeshCollider you walk down.\n\n**Two faults found at U15's play-test and fixed:** `config.fog` was never ported, so the 320 m far plane sliced the skyline (the far plane, the fog and the background colour are one mechanism); and the ground plate showed through the sea's wave troughs — 0.37 m of swell against a plate at −0.05 m — so the plate is cut out under the water.",
+      "checklist": [
+        "2026-08-15 09:13 · 7dc8208 · roads curve on splines, and the sea has a floor",
+        "2026-08-15 11:24 · dee2198 · port the fog the far plane was always hiding behind"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U13 — Places: pizzeria + interior, gas station, police station, 101 lot cars",
+      "labels": [
+        "World & Assets",
+        "Unity port"
+      ],
+      "start": "2026-08-15T09:32:00+03:00",
+      "due": "2026-08-15T09:32:38+03:00",
+      "desc": "User-confirmed 2026-08-15.\n\nThe gas station imported Y/Z swapped, because a Sketchfab export's cancelling root matrices do **not** cancel through glTFast; fixed by an `Rx(-90)` in `AssetAliases`, which can now correct the real asset instead of only swapping in a stand-in.\n\nThe lot is **101 real GameObjects** with per-car culling and LODGroups, not an InstancedMesh — the same seeded layout as the web build (`Mulberry32` in `uint`), paint as 18 generated materials so the instancing survives.\n\nThe interior is a teleport cell with a fog/ambient swap; its lights stay on and the sun stays up, both of which the web build only fights because of Three's forward renderer.\n\n**Caught:** `tesla.glb` / `avenger.glb` require `EXT_texture_webp` and glTFast rejects the whole file (`tools/glb-webp-to-png.py`); and a BoxCollider that ignores model scale is a kilometre wide on the 37.4× Avenger.",
+      "checklist": [
+        "2026-08-15 09:32 · 211abc2 · the station stands up, the lot fills, the pizzeria has an inside"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U14 — Map + minimap, as a live second camera",
+      "labels": [
+        "UI & HUD",
+        "Unity port"
+      ],
+      "start": "2026-08-15T10:21:00+03:00",
+      "due": "2026-08-16T20:42:03+03:00",
+      "desc": "The base layer is a **live second camera into a 1024² RenderTexture**, not the web's boot-time bake — no readback, no shader-compile spike, and moving cars show. Both states capped at 12 fps; the web caps only the minimap.\n\nUI Toolkit arrives eleven units before U25: `MapView` paints outlines/dots/arrow with Painter2D and pools `Label`s, `GameMap` owns the panel and the `M` toggle, `MapRegistry` ports `world/registry.ts` and is the hook missions add objective pins to.\n\n**Caught:** `PlaceSpec` has no `name` in `config.ts` — the pin labels live in `map-pois.ts`, and reading the absent field crashed the label pass; and a 16-bit RT depth makes Metal log \"memoryless depth surface\" as an *error*.\n\nThe minimap was removed and restored on the same day, both on the user's call. The removal built the mechanism the restore keeps: with the radar off and the map closed, the whole second-camera pass is **skipped** rather than rendered into a texture nobody sees.",
+      "checklist": [
+        "2026-08-15 10:21 · 8ea9fc4 · the city has a map, and it is a live camera",
+        "2026-08-16 07:35 · f87c12e · the corner minimap is back, at the web build's own size",
+        "2026-08-16 20:42 · 2facfe9 · emoji map pins, so the objective is not one green dot among many"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U15 — World memory: the textures were never compressed",
+      "labels": [
+        "Performance",
+        "Unity port"
+      ],
+      "start": "2026-08-15T11:04:00+03:00",
+      "due": "2026-08-15T11:04:28+03:00",
+      "desc": "**The rule \"can Unity do this better?\" has to be allowed to answer *not like that*, and this is the unit that proves it.** The planned answer was Addressables; the measurement rejected it — 13.5 GB of scene memory, 96% textures, and streaming 13.5 GB in chunks is still 13.5 GB.\n\nThe real cause was a format nothing had ever set: **glTFast textures are `.glb` sub-assets with no TextureImporter**, so nothing ever compressed them — 12.9 GB of raw RGB24.\n\n**The Block → Compress Textures** slices the embedded PNG/JPEGs verbatim out of the GLB container, and a custom importer makes the *first* import BC1/BC7 with settings derived from the file **name**, so a Library wipe cannot lose them. 688 material slots rebound.\n\n**Scene texture memory 13,498 → 3,204 MB (4.2×).** Caught: texture names are not unique inside a `.glb` (seven \"Untitled\" in city 4), so the resolver matches name + size + alpha and refuses to guess; and NPOT + mips silently skips block compression while the importer claims DXT1.",
+      "checklist": [
+        "2026-08-15 11:04 · 4b7a93d · the world's textures were never compressed, and now they are"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U16 + U16b — Pedestrian crowd on NavMesh, and the original's own six people",
+      "labels": [
+        "NPC & AI",
+        "Unity port"
+      ],
+      "start": "2026-08-15T11:57:00+03:00",
+      "due": "2026-08-15T17:28:26+03:00",
+      "desc": "**The pavement is not enforced, it is the only thing that exists:** all 12.7 km of `config.traffic.network` is carved **Not Walkable** (172 volumes over 142 streets), which disconnects the two sides of every road, so the only route across is a gated `NavMeshLink` at one of **230 zebra crossings** on 70 lit intersections — derived from the same graph and the same setbacks as `traffic.ts`. NavMesh baked 963 × 805 m at 0.4 m voxels.\n\n**U16b is the user's call after the first play-test: stop patching the vendor pack, port the crowd the shipped game actually has.** Six Mixamo characters from the original's own `source-assets`, Humanoid, **one avatar created per character** — a shared avatar across six different bodies is how you get six subtly broken skeletons.\n\nPlacement is `npc.config.ts` verbatim, now **exported rather than re-typed**: the exporter gained a second source. 687 baked + 460 runtime positions.",
+      "checklist": [
+        "2026-08-15 11:57 · 0dc4398 · people walk on the pavement because the road is not there",
+        "2026-08-15 12:55 · 27058ae · the cost was the spawn burst and the vendor's five LODs",
+        "2026-08-15 17:28 · 31f5767 · U16b — rebuilt on the original's six people"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U17 + U17b — Traffic: graph, cars, lights, and the carjack",
+      "labels": [
+        "NPC & AI",
+        "Vehicles",
+        "Unity port"
+      ],
+      "start": "2026-08-15T14:09:00+03:00",
+      "due": "2026-08-16T19:30:00+03:00",
+      "desc": "**How many cars is measured, not chosen:** 130 cars over 12,759 m of network, read off the web build's own config and applied per metre of street in range. The version with a chosen constant gridlocked. *Where the shipped game already encodes a decision, porting the decision beats porting the number.*\n\nA rammed traffic car becomes a **real Rigidbody wreck** — something thirty Rapier vehicles could never have afforded.\n\n**U17b:** `E` resolves three ways in `main.ts`'s own order — real vehicle → parked filler (101 of them) → stopped street car, which waits 5 s for you. Both swaps measured rather than eyeballed: the carjack lands at **0.000 m / 0.00°**. The enabler is that every car prefab now shares one origin — body centre in XZ, contact patch in Y.\n\n**Two lamp faults, and neither was the state machine:** the lamp quads were built 14 cm *inside* the housing, and then the lenses turned out to be **wound inside-out** — grey head-on, coloured from the side. Winding hides geometry, not position.",
+      "checklist": [
+        "2026-08-15 14:09 · 2ea3c54 · the city drives, and how many cars is measured",
+        "2026-08-15 19:02 · 26be56d · U17b — E takes the car you are standing next to",
+        "2026-08-16 18:28 · d167647 · the lamps were wound inside-out, and it was never the position"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U18 — Run over pedestrians + blood VFX",
+      "labels": [
+        "NPC & AI",
+        "Vehicles",
+        "Unity port"
+      ],
+      "start": "2026-08-15T18:09:00+03:00",
+      "due": "2026-08-15T18:16:15+03:00",
+      "desc": "Root Motion **on**, and this is the only place in the project where it is: the clip's own 1.74 m of travel *is* the knockback, harvested off the visual child onto the pedestrian's transform each LateUpdate — and multiplied by that child's scale, because Humanoid retargeting produces root motion in the *target* avatar's units and Remy's rig really is 4.20 m tall.\n\n**The throw angle is measured, not ported:** `clip.averageSpeed` gives 85.1°, the mirror of the web's hand-tuned −85.8°, which is the cleanest handedness cross-check in the project.\n\n**Caught:** Mixamo pads a one-shot clip with idle — the body stands still for 79 of 145 frames. User-confirmed 2026-08-15.",
+      "checklist": [
+        "2026-08-15 18:09 · 781117d · the clip throws the body, and the angle is measured",
+        "2026-08-15 18:16 · fe081b8 · Blood frees what it replaces, and the green blocks are measured"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U19 — Police pursuit over a real street graph",
+      "labels": [
+        "NPC & AI",
+        "Vehicles",
+        "Unity port"
+      ],
+      "start": "2026-08-15T22:02:00+03:00",
+      "due": "2026-08-16T13:10:01+03:00",
+      "desc": "**The sharpest \"design intent carries, scar tissue does not\" call in the port.** The web build's *\"cops drive straight at you, all routing deleted\"* was forced by a graph split into five disconnected islands — not a design choice. Here it is **real A\\* over a stitched view of U17's graph**; stitching T-junctions within 3 m makes 97.9% of the city one component. Straight-line survives in exactly two places.\n\n**It also took four follow-up rows, and the first is the ledger's most-quoted lesson.** U19 shipped a better continuous wanted meter *and* \"cruisers park at the station\" (a 15–60 s travel time) in the same unit. Each was right; together they were a pursuit that could not happen, because the star died in six seconds. **When a unit adds a duration, put every clock next to it.**\n\nLater rounds: traffic yields to a pursuit instead of walling it (a kinematic traffic car is a wall to a 1400 kg dynamic body); a blue-light run so a cop does not queue at a red; and finally an officer who **drives** the cruiser and gets out to arrest you on foot — the user's own design, not a port.",
+      "checklist": [
+        "2026-08-15 22:02 · 7993e19 · U19 — A* over a real street graph",
+        "2026-08-15 22:33 · 5771951 · U19b — 1 crime, 1 star, 1 car, so the police can actually arrive",
+        "2026-08-15 22:59 · 6fea7db · U19c — traffic yields to a pursuit, and the bust costs money",
+        "2026-08-15 23:51 · 86502ac · U19d — urgency on the run in; a cop does not queue",
+        "2026-08-16 13:10 · a269a6b · U19e — the cruiser has a driver, and she gets out to arrest you"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U20 — Mission framework, campaign director, persistence",
+      "labels": [
+        "Missions & Campaign",
+        "Unity port"
+      ],
+      "start": "2026-08-16T00:36:00+03:00",
+      "due": "2026-08-16T00:36:24+03:00",
+      "desc": "Ports `campaign.ts`, `campaign-director.ts`, `mission-feedback.ts` and `main.ts`'s mission block. **One reactor over status edges** owns teardown, payout and cards, which is what makes \"a bust and a clock time-out end a mission the same way\" true by construction.\n\n`MissionBehaviour` is an **abstract MonoBehaviour, not an interface** — `[SerializeField]` on an interface stores nothing in Unity, and the campaign holds a hand-ordered serialized list.\n\nNot marked on its own by the user: it is confirmed because **all four missions it carries are**, which is the framework's own test.",
+      "checklist": [
+        "2026-08-16 00:36 · 51e8037 · mission framework, campaign director, persistence"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U21 — M1: pizza delivery",
+      "labels": [
+        "Missions & Campaign",
+        "Unity port"
+      ],
+      "start": "2026-08-16T00:36:00+03:00",
+      "due": "2026-08-16T09:00:00+03:00",
+      "desc": "✅ User-confirmed 2026-08-16. The shift starts at the counter, five customers take their pizzas, the clock and the retry-from-the-shop both behave.\n\n**A delivery target is a crowd prefab never bound to a seed**, so it stands and idles for free — no second character pipeline — and it is invisible to `RunOverSystem`, so a customer cannot be run over and the shift cannot be made unwinnable. The web build loads five more FBX at boot for these.\n\nOwns the interior's mission mechanics that U13 left open: the cashier behind the counter, `T` to start, briefing + voiceover, then out to the street.",
+      "checklist": [
+        "2026-08-16 00:36 · 51e8037 · the pizza run",
+        "2026-08-16 07:28 · b255a09 · a failed shift is retried from the pizzeria, ride and all"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U22 — M2: the beach dance, on the DSP clock",
+      "labels": [
+        "Missions & Campaign",
+        "Audio",
+        "Unity port"
+      ],
+      "start": "2026-08-16T00:59:00+03:00",
+      "due": "2026-08-16T09:30:00+03:00",
+      "desc": "✅ User-confirmed 2026-08-16. **The biggest feel win in the whole tier, and it is one line of engine difference:** the clock is `AudioSettings.dspTime`.\n\nThe web reads `audioElement.currentTime` — main thread, quantised to the decode buffer, jittering against the frame. Against 50 ms judgment windows on a build with a 42 ms frame, that is scoring the frame rate instead of the player. **Measured drift here: 0.02 ms** over a full run.\n\n**The unit's scar, and it is a Unity feature having a price nobody quoted:** putting the song on a mixer bus is plainly right — it is what a Music slider attaches to — and it inserted **one DSP buffer, 21.3 ms, 43% of a Perfect window**, between the beatmap's anchor and the speakers. Nothing broke and nothing logged. It was caught only because U22 had written its drift number down and re-measured after the change.\n\n**450 MB → 34 MB:** nine Mixamo with-skin FBX imported for their clips only, then deleted — the LFS budget is shared with the other repo.",
+      "checklist": [
+        "2026-08-16 00:59 · 90d24c6 · the beach dance — a rhythm minigame on the DSP clock",
+        "2026-08-16 08:25 · 4522895 · the beach stays open, and it borrows the screen from the radar"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U23 — Helicopter + M3: rooftop rescue",
+      "labels": [
+        "Missions & Campaign",
+        "Vehicles",
+        "Unity port"
+      ],
+      "start": "2026-08-16T01:38:00+03:00",
+      "due": "2026-08-16T10:31:50+03:00",
+      "desc": "✅ User-confirmed 2026-08-16 — *\"helicopter — mission looking good\"*.\n\nTwo rounds. The Huey answered only WASD and could be left spinning: yaw was composed with `MoveRotation` only while the stick was off centre, so nothing owned rotation the rest of the time and a knock simply stayed — measured at 3 rad/s still **1.82 rad/s ten seconds later**.\n\nThe survivors were **questioned and cleared by measurement rather than changed**: a posed sole sits 0.001 m off the roof and 46/46 baked spots are within 5 cm of their surface. The −0.15 m the renderer bounds claimed was the \"skinned bounds ignore thrown bones\" trap wearing a new face.",
+      "checklist": [
+        "2026-08-16 01:38 · f0388c5 · the helicopter rescue",
+        "2026-08-16 09:03 · d485bae · U23b — the Huey takes both key sets, and cannot spin forever",
+        "2026-08-16 10:31 · 6b38c6e · U23c — the survivors measured and cleared"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U24 — Jetski + M4: the chase that ends the campaign",
+      "labels": [
+        "Missions & Campaign",
+        "Vehicles",
+        "Unity port"
+      ],
+      "start": "2026-08-16T01:38:00+03:00",
+      "due": "2026-08-16T10:31:50+03:00",
+      "desc": "✅ User-confirmed 2026-08-16. Nine buoy gates that pass on proximity and never fail you — only the clock loses it — and catching the beached thief on foot completes the campaign.\n\n**Two faults, and both were a number that stopped being true when something else got better.** The buoys sat at the sea's *mean* while U12's shader displaces the surface by up to 0.37 m in the vertex stage, so half of every wave went over them; they read the swell off `Water.mat` itself now (9/9 at 0.0000 m). And the thief **strolled**, because the crowd's blend tree is `Sophie_Walk` at every threshold — he is on `Joe_Sprint` now, retargeted free through Humanoid, with its 5.58 m/s of root motion retimed ×0.538 onto his own 3 m/s so nothing skates.",
+      "checklist": [
+        "2026-08-16 01:38 · f0388c5 · the jetski chase — the campaign ends",
+        "2026-08-16 10:31 · 6b38c6e · U24b — the thief runs, and the buoys ride the swell"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U25 — HUD + in-game UI (UI Toolkit)",
+      "labels": [
+        "UI & HUD",
+        "Unity port"
+      ],
+      "start": "2026-08-16T10:34:00+03:00",
+      "due": "2026-08-16T19:00:00+03:00",
+      "desc": "Two owings, paid by two later units. **The fade** behind U13's interior teleport — it *covers* rather than brackets, black up in the same frame as the teleport.\n\n**And the emoji font, which landed with U28.** `EmojiFontBuilder` builds NotoColorEmoji (OFL) as a dynamic `FontAsset` at `GlyphRenderMode.COLOR` — **the render mode is the whole question**, because CBDT/CBLC glyphs are bitmaps and every SDF mode rasterises them empty. It goes in a `PanelTextSettings`, **not** `TMP_Settings`, which is uGUI's and does nothing here. 11/11 probe glyphs into a 1024² atlas.\n\nUntil then the ledger's standing instruction had been \"strip the emoji from mission copy\". That rule is now superseded.",
+      "checklist": [
+        "2026-08-16 10:34 · dd6fbb8 · the screen fade behind the interior teleport",
+        "2026-08-16 11:38 · 0044863 · the emoji FontAsset at COLOR render mode",
+        "2026-08-16 12:10 · cd276a4 · emoji were tinted by their label; speed and sprint meters added"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U26 — The shell: boot bar, title, roster, pause, settings",
+      "labels": [
+        "UI & HUD",
+        "Unity port"
+      ],
+      "start": "2026-08-16T10:34:00+03:00",
+      "due": "2026-08-16T10:34:52+03:00",
+      "desc": "✅ User-confirmed 2026-08-16. A Boot scene whose bar reads **`AsyncOperation.progress`** — the number `loading-screen.ts` wished for and had to fake with hand-counted milestones — then a title screen over the frozen city: New Game · Continue · Character · Mission Select · Settings · How to Play, plus `Esc` → Resume / Settings / How to Play / Quit to Title.\n\nThe character preview is a **second camera into a RenderTexture**, rather than the second WebGL context that *\"did not hold on an iPad\"*.\n\n**⚠ The unit's real lesson: `Time.timeScale = 0` does not stop `Update`.** The web pauses by skipping one `stepSim` call; here fourteen scripts poll the keyboard every frame and kept firing behind the overlay, so `Core.Pause.Frozen` is a guard line in each of them. **The dance is unpausable by rule** — `Conductor` runs on `dspTime`, which no freeze touches.",
+      "checklist": [
+        "2026-08-16 10:34 · dd6fbb8 · boot bar, title, Esc, settings, mission select"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U27 — Audio: sfx, engine, ambient, 3D sirens",
+      "labels": [
+        "Audio",
+        "Unity port"
+      ],
+      "start": "2026-08-16T08:24:00+03:00",
+      "due": "2026-08-16T08:24:52+03:00",
+      "desc": "✅ User-confirmed 2026-08-16. Twelve of the web's thirteen audio modules, ~1.2 MB of clips, one `AudioMixer` (7 buses / 7 exposed params / 4 snapshots) built by a **reflection tool**, because Unity ships no public API for authoring a mixer.\n\nThe 20 synth cues of `sfx.ts` are **baked to `AudioClip`s once** instead of rebuilding an oscillator graph per press, with PolyBLEP on saw/square because Web Audio's oscillators are band-limited by spec and a naive one would alias audibly.\n\nThe rotor is a literal port through `OnAudioFilterRead` — its three rates move by different factors (2.43× / 1.71× / 2.17×), so one `pitch` knob cannot reproduce it.\n\n**Sirens are 3D, on the cars, capped at the nearest 3.** The web's single constant-gain wail exists only because that build has no `AudioListener` in it at all.",
+      "checklist": [
+        "2026-08-16 08:24 · bf0bdd9 · the game has sound"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U28 + U28b — Economy: the 7-Eleven, power-ups, and fuel",
+      "labels": [
+        "Missions & Campaign",
+        "UI & HUD",
+        "Unity port"
+      ],
+      "start": "2026-08-16T11:38:00+03:00",
+      "due": "2026-08-16T13:02:40+03:00",
+      "desc": "✅ User-confirmed 2026-08-16. A 7-Eleven with automatic bi-parting doors, a clerk, a shop menu and four power-ups.\n\n**The store's geometry is read off the model, not converted:** the `.glb` ships a marker node for every point the config states, and 12 of them check out to 0.0 cm. Marker nodes beat converting the config.\n\n**Caught by measurement, not by reading: the ☕ boost applied to police cars.** `PoliceCar.prefab` has no `CopDriver` — it arrives at runtime, after `CarController.Awake` — so the cop exclusion never latched, and drinking coffee to escape would have sped up the chase.\n\n**U28b, fuel:** a tank, limp mode and the pump. `FuelTank` is a component the vehicle owns, and **being a component is the exemption** — the heli, the ski and every cruiser are excluded by never receiving one, so there is no second flag to forget.",
+      "checklist": [
+        "2026-08-16 11:38 · 0044863 · the 7-Eleven, four power-ups, and emoji",
+        "2026-08-16 12:22 · b7770ed · every player opens with one power-up's worth of cash",
+        "2026-08-16 13:02 · 4f46f70 · U28b — a tank means range: fuel, limp mode and the pump"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U29 — Character roster",
+      "labels": [
+        "World & Assets",
+        "Unity port"
+      ],
+      "start": "2026-08-16T14:46:00+03:00",
+      "due": "2026-08-16T14:46:44+03:00",
+      "desc": "✅ User-confirmed 2026-08-16 — *\"looking good\"*. Joe, Jody and David.\n\n**This is U9 paying a dividend on a unit built four months earlier.** The web build's `applyCharacter` has to reach **five** separately-built skinned rigs — walking capsule, seated driver, bike rider, jetski rider — and its own comment says why: *\"picking one has to reach all of them or you'd change clothes on getting into a vehicle\"*. U9 reparents **one** player into every seat, so the fan-out here is two: the player and the stage dancer. Nobody had to design that.\n\n**The counterweight is the unit's own scar:** that same reparenting means `VehicleEnterExit` caches the player's renderers, and a cache is exactly what a swappable body invalidates.",
+      "checklist": [
+        "2026-08-16 14:46 · 3b83090 · the roster is three people, and the dancer is one of them"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U33 — Day/night cycle, shipped switched off",
+      "labels": [
+        "World & Assets",
+        "Unity port"
+      ],
+      "start": "2026-08-16T11:55:00+03:00",
+      "due": "2026-08-16T11:55:37+03:00",
+      "desc": "✅ User-confirmed 2026-08-16 — *\"i like the lighting\"*. **Settings → Display → Time of Day**, default **Fixed**. Day length 2880 s = 48 real minutes, GTA V's own pace, the user's call after playing the 24-minute version.\n\n**The rule this unit sets, and it governs every addition after it: an addition ships switched OFF, and its off state is the old behaviour *replayed*, not neutral values fed through the new code path.** `DayNightCycle` does not write a neutral sky when off — it does not write at all, URP schedules no post pass, and every screenshot approved in U11–U27 still reproduces.\n\n**One light does the sun and the moon** — URP's main light is the brightest directional and a second would demote to an additional light with no shadows — so it swings a full 360° and mirrors below the horizon. **Ambient is `Trilight`, never `DynamicGI.UpdateEnvironment`** (1–3 ms per re-convolution). **Night is cheaper than day:** below the horizon the four 2048² shadow cascades drop.\n\n⚠ This row was corrected: it once claimed to be the first thing the port *adds*. The original has a day/night cycle at `enabled: false`. What is true is the narrower claim — in the *shipped* web build the sun never moves.",
+      "checklist": [
+        "2026-08-16 11:55 · 4ec2978 · the sun moves — day/night behind a setting"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U34 — Collisions have consequences",
+      "labels": [
+        "Vehicles",
+        "Unity port"
+      ],
+      "start": "2026-08-16T17:23:00+03:00",
+      "due": "2026-08-16T17:23:45+03:00",
+      "desc": "✅ User-confirmed 2026-08-16.\n\n**The unit exists because of one discovery: `CrashSensor` had been attached to nothing since U19** — no prefab, no scene object, no `AddComponent` anywhere — so `CrimeWatch.OnCrashed` and the crash thump were both subscribed to an event that could not fire. **Every collision in this game had been silent and free for fourteen units.**\n\nIt was found by grepping the `.meta` **guid** rather than the class name, which is the only search that distinguishes \"referenced\" from \"merely compiled\".\n\nThe fix is `CrashSensor.Ensure(gameObject)` called from `Bind` — deliberately **not** a prefab field, because `Build Drivable Cars` regenerates those prefabs and that is the likeliest story of how it was lost to begin with.",
+      "checklist": [
+        "2026-08-16 17:23 · 9bd360c · collisions have consequences"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U35a — Ragdolls: the crowd and the player",
+      "labels": [
+        "NPC & AI",
+        "Unity port"
+      ],
+      "start": "2026-08-16T21:50:00+03:00",
+      "due": "2026-08-16T23:40:00+03:00",
+      "desc": "✅ User-confirmed 2026-08-16. `Build Ragdolls` writes 11 bodies / 10 joints / ~64 kg into six pedestrians and three player characters. **Settings → Gameplay → Ragdolls**, default on.\n\n**Three faults building it, all now memory files:** `Optimize Game Objects` deletes the very bones a ragdoll needs; `Interpolate` on a kinematic body writes PhysX onto the transform, so a resting rig smears the whole crowd to the prefab pose; and a kinematic body's PhysX pose is **stale** when it goes dynamic, so it teleports to the prefab pose on activation.\n\nThe bike throw → dismount → stand up → remount loop was played and confirmed the same day.",
+      "checklist": [
+        "2026-08-16 21:50 · 6b856ab · ragdolls — the crowd and the player",
+        "2026-08-16 23:17 · abd69fe · the bike throw dismounts, and standing up gets back on"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U35b — Vehicle damage: dents, smoke, fire, shed parts",
+      "labels": [
+        "Vehicles",
+        "Unity port"
+      ],
+      "start": "2026-08-16T23:11:00+03:00",
+      "due": "2026-08-16T23:11:21+03:00",
+      "desc": "✅ User-confirmed 2026-08-16. Three layers behind **Settings → Gameplay → Vehicle Damage**, default off, with a fuse.\n\n**Three findings:** the Mustang is eighteen *skinned* meshes whose vertices live in bind space, so a dent has to rebuild `bone[i].localToWorld * bindposes[i]` per use; **the contact normal points INTO the struck body**, so the first dent bulged the nose outward by 0.136 m; and the `.glb`s group by **material**, which is why layer ③ needed no Blender pass and why the Mustang alone sheds nothing — it has no bumper node to detach.\n\nTwo additions the user asked for mid-play-test, both landed: **a wrecked car cannot be entered and the player is told why** — through U28's existing `EntryRefusal` socket, on the same HUD line that offers the key. One predicate feeds both the prompt and the key.",
+      "checklist": [
+        "2026-08-16 23:11 · bb51c29 · dents, smoke, fire, parts, and a fuse"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U35c + U35i — The police helicopter at 3★",
+      "labels": [
+        "NPC & AI",
+        "World & Assets",
+        "Unity port"
+      ],
+      "start": "2026-08-17T09:04:00+03:00",
+      "due": "2026-08-18T12:06:31+03:00",
+      "desc": "✅ User-confirmed 2026-08-17 and 2026-08-18.\n\n**The plan said a cop-coloured twin of the Huey; the user rejected it** — *\"the police helicopter has to look like a police helicopter\"* — so an **H145 was modelled in Blender from two reference photographs**: 5.6k tris, zero textures, approved at three checkpoints.\n\n**U35i made it a solid object on the user's ask:** a 2200 kg Rigidbody + four boxes (skids / cabin / boom / fin, rotor disc deliberately outside them), **dynamic and asleep on the ground, kinematic aloft**. Hitting a police vehicle is now its own crime line.\n\n**Caught:** both raycast probes had to be taught to skip their own hull — without it the roof probe reads the craft's own engine deck and climbs 12 m every quarter second, forever.",
+      "checklist": [
+        "2026-08-17 09:04 · 5ec82a8 · police H145 at 3 stars, and a faster response",
+        "2026-08-17 11:09 · 34a0d14 · the cop was wedging outside the station, not driving slowly",
+        "2026-08-18 12:06 · a2e3438 · U35i — the H145 is solid and shovable; hitting police is a crime"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U35g — The auto shop: paint the car you drove up in",
+      "labels": [
+        "Vehicles",
+        "World & Assets",
+        "Unity port"
+      ],
+      "start": "2026-08-17T17:58:00+03:00",
+      "due": "2026-08-17T20:00:00+03:00",
+      "desc": "✅ User-confirmed 2026-08-17 — *\"cool. mark this feature as done\"*.\n\n**The design is the user's own and it changed the unit's centre of gravity:** not a shop that sells cars, but an **open garage you approach with the vehicle you are already driving**, where you paint *that* car and drive out in the colour you picked, persisted per vehicle. That deleted U13's interior-teleport pattern from the plan and made Blender a requirement of the unit rather than an optional bolt-on.\n\n`C` at the service point → shutter animation → ten swatches → $30 → painted. **The motorcycle is in**: its red body recolours via an atlas re-hue, because the bike's colour lives in its texture atlas and the teal `Wolt_Teal` material is only the delivery box.\n\nEvery player-facing string says **\"color\"**, not \"colour\".",
+      "checklist": [
+        "2026-08-17 17:58 · df0d9fc · the auto shop — Blender asset, its street, and a map pin",
+        "2026-08-17 18:31 · d5e2da8 · it paints the vehicle you drove up in"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U35h — Breakable street props",
+      "labels": [
+        "World & Assets",
+        "Unity port"
+      ],
+      "start": "2026-08-17T21:04:00+03:00",
+      "due": "2026-08-18T10:54:31+03:00",
+      "desc": "✅ User-confirmed 2026-08-18 — *\"looking good\"*.\n\n**The user asked the right question first** — *is there an option to take assets that already exist in the game, like the traffic light or a bench, and make them breakable?* — and it was **measured against the tree rather than guessed**. The answer is half good news: the **233 traffic-light poles are separate GameObjects with their own colliders and are a free win**, and benches, bins and bollards do not exist as objects at all — they are baked into the district meshes.\n\nSo the user supplied three Sketchfab props, which went through a **headless Blender prep** (`tools/prep-props.sh`) rather than a hand pass. Sketchfab scale varies per model — the cone's accessor claimed 0.29 m and the baked mesh was 29 m.\n\nBenches were re-sited onto the crowd strips after the first play-test put them in the carriageway. Sleeping props need an `Awake`-time `Sleep()`: a physics step fits between Instantiate and Start.",
+      "checklist": [
+        "2026-08-17 21:04 · 1b8eccd · toppling traffic lights, cones, bins, benches",
+        "2026-08-18 10:54 · a0f7df7 · move the benches onto the boulevard pavements"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U30a — The game leaves the Editor: a macOS Player",
+      "labels": [
+        "Infra & Deploy",
+        "Performance",
+        "Unity port"
+      ],
+      "start": "2026-08-16T20:00:00+03:00",
+      "due": "2026-08-18T14:23:15+03:00",
+      "desc": "✅ User-confirmed 2026-08-18 — the user played a full session outside the Editor: *\"my general impression is good\"*.\n\n`Builds/macOS-dev/The Block.app`, StandaloneOSX, Development + Autoconnect Profiler, **Mono** — IL2CPP is a perf decision and U30b had not measured a CPU bound yet. The HUD was scaled for a real screen.\n\n**Round 1's headline: the problem was never the game code.** A Player black screen has exactly two causes, neither of which logs an error — launched without `open`, or built with `ConnectWithProfiler`.",
+      "checklist": [
+        "2026-08-16 20:41 · 30f418a · build the macOS Player, and scale the HUD for a real screen",
+        "2026-08-18 14:23 · 25210fa · round 1 — the Player exists and says the problem was never the game code"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U30b — Perf campaign, measured on the Player and not the Editor",
+      "labels": [
+        "Performance",
+        "Unity port"
+      ],
+      "start": "2026-08-18T14:23:00+03:00",
+      "due": "2026-08-19T12:46:11+03:00",
+      "desc": "**Four rounds, and its best result is a list of things that turned out not to matter.**\n\n**R1 —** resident texture memory **1213 → 331 MB**, hitches **46 → 2**.\n\n**R2 — the frame is bound by GEOMETRY, not memory and not pixels.** A 16× resolution cut moves it 11 ms out of 78, so `renderScale`, shadow quality and probe settings are all the wrong place to spend. 7,899 draw calls and 21.9 M triangles at the parking lot. The jetski was 1.19 M triangles with no LODGroup, and the scene has two — fixed to 210,850, and the pair went from 8.98 M drawn triangles to 1.83 M. **Kept only because it passed a close-range pixel diff at 0.900% against a 0.000% noise floor; the first attempt did not pass and was reverted.**\n\n**R3 — the deltas were measured by a machine**, 44 unattended Player launches, one per configuration. Six of eight showcase features cost **nothing measurable**. The census then found something never on any list: **the 101 parked lot cars are 4.28 M triangles — 43% of the world, +8.1 ms.** One parked Tesla is 52,096 triangles.\n\n**R4 —** occlusion culling baked and **proved free**; the parked cars proved **not** decimatable; and the scene turned out to have **no real LODs at all** — all 334 LODGroups are `lodCount 1`.\n\n**The campaign's own rule: freeze the world to measure anything.** A live crowd has no steady state, so \"below the noise floor\" there means the measurement never happened.",
+      "checklist": [
+        "2026-08-18 14:23 · 25210fa · round 1 — texture memory 1213 → 331 MB, hitches 46 → 2",
+        "2026-08-18 16:57 · 347afdc · round 2 — the bound is geometry, not memory or pixels",
+        "2026-08-19 11:05 · e277733 · round 3 — 44 unattended launches; the parked cars were never on the list",
+        "2026-08-19 12:46 · a999e4e · round 4 — occlusion is free, the parked cars are not the jetski"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U36 — The sea is a place, not a wall",
+      "labels": [
+        "World & Assets",
+        "Unity port"
+      ],
+      "start": "2026-08-18T15:10:00+03:00",
+      "due": "2026-08-18T18:00:00+03:00",
+      "desc": "✅ User-confirmed 2026-08-18. Sand that reads as sand, and a GTA-style water entry.\n\n**The \"black strip\" on the beach was not a colour problem at all — it was the shader rendering with NO SUN.** `TheBlock/Beach` declares `_SCREEN_SPACE_OCCLUSION`, this renderer runs SSAO with **Source = DepthNormals**, and the shader had **no DepthNormals pass** — so it wrote nothing into `_CameraNormalsTexture`, the AO resolve read garbage under its own pixels, and the sand kept its albedo while losing the sun. Measured, not guessed: the albedo was already correct gold.\n\nThe second half was the user's other report: **driving into the water should not call the police.** It never did — *the wall did*. An invisible shore collider was reading as a game rule.",
+      "checklist": [
+        "2026-08-18 15:10 · 3a357b3 · the sea is a place, not a wall",
+        "2026-08-18 15:40 · 9adcaed · the black strip was SSAO eating the sun, not the sand's colour"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U37 — פלאפל הפעמונים: the game's first repeatable income",
+      "labels": [
+        "Missions & Campaign",
+        "World & Assets",
+        "Unity port"
+      ],
+      "start": "2026-08-18T22:48:00+03:00",
+      "due": "2026-08-19T10:00:00+03:00",
+      "desc": "✅ User-confirmed 2026-08-19, all three parts at once.\n\n**The user's ask — *\"we need more ways for our character to make money\"* — named a real gap, not a nice-to-have:** every campaign payout is once-per-run through `Payouts`, while power-ups, paint, fuel and fines all keep charging. A cleared campaign was a wallet that could only go down.\n\n`tools/build-falafel.py` models the whole shop **in Blender from two of the user's own photographs** — 2.1 MB, 41,418 tris, six meshes, **zero textures** — with the Coca-Cola wordmark in Snell Roundhand Black plus two hand-built swashes.\n\n**It is deliberately kept out of `Payouts`:** a `campaignText` row is what gates campaign adoption, and the repeatable job has none. U37a moved the order indoors to the counter; U37b made the doorway actually enterable, without which U37a would have been reverted.",
+      "checklist": [
+        "2026-08-18 22:48 · b13251b · פלאפל הפעמונים — a repeatable falafel round",
+        "2026-08-18 23:50 · fa8331d · U37a — the round is ordered inside, at the counter",
+        "2026-08-19 09:52 · 154954e · U37b — the stand was unenterable, so U37a nearly got reverted"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U38 — A crowd of strangers: 12 bodies × 30 looks",
+      "labels": [
+        "NPC & AI",
+        "Performance",
+        "Unity port"
+      ],
+      "start": "2026-08-19T01:03:00+03:00",
+      "due": "2026-08-19T01:03:28+03:00",
+      "desc": "✅ User-confirmed 2026-08-19. Twelve pack bodies at 360 distinct looks — **and it made the frame roughly 22 ms FASTER.**\n\nThat is the whole point of the row: the six Mixamo pedestrians U16b shipped are **~50k triangles each**, and the pack bodies are **11× lighter**. More variety and less cost, at the same time.\n\n**Two measurement traps caught here:** skinned bounds are the *clip's sweep*, not the body — 1.968 m of bounds on a 1.769 m body had been building the whole crowd 15% short; and `Face %` modulo silently hides extra prefabs, so six baked face values into a twelve-long list uses the first six and says nothing.\n\nAlso: the ground plate is **three** objects, and an exact-name test had put 16% of the crowd 16 cm underground.",
+      "checklist": [
+        "2026-08-19 01:03 · 76f3e7b · the crowd is twelve strangers, and it made the frame faster"
+      ]
+    },
+    {
+      "list": "Done",
+      "name": "U39 — The second falafel stand, and the lane routed around it",
+      "labels": [
+        "World & Assets",
+        "NPC & AI",
+        "Unity port"
+      ],
+      "start": "2026-08-19T14:37:00+03:00",
+      "due": "2026-08-19T14:37:31+03:00",
+      "desc": "✅ Falafel half user-confirmed 2026-08-19.\n\n**① The orphan stand:** a second complete falafel stand (7 renderers, 41,098 tris) had been sitting at the world origin since `154954e`, invisible to the cleanup sweep because it carried the raw asset name instead of `Place_FalafelStand`. Deleted; the sweep now matches the model file's name too. Exactly −41,098 triangles.\n\n**② The lane through it:** pedestrians have no `NavMeshAgent`, so they follow authored `LanePath`s and carving the NavMesh would do nothing. One path ran straight through the stand's footprint. **⚠ Detouring per *point* fails** — a polyline is its segments, so a moved sample beside an unmoved one leaves a diagonal cutting back through the building. `DetourRuns` offsets a whole padded run and re-resamples.\n\nThe unit's third part was a null result and has its own card in Cancelled / Parked.",
+      "checklist": [
+        "2026-08-19 14:37 · 0608ad3 · the second falafel stand, and an LOD1 that cannot exist"
+      ]
+    },
+    {
+      "list": "In Progress",
+      "name": "U30c — Ship hardening: strip the debug keys",
+      "labels": [
+        "Infra & Deploy",
+        "Unity port"
+      ],
+      "due": "2026-09-26T18:00:00+03:00",
+      "desc": "**Deliberately last, and deliberately AFTER the video is recorded** — `P`, `T`, `C`, `PowerUps.debugStock` and Mission Select are how a five-minute recording reaches every feature in the game. Strip them before recording and the video cannot be made.\n\nWhat comes out or gets gated: `CrimeWatch.debugStarKey` (`P`, currently `true` and serialized in the scene, i.e. **it ships today**), U17's `T`, U16's `C`, `PowerUps.debugStock`, `CampaignRunner.debugStartMission`.\n\nOne judgement call rather than a deletion: `Wallet.startingBalance` is 500 here against the web's 0, and it is rewritten by every `Build Store` / `Build World` run — so \"fix it in the scene\" is not a fix."
+    },
+    {
+      "list": "To Do",
+      "name": "Record the 5-minute submission video (Unity build)",
+      "labels": [
+        "Docs & Course",
+        "Unity port"
+      ],
+      "due": "2026-09-24T18:00:00+03:00",
+      "desc": "Requirements #3, #4 and #6 of the brief, all in one recording: the idea name + one-liner · the list of major features implemented · **the whole project running, all features, at good resolution** — recorded from `Builds/macOS-dev/The Block.app`, not the Editor.\n\n**The video's central argument is the pivot itself.** It has to answer *\"why change engines mid-project?\"*, and the Tier 8 additions are the evidence: they were chosen against a rule — *the web build could not have done it* — rather than collected. Real A\\* pursuit against five disconnected graph islands; Rigidbody wrecks against a 30-vehicle Rapier budget; `dspTime` against `audioElement.currentTime`.\n\nIt must also state which features were **invented** and which were **ported** — and be accurate about it. The day/night row was corrected in the ledger precisely because it was the source for that claim."
+    },
+    {
+      "list": "To Do",
+      "name": "The architecture diagram — Unity's, not the web one relabelled",
+      "labels": [
+        "Docs & Course",
+        "Unity port"
+      ],
+      "due": "2026-09-24T18:00:00+03:00",
+      "desc": "Requirement #5: a diagram of the APIs / tools / libraries used, with the flow — what calls what, and when. **The Three.js diagram will not do; this is a different inventory.**\n\nUnity's: URP · glTFast · Draco · Splines · AI Navigation · Input System · UI Toolkit · TextCore emoji `FontAsset` · AudioMixer · PlayerPrefs.\n\nPlus the arrow this project should be proudest of, which has no counterpart in the original: **the offline pipeline** — `config.ts` → `export-config.mjs` → `theblock-config.json` → `WorldBuilder` → baked `ScriptableObject`s (traffic graph, route graph, roof spots, NavMesh). The runtime casts no rays for any of it.\n\nThe tool side is worth its own arrow too: MCP for Unity drives the Editor, and Blender MCP built the H145, the auto shop and the falafel stand."
+    },
+    {
+      "list": "To Do",
+      "name": "Upload the video to Google Drive, anyone-with-link",
+      "labels": [
+        "Docs & Course",
+        "Unity port"
+      ],
+      "due": "2026-09-28T18:00:00+03:00",
+      "desc": "Requirement #7. The link goes in the moodle PDF, so sharing has to be **anyone with the link can view** — a Drive file left on \"restricted\" reads as a missing submission."
+    },
+    {
+      "list": "To Do",
+      "name": "Write the moodle submission PDF",
+      "labels": [
+        "Docs & Course",
+        "Unity port"
+      ],
+      "due": "2026-09-30T18:00:00+03:00",
+      "desc": "Requirement #8, one PDF holding three things: the Google Drive link to the video (anyone-with-link) · the GitHub repo links · the **final screenshot of this board**.\n\nBoth repos are listed, because the pivot is presented rather than hidden:\n\n- Phase 1, Three.js — https://github.com/RoeeSivan/Finalproject\n- Phase 2, Unity — https://github.com/RoeeSivan/theblock-unity"
+    },
+    {
+      "list": "To Do",
+      "name": "Zip the Unity source as `finalproject.zip`",
+      "labels": [
+        "Docs & Course",
+        "Unity port"
+      ],
+      "due": "2026-09-30T18:00:00+03:00",
+      "desc": "Requirement #9. **The recipe is measured and it is not the obvious answer.** A whole-tree zip is 1.66 GiB across 1,262 tracked files — no moodle takes that.\n\nBut `Assets/Scripts` + `Assets/Editor` + `ProjectSettings` + `Packages` + `tools` + the two `.md` files is **898 KB / 427 files**, and that *is* the source: the 2.2 GB in `Assets/Models` is third-party art. Measured 2026-08-16."
+    },
+    {
+      "list": "To Do",
+      "name": "Keep pushing to the repo through to 1 Oct",
+      "labels": [
+        "Docs & Course",
+        "Infra & Deploy",
+        "Unity port"
+      ],
+      "due": "2026-10-01T18:00:00+03:00",
+      "desc": "Requirement #1 is graded on commits **throughout**, not on a repo that appears finished on the deadline. The instructor is invited to both repos as of 2026-08-19, so everything that lands from here is visible.\n\n**⚠ The real constraint is LFS bandwidth, not storage.** 150 objects / 1.30 GiB are already on the remote and nothing is missing — but the free tier is **1 GiB per month, per account, shared with `Finalproject`**. One clone by the instructor pulls ~1.3 GiB and can exhaust the month for **both** repos. Check the budget before adding any large asset."
+    },
+    {
+      "list": "Backlog",
+      "name": "U32 — Multiplayer in Unity",
+      "labels": [
+        "Infra & Deploy",
+        "Unity port"
+      ],
+      "desc": "Deferred to the last unit since U0 and never scheduled. The Three.js build has Supabase Realtime broadcast + presence; nothing of it is ported.\n\nNot a gap the submission needs closed — it was ranked last on purpose, and the port's remaining time belongs to the video, the board and the zip."
+    },
+    {
+      "list": "Cancelled / Parked",
+      "name": "⏸ U31 — iOS / iPad",
+      "labels": [
+        "Infra & Deploy",
+        "Unity port"
+      ],
+      "start": "2026-08-16T21:00:00+03:00",
+      "due": "2026-08-16T21:00:00+03:00",
+      "desc": "**Dropped by the user 2026-08-16** — *\"iPad is not relevant to the submission.\"* Out of scope, not failed and not deferred: the port ships to **macOS**, full stop.\n\nThis changes no design decision retroactively — iPad was always ranked \"a wanted bonus, never a constraint on design\" — it only stops future units paying a tax for a platform nobody will run.\n\n**What it does NOT license: ripping out iOS support.** The module is installed, `PlayerSettings` has an iOS section, and unused touch input costs nothing. Deleting any of it would be work spent making a future retry harder."
+    },
+    {
+      "list": "Cancelled / Parked",
+      "name": "❌ U35d — Weather: rain, wet roads, lightning",
+      "labels": [
+        "World & Assets",
+        "Unity port"
+      ],
+      "start": "2026-08-17T12:00:00+03:00",
+      "due": "2026-08-17T12:00:00+03:00",
+      "desc": "**Dropped by the user 2026-08-17** — *\"the weather feature, take it down, it doesn't interest me any more.\"*\n\n**Never started — no `Weather.cs`, no emitter, no scene object, nothing to rip out.** It was also the row this ledger itself had called *\"the one most likely to fail the performance rule\"* against a 20.7 ms frame, so the cut removes the largest un-measured perf risk left in Tier 8. The cut agrees with the selection rule rather than fighting it.\n\nThe argument it lost: rain that changes how the car *drives* — a `WheelFrictionCurve` whose stiffness drops with wetness is a physics engine doing the work, and visuals alone the web could fake."
+    },
+    {
+      "list": "Cancelled / Parked",
+      "name": "❌ U35e — Stunt jumps + a Cinemachine camera",
+      "labels": [
+        "Vehicles",
+        "Unity port"
+      ],
+      "start": "2026-08-17T13:00:00+03:00",
+      "due": "2026-08-17T13:00:00+03:00",
+      "desc": "**Dropped by the user 2026-08-17** — *\"we decided we do not need that, so do not mention it again.\"* Nothing was built, so the cut costs no work, and with it **Tier 8 had no scheduled unit left**.\n\nIt had already been re-scoped once the day before: the **skid marks were cut** by the user, and the handbrake went with them, since it existed to make the marks worth drawing."
+    },
+    {
+      "list": "Cancelled / Parked",
+      "name": "❌ U35f — Side jobs: taxi and deliveries in free roam",
+      "labels": [
+        "Missions & Campaign",
+        "Unity port"
+      ],
+      "start": "2026-08-16T18:00:00+03:00",
+      "due": "2026-08-16T18:00:00+03:00",
+      "desc": "**Dropped by the user 2026-08-16.** The cut agrees with the ledger's own assessment: this was written down as **the weakest row against the selection rule** — the one whose argument was *design, not engine*.\n\nThe free-roam earning gap it was going to close stayed open, and that was a known and accepted state rather than an oversight — **until U37 closed it anyway**, two days later, with the falafel round the user asked for directly."
+    },
+    {
+      "list": "Cancelled / Parked",
+      "name": "❌ GPS route line on the map",
+      "labels": [
+        "UI & HUD",
+        "Unity port"
+      ],
+      "start": "2026-08-17T15:00:00+03:00",
+      "due": "2026-08-17T15:00:00+03:00",
+      "desc": "**Built, then removed by the user in the same message that confirmed the helicopter it shipped with** — *\"take the light-blue line off the map, we don't need this feature.\"*\n\n**Deleted rather than defaulted off:** `GpsRoute.cs`, `MapView.SetRoute`/`DrawRoute`, `Progress.GpsRouteOn`, the Settings row and `MapRegistry.NearestGuide` are all gone. `RoutePlanner` / `RouteGraph` stay — **the police drive on them**."
+    },
+    {
+      "list": "Cancelled / Parked",
+      "name": "❌ Car radio (not ported)",
+      "labels": [
+        "Audio",
+        "Vehicles",
+        "Unity port"
+      ],
+      "start": "2026-08-17T15:00:00+03:00",
+      "due": "2026-08-17T15:00:00+03:00",
+      "desc": "**Dropped, not held** — *\"radio: take it down too, it's not that important.\"* The Three.js build ships one (see its own Done card); the Unity port deliberately does not.\n\nThere was a technical finding underneath it: **FMOD cannot play an endless stream** — bytes flow at full bitrate and `audioClip` stays null — so a live-station radio was never going to be the cheap port it looked like."
+    },
+    {
+      "list": "Cancelled / Parked",
+      "name": "❌ LOD1 for the 101 parked lot cars — cannot be built",
+      "labels": [
+        "Performance",
+        "Unity port"
+      ],
+      "start": "2026-08-19T14:37:00+03:00",
+      "due": "2026-08-19T14:37:00+03:00",
+      "desc": "**An honest null result, and it is measured rather than argued.** After the perf census named the parked lot cars as the single biggest item in the world — 4.28 M triangles, 43% of it, +8.1 ms — the user asked for a decimated LOD1. **It does not exist to switch to.**\n\n**Why:** Blender's COLLAPSE **tears these car bodies apart below ~80%** of their triangles (and normals are not the cause); **PLANAR does nothing on them**, because the 1° row says whether an asset is filler or curvature and the lot cars are curvature; and there is **no interior to drop**, because the `.glb`s group by material rather than by part.\n\n**What did come out of it: three real bugs in the LOD arithmetic**, all of which had been shipping since U17 wearing an assert that could not fail. `lodBias` multiplies the screen height, so dividing by it lands the switch `lodBias²` too far; `LODGroup.size` is local space and is 1 until `SetLODs` runs, which had a scale-37 car culling at 1,685 m.\n\n**And the finding that made the whole item moot: the lot cars cost nothing outside the lot.** 10.8 M triangles when you stand in it, zero from the city."
+    }
+  ]
+}
