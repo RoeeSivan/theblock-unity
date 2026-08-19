@@ -2395,9 +2395,9 @@ remains is Tier 7 and the two systems deliberately not ported.**
 - App Using AI - 2026.pdf`. **A requirement recorded only in a conversation is a requirement that
 vanishes - that is what this ledger exists to stop, so it lives here.**
 
-| # | Required | State, 2026-08-16 |
+| # | Required | State, 2026-08-19 |
 | --- | --- | --- |
-| 1 | Private GitHub repo, **instructor invited**, committed + pushed throughout | ⚠ repo is pushed and current; **the invite is unverified** |
+| 1 | Private GitHub repo, **instructor invited**, committed + pushed throughout | ✅ **done - the user invited the instructor 2026-08-19**, to both repos per their own call. Keep pushing as work lands: the requirement is *throughout*, not *at the end* |
 | 2 | Trello / kanban board, used as discussed, **final screenshot** | ⚠ **must be brought up to date with the port** - see below |
 | 3 | 5-min video: idea + one-liner | ✗ |
 | 4 | …the list of major features implemented | ✗ |
