@@ -2,5 +2,5 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "outputDirectory": "docs",
   "cleanUrls": true,
-  "rewrites": [{ "source": "/", "destination": "/architecture-unity.html" }]
+  "rewrites": [{ "source": "/", "destination": "/architecture-unity" }]
 }
