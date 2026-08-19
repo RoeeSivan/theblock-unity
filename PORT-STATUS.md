@@ -2438,6 +2438,65 @@ vanishes - that is what this ledger exists to stop, so it lives here.**
   user's call: invite the instructor to both.** The four-day history is not hidden, it is the second
   half of a pivot whose first half is in the other repo.
 
+#### Handing someone a build they can actually play - solved 2026-08-19, Google Drive
+
+**Not one of the nine graded rows, and it is written here anyway** - the user asked how friends
+could play it, this ledger had no answer, and the previous answer had survived only in a
+conversation that was gone. That is the exact failure this § exists to stop.
+
+**Shipped 2026-08-19:** `Builds/macOS/The Block.app` → `~/Desktop/TheBlock-macOS.zip` →
+**uploaded to the user's Google Drive**, anyone-with-link, sent to friends as a link.
+⚠ **The link itself is not recorded here yet - paste it in.**
+
+**Measured on the artifact, not estimated:**
+
+- The `.app` is **2.1 GB**, a **universal binary** (`x86_64` + `arm64`), so every Mac plays it -
+  Intel included. `Identifier=com.roeesivan.theblock`, **`Signature=adhoc`**.
+- The zip is **1,170,034,436 B / 1.09 GiB** - it halves, against a prediction that it would barely
+  move. 1.7 GB of the bundle is `sharedassets1.assets.resS`, already block-compressed, and deflate
+  still found the rest. **238 files in, 238 entries out**, `-rwxr-xr-x` preserved on
+  `Contents/MacOS/TheBlockUnity`, and **zero symlinks in the bundle** - so `zip -r`'s symlink
+  flattening never applied and `ditto` was not needed.
+
+**The three traps, all of which make a working build look broken:**
+
+1. **Gatekeeper, and it is not optional.** adhoc signature + the quarantine flag every browser
+   stamps on a download = *"damaged and can't be opened"*. **The host does not matter** - Drive,
+   GitHub, Dropbox and mail all produce it, because the browser sets the flag, not the server. The
+   fix is one line the recipient must run once, and **it belongs beside the link, not inside a
+   README nobody opens**: `xattr -dr com.apple.quarantine "/Applications/The Block.app"`. The only
+   real cure is a Developer ID cert + notarisation, **$99/yr - out of scope by the no-money rule**.
+   The only free bypass is transferring the file with no internet at all (USB), which is not remote.
+2. **Ship `Builds/macOS`, NEVER `Builds/macOS-dev`.** The dev folder is a Development Build; per
+   memory `player-black-screen-has-two-causes`, `ConnectWithProfiler` opens to a black screen with
+   no error. Exclude `TheBlockUnity_BurstDebugInformation_DoNotShip` - its name is the instruction.
+3. **Drive defaults to Restricted.** Un-shared, the link returns an access request rather than a
+   download. General access → **Anyone with the link**.
+
+**Why NOT GitHub Releases, and this reverses the recommendation made an hour earlier:** 1.09 GiB
+clears the 2 GiB per-asset cap, so it fits - but **`theblock-unity` is private, and release assets
+on a private repo are collaborator-only**. A friend gets a 404. It stays the right channel for the
+**instructor**, who *is* a collaborator: it hands them a running game without a 1.3 GiB clone and
+spends **no LFS bandwidth**. *(Repo visibility taken from `CLAUDE.md` §4 - `gh` is not installed on
+this machine, so it was not re-verified against GitHub.)*
+
+**The other platforms, so they are not re-litigated:**
+
+- **Windows: no build, and do not improvise one.** `PlaybackEngines/` holds only
+  `MacStandaloneSupport`, `WebGLSupport`, `iOSSupport` - the module is not installed. Adding it is
+  Hub → Installs → gear → **Windows Build Support (Mono)**, but the project has **never been built
+  or run on Windows**: shader variants recompile for DirectX rather than Metal, and memory
+  `runtime-keyword-variant-is-stripped` is precisely a variant that looks right in the Editor and
+  renders opaque squares in a Player. **Needs a real Windows machine to test on before anyone
+  receives it.**
+- **WebGL is not viable** at 2.1 GB of assets, and needs no work: the browser answer already exists
+  and shipped - `Finalproject` on Vercel.
+- **"Clone and press Play" is not a distribution path.** Per `README.md`, a fresh clone is an empty
+  city: gitignored are `Assets/Models/Characters` (1.7 GB), `Assets/Models/City` (431 MB),
+  `Assets/Textures/Generated` (293 MB) and every derived prefab/material/NavMesh, plus a 505 MB
+  Asset Store pack on the recipient's own Unity account and four menu items. It is for developers,
+  and it burns the shared 1 GiB/month LFS bandwidth per clone.
+
 **The kanban board is a real task, not a formality - ✅ DONE 2026-08-19, https://trello.com/b/MWyCbhhx.**
 Requirement #2 is graded on the board *showing activity*, and the old board reflected only the
 three.js phase. It now holds **both**: 117 cards over five lists - 43 three.js Done cards carried
