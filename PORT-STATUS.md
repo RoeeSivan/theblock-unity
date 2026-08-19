@@ -99,8 +99,24 @@ unclear, re-test before inheriting.
 >
 > ### ✅ U38 is DONE - user-confirmed 2026-08-19. The crowd is twelve pack bodies at 360 looks, and it made the frame ~22 ms FASTER. Section below.
 >
-> ### 🚩 NEXT ACTION: **the submission. There is no gameplay work outstanding.**
+> ### 🚩 NEXT ACTION: **the VIDEO. It is the only thing the rest of the submission waits on.**
 >
+> ### ✅ THE KANBAN BOARD IS DONE - 2026-08-19, https://trello.com/b/MWyCbhhx, 117 cards over both phases.
+>
+> Requirement #2 is closed. One board, three.js **and** Unity, with a lime `Unity port` label and the
+> finished columns sorted chronologically so **the band starts exactly at the engine-pivot card** -
+> the pivot is shown rather than argued, the same call as inviting the instructor to both repos.
+> Dataset and tooling in `tools/kanban/`, screenshots in `docs/`. Details and the two amendments worth
+> knowing about are in the **Submission** § below; the decision is in the log.
+> ⚠ **Re-shoot it if any card moves before 1 Oct** - the brief wants the FINAL state, and the
+> screenshots in `docs/` are of the 2026-08-19 board.
+>
+> **What is left is a chain, and the video is its head:** record (#3, #4, #6) → the diagram (#5, which
+> can be drawn in parallel and is its own piece of work) → Drive upload (#7) → the moodle PDF (#8,
+> which needs the video link AND the board screenshot) → **then** U30c strips the debug keys, because
+> `P`, `T`, `C`, `debugStock` and Mission Select are how five minutes reaches every feature.
+>
+
 > ✅ **U37 + U37a + U37b are user-confirmed, 2026-08-19** - *"הכניסה לפלאפל עובדת טוב וגם ההתחלה עם ה T.
 > וגם יש שם מוכר. כל הקטע עם הפלאפל הוא טוב."* That was the last open gameplay confirmation in the
 > project, and it also covers **U39's falafel half** (the orphan stand and the lane routed around it),
@@ -2398,7 +2414,7 @@ vanishes - that is what this ledger exists to stop, so it lives here.**
 | # | Required | State, 2026-08-19 |
 | --- | --- | --- |
 | 1 | Private GitHub repo, **instructor invited**, committed + pushed throughout | ✅ **done - the user invited the instructor 2026-08-19**, to both repos per their own call. Keep pushing as work lands: the requirement is *throughout*, not *at the end* |
-| 2 | Trello / kanban board, used as discussed, **final screenshot** | ⚠ **must be brought up to date with the port** - see below |
+| 2 | Trello / kanban board, used as discussed, **final screenshot** | ✅ **done 2026-08-19 - re-authored for both phases and published.** https://trello.com/b/MWyCbhhx · 117 cards · screenshots at `docs/kanban-board.png` (landscape, for the PDF) and `docs/kanban-final.png` (full height, every card). Dataset + tooling in `tools/kanban/`. **Re-shoot it if cards move before 1 Oct** - the brief wants the FINAL state |
 | 3 | 5-min video: idea + one-liner | ✗ |
 | 4 | …the list of major features implemented | ✗ |
 | 5 | …**a diagram of the APIs / tools / libraries + the flow**, what is called when | ✗ - **and Unity's is a different diagram, not the web one relabelled** |
@@ -2422,10 +2438,39 @@ vanishes - that is what this ledger exists to stop, so it lives here.**
   user's call: invite the instructor to both.** The four-day history is not hidden, it is the second
   half of a pivot whose first half is in the other repo.
 
-**The kanban board is a real task, not a formality.** Requirement #2 is graded on the board *showing
-activity*, and right now the board reflects the three.js phase. The port's 34 units are the activity
-of the last week and none of them are on it. It also has to be screenshotted at the end, so it is
-work with a deadline attached to it twice.
+**The kanban board is a real task, not a formality - ✅ DONE 2026-08-19, https://trello.com/b/MWyCbhhx.**
+Requirement #2 is graded on the board *showing activity*, and the old board reflected only the
+three.js phase. It now holds **both**: 117 cards over five lists - 43 three.js Done cards carried
+across, 43 Unity cards authored from this ledger's Units table and `git log`, plus the submission
+work and every cut.
+
+**One new label, lime `Unity port`, marks every phase-2 card**, and `board-data.mjs` sorts `Done` and
+`Cancelled / Parked` chronologically - so the lime band starts exactly at the `🔀 Engine pivot #3`
+card and runs unbroken to the bottom. **The pivot is shown rather than argued**, which is the same
+call as inviting the instructor to both repos.
+
+**Every date and hash on the board is verified against git**, because the board claims they are real:
+142 hashes resolve (68 in `Finalproject`, 74 here), every checklist timestamp matches its commit to
+the minute, and no card's date window excludes its own commits. A first pass had 28 invented
+timestamps on secondary commits; they were rewritten from `git log` rather than left approximate.
+
+**Two amendments worth knowing about, because they are the board's own argument:**
+
+- **`❌ Engine: Unity (April attempt)`** used to end *"Do not reopen."* It is kept verbatim and
+  annotated: reopened 2026-08-12. The difference between the two attempts is the whole case for the
+  pivot - in April there was no game and Unity was where the work would have to be invented; in
+  August there was a finished, shipped build to serve as the spec.
+- **`Put the live URL in README.md`** and **`Fix the mission count in ROADMAP.md`** moved to
+  Cancelled / Parked. They are three.js-repo chores, and that repo is frozen at `export-config.mjs` -
+  so they are not *pending*, they are **ruled out**, and the board should say so.
+
+The dataset is `tools/kanban/board.json` and the board is generated from it; it is never edited by
+hand. `push-to-trello.mjs --push` always creates a NEW board and never touches an existing one, so
+the three.js-era board at `trello.com/b/EDgS4psw` is untouched and still reachable.
+
+⚠ **It still has to be re-shot at the end.** The screenshots in `docs/` are of the 2026-08-19 state;
+if any card moves before 1 Oct, capture again (recipe in `tools/kanban/README.md` - the board must be
+public for the capture and set straight back to private afterwards).
 
 **The diagram (#5) is its own piece of work and the web build's diagram will not do.** Unity's
 inventory is URP · glTFast · Draco · Splines · AI Navigation · Input System · UI Toolkit ·
@@ -4945,6 +4990,21 @@ would trigger it. A `wip` unit is work half-done; this is work deliberately not 
 ## Decisions log
 
 Dated one-liners. These are settled - do not re-litigate them without the user reopening.
+
+- **2026-08-19** - **ONE kanban board for both phases, not two, and the pivot is a card on it.**
+  Submission requirement #2 is ✅ at https://trello.com/b/MWyCbhhx - 117 cards. The user's call was a
+  single combined board rather than a separate Unity one, which is the same reasoning that invited
+  the instructor to both repos: **the pivot is stronger presented than hidden.** Mechanics that make
+  it work: one new lime label `Unity port` on every phase-2 card (lime was the only Trello colour the
+  old board left free), and `Done`/`Cancelled` already sorting chronologically, so the band starts at
+  the pivot card with no manual grouping. Sub-units fold into parent cards as checked `History` items
+  - U19 + b/c/d/e is one card, which is what keeps 39 units readable as 43 cards. **The tooling was
+  COPIED into `tools/kanban/`, not shared** - the three.js repo is frozen at `export-config.mjs`.
+  ⚠ **The board asserts that its dates and hashes are real, so they are checked**: 142 hashes resolve
+  across both repos and every checklist timestamp matches its commit to the minute. The first pass
+  had 28 invented times on secondary commits and they were rewritten from `git log` - *a claim of
+  provenance is a claim that has to be verifiable, and this one now is.* The board must be **public**
+  for the headless capture and set straight back to private; the token is revoked afterwards.
 
 - **2026-08-17** - **TIER 8 IS CLOSED: two confirmations and four cuts, in one message.** ✅ **U35c**
   (police H145) and ✅ **U35d-pre-3** (the in-vehicle arrest) are user-confirmed. ✂ **The GPS route

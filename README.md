@@ -157,8 +157,21 @@ graph, the police route graph, roof spots, the NavMesh. **The runtime casts no r
 | `Assets/Editor/` | The build toolchain - 42 files under **The Block →** in the menu bar |
 | `Assets/Scenes/` | `Boot.unity` (index 0) and `World.unity` (index 1) |
 | `tools/` | Offline asset scripts (glb webp→png, etc.) |
+| `tools/kanban/` | The kanban board's dataset and the scripts that publish and screenshot it |
+| `docs/` | The kanban board screenshots that go in the submission PDF |
 | `PORT-STATUS.md` | The living ledger: all 34 units, every decision, every gotcha |
 | `CLAUDE.md` | The stable rules for working on it |
+
+## The board
+
+**[trello.com/b/MWyCbhhx](https://trello.com/b/MWyCbhhx)** - one board covering **both** phases of
+the project: 117 cards, 43 of them three.js and 43 of them Unity, plus what got cut.
+
+Phase-2 cards carry a lime `Unity port` label and the finished columns sort chronologically, so the
+lime band starts exactly at the engine-pivot card. Every date and every commit hash on it is real -
+142 hashes, verified against `git log` in both repos.
+
+It is generated from `tools/kanban/board.json` and never edited by hand.
 
 ## Credits
 

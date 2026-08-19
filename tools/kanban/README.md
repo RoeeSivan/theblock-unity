@@ -3,9 +3,12 @@
 The course brief requires a kanban board and a screenshot of it in the submission PDF
 (requirement #2). This directory holds the dataset and the tooling that publishes it.
 
-**Board:** _(URL added at first push)_
+**Board:** https://trello.com/b/MWyCbhhx — published 2026-08-19, 117 cards
 **Screenshots:** `docs/kanban-board.png` (board view, for the PDF) · `docs/kanban-final.png`
-(full height, every card visible)
+(full height, every card visible — 2936 × 17768)
+
+The three.js-era board is untouched and still reachable at https://trello.com/b/EDgS4psw; `--push`
+only ever creates a new board.
 
 ## What this board covers
 
