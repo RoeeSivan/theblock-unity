@@ -99,7 +99,7 @@ unclear, re-test before inheriting.
 >
 > ### ✅ U38 is DONE - user-confirmed 2026-08-19. The crowd is twelve pack bodies at 360 looks, and it made the frame ~22 ms FASTER. Section below.
 >
-> ### 🚩 NEXT ACTION: **U37a's play-test** - the ONE outstanding gameplay confirmation, and it is small. U37 itself is user-confirmed (*"tested and its working really good"*); what has never been played is **U37a**, the change that moved the order INSIDE the shop. **The test:** Play → **Continue, never New Game** (`new-game-wipes-the-test-balance` - the wallet IS the thing being measured) → ride to the stand opposite the pizzeria → outside, the prompt should only *nudge you in*; **walk through the open bay** → at the counter the prompt reads `Press T for a falafel round` and the cashier is visible behind it → run a round → then lose one on the clock and confirm the streak falls back to round 1 and a fresh round can be started. Watch for what a synthetic test cannot judge: whether stepping inside reads as obvious rather than fiddly, and whether the campaign's own objective line and clock still draw once the job is over (that is the `DriveHud` guard's regression). ⚠ **The falafel vendor was rebuilt under U38** (he is `Ped_02m_01`), so confirm he is idling and not T-posed.
+> ### 🚩 NEXT ACTION: **U37a + U37b's play-test** - the ONE outstanding gameplay confirmation. U37 itself is user-confirmed (*"tested and its working really good"*); what has never been played is **U37a**, which moved the order INSIDE the shop, and **U37b**, which made the shop enterable after the user found it was not. **The test:** Play → **Continue, never New Game** (`new-game-wipes-the-test-balance` - the wallet IS the thing being measured) → ride to the stand opposite the pizzeria → outside, the prompt should only *nudge you in*; **walk straight in** - the doorway is 1.90 m with 1.70 m of measured clearance and nothing in it now → at the counter the prompt reads `Press T for a falafel round` and the cashier is visible behind it → run a round → then lose one on the clock and confirm the streak falls back to round 1 and a fresh round can be started. Watch for what a synthetic test cannot judge: whether walking in reads as obvious rather than fiddly, whether the raised striped valance still looks right from the street, and whether the campaign's own objective line and clock still draw once the job is over (that is the `DriveHud` guard's regression). ⚠ **The falafel vendor was rebuilt under U38** (he is `Ped_02m_01`), so confirm he is idling and not T-posed.
 >
 > ### After that: **U30b round 2 - the boot hitches.** U30a is DONE and U30b's first round landed 2026-08-18 (section below): the Player exists, the baseline is measured, and the biggest finding is already fixed and re-measured. What is left of U30b is named at the bottom of that section, worst first: **a 2,154 ms hitch at t=2.2 s that is NOT textures** (it happens at `tex current 6 MB`), and a chase that is now 44-77 ms rather than 300-400. ⚠ **U37 owes it a frame measurement too**, like the six Tier 8 rows: it adds a 41k-triangle place with an always-animating skinned NPC on it. **U38 owes one as well and is expected to hand time back** - it already measured −22 ms at the densest crowd pose in the Editor, and the Player has never seen it.
 >
@@ -484,6 +484,70 @@ pizzeria cashier only looks right because her Mixamo rig binds in an A-pose.
 **Not built, deliberately:** no briefing card and no voice-over (a job you run twenty times cannot
 open with a modal), and no `F`-retry (`F` is the campaign's retry key; a repeatable job does not need
 one - you walk back to the stand).
+
+#### U37b, 2026-08-19 - the shop was unenterable, and that is why U37a nearly got reverted
+
+The user's first message after playing U37a was *"בוא נחזור למה שהיה מקודם זה היה יותר טוב, כלומר בלי
+להכנס לתוך החנות"* - roll back to ordering from the street. They corrected it a minute later, with a
+screenshot: **keep the inside rule, fix the way in.**
+
+> *"lets stick with needing to go in to do the round, but we need to make sure its easy to get in,
+> currently the outside tables are blocking us from getting in. and also maybe we need to remove this
+> stripe because of the height of the character."*
+
+**The design was never the problem; the model was.** U37a moved the trigger indoors without anyone
+checking that a 1.80 m capsule could get there, and it could not. Two faults, both measured rather
+than eyeballed off the screenshot:
+
+- **The furniture was a wall across the doorway.** A capsule sweep from the kerb was BLOCKED after
+  0.74-0.94 m in every lane. `ChairOut_A1` stood *on* the left jamb at x −0.95, `ChairOut_A2`
+  directly outside it, and `TableOut_B` + `ChairOut_B1` straddled the centre line. Three tables on a
+  7.2 m frontage does not fit around a door, so one of them was in it.
+- **The valance cleared the player's head by four centimetres.** `Awning_i` hung at z 2.00-2.36 over
+  a pavement the player walks at **0.157** - the model's own floor slab is buried under
+  `District_FirstOne`, so the shop is entered at pavement level. 1.84 m of headroom against a 1.80 m
+  capsule. It never quite stopped anyone, which is worse than if it had: it sat exactly in the
+  third-person camera's eye line, and the entrance vanished behind a red-and-white band.
+
+**Fixed in `tools/build-falafel.py`**, which rebuilds the model from scratch, plus one line in the
+Unity builder:
+
+| | |
+| --- | --- |
+| `DOOR` | `(−0.95, 0.65)` → `(−1.10, 0.80)`, 1.60 m → **1.90 m** |
+| valance | scallops z 2.00-2.36 → **2.26-2.62**, rail 2.34-2.48 → **2.60-2.74**, tucked under the 2.75 soffit |
+| valance collider | new `FalafelStand_Awning` export group, added to `FalafelNoCollide` |
+| outdoor furniture | three front tables → **two**, at x −2.55 and 2.30 |
+| indoor furniture | `TableIn_B` + `ChairIn_B1` **dropped** - see below |
+
+**The second round of this fix is the lesson.** Clearing the pavement was not enough: the first
+re-measure still gave only **1.20 m** of usable width, because `TableIn_B` stood at x −0.85 barely a
+metre *inside* the entrance. The door lane is not an outdoor concept - anything within a couple of
+metres of a doorway is in the doorway. `_clear_of_door()` now asserts it for indoor and outdoor
+furniture alike and raises at build time, so this cannot come back quietly.
+
+**Raised, not deleted**, on the stripe - a call the user explicitly left open (*"i give you the
+freedom to decide"*). The band is in both reference photographs and it is most of what makes the
+frontage read as a falafel stand rather than a white box. Its height was the fault, so its height is
+what changed. It is *also* uncollidable now, because "raise it far enough" is a fix the next tweak to
+the canopy height could silently undo (memory: `an-invisible-wall-reads-as-a-game-rule`). The canopy
+**posts** are unaffected - `CanopyPost_0` does not match the `Canopy_` prefix, so they fall into
+`_Shell` and still collide, which is correct for something you can walk into.
+
+**Measured after, and these are the pass conditions:**
+
+| | before | after |
+| --- | --- | --- |
+| walkable width through the door | **blocked** | **1.70 m** |
+| headroom at the valance plane | 1.84 m | **2.59 m** |
+| door → counter, over every clear lane | - | **12/12** |
+| `Inside` / `AtCounter` at the counter | - | true / true |
+| `Inside` on the pavement and at the kerb | - | false / false |
+| triangles | 41,222 | 41,098 |
+
+**Rebuilds:** re-exec `tools/build-falafel.py` in Blender → save the .blend →
+`tools/blend-to-glb.sh source-assets/falafel_hapaamonim.blend Assets/Models/Places/falafel-stand.glb`
+→ `The Block → Build Falafel Stand` → **save the scene**.
 
 #### U37a, 2026-08-18 - the order is placed INSIDE, at the counter - the user's call after playing it
 

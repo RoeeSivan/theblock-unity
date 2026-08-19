@@ -294,7 +294,11 @@ WALL = 0.15
 H = 3.00                       # top of the walls
 SILL = 0.95                    # top of the tiled wainscot
 HEAD = 2.62                    # top of the glazing
-DOOR = (-0.95, 0.65)           # the front opening, in X
+# The front opening, in X. 1.90 m rather than the 1.60 it was built at - not because a 0.60 m
+# player capsule ever failed to fit through 1.50 m of clear jamb, but because U37a made walking in
+# the ONLY way to order a round, and a narrow slot between two piers does not read as a door from
+# across the road.
+DOOR = (-1.10, 0.80)
 
 
 def shell():
@@ -457,13 +461,24 @@ def canopy():
         box(f"CanopyPost_{i}", x - 0.05, x + 0.05, y - 0.05, y + 0.05, 0.0, CANOPY_Z, "Metal")
         box(f"CanopyFoot_{i}", x - 0.10, x + 0.10, y - 0.10, y + 0.10, 0.0, 0.05, "MetalDark")
 
-    # the striped valance on the building itself, over the door and under the canopy
+    # The striped valance on the building itself, over the door and under the canopy.
+    #
+    # ⚠ ITS HEIGHT IS A PLAYABILITY NUMBER, NOT A STYLING ONE. It used to hang at z 2.00-2.36 with
+    # its rail at 2.34-2.48. The player is a 1.80 m CharacterController standing on a pavement that
+    # runs through this model at 0.157, so the scallops cleared their head by FOUR CENTIMETRES -
+    # which does not stop you walking in and is worse than if it did, because it parks a red-and-white
+    # band exactly in the third-person camera's eye line and the entrance disappears behind it.
+    #
+    # Now tucked up under the canopy soffit (2.75): scallops 2.26-2.62, rail 2.60-2.74. Headroom at
+    # this plane goes 1.84 m -> 2.10 m. Raised rather than deleted - the band is in both reference
+    # photographs and it is most of what makes this frontage read as a falafel stand rather than a
+    # white box. It was never the stripe that was wrong, only how low it hung.
     vy = Y0 - 0.52
-    box("Awning_Box", -2.30, 1.70, vy, Y0 - 0.06, 2.34, 2.48, "MetalDark")
+    box("Awning_Box", -2.30, 1.70, vy, Y0 - 0.06, 2.60, 2.74, "MetalDark")
     for i in range(12):
         a = -2.30 + i * (4.00 / 12)
         b = a + (4.00 / 12)
-        box(f"Awning_{i}", a, b, vy - 0.04, vy, 2.00, 2.36,
+        box(f"Awning_{i}", a, b, vy - 0.04, vy, 2.26, 2.62,
             "AwningRed" if i % 2 == 0 else "AwningWhite")
 
 
@@ -504,20 +519,44 @@ def planter(name, cx, cy, scale=1.0):
              r * scale, "Leaf", squash=0.72)
 
 
+# The strip of pavement in front of the door that nothing may stand in: the opening plus the player
+# capsule's own 0.30 m radius either side. Everything in street_furniture() is asserted against it.
+#
+# ⚠ THIS EXISTS BECAUSE THE SHOP WAS UNENTERABLE. Three tables on a 7.2 m frontage left no room, so
+# one of them ended up in the doorway: `ChairOut_A1` sat ON the left jamb at x −0.95, `ChairOut_A2`
+# directly outside it, and `TableOut_B` + `ChairOut_B1` straddled the centre line. A capsule sweep
+# from the kerb was BLOCKED after 0.74-0.94 m in every lane. U37a had just made walking in the only
+# way to order a round, so the job was unreachable by furniture.
+DOOR_LANE = (DOOR[0] - 0.30, DOOR[1] + 0.30)
+
+
+def _clear_of_door(name, cx, half):
+    """Assert a piece of furniture is not in the doorway. Loud, because the failure is silent."""
+    if cx + half > DOOR_LANE[0] and cx - half < DOOR_LANE[1]:
+        raise ValueError(
+            f"{name} at x={cx:.2f} (±{half:.2f}) is inside the door lane "
+            f"{DOOR_LANE[0]:.2f}..{DOOR_LANE[1]:.2f} - it would block the way in")
+
+
 def street_furniture():
-    table("TableOut_A", X0 - 0.95, Y0 - 1.25)
-    table("TableOut_B", 0.35, Y0 - 1.35)
-    table("TableOut_C", 2.55, Y0 - 1.15)
-    chair("ChairOut_A1", X0 - 0.95, Y0 - 0.60, 0.0)
-    chair("ChairOut_A2", X0 - 0.95, Y0 - 1.90, math.pi)
-    chair("ChairOut_B1", -0.35, Y0 - 1.35, math.pi / 2)
-    chair("ChairOut_B2", 1.05, Y0 - 1.35, -math.pi / 2)
-    chair("ChairOut_C1", 2.55, Y0 - 0.50, 0.25)
-    chair("ChairOut_C2", 2.55, Y0 - 1.80, math.pi - 0.2)
+    # TWO front tables, not three, one either side of the entrance. The third is what forced the old
+    # layout into the doorway; a frontage this size seats two and an obviously open door is worth
+    # more than a fourth cover.
+    for name, cx in (("TableOut_A", -2.55), ("TableOut_B", 2.30)):
+        _clear_of_door(name, cx, 0.36 + 0.22)   # table radius plus the chairs' overhang
+    table("TableOut_A", -2.55, Y0 - 1.35)
+    table("TableOut_B", 2.30, Y0 - 1.35)
+    chair("ChairOut_A1", -2.55, Y0 - 0.70, 0.0)
+    chair("ChairOut_A2", -2.55, Y0 - 2.00, math.pi)
+    chair("ChairOut_B1", 2.30, Y0 - 0.70, 0.25)
+    chair("ChairOut_B2", 2.30, Y0 - 2.00, math.pi - 0.2)
     table("TableSide_A", CAN_X + 0.85, 0.45)
     chair("ChairSide_1", CAN_X + 0.85, 1.05, math.pi)
     chair("ChairSide_2", CAN_X + 0.85, -0.15, 0.0)
     planter("Planter_Corner", CAN_X + 0.55, Y0 - 1.60, 1.0)
+    # Already clear of the lane and left where it was - it reads as the right-hand edge of the
+    # entrance. Asserted anyway, so that moving the door later cannot quietly re-block the way in.
+    _clear_of_door("Planter_Front", 1.65, 0.30 * 0.85)
     planter("Planter_Front", 1.65, Y0 - 1.95, 0.85)
     cyl("Bollard", CAN_X - 0.55, Y0 - 1.90, 0.0, 0.86, 0.15, "Concrete", seg=10, r_top=0.13)
     ball("Bollard_Cap", CAN_X - 0.55, Y0 - 1.90, 0.86, 0.15, "Concrete", squash=0.45)
@@ -685,13 +724,20 @@ def interior_fit():
         box(f"Light_{i}", x - 0.60, x + 0.60, -0.60, -0.44, H - 0.14, H - 0.09, "Lamp")
     menu_board()
 
-    # the seating that faces the street
+    # The seating that faces the street.
+    #
+    # ⚠ THE DOOR LANE APPLIES IN HERE TOO, and forgetting that cost a second round of this fix.
+    # Clearing the pavement outside was not enough: `TableIn_B` stood at x −0.85 barely a metre
+    # inside the entrance, so a 1.90 m doorway measured 1.20 m of usable width and everyone coming
+    # in had to sidestep round a table on the threshold. It is dropped rather than nudged - two
+    # two-tops, a stool run along the side glazing and the counter is already a full room, and you
+    # cannot put a table just inside a door on a 7.2 m frontage without it being in the door.
+    for name, cx in (("TableIn_A", -2.55), ("TableIn_C", 2.35)):
+        _clear_of_door(name, cx, 0.33 + 0.22)
     table("TableIn_A", -2.55, -1.35, top="TableWood", leg="MetalDark", r=0.33)
-    table("TableIn_B", -0.85, -1.55, top="TableWood", leg="MetalDark", r=0.33)
     table("TableIn_C", 2.35, -1.30, top="TableWood", leg="MetalDark", r=0.33)
     chair("ChairIn_A1", -2.55, -0.75, math.pi, "MetalDark")
     chair("ChairIn_A2", -2.55, -1.95, 0.0, "MetalDark")
-    chair("ChairIn_B1", -0.85, -0.95, math.pi, "MetalDark")
     chair("ChairIn_C1", 2.35, -0.70, math.pi, "MetalDark")
     chair("ChairIn_C2", 2.35, -1.90, 0.0, "MetalDark")
     # a stool run along the side glazing
@@ -714,7 +760,16 @@ EXPORT_GROUPS = [
     ("FalafelStand_Glass", ("Glass_", "Vitrine_Glass")),
     ("FalafelStand_Food", ("Food_", "Pita_", "Spit_Meat", "Spit_Onion")),
     ("FalafelStand_Sign", ("Fascia_", "Coke_", "Sign_", "SignS_")),
-    ("FalafelStand_Canopy", ("Canopy_", "Awning_")),
+    # The valance is its OWN group so it can be given no collider, which is the second half of the
+    # fix for the four-centimetre headroom above. A cloth awning that can stop a player is the
+    # `an-invisible-wall-reads-as-a-game-rule` fault waiting to happen, and raising it out of reach
+    # is a fix that a later tweak to the canopy height could silently undo.
+    #
+    # `_Canopy` is now the three slabs and nothing else - 36 triangles. The POSTS were never in it:
+    # `CanopyPost_0` does not start with `Canopy_`, so they fall through to `_Shell` and collide
+    # there, which is what you want from something you can walk into.
+    ("FalafelStand_Awning", ("Awning_",)),
+    ("FalafelStand_Canopy", ("Canopy_",)),
     ("FalafelStand_Furniture", ("TableOut", "TableIn", "TableSide", "ChairOut", "ChairIn",
                                 "ChairSide", "Stool", "Planter", "Bollard")),
 ]

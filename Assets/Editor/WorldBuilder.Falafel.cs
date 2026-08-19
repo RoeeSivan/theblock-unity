@@ -38,10 +38,17 @@ namespace TheBlock.EditorTools
         /// chips and salad inside a case nobody can reach. The <b>sign</b> is 16,808 triangles of
         /// lettering three metres in the air, and its fascia box is part of the canopy, which does
         /// collide.
+        ///
+        /// The <b>awning</b> joined the list in U37b, and it is the only entry here that is about
+        /// playability rather than geometry. The striped valance used to hang at 2.00 m over a
+        /// pavement the player walks at 0.157 - four centimetres of headroom on a 1.80 m capsule.
+        /// It has been raised to 2.26, and it is ALSO uncollidable now, because "raise it far
+        /// enough" is a fix that the next tweak to the canopy height could quietly undo. The canopy
+        /// POSTS are unaffected - they land in <c>_Shell</c>, not <c>_Canopy</c>, and still collide.
         /// </summary>
         private static readonly List<string> FalafelNoCollide = new()
         {
-            "FalafelStand_Glass", "FalafelStand_Food", "FalafelStand_Sign",
+            "FalafelStand_Glass", "FalafelStand_Food", "FalafelStand_Sign", "FalafelStand_Awning",
         };
 
         /// <summary>The vendor object's name under Places - destroyed and rebuilt with the stand.</summary>
