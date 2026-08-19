@@ -178,3 +178,29 @@ Assets/Police_officer.meta
 
 # Generated preview of the kanban board - re-made by tools/kanban/render-html.mjs.
 tools/kanban/board.html
+
+# The FBX importer unpacks a model's embedded media into a sibling <model>.fbm folder at import
+# time. Every PNG in there is byte-identical (md5) to the one in that character's own *Textures/
+# folder, nothing anywhere references the .fbm copies, and the folder comes back on reimport - it
+# was moved out of Assets/ and regenerated identically, GUIDs included, before this rule was
+# written. So tracking it spent 320 MB of a free 1 GiB LFS quota - shared with the game repo - on a
+# second copy of something the importer makes for free.
+/Assets/Models/Characters/**/*.fbm/
+/Assets/Models/Characters/**/*.fbm.meta
+
+# Mixamo ships a specular/glossiness texture set beside every character. URP's Lit shader is
+# metallic/smoothness and has no input for either, so not one of these 28 files is bound by any
+# material - each was checked on its own, not inferred from the naming. 57 MB of the same quota.
+#
+# Scoped to Characters/ deliberately: a bare *_Specular.png would eventually swallow a texture that
+# IS wired up. The Diffuse and Normal maps beside these are NOT here and must not be added - the six
+# street characters resolve them by NAME through Models/Characters/People/Materials/*.mat, a binding
+# that leaves no GUID trail and so reads as an orphan to any reference scan.
+/Assets/Models/Characters/**/*_Glossiness.png
+/Assets/Models/Characters/**/*_Glossiness.png.meta
+/Assets/Models/Characters/**/*_Specular.png
+/Assets/Models/Characters/**/*_Specular.png.meta
+/Assets/Models/Characters/**/*_Gloss.png
+/Assets/Models/Characters/**/*_Gloss.png.meta
+/Assets/Models/Characters/**/*_Opacity.png
+/Assets/Models/Characters/**/*_Opacity.png.meta
