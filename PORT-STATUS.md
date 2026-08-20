@@ -2448,6 +2448,17 @@ conversation that was gone. That is the exact failure this § exists to stop.
 **uploaded to the user's Google Drive**, anyone-with-link, sent to friends as a link.
 ⚠ **The link itself is not recorded here yet - paste it in.**
 
+**The Drive folder holds FOUR items, not two - 2026-08-20.** The user's call: the install guides
+live *beside* the zips rather than behind a link, so a recipient opening the folder sees
+`TheBlock-macOS.zip`, `TheBlockUnity-Windows.zip` and one Google Doc per platform. That is the
+ledger's own "beside the link, not inside a README nobody opens" rule, executed. **Source of truth
+for those two docs is in this repo** - `docs/INSTALL-macOS.txt` and `docs/INSTALL-Windows.txt`,
+plain text with no Markdown syntax so a paste into Docs needs no cleanup. Each covers download →
+the OS's own warning (the `xattr` line on macOS, More info → Run anyway on Windows) → launch →
+controls → the four missions. **Edit the repo copy and re-paste; never edit only the Doc**, or the
+recoverable copy is the stale one. The Windows doc deliberately makes **no performance claim** -
+the only Windows run so far was x86_64 under ARM emulation in a VM.
+
 **Measured on the artifact, not estimated:**
 
 - The `.app` is **2.1 GB**, a **universal binary** (`x86_64` + `arm64`), so every Mac plays it -

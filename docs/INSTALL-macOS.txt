@@ -1,0 +1,120 @@
+THE BLOCK - HOW TO INSTALL ON MAC
+
+A small GTA-style open world. Walk it, swim it, drive it, ride it, fly it, and play a four-mission campaign through to a win screen.
+
+Takes about 10 minutes, most of it downloading. Read step 5 before you start - it is the one step people get stuck on, and it is a single line of copy-paste.
+
+
+WHAT IS IN THIS FOLDER
+
+TheBlock-macOS.zip - this is yours
+TheBlockUnity-Windows.zip - ignore this one
+Instructions for Mac - you are reading it
+Instructions for Windows - ignore this one
+
+You need:
+
+Any Mac. Apple Silicon (M1/M2/M3/M4) or Intel - both work, it is one universal build.
+About 5 GB of free disk space. The download is 1.1 GB and the game unpacks to 2.1 GB.
+Nothing else. No Unity, no accounts, no installer.
+
+
+STEP 1 - DOWNLOAD
+
+Right-click TheBlock-macOS.zip in this folder and choose Download.
+
+Google Drive will say it cannot scan the file for viruses because it is too big. That is normal for a 1.1 GB file. Click "Download anyway".
+
+It is a big file, so give it a few minutes.
+
+
+STEP 2 - UNZIP
+
+Go to your Downloads folder and double-click TheBlock-macOS.zip. It unpacks into an app called "The Block".
+
+
+STEP 3 - MOVE IT TO APPLICATIONS
+
+Drag "The Block" into your Applications folder.
+
+Do not skip this. The command in step 5 expects to find it there.
+
+
+STEP 4 - OPEN TERMINAL
+
+Press Command + Space, type Terminal, press Return. A plain text window opens.
+
+
+STEP 5 - RUN THIS ONE LINE
+
+Copy the line below, paste it into Terminal, and press Return:
+
+xattr -dr com.apple.quarantine "/Applications/The Block.app"
+
+Nothing will print. That means it worked.
+
+WHY THIS IS NEEDED: the game is not signed with a paid Apple developer certificate ($99 a year, and this is a student project). Every browser also stamps a "downloaded from the internet" flag on anything you download. Put those two together and macOS refuses to open the app, showing "The Block is damaged and can't be opened. You should move it to the Bin." The app is not damaged. That line removes the flag, and it only has to be run once.
+
+IF TERMINAL COMPLAINS: look at the two quote marks in the line you pasted. They must be plain vertical quotes. If they came out slanted or curled - which happens when text is copied through a word processor - delete each one and retype it by hand in Terminal. Terminal never curls a quote, so retyping always fixes it.
+
+IF YOU LEFT THE APP SOMEWHERE OTHER THAN APPLICATIONS: type the following into Terminal, leave a space at the end, and do not press Return yet:
+
+xattr -dr com.apple.quarantine
+
+Then drag the app from Finder into the Terminal window. It fills in the path for you. Now press Return.
+
+
+STEP 6 - PLAY
+
+Open your Applications folder and double-click The Block.
+
+The first launch takes a few extra seconds while the city loads. That is the whole city being built, not a hang.
+
+If it still says "damaged", step 5 did not run against the right place. Go back and use the drag-the-app trick above.
+
+To quit: press Esc for the pause menu, or Command + Q.
+
+To uninstall: drag The Block from Applications to the Bin. That is all of it.
+
+
+CONTROLS
+
+ON FOOT
+
+W A S D, or the arrow keys - Move
+Alt (hold) - Jog
+Shift (hold) - Sprint
+Space - Jump
+E - Enter a vehicle, enter a building, shop at the 7-Eleven
+T - Talk, and start a job
+F - Deliver, act, or retry a failed mission
+1 2 3 4 - Use a power-up
+
+DRIVING AND FLYING
+
+W A S D - Drive and steer
+Space - Brake, or hold it at a gas pump to refuel
+E - Get out
+R - Respawn, or flip the car back over
+Space / Shift - Helicopter up / down
+
+ANY TIME
+
+M - Map
+N - Mute
+Esc - Pause menu
+Arrow keys - Dance, hit the arrows in the rhythm mission
+
+
+THE CAMPAIGN
+
+Four missions, unlocked in order. Mission Select on the title screen jumps to any mission you have already reached.
+
+1. The Block Pizza Run - take a shift at the pizzeria and deliver five pizzas across the city against a clock.
+2. Dance Battle - a rhythm minigame running on a real audio clock.
+3. Rooftop Rescue - fly the helicopter, land on roofs, lift survivors off them.
+4. Jetski Chase - nine buoy gates across the sea, then run the thief down on the sand.
+
+Or ignore all of it and just drive. There is a wanted system with real police pursuit, carjacking, a fuel tank that runs dry, a 7-Eleven that sells four power-ups, and a day/night cycle under Settings - Display.
+
+Have fun.

@@ -1,0 +1,122 @@
+THE BLOCK - HOW TO INSTALL ON WINDOWS
+
+A small GTA-style open world. Walk it, swim it, drive it, ride it, fly it, and play a four-mission campaign through to a win screen.
+
+Takes about 10 minutes, most of it downloading. Two steps trip people up - step 2, where you must extract the zip, and step 5, where Windows warns you. Both are covered below.
+
+
+WHAT IS IN THIS FOLDER
+
+TheBlockUnity-Windows.zip - this is yours
+TheBlock-macOS.zip - ignore this one
+Instructions for Windows - you are reading it
+Instructions for Mac - ignore this one
+
+You need:
+
+Windows 10 or Windows 11, 64-bit.
+About 5 GB of free disk space. The download is 1.1 GB and the game unpacks to 2.1 GB.
+Nothing else. No Unity, no accounts, no installer.
+
+
+STEP 1 - DOWNLOAD
+
+Right-click TheBlockUnity-Windows.zip in this folder and choose Download.
+
+Google Drive will say it cannot scan the file for viruses because it is too big. That is normal for a 1.1 GB file. Click "Download anyway".
+
+Chrome or Edge may add its own warning at the bottom of the window, along the lines of "is not commonly downloaded". Click Keep. The file is unsigned, not unsafe - see step 5.
+
+It is a big file, so give it a few minutes.
+
+
+STEP 2 - EXTRACT IT. DO NOT RUN IT FROM INSIDE THE ZIP.
+
+This is the step people skip, because Windows lets you double-click straight into a zip as if it were a folder. The game will fail there, and it will not tell you why.
+
+1. Go to your Downloads folder.
+2. Right-click TheBlockUnity-Windows.zip.
+3. Choose "Extract All...".
+4. Click Extract, and wait. It is 2.1 GB, so it takes a minute or two.
+
+You now have a folder called TheBlockUnity. Put it wherever you like - Desktop, Documents, anywhere.
+
+
+STEP 3 - THE GAME IS THE WHOLE FOLDER, NOT THE .EXE
+
+Inside TheBlockUnity you will see TheBlockUnity.exe next to a pile of other files: TheBlockUnity_Data, UnityPlayer.dll, MonoBleedingEdge, and several .dll files.
+
+The .exe is only 667 KB and does nothing on its own. It needs everything sitting beside it. So:
+
+Do NOT drag TheBlockUnity.exe out to the Desktop on its own. It will not start.
+If you want a Desktop icon, right-click TheBlockUnity.exe, choose "Show more options" if you are on Windows 11, then Send to - Desktop (create shortcut). That makes a shortcut and leaves the real file where it belongs.
+Keep the whole TheBlockUnity folder together. To move the game, move the folder.
+
+
+STEP 4 - START IT
+
+Double-click TheBlockUnity.exe inside the TheBlockUnity folder.
+
+
+STEP 5 - "WINDOWS PROTECTED YOUR PC"
+
+A blue box will appear saying "Windows protected your PC", offering only a "Don't run" button. It is not an error, and nothing is wrong with the file.
+
+1. Click "More info" - it is the small text above the button.
+2. Click "Run anyway", which appears once you do.
+
+WHY THIS HAPPENS: Windows SmartScreen warns about any program that has not been signed with a paid code-signing certificate. This is a student project, so it is unsigned. You should only have to do this the first time.
+
+If your antivirus quarantines or deletes the file instead, restore it and allow it. Same cause, same reason.
+
+
+STEP 6 - PLAY
+
+The first launch takes a few extra seconds while the city loads. That is the whole city being built, not a hang.
+
+To quit: press Esc for the pause menu, or Alt + F4.
+
+To uninstall: delete the TheBlockUnity folder. There is no installer, and nothing is left behind in Program Files.
+
+
+CONTROLS
+
+ON FOOT
+
+W A S D, or the arrow keys - Move
+Alt (hold) - Jog
+Shift (hold) - Sprint
+Space - Jump
+E - Enter a vehicle, enter a building, shop at the 7-Eleven
+T - Talk, and start a job
+F - Deliver, act, or retry a failed mission
+1 2 3 4 - Use a power-up
+
+DRIVING AND FLYING
+
+W A S D - Drive and steer
+Space - Brake, or hold it at a gas pump to refuel
+E - Get out
+R - Respawn, or flip the car back over
+Space / Shift - Helicopter up / down
+
+ANY TIME
+
+M - Map
+N - Mute
+Esc - Pause menu
+Arrow keys - Dance, hit the arrows in the rhythm mission
+
+
+THE CAMPAIGN
+
+Four missions, unlocked in order. Mission Select on the title screen jumps to any mission you have already reached.
+
+1. The Block Pizza Run - take a shift at the pizzeria and deliver five pizzas across the city against a clock.
+2. Dance Battle - a rhythm minigame running on a real audio clock.
+3. Rooftop Rescue - fly the helicopter, land on roofs, lift survivors off them.
+4. Jetski Chase - nine buoy gates across the sea, then run the thief down on the sand.
+
+Or ignore all of it and just drive. There is a wanted system with real police pursuit, carjacking, a fuel tank that runs dry, a 7-Eleven that sells four power-ups, and a day/night cycle under Settings - Display.
+
+Have fun.

@@ -12,9 +12,12 @@ where.
 
 ## 1 - What this is
 
-`The Block` is a shipped browser game: an Israeli GTA-style 3D mini open world set in Florentin,
-Tel Aviv. three.js + Rapier + Vite + TypeScript, 175 modules / ~26.8k LOC, 4-mission campaign,
-live on Vercel.
+`The Block` is a shipped browser game: an Israeli GTA-style 3D mini open world. three.js + Rapier +
+Vite + TypeScript, 175 modules / ~26.8k LOC, 4-mission campaign, live on Vercel.
+
+**The world has no named real-world setting.** Never describe it as Florentin or Tel Aviv - the
+user's call, 2026-08-20 - in prose, code comments, docs, commits, kanban copy or player-facing
+strings. Older text in this repo still carries that framing; it is stale, not authoritative.
 
 This repo rebuilds it in **Unity 6** (6000.5.8f1, URP).
 

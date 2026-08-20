@@ -168,6 +168,17 @@ Assets/Police_officer.meta
 /perf-sweep-out/
 /perf-recheck-out/
 
+# Press photographs, taken by tools/press-shots.sh. Out for the same reason and one more:
+# .gitattributes routes *.png through LFS, and this account's 1 GiB is already shared with the
+# original repo, so a dozen 4K frames whose destination is an upload box would be a real bite out
+# of a budget the assets need. Re-shootable at any time from PhotoProbe.cs's shot table.
+/press-out/
+
+# The reference set handed to an image model, built by tools/gemini-shots.sh. Same LFS reasoning as
+# press-out/ above, and it is derived from press-out/ anyway - every file in it is one script run
+# away from existing again.
+/photos for gemini/
+
 # Written by Unity's Performance Testing package when it builds a development Player. Empty stubs
 # (`{"MeasurementCount":-1}`), regenerated on every build, and they land in Assets/Resources so
 # they would otherwise ship inside the game.
