@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr" data-lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -60,11 +60,65 @@
   body {
     background: var(--bg);
     color: var(--fg);
-    font-family: ui-sans-serif, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-family: ui-sans-serif, -apple-system, 'Segoe UI', 'Heebo', 'Assistant',
+      'Noto Sans Hebrew', 'Arial Hebrew', Roboto, Helvetica, Arial, sans-serif;
     font-size: 16px;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
   }
+
+  /* --- language toggle ------------------------------------------------- */
+  [data-lang='en'] .he,
+  [data-lang='he'] .en {
+    display: none !important;
+  }
+  .langtoggle {
+    position: fixed;
+    top: 14px;
+    inset-inline-end: 14px;
+    z-index: 20;
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--panel);
+    direction: ltr;
+  }
+  .langtoggle button {
+    appearance: none;
+    border: 0;
+    cursor: pointer;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 650;
+    line-height: 1;
+    padding: 7px 13px;
+    border-radius: 999px;
+  }
+  .langtoggle button:hover {
+    color: var(--fg);
+  }
+  .langtoggle button[aria-pressed='true'] {
+    background: var(--accent);
+    color: #fff;
+  }
+  /* Diagrams are drawn left-to-right in both languages - only their text
+     is translated, so the container opts out of the RTL flip. */
+  .scroll {
+    direction: ltr;
+  }
+  /* Each SVG label picks its own direction from its first strong character,
+     so a Hebrew caption reads RTL while `PlayerPrefs` stays intact. */
+  svg text {
+    unicode-bidi: plaintext;
+  }
+  html[dir='rtl'] .stats {
+    font-feature-settings: normal;
+  }
+
   .page {
     max-width: 1120px;
     margin: 0 auto;
@@ -126,10 +180,15 @@
     border: 1px solid var(--line);
     border-radius: 4px;
     padding: 1px 5px;
+    /* An identifier is always LTR, and its leading dot or slash belongs to it -
+       without the isolate, `.app` reads as `app.` inside a Hebrew sentence. */
+    direction: ltr;
+    unicode-bidi: isolate;
   }
   ol.flow {
     max-width: 74ch;
-    padding-left: 20px;
+    padding-inline-start: 20px;
+    padding-inline-end: 0;
     margin: 0 0 14px;
   }
   ol.flow > li {
@@ -252,9 +311,10 @@
   }
   th,
   td {
-    text-align: left;
+    text-align: start;
     vertical-align: top;
-    padding: 9px 12px 9px 0;
+    padding-block: 9px;
+    padding-inline: 0 12px;
     border-bottom: 1px solid var(--line);
   }
   th {
@@ -267,16 +327,18 @@
   td:first-child {
     font-weight: 600;
     white-space: nowrap;
-    padding-right: 20px;
+    padding-inline-end: 20px;
   }
   .tablewrap {
     overflow-x: auto;
   }
   .callout {
-    border-left: 3px solid var(--accent);
+    border-inline-start: 3px solid var(--accent);
     background: var(--accent-soft);
     padding: 14px 18px;
-    border-radius: 0 8px 8px 0;
+    border-radius: 0;
+    border-start-end-radius: 8px;
+    border-end-end-radius: 8px;
     margin: 24px 0;
   }
   .callout p {
@@ -293,44 +355,79 @@
 </head>
 <body>
 
+<nav class="langtoggle" aria-label="Language / שפה">
+  <button type="button" data-lang="en" aria-pressed="true" lang="en">EN</button>
+  <button type="button" data-lang="he" aria-pressed="false" lang="he">עברית</button>
+</nav>
+
 <div class="page">
   <header class="top">
     <p class="kicker">The Block · Unity 6</p>
-    <h1>APIs, tools &amp; libraries - and the flow between them</h1>
-    <p class="sub">
+    <h1 class="en">APIs, tools &amp; libraries - and the flow between them</h1>
+    <h1 class="he">ממשקי API, כלים וספריות - והזרימה ביניהם</h1>
+    <p class="sub en">
       An Israeli GTA-style 3D mini open world built in Unity 6 (URP) and
       shipped as a desktop app for macOS and Windows. Four diagrams: what the game calls while you play, the order the engine
       calls it in every frame, what the Editor does long before the game runs, and the AI toolchain
       that drives all of it.
     </p>
-    <ul class="stats">
+    <p class="sub he">
+      עולם פתוח קטן בתלת-ממד, ישראלי ובסגנון GTA, שנבנה ב-Unity 6 (URP) ונארז כאפליקציית שולחן
+      עבודה ל-macOS ול-Windows. ארבעה תרשימים מסבירים אותו: במה המשחק משתמש בזמן שמשחקים בו, באיזה
+      סדר המנוע קורא לכל חלק בכל פריים, מה קורה בעורך הרבה לפני שהמשחק בכלל רץ, ומהי שרשרת כלי
+      ה-AI שמניעה את כל אלה.
+    </p>
+    <ul class="stats en">
       <li><b>162</b> runtime scripts, <b>38,923</b> lines</li>
       <li><b>54</b> Editor scripts, <b>20,602</b> lines</li>
       <li><b>52</b> build menu items</li>
       <li><b>Unity 6000.5.8f1</b>, URP</li>
     </ul>
+    <ul class="stats he">
+      <li><b>162</b> סקריפטים של זמן ריצה, <b>38,923</b> שורות</li>
+      <li><b>54</b> סקריפטים של העורך, <b>20,602</b> שורות</li>
+      <li><b>52</b> פריטי תפריט בנייה</li>
+      <li><b>Unity 6000.5.8f1</b>, URP</li>
+    </ul>
   </header>
 
-  <p class="kicker">1 - Runtime</p>
-  <h2>What the app actually calls while you play</h2>
-  <p>
+  <p class="kicker en">1 - Runtime</p>
+  <p class="kicker he">1 - זמן ריצה</p>
+  <h2 class="en">What the app actually calls while you play</h2>
+  <h2 class="he">במה האפליקציה באמת משתמשת בזמן המשחק</h2>
+  <p class="en">
     The whole game is <strong>one desktop process</strong> - a <code>.app</code> bundle on macOS, a
     folder beside <code>TheBlockUnity.exe</code> on Windows. There is no server, no database, no
     login and no LLM at runtime - and no network at all: nothing is fetched while you play, because
     every mesh, texture, clip and scene is already inside the build. The game talks to Unity's own
     subsystems and to nothing else.
   </p>
-  <p>
+  <p class="he">
+    כל המשחק הוא <strong>תהליך שולחני יחיד</strong> - חבילת <code>.app</code> ב-macOS, ותיקייה
+    שיושבת לצד <code>TheBlockUnity.exe</code> ב-Windows. אין שרת, אין בסיס נתונים, אין התחברות
+    ואין מודל שפה בזמן ריצה - ולמעשה אין רשת בכלל: שום דבר לא נמשך מהאינטרנט בזמן המשחק, מפני שכל
+    מודל, טקסטורה, קליפ אנימציה וסצנה כבר ארוזים בתוך הבילד עצמו. המשחק מדבר רק עם תת-המערכות של
+    Unity, ועם שום דבר מעבר להן.
+  </p>
+  <p class="en">
     Most of what is installed is Editor-side; six subsystems do work while the game is running. The
     one API that reaches the disk is <code>PlayerPrefs</code>, and it holds eleven fixed keys plus
     three that expand per item. It is also the only line in the diagram whose destination is
     OS-specific: a plist under <code>~/Library/Preferences</code> on macOS, a registry key under
     <code>HKCU\Software</code> on Windows. Unity decides that, not the game.
   </p>
+  <p class="he">
+    רוב מה שמותקן בפרויקט חי בצד העורך בלבד; רק שש תת-מערכות עושות עבודה בפועל בזמן שהמשחק רץ.
+    ה-API היחיד שנוגע בדיסק הוא <code>PlayerPrefs</code>, והוא מחזיק אחד-עשר מפתחות קבועים ועוד
+    שלושה שמתרבים לפי מספר הפריטים (מכונית שנצבעה, שדרוג שנקנה). זו גם השורה היחידה בתרשים שהיעד
+    שלה משתנה בין מערכות הפעלה: קובץ plist תחת <code>~/Library/Preferences</code> ב-macOS, ומפתח
+    ברג׳יסטרי תחת <code>HKCU\Software</code> ב-Windows. Unity היא שקובעת את זה, לא קוד המשחק.
+  </p>
 
   <figure>
     <div class="scroll">
       <svg
+        class="en"
         viewBox="0 0 1000 500"
         role="img"
         aria-label="Runtime architecture: the built desktop app - a macOS bundle or a Windows folder - launches one process containing the Unity engine loop, which drives URP on Metal or Direct3D, PhysX, the Input System, Mecanim plus NavMesh, UI Toolkit and the audio mixer; the only call that leaves the process writes PlayerPrefs to disk."
@@ -409,15 +506,101 @@
         <text class="lbl" x="660" y="428">11 keys - mission unlocks, cash, settings.</text>
         <text class="lbl" x="660" y="446">The only state that outlives the process.</text>
       </svg>
+
+      <svg
+        class="he"
+        viewBox="0 0 1000 500"
+        role="img"
+        aria-label="ארכיטקטורת זמן ריצה: האפליקציה הבנויה - חבילת macOS או תיקיית Windows - מפעילה תהליך יחיד שמכיל את לולאת המנוע של Unity, וזו מניעה את URP מעל Metal או Direct3D, את PhysX, את מערכת הקלט, את Mecanim ו-NavMesh, את UI Toolkit ואת מערבל השמע; הקריאה היחידה שיוצאת מהתהליך כותבת את PlayerPrefs לדיסק."
+      >
+        <defs>
+          <marker id="r1h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="currentColor" />
+          </marker>
+          <marker id="r1xh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="var(--accent)" />
+          </marker>
+        </defs>
+
+        <rect class="box" x="20" y="152" width="190" height="100" rx="8" />
+        <text class="t" x="115" y="180" text-anchor="middle">The Block</text>
+        <text class="s" x="115" y="199" text-anchor="middle">‏חבילת macOS · תיקיית Windows</text>
+        <text class="m" x="115" y="220" text-anchor="middle">Standalone, Mono</text>
+        <text class="m" x="115" y="240" text-anchor="middle">2.1 GB כל אחת</text>
+
+        <line class="edge" x1="210" y1="200" x2="248" y2="200" marker-end="url(#r1h)" />
+        <text class="lbl" x="229" y="192" text-anchor="middle">הפעלה</text>
+
+        <rect class="frame" x="252" y="28" width="728" height="346" rx="10" />
+        <text class="s" x="270" y="50">תהליך אחד - בלי שרת · בלי בקשות רשת · בלי מודל שפה</text>
+
+        <rect class="box-a" x="525" y="64" width="200" height="48" rx="6" />
+        <text class="t" x="625" y="86" text-anchor="middle">לולאת המנוע של Unity</text>
+        <text class="s" x="625" y="102" text-anchor="middle">יעד 60 fps, ‏vSync כבוי</text>
+
+        <line class="edge" x1="625" y1="112" x2="625" y2="134" />
+        <line class="edge" x1="350" y1="134" x2="900" y2="134" />
+        <line class="edge" x1="350" y1="134" x2="350" y2="148" marker-end="url(#r1h)" />
+        <line class="edge" x1="460" y1="134" x2="460" y2="148" marker-end="url(#r1h)" />
+        <line class="edge" x1="570" y1="134" x2="570" y2="148" marker-end="url(#r1h)" />
+        <line class="edge" x1="680" y1="134" x2="680" y2="148" marker-end="url(#r1h)" />
+        <line class="edge" x1="790" y1="134" x2="790" y2="148" marker-end="url(#r1h)" />
+        <line class="edge" x1="900" y1="134" x2="900" y2="148" marker-end="url(#r1h)" />
+
+        <rect class="box" x="300" y="150" width="100" height="94" rx="6" />
+        <text class="t" x="350" y="180" text-anchor="middle">URP 17.5</text>
+        <text class="s" x="350" y="200" text-anchor="middle">Metal · Direct3D</text>
+        <text class="m" x="350" y="222" text-anchor="middle">אור ראשי אחד</text>
+
+        <rect class="box" x="410" y="150" width="100" height="94" rx="6" />
+        <text class="t" x="460" y="180" text-anchor="middle">PhysX</text>
+        <text class="s" x="460" y="200" text-anchor="middle">רכבים, גופים</text>
+        <text class="m" x="460" y="222" text-anchor="middle">צעד 50 Hz</text>
+
+        <rect class="box" x="520" y="150" width="100" height="94" rx="6" />
+        <text class="t" x="570" y="180" text-anchor="middle">קלט</text>
+        <text class="s" x="570" y="200" text-anchor="middle">דגימת מקשים</text>
+        <text class="m" x="570" y="222" text-anchor="middle">Keyboard</text>
+
+        <rect class="box" x="630" y="150" width="100" height="94" rx="6" />
+        <text class="t" x="680" y="180" text-anchor="middle">Mecanim</text>
+        <text class="s" x="680" y="200" text-anchor="middle">+ NavMesh</text>
+        <text class="m" x="680" y="222" text-anchor="middle">שלדים, סוכנים</text>
+
+        <rect class="box" x="740" y="150" width="100" height="94" rx="6" />
+        <text class="t" x="790" y="180" text-anchor="middle">UI Toolkit</text>
+        <text class="s" x="790" y="200" text-anchor="middle">‏HUD, תפריטים</text>
+        <text class="m" x="790" y="222" text-anchor="middle">‏C#‎, בלי UXML</text>
+
+        <rect class="box" x="850" y="150" width="100" height="94" rx="6" />
+        <text class="t" x="900" y="180" text-anchor="middle">שמע</text>
+        <text class="s" x="900" y="200" text-anchor="middle">7 ערוצי מערבל</text>
+        <text class="m" x="900" y="222" text-anchor="middle">27 קליפים</text>
+
+        <polyline class="edge-a" points="545,112 545,124 274,124 274,432 296,432" marker-end="url(#r1xh)" />
+        <text class="lbl-a" x="286" y="300">הקריאה היחידה שמגיעה לדיסק</text>
+
+        <rect class="box-a" x="300" y="400" width="340" height="64" rx="8" />
+        <text class="t" x="470" y="428" text-anchor="middle">PlayerPrefs</text>
+        <text class="m" x="470" y="450" text-anchor="middle">theblock.unlocked · theblock.cash · theblock.character · …</text>
+
+        <text class="lbl" x="660" y="428">11 מפתחות - פתיחת משימות, כסף, הגדרות.</text>
+        <text class="lbl" x="660" y="446">המצב היחיד ששורד אחרי סגירת התהליך.</text>
+      </svg>
     </div>
-    <figcaption>
+    <figcaption class="en">
       A browser build has to fetch its world; this one does not. Everything the game needs was
       resolved at import and build time (diagram 3), so at play time there is no loader, no
       <code>UnityWebRequest</code> anywhere in the codebase, and nothing that can 404.
     </figcaption>
+    <figcaption class="he">
+      בילד לדפדפן חייב למשוך את העולם שלו מהרשת תוך כדי משחק; הבילד הזה לא. כל מה שהמשחק צריך כבר
+      נפתר בזמן הייבוא ובזמן הבנייה (תרשים 3), ולכן בזמן משחק אין מנגנון טעינה, אין ולו קריאת
+      <code>UnityWebRequest</code> אחת בכל הקוד, ואין שום דבר שיכול להיכשל בשגיאת 404.
+    </figcaption>
   </figure>
 
-  <div class="callout">
+  <div class="callout en">
     <p>
       <strong>One codebase, two Players.</strong> Nothing above is written twice: same C#, same
       scenes, same assets, and <strong>Mono on both</strong> - IL2CPP for Windows wants the Visual
@@ -430,17 +613,39 @@
       code-signed each meets its own OS's gatekeeper - quarantine on macOS, SmartScreen on Windows.
     </p>
   </div>
+  <div class="callout he">
+    <p>
+      <strong>בסיס קוד אחד, שני Players.</strong> שום דבר ממה שלמעלה לא נכתב פעמיים: אותו קוד C#‎,
+      אותן סצנות, אותם אסטים, ו-<strong>Mono בשתי הפלטפורמות</strong> - כדי לבנות IL2CPP ל-Windows
+      דרושה שרשרת הכלים של Visual Studio על מכונת Windows אמיתית, ולכן מארח Mac יכול לבנות Mono או
+      לא לבנות בכלל. מה שכן שונה באמת הוא סט השיידרים, שמתקמפל מחדש מ-<strong>Metal ל-Direct3D</strong>
+      בזמן הבנייה; זה היה הסיכון האמיתי היחיד במעבר, ורשימת <code>Shader.Find</code> של זמן הריצה
+      עברה בשלמותה - ולכן בילד ה-Windows מצייר עיר ולא משטחי מג׳נטה. כל השאר הוא אריזה בלבד: ב-macOS
+      זהו בינארי אוניברסלי (<code>x86_64</code> יחד עם <code>arm64</code>) בתוך חבילה אחת, ב-Windows
+      זו תיקייה של Intel 64-bit שרצה על מכונות ARM דרך אמולציה, ומכיוון ששניהם אינם חתומים דיגיטלית
+      כל אחד מהם נתקל במנגנון ההגנה של מערכת ההפעלה שלו - הסגר (quarantine) ב-macOS, ו-SmartScreen
+      ב-Windows.
+    </p>
+  </div>
 
-  <p class="kicker">2 - Flow</p>
-  <h2>Which API is called, and when</h2>
+  <p class="kicker en">2 - Flow</p>
+  <p class="kicker he">2 - זרימה</p>
+  <h2 class="en">Which API is called, and when</h2>
+  <h2 class="he">איזה API נקרא, ומתי</h2>
 
-  <h3>Phase A - boot, behind the loading bar</h3>
-  <p>
+  <h3 class="en">Phase A - boot, behind the loading bar</h3>
+  <h3 class="he">שלב א׳ - עלייה, מאחורי פס הטעינה</h3>
+  <p class="en">
     The game has two scenes: <code>Boot.unity</code>, which is a bar and nothing else, and
     <code>World.unity</code>, which is the entire city. <code>BootLoader</code> drives the handoff,
     and the four numbers below were measured on the Player, not guessed.
   </p>
-  <ol class="flow">
+  <p class="he">
+    למשחק יש שתי סצנות בלבד: <code>Boot.unity</code>, שאינה אלא פס טעינה, ו-<code>World.unity</code>,
+    שהיא כל העיר כולה. <code>BootLoader</code> אחראי על המעבר ביניהן, וארבעת המספרים שלמטה נמדדו על
+    הבילד הסופי עצמו, לא נוחשו.
+  </p>
+  <ol class="flow en">
     <li>
       <strong>~1.9 s</strong> - Unity's own startup: Metal or Direct3D, Mono, PhysX, subsystems. No script of
       mine has run yet.
@@ -465,21 +670,58 @@
       frozen city, so it costs nothing to leave.
     </li>
   </ol>
+  <ol class="flow he">
+    <li>
+      <strong>כ-1.9 שניות</strong> - העלייה של Unity עצמה: אתחול Metal או Direct3D, ‏Mono, ‏PhysX
+      ושאר תת-המערכות. בשלב הזה אף שורת קוד שלי עוד לא רצה.
+    </li>
+    <li>
+      קריאה ל-<code>SessionReset.Run()</code> בתוך <code>Awake</code>, <em>לפני</em> תחילת הטעינה -
+      מפני שיציאה מהמשחק חזרה לתפריט הראשי עוברת שוב דרך הסצנה הזו, כשהרישומים של העולם הקודם עדיין
+      מלאים בנתונים ישנים.
+    </li>
+    <li>
+      קריאה ל-<code>SceneManager.LoadSceneAsync("World")</code> עם
+      <code>allowSceneActivation = false</code>. ‏Unity עוצרת טעינה מוחזקת בדיוק ב-<code>progress ==
+      0.9</code>, וזה מתמפה יפה לפס התקדמות שנעצר מעצמו על 99%. השלב אורך <strong>כ-2.2 שניות</strong>,
+      והוא פריים חסום אחד ארוך: פענוח הסריאליזציה של סצנה במשקל 7.8 MB.
+    </li>
+    <li>
+      ההפעלה עצמה - <strong>245 מילישניות</strong> שבהן כל קריאות ה-<code>Awake</code> בעולם רצות
+      בבת אחת - ואחריה העלאת הטקסטורות לזיכרון הכרטיס, <strong>כ-1.9 שניות</strong>, ואז הפריים
+      הראשון עם גאומטריה אמיתית על המסך.
+    </li>
+    <li>
+      ‏<code>GameFlow</code> מציג את התפריט הראשי בזמן ש-<code>Time.timeScale = 0</code>.
+      <strong>מסך הפתיחה אינו סצנה נפרדת</strong>: הוא שכבת UI Toolkit שמצוירת מעל העיר הטעונה
+      והקפואה, ולכן היציאה ממנו אל תוך המשחק אינה עולה זמן טעינה כלל.
+    </li>
+  </ol>
 
-  <h3>Phase B - menu</h3>
-  <p>
+  <h3 class="en">Phase B - menu</h3>
+  <h3 class="he">שלב ב׳ - תפריט</h3>
+  <p class="en">
     Every panel in <code>UI/Menus</code> is dumb: it draws itself and raises a callback.
     <code>GameFlow</code> owns all the decisions - who is on screen, what <code>Esc</code> does, and
     when the clock starts. <em>Continue</em> reads <code>PlayerPrefs</code> and restores the
     unlocked mission; <em>New Game</em> clears it. Then <code>timeScale</code> goes to 1 and the loop
     below starts running for real.
   </p>
+  <p class="he">
+    כל פאנל בתיקייה <code>UI/Menus</code> הוא "טיפש" בכוונה: הוא רק מצייר את עצמו ומרים callback
+    כשלוחצים עליו. <code>GameFlow</code> הוא זה שמחזיק את כל ההחלטות - מי מוצג על המסך, מה מקש
+    <code>Esc</code> עושה בכל רגע, ומתי שעון המשחק מתחיל לרוץ. <em>המשך משחק</em> קורא את
+    <code>PlayerPrefs</code> ומשחזר את המשימה האחרונה שנפתחה; <em>משחק חדש</em> מוחק אותם. משם
+    <code>timeScale</code> עולה ל-1 והלולאה שמתוארת למטה מתחילה לרוץ באמת.
+  </p>
 
-  <h3>Phase C - every frame</h3>
+  <h3 class="en">Phase C - every frame</h3>
+  <h3 class="he">שלב ג׳ - כל פריים ופריים</h3>
 
   <figure>
     <div class="scroll">
       <svg
+        class="en"
         viewBox="0 0 1180 250"
         role="img"
         aria-label="The per-frame call order in Unity: FixedUpdate zero to n times at 50 hertz, then the PhysX solve and collision callbacks, then Update, then the engine's animation update, then LateUpdate, then the URP render; the engine schedules the next frame."
@@ -547,8 +789,78 @@
           the engine schedules the next frame - nothing in this project writes the loop
         </text>
       </svg>
+
+      <svg
+        class="he"
+        viewBox="0 0 1180 250"
+        role="img"
+        aria-label="סדר הקריאות בכל פריים ב-Unity: ‏FixedUpdate מאפס עד n פעמים בקצב 50 הרץ, אחריו פתרון PhysX וקריאות ההתנגשות, אחריו Update, אחריו עדכון האנימציה של המנוע, אחריו LateUpdate, ולבסוף הרינדור של URP; המנוע מתזמן את הפריים הבא."
+      >
+        <defs>
+          <marker id="f1h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="currentColor" />
+          </marker>
+        </defs>
+
+        <rect class="box" x="25" y="60" width="155" height="100" rx="7" />
+        <circle class="ring" cx="45" cy="80" r="10" />
+        <text class="num" x="45" y="84" text-anchor="middle">1</text>
+        <text class="t" x="102" y="110" text-anchor="middle">FixedUpdate</text>
+        <text class="s" x="102" y="128" text-anchor="middle">0–n פעמים, 50 Hz</text>
+        <text class="m" x="102" y="148" text-anchor="middle">CarController</text>
+
+        <line class="edge" x1="180" y1="110" x2="216" y2="110" marker-end="url(#f1h)" />
+
+        <rect class="box-a" x="220" y="60" width="155" height="100" rx="7" />
+        <circle class="ring" cx="240" cy="80" r="10" />
+        <text class="num" x="240" y="84" text-anchor="middle">2</text>
+        <text class="t" x="297" y="110" text-anchor="middle">פתרון PhysX</text>
+        <text class="s" x="297" y="128" text-anchor="middle">מגעים, גלגלים</text>
+        <text class="m" x="297" y="148" text-anchor="middle">OnCollisionEnter</text>
+
+        <line class="edge" x1="375" y1="110" x2="411" y2="110" marker-end="url(#f1h)" />
+
+        <rect class="box" x="415" y="60" width="155" height="100" rx="7" />
+        <circle class="ring" cx="435" cy="80" r="10" />
+        <text class="num" x="435" y="84" text-anchor="middle">3</text>
+        <text class="t" x="492" y="110" text-anchor="middle">Update</text>
+        <text class="s" x="492" y="128" text-anchor="middle">קלט · משימות · AI</text>
+        <text class="m" x="492" y="148" text-anchor="middle">CampaignRunner</text>
+
+        <line class="edge" x1="570" y1="110" x2="606" y2="110" marker-end="url(#f1h)" />
+
+        <rect class="box" x="610" y="60" width="155" height="100" rx="7" />
+        <circle class="ring" cx="630" cy="80" r="10" />
+        <text class="num" x="630" y="84" text-anchor="middle">4</text>
+        <text class="t" x="687" y="110" text-anchor="middle">אנימציה</text>
+        <text class="s" x="687" y="128" text-anchor="middle">המנוע, לא סקריפט</text>
+        <text class="m" x="687" y="148" text-anchor="middle">Animator · Agent</text>
+
+        <line class="edge" x1="765" y1="110" x2="801" y2="110" marker-end="url(#f1h)" />
+
+        <rect class="box" x="805" y="60" width="155" height="100" rx="7" />
+        <circle class="ring" cx="825" cy="80" r="10" />
+        <text class="num" x="825" y="84" text-anchor="middle">5</text>
+        <text class="t" x="882" y="110" text-anchor="middle">LateUpdate</text>
+        <text class="s" x="882" y="128" text-anchor="middle">מצלמה · HUD · מפה</text>
+        <text class="m" x="882" y="148" text-anchor="middle">FollowCamera</text>
+
+        <line class="edge" x1="960" y1="110" x2="996" y2="110" marker-end="url(#f1h)" />
+
+        <rect class="box-a" x="1000" y="60" width="155" height="100" rx="7" />
+        <circle class="ring" cx="1020" cy="80" r="10" />
+        <text class="num" x="1020" y="84" text-anchor="middle">6</text>
+        <text class="t" x="1077" y="110" text-anchor="middle">רינדור URP</text>
+        <text class="s" x="1077" y="128" text-anchor="middle">מפה קטנה, ואז המסך</text>
+        <text class="m" x="1077" y="148" text-anchor="middle">Camera.Render</text>
+
+        <polyline class="edge" points="1077,160 1077,205 102,205 102,162" marker-end="url(#f1h)" />
+        <text class="lbl" x="590" y="197" text-anchor="middle">
+          המנוע מתזמן את הפריים הבא - שום דבר בפרויקט הזה לא כותב את הלולאה
+        </text>
+      </svg>
     </div>
-    <figcaption>
+    <figcaption class="en">
       This order is Unity's, not mine: a script does not call the next system, it registers a method
       in one of these slots. That is the whole architectural difference from a hand-written frame
       loop, and it decides where code has to live. Wheels and throttle are in
@@ -558,9 +870,19 @@
       sit in box 1, nine in box 5, and exactly one - the skinning watchdog - needed an explicit
       <code>[DefaultExecutionOrder(1000)]</code> to run last within its slot.
     </figcaption>
+    <figcaption class="he">
+      הסדר הזה שייך ל-Unity, לא לי: סקריפט אף פעם לא קורא בעצמו לתת-המערכת הבאה, הוא רק רושם מתודה
+      באחת המשבצות שבתרשים. זה כל ההבדל הארכיטקטוני בין מנוע לבין לולאת פריים שכותבים ביד, וזה מה
+      שקובע היכן כל פיסת קוד חייבת לשבת. הגלגלים והגז יושבים ב-<strong>FixedUpdate</strong> (תיבה 1)
+      מפני שכוח שמופעל בקצב הפריימים מתנהג כמו מכונית אחרת לגמרי על מחשב מהיר יותר; מצלמת המעקב
+      וה-HUD יושבים ב-<strong>LateUpdate</strong> (תיבה 5) מפני שקריאת מיקום באותה משבצת שגם כותבת
+      אותו גורמת לפיגור של פריים שלם. עשרה סקריפטים יושבים בתיבה 1, תשעה בתיבה 5, ובדיוק אחד - שומר
+      הראש של ה-skinning - נזקק ל-<code>[DefaultExecutionOrder(1000)]</code> מפורש כדי לרוץ אחרון
+      בתוך המשבצת שלו.
+    </figcaption>
   </figure>
 
-  <p>
+  <p class="en">
     Three systems worth naming, because they are what the boxes above are mostly running:
     <code>CampaignRunner</code> is the campaign's single reactor - cursor, police rules, retry key,
     payout, HUD lines - and owns no gameplay of its own; a mission spawns its own actors and is only
@@ -570,10 +892,22 @@
     <code>CrowdSpawner</code> keep the city populated around the player and recycle everything
     behind them.
   </p>
+  <p class="he">
+    שלוש מערכות ראויות לשם מפורש, מפני שהן מה שהתיבות שלמעלה מריצות רוב הזמן:
+    <code>CampaignRunner</code> הוא הריאקטור היחיד של הקמפיין - הסמן על המפה, חוקי המשטרה, מקש
+    הניסיון החוזר, התשלום בסוף המשימה ושורות ה-HUD - ואין לו גיימפליי משל עצמו; כל משימה יוצרת את
+    השחקנים והאובייקטים שלה, ונשאלת רק על <code>MissionStatus</code> - האם היא רצה, הצליחה או
+    נכשלה. <code>CrimeWatch</code> ו-<code>Heat</code> יחד מחזיקים את רמת המבוקשות, ו-<code>PoliceSystem</code>
+    מייצר ניידות שנוסעות על גלגלי PhysX, בעוד שהשוטר שיוצא מהנידת הולך על <code>NavMeshAgent</code>.
+    ‏<code>TrafficSystem</code> ו-<code>CrowdSpawner</code> דואגים שהעיר תהיה מאוכלסת סביב השחקן,
+    וממחזרים כל מכונית והולך רגל שנשארו מאחוריו.
+  </p>
 
-  <p class="kicker">3 - Editor time</p>
-  <h2>The pipeline that runs before the game ever does</h2>
-  <p>
+  <p class="kicker en">3 - Editor time</p>
+  <p class="kicker he">3 - זמן עורך</p>
+  <h2 class="en">The pipeline that runs before the game ever does</h2>
+  <h2 class="he">הצינור שרץ עוד לפני שהמשחק בכלל מופעל</h2>
+  <p class="en">
     In a browser build, loading art is a runtime problem. In Unity it is an <em>import</em> problem,
     and that is where most of this project's tooling lives: <strong>54 Editor scripts, 20,602
     lines</strong>, exposing a <strong>52-item <code>The Block</code> menu</strong>. Those builders
@@ -581,10 +915,18 @@
     police are all generated by a menu item from constants in <code>TheBlockConfig</code>, never
     dragged into place by hand.
   </p>
+  <p class="he">
+    בבילד לדפדפן, טעינת האמנות היא בעיה של זמן ריצה. ב-Unity זו בעיה של <em>ייבוא</em>, ושם יושב רוב
+    הכלים שנכתבו לפרויקט הזה: <strong>54 סקריפטים של העורך, ‏20,602 שורות</strong>, שחושפים
+    <strong>תפריט <code>The Block</code> בן 52 פריטים</strong>. הבנאים האלה הם הסיבה שהסצנה ניתנת
+    לשחזור מלא - העיר, המכוניות, ה-HUD, המשימות והמשטרה כולם נוצרים בלחיצה על פריט תפריט, מתוך
+    קבועים שיושבים ב-<code>TheBlockConfig</code>, ואף אחד מהם לא נגרר למקומו ביד.
+  </p>
 
   <figure>
     <div class="scroll">
       <svg
+        class="en"
         viewBox="0 0 1000 430"
         role="img"
         aria-label="Editor-time pipeline: 52 glb and fbx source models are imported by glTFast, textures are extracted and compressed, producing 38 prefabs; the 52-item The Block menu builds those into World.unity, which is baked for NavMesh and then built by BuildPipeline into the macOS and Windows Players."
@@ -651,8 +993,77 @@
         <text class="s" x="700" y="379" text-anchor="middle">StandaloneOSX · StandaloneWindows64</text>
         <text class="m" x="700" y="400" text-anchor="middle">Mono · 2.1 GB · 1.09 GiB zipped</text>
       </svg>
+
+      <svg
+        class="he"
+        viewBox="0 0 1000 430"
+        role="img"
+        aria-label="הצינור בזמן העורך: ‏52 מודלים בפורמט glb ו-fbx מיובאים על ידי glTFast, הטקסטורות מחולצות ונדחסות, והתוצאה היא 38 prefabs; תפריט The Block בן 52 הפריטים בונה מהם את World.unity, שנאפית ל-NavMesh ואז נבנית על ידי BuildPipeline ל-Players של macOS ו-Windows."
+      >
+        <defs>
+          <marker id="e1h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="currentColor" />
+          </marker>
+          <marker id="e1xh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="var(--accent)" />
+          </marker>
+        </defs>
+
+        <text class="lbl" x="222" y="72" text-anchor="middle">בעת הייבוא</text>
+        <text class="lbl" x="462" y="72" text-anchor="middle">חילוץ + BC7</text>
+        <text class="lbl" x="702" y="72" text-anchor="middle">קישור מחדש</text>
+
+        <rect class="box" x="30" y="84" width="180" height="80" rx="7" />
+        <text class="t" x="120" y="112" text-anchor="middle">52 קבצי glb / fbx</text>
+        <text class="s" x="120" y="131" text-anchor="middle">Sketchfab · Mixamo, CC0</text>
+        <text class="m" x="120" y="152" text-anchor="middle">Assets/Models</text>
+
+        <line class="edge" x1="210" y1="124" x2="232" y2="124" marker-end="url(#e1h)" />
+
+        <rect class="box" x="236" y="84" width="190" height="80" rx="7" />
+        <text class="t" x="331" y="112" text-anchor="middle">glTFast + Draco</text>
+        <text class="s" x="331" y="131" text-anchor="middle">גאומטריה וחומרים</text>
+        <text class="m" x="331" y="152" text-anchor="middle">אווטארים Humanoid</text>
+
+        <line class="edge" x1="426" y1="124" x2="448" y2="124" marker-end="url(#e1h)" />
+
+        <rect class="box" x="452" y="84" width="190" height="80" rx="7" />
+        <text class="t" x="547" y="112" text-anchor="middle">TextureCompressor</text>
+        <text class="s" x="547" y="131" text-anchor="middle">טקסטורות glTF מגיעות ללא דחיסה</text>
+        <text class="m" x="547" y="152" text-anchor="middle">+ PrefabTextureRebinder</text>
+
+        <line class="edge" x1="642" y1="124" x2="664" y2="124" marker-end="url(#e1h)" />
+
+        <rect class="box" x="668" y="84" width="180" height="80" rx="7" />
+        <text class="t" x="758" y="112" text-anchor="middle">38 prefabs</text>
+        <text class="s" x="758" y="131" text-anchor="middle">רכבים · דמויות · אביזרים</text>
+        <text class="m" x="758" y="152" text-anchor="middle">Assets/Prefabs</text>
+
+        <polyline class="edge" points="758,164 758,190 500,190 500,214" marker-end="url(#e1h)" />
+
+        <rect class="box-a" x="180" y="216" width="640" height="82" rx="8" />
+        <text class="t" x="500" y="246" text-anchor="middle">‏The Block ▸ Build … - 52 פריטי תפריט</text>
+        <text class="s" x="500" y="266" text-anchor="middle">54 סקריפטים של העורך · 20,602 שורות · כל אובייקט ממוקם מתוך קוד</text>
+        <text class="m" x="500" y="287" text-anchor="middle">WorldBuilder · CarBuilder · CrowdBuilder · HudBuilder · MissionBuilder · …</text>
+
+        <line class="edge" x1="300" y1="298" x2="300" y2="330" marker-end="url(#e1h)" />
+        <line class="edge" x1="700" y1="330" x2="700" y2="298" marker-end="url(#e1h)" />
+
+        <rect class="box" x="150" y="332" width="300" height="80" rx="7" />
+        <text class="t" x="300" y="360" text-anchor="middle">World.unity</text>
+        <text class="s" x="300" y="379" text-anchor="middle">סצנה אחת, 7.8 MB</text>
+        <text class="m" x="300" y="400" text-anchor="middle">+ אפיית NavMesh ‏(AI Navigation)</text>
+
+        <line class="edge" x1="450" y1="372" x2="546" y2="372" marker-end="url(#e1h)" />
+        <text class="lbl" x="498" y="364" text-anchor="middle">בניית Player</text>
+
+        <rect class="box-a" x="550" y="332" width="300" height="80" rx="7" />
+        <text class="t" x="700" y="360" text-anchor="middle">BuildPipeline.BuildPlayer</text>
+        <text class="s" x="700" y="379" text-anchor="middle">StandaloneOSX · StandaloneWindows64</text>
+        <text class="m" x="700" y="400" text-anchor="middle">Mono · 2.1 GB · 1.09 GiB בקובץ zip</text>
+      </svg>
     </div>
-    <figcaption>
+    <figcaption class="en">
       Two Unity behaviours forced the middle of this chain and are worth calling out: textures that
       arrive inside a <code>.glb</code> have no importer of their own, so they stay uncompressed
       until <code>Compress Textures</code> extracts them and
@@ -665,21 +1076,43 @@
       switch plus <code>File ▸ Build Settings</code>, with the output folder typed into a save panel
       by hand.
     </figcaption>
+    <figcaption class="he">
+      שתי התנהגויות של Unity הן שהכתיבו את אמצע השרשרת הזו, ושתיהן שוות הסבר: לטקסטורות שמגיעות
+      בתוך קובץ <code>.glb</code> אין importer משלהן, ולכן הן נשארות ללא דחיסה עד ש-<code>Compress
+      Textures</code> מחלץ אותן לקבצים נפרדים ו-<code>Rebind Compressed Textures</code> מפנה כל
+      prefab וכל חומר אל העותק המחולץ; ובנוסף, ה-importer הוא זה שמחזיק את ההגדרות ולא מעבר תפריט
+      חד-פעמי - מחיקה של תיקיית <code>Library</code> מייבאת הכול מחדש מתוך קובצי ה-<code>.meta</code>,
+      ולכן כל הגדרה שהוחלה פעם אחת ביד פשוט חוזרת בשקט למצבה הקודם. הצעד האחרון הוא המקום היחיד שבו
+      שתי הפלטפורמות אינן סימטריות: ה-Player של macOS נבנה מתוך סקריפט - <code>PlayerBuilder</code>
+      מקבע את רשימת הסצנות ואת תיקיית הפלט, ומסרב לרוץ אם היעד הפעיל אינו <code>StandaloneOSX</code> -
+      בעוד שה-Player של Windows נבנה בהחלפת פלטפורמה ידנית ואז <code>File ▸ Build Settings</code>,
+      כשתיקיית הפלט מוקלדת ביד בחלון השמירה.
+    </figcaption>
   </figure>
 
-  <p class="kicker">4 - Toolchain</p>
-  <h2>How the work gets done</h2>
-  <p>
+  <p class="kicker en">4 - Toolchain</p>
+  <p class="kicker he">4 - שרשרת הכלים</p>
+  <h2 class="en">How the work gets done</h2>
+  <h2 class="he">איך העבודה עצמה נעשית</h2>
+  <p class="en">
     The course's subject is building with AI, so this is not a footnote: the Editor, Blender and the
     measurement runs are all driven from one Claude Code session over the
     <strong>Model Context Protocol</strong>. Two MCP servers are connected, and each is a real
     process on the machine rather than a cloud service - <em>nothing here is a paid tier</em>: no
     Unity Cloud, no Asset Store, no Unity AI credits.
   </p>
+  <p class="he">
+    נושא הקורס הוא בנייה בעזרת AI, ולכן זו לא הערת שוליים אלא חלק מהארכיטקטורה: העורך של Unity,
+    ‏Blender והרצות המדידה מונעים כולם מתוך סשן אחד של Claude Code, דרך
+    <strong>Model Context Protocol</strong> - פרוטוקול שמאפשר למודל להפעיל כלים חיצוניים. שני שרתי
+    MCP מחוברים, וכל אחד מהם הוא תהליך אמיתי שרץ על המחשב עצמו ולא שירות ענן -
+    <em>שום דבר כאן אינו שירות בתשלום</em>: לא Unity Cloud, לא Asset Store, ולא קרדיטים של Unity AI.
+  </p>
 
   <figure>
     <div class="scroll">
       <svg
+        class="en"
         viewBox="0 0 1000 380"
         role="img"
         aria-label="Development toolchain: Claude Code drives MCP for Unity over local JSON-RPC into the Unity Editor, the Blender MCP over TCP into Blender and the python asset scripts, and shell scripts that launch the built Player with PerfProbe to produce measurement CSVs."
@@ -736,8 +1169,67 @@
         <text class="s" x="815" y="297" text-anchor="middle">frame ms, triangles, memory</text>
         <text class="m" x="815" y="318" text-anchor="middle">ProfilerRecorder → CSV</text>
       </svg>
+
+      <svg
+        class="he"
+        viewBox="0 0 1000 380"
+        role="img"
+        aria-label="שרשרת כלי הפיתוח: ‏Claude Code מפעיל את MCP for Unity מעל JSON-RPC מקומי אל תוך עורך Unity, את Blender MCP מעל TCP אל תוך Blender וסקריפטי הפייתון לאסטים, וסקריפטי מעטפת שמריצים את הבילד הבנוי עם PerfProbe כדי להפיק קובצי CSV של מדידות."
+      >
+        <defs>
+          <marker id="t1h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="currentColor" />
+          </marker>
+        </defs>
+
+        <rect class="box-a" x="30" y="20" width="940" height="66" rx="8" />
+        <text class="t" x="500" y="48" text-anchor="middle">‏Claude Code ‏(Opus 5) - שותף התכנות מבוסס ה-AI</text>
+        <text class="s" x="500" y="68" text-anchor="middle">
+          כותב את קוד ה-C#‎, מפעיל את העורך ואת Blender דרך MCP, מריץ את כלי שורת הפקודה, ומתחזק את יומן ההחלטות
+        </text>
+
+        <line class="edge-d" x1="185" y1="86" x2="185" y2="128" marker-end="url(#t1h)" />
+        <line class="edge-d" x1="500" y1="86" x2="500" y2="128" marker-end="url(#t1h)" />
+        <line class="edge-d" x1="815" y1="86" x2="815" y2="128" marker-end="url(#t1h)" />
+
+        <rect class="box" x="60" y="130" width="250" height="80" rx="7" />
+        <text class="t" x="185" y="158" text-anchor="middle">MCP for Unity</text>
+        <text class="s" x="185" y="177" text-anchor="middle">‏JSON-RPC מעל HTTP מקומי</text>
+        <text class="m" x="185" y="198" text-anchor="middle">127.0.0.1:8080</text>
+
+        <line class="edge" x1="185" y1="210" x2="185" y2="248" marker-end="url(#t1h)" />
+
+        <rect class="box" x="60" y="250" width="250" height="80" rx="7" />
+        <text class="t" x="185" y="278" text-anchor="middle">עורך Unity</text>
+        <text class="s" x="185" y="297" text-anchor="middle">פריטי תפריט · סצנה · קונסולה</text>
+        <text class="m" x="185" y="318" text-anchor="middle">6000.5.8f1, URP</text>
+
+        <rect class="box" x="375" y="130" width="250" height="80" rx="7" />
+        <text class="t" x="500" y="158" text-anchor="middle">Blender MCP</text>
+        <text class="s" x="500" y="177" text-anchor="middle">סוקט אל Blender פתוח</text>
+        <text class="m" x="500" y="198" text-anchor="middle">TCP 9876</text>
+
+        <line class="edge" x1="500" y1="210" x2="500" y2="248" marker-end="url(#t1h)" />
+
+        <rect class="box" x="375" y="250" width="250" height="80" rx="7" />
+        <text class="t" x="500" y="278" text-anchor="middle">Blender + tools/*.py</text>
+        <text class="s" x="500" y="297" text-anchor="middle">הפחתת פוליגונים · מיזוג · המרה</text>
+        <text class="m" x="500" y="318" text-anchor="middle">decimate-glb · blend-to-glb</text>
+
+        <rect class="box" x="690" y="130" width="250" height="80" rx="7" />
+        <text class="t" x="815" y="158" text-anchor="middle">perf-sweep.sh</text>
+        <text class="s" x="815" y="177" text-anchor="middle">מריץ את הבילד ללא ממשק</text>
+        <text class="m" x="815" y="198" text-anchor="middle">44 הרצות, ללא השגחה</text>
+
+        <line class="edge" x1="815" y1="210" x2="815" y2="248" marker-end="url(#t1h)" />
+
+        <rect class="box" x="690" y="250" width="250" height="80" rx="7" />
+        <text class="t" x="815" y="278" text-anchor="middle">‏PerfProbe בתוך הבילד</text>
+        <text class="s" x="815" y="297" text-anchor="middle">מ״ש לפריים, משולשים, זיכרון</text>
+        <text class="m" x="815" y="318" text-anchor="middle">ProfilerRecorder → CSV</text>
+      </svg>
     </div>
-    <figcaption>
+    <figcaption class="en">
       The right-hand column is the rule this project runs on: the Editor lies about performance, so
       every number that decided a trade-off was taken from a real macOS Player by
       <code>PerfProbe</code> and reduced by <code>perf-report.py</code> - and
@@ -745,9 +1237,16 @@
       happens when nobody is watching. Source control is git + Git LFS to a private GitHub repo; the
       kanban board is pushed to Trello's REST API from a JSON source of truth.
     </figcaption>
+    <figcaption class="he">
+      העמודה הימנית בתרשים היא הכלל שהפרויקט הזה עובד לפיו: העורך משקר בכל הנוגע לביצועים, ולכן כל
+      מספר שהכריע פשרה נלקח מבילד macOS אמיתי בעזרת <code>PerfProbe</code> וצומצם לדוח על ידי
+      <code>perf-report.py</code> - ו-<code>FrameWatchdog</code> נשאר מקומפל בתוך בילדים של פיתוח
+      כדי לתפוס בדיוק את הקפיצה שקורית רק כשאף אחד לא מסתכל. ניהול הגרסאות הוא git יחד עם Git LFS
+      אל מאגר GitHub פרטי; ולוח הקנבן נדחף אל ה-REST API של Trello מתוך קובץ JSON שהוא מקור האמת.
+    </figcaption>
   </figure>
 
-  <div class="callout">
+  <div class="callout en">
     <p>
       <strong>Where the two engines meet.</strong> Physics constants do not port: PhysX is not
       Rapier, so every mass, friction and suspension number here was re-derived by feel. What ported
@@ -755,12 +1254,23 @@
       <code>TheBlockConfig</code>, one static class of constants that every Editor builder reads.
     </p>
   </div>
+  <div class="callout he">
+    <p>
+      <strong>איפה שני המנועים נפגשים.</strong> קבועי פיזיקה אינם ניתנים להעברה: ‏PhysX אינו Rapier,
+      ולכן כל ערך של מסה, חיכוך ומתלה כאן נגזר מחדש לפי תחושת נהיגה ולא הועתק. מה שכן עבר בשלמותו
+      הוא המשחק עצמו - המפה, המשימות, התשלומים והתחושה הכללית - דרך <code>TheBlockConfig</code>,
+      מחלקה סטטית אחת של קבועים שכל בנאי בעורך קורא ממנה.
+    </p>
+  </div>
 
-  <p class="kicker">Inventory</p>
-  <h2>Every API, tool and library, and when it runs</h2>
+  <p class="kicker en">Inventory</p>
+  <p class="kicker he">מלאי</p>
+  <h2 class="en">Every API, tool and library, and when it runs</h2>
+  <h2 class="he">כל API, כלי וספרייה - ומתי כל אחד מהם רץ</h2>
 
-  <h3>Runtime - inside the shipped app</h3>
-  <div class="tablewrap">
+  <h3 class="en">Runtime - inside the shipped app</h3>
+  <h3 class="he">זמן ריצה - בתוך האפליקציה הארוזה</h3>
+  <div class="tablewrap en">
     <table>
       <thead>
         <tr>
@@ -833,9 +1343,83 @@
       </tbody>
     </table>
   </div>
+  <div class="tablewrap he">
+    <table>
+      <thead>
+        <tr>
+          <th>שם</th>
+          <th>מה זה</th>
+          <th>מתי זה נקרא</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Unity 6000.5.8f1</td>
+          <td>המנוע ולולאת הפריים שלו; מנגנון סקריפטים Mono, ובילד Standalone ל-macOS ול-Windows</td>
+          <td>מרגע ההפעלה ועד היציאה - הוא קורא למשחק, לא להפך</td>
+        </tr>
+        <tr>
+          <td>URP 17.5</td>
+          <td>‏Universal Render Pipeline מעל Metal ‏(macOS) או Direct3D ‏(Windows); אור כיווני ראשי אחד, בלי bloom</td>
+          <td>השלב האחרון בכל פריים; <code>DayNightCycle</code> משכתב את התאורה שלו לפי שעת היום</td>
+        </tr>
+        <tr>
+          <td>PhysX</td>
+          <td>‏<code>Rigidbody</code>, ‏<code>WheelCollider</code>, קוליידרים, קרני raycast ובובות ragdoll</td>
+          <td>ב-<code>FixedUpdate</code>, בצעד קבוע של 0.02 שנייה - כלומר 50 פעמים בשנייה</td>
+        </tr>
+        <tr>
+          <td>Input System 1.20</td>
+          <td>נדגם ישירות דרך <code>Keyboard.current</code> - בלי callbacks ובלי מיפוי מקשים מחדש</td>
+          <td>בכל <code>Update</code>, במצב שמחזיק כרגע את הקלט (נהיגה, הליכה, תפריט)</td>
+        </tr>
+        <tr>
+          <td>Mecanim ‏(Animator)</td>
+          <td>מכונות מצבים לדמויות Humanoid - השחקן, הולכי הרגל והשוטרים</td>
+          <td>מונע על ידי המנוע, בין <code>Update</code> ל-<code>LateUpdate</code></td>
+        </tr>
+        <tr>
+          <td>AI Navigation 2.0</td>
+          <td>‏<code>NavMesh</code> שנאפה מגאומטריית העיר; ‏<code>NavMeshAgent</code> על כל דמות שהולכת ברגל</td>
+          <td>שיטוט של הולכי רגל; ושוטר שיוצא מהניידת כדי לבצע מעצר</td>
+        </tr>
+        <tr>
+          <td>UI Toolkit</td>
+          <td>‏HUD, מפה, מסך פתיחה, השהיה, הגדרות, חנות וצביעה - הכול בנוי בקוד C#‎, בלי UXML/USS</td>
+          <td>פאנלים לפי דרישה; ה-HUD מתעדכן בכל פריים בתוך <code>LateUpdate</code></td>
+        </tr>
+        <tr>
+          <td>Audio + AudioMixer</td>
+          <td>ערוץ Master ועוד 6 ערוצים; 27 קליפים המחולקים ל-Voice / Music / Engine / Ambient / Sfx</td>
+          <td>לפי אירועי משחק; המערבל עצמו נבנה על ידי כלי בעורך, לא ביד</td>
+        </tr>
+        <tr>
+          <td><code>AudioClip.Create</code></td>
+          <td>צלילי הממשק, שמסונתזים ל-PCM פעם אחת ונשמרים במטמון ככל קליפ רגיל</td>
+          <td>בפעם הראשונה שמבקשים כל צליל, ואחר כך אף פעם לא שוב</td>
+        </tr>
+        <tr>
+          <td><code>RenderTexture</code></td>
+          <td>מצלמה אורתוגרפית שנייה שמרנדרת את המפה הקטנה</td>
+          <td>ב-<code>LateUpdate</code>, לפני שהמצלמה הראשית מציירת</td>
+        </tr>
+        <tr>
+          <td><code>PlayerPrefs</code></td>
+          <td>קובץ השמירה: משימות שנפתחו, הדמות הנבחרת וכל מתגי ההגדרות. קובץ plist ב-macOS, מפתח רג׳יסטרי ב-Windows</td>
+          <td>בכל שינוי - 11 מפתחות <code>theblock.*</code> קבועים, ועוד אחד לכל מכונית שנצבעה ולכל שדרוג</td>
+        </tr>
+        <tr>
+          <td><code>ProfilerRecorder</code></td>
+          <td>‏<code>FrameWatchdog</code> ו-<code>PerfProbe</code> קוראים את מוני הביצועים של המנוע עצמו</td>
+          <td>בבילדים של פיתוח בלבד, מאחורי <code>DEVELOPMENT_BUILD</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
-  <h3>Editor &amp; toolchain - on my machine</h3>
-  <div class="tablewrap">
+  <h3 class="en">Editor &amp; toolchain - on my machine</h3>
+  <h3 class="he">העורך ושרשרת הכלים - על המחשב שלי</h3>
+  <div class="tablewrap en">
     <table>
       <thead>
         <tr>
@@ -888,9 +1472,63 @@
       </tbody>
     </table>
   </div>
+  <div class="tablewrap he">
+    <table>
+      <thead>
+        <tr>
+          <th>שם</th>
+          <th>מה זה</th>
+          <th>מתי זה רץ</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>תפריט The Block</td>
+          <td>52 פריטי תפריט מעל 54 סקריפטים של העורך, שמייצרים את כל הסצנה מתוך קוד</td>
+          <td>לפי דרישה - <code>Build World</code>, <code>Build Menus</code>, <code>Build Police Car</code>, …</td>
+        </tr>
+        <tr>
+          <td>glTFast 6.19 + Draco 5.4</td>
+          <td>ייבוא glTF/GLB: גאומטריה, חומרים וגאומטריה דחוסה ב-Draco</td>
+          <td>בזמן ייבוא האסט, בתוך העורך. לעולם לא בזמן ריצה</td>
+        </tr>
+        <tr>
+          <td>AssetPostprocessors מותאמים</td>
+          <td>הגדרות ייבוא לשמע, לטקסטורות ולדמויות ששורדות מחיקה של תיקיית <code>Library</code></td>
+          <td>אוטומטית, בכל ייבוא וייבוא מחדש</td>
+        </tr>
+        <tr>
+          <td>Splines 2.9</td>
+          <td>עקומות של כבישים ומגרשי חנייה, שמשמשות בזמן יצירת העולם</td>
+          <td>ב-<code>WorldBuilder</code> בלבד - בזמן בנייה, לא בזמן משחק</td>
+        </tr>
+        <tr>
+          <td>MCP for Unity 10.1</td>
+          <td>גשר JSON-RPC מקומי שמאפשר ל-Claude Code להפעיל את העורך</td>
+          <td>לאורך כל הפיתוח, על <code>127.0.0.1:8080</code></td>
+        </tr>
+        <tr>
+          <td><code>BuildPipeline.BuildPlayer</code></td>
+          <td>בנייה מתוסרטת ל-macOS, בגרסת release ובגרסת פיתוח, עם רשימת סצנות מקובעת; ה-Player של Windows נבנה מחלון הבנייה הרגיל</td>
+          <td><code>The Block ▸ Build macOS Player</code>; ל-Windows: החלפת פלטפורמה ואז <code>File ▸ Build Settings</code></td>
+        </tr>
+        <tr>
+          <td>git + Git LFS</td>
+          <td>ניהול גרסאות; ‏LFS נושא כל מודל, טקסטורה וקליפ</td>
+          <td>בכל קומיט - היומן רושם את ה-hash של כל יחידת עבודה</td>
+        </tr>
+        <tr>
+          <td>Trello REST API</td>
+          <td>לוח הקנבן, שנדחף מתוך קובץ JSON שהוא מקור האמת - 117 כרטיסים</td>
+          <td><code>tools/kanban/push-to-trello.mjs</code>, לפי דרישה</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
-  <h3>Content pipeline - offline, never shipped as code</h3>
-  <div class="tablewrap">
+  <h3 class="en">Content pipeline - offline, never shipped as code</h3>
+  <h3 class="he">צינור התוכן - עובד לא מקוון, ולעולם לא נשלח כקוד</h3>
+  <div class="tablewrap en">
     <table>
       <thead>
         <tr>
@@ -938,13 +1576,108 @@
       </tbody>
     </table>
   </div>
+  <div class="tablewrap he">
+    <table>
+      <thead>
+        <tr>
+          <th>שם</th>
+          <th>מה זה</th>
+          <th>מתי זה רץ</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Claude Code ‏(Opus 5)</td>
+          <td>כותב את קוד ה-C#‎, מפעיל את כל הכלים שלמטה, ומתחזק את יומן ההחלטות של הפרויקט</td>
+          <td>ברציפות, לאורך כל תהליך ההמרה למנוע החדש</td>
+        </tr>
+        <tr>
+          <td>Blender + Blender MCP</td>
+          <td>תיקון רשתות, הפחתת פוליגונים, מיזוגים והמרת FBX ל-GLB, הכול מונע דרך MCP</td>
+          <td>בכל פעם שמודל דורש טיפול שה-importer של Unity לא יודע לעשות</td>
+        </tr>
+        <tr>
+          <td><code>tools/*.py</code></td>
+          <td>סקריפטים של Blender ללא ממשק: הפחתה, המרה, הכנת אביזרים ובניית דוכן הפלאפל</td>
+          <td>פעם אחת לכל אסט, משורת הפקודה</td>
+        </tr>
+        <tr>
+          <td>Mixamo</td>
+          <td>שלדים וקליפים של אנימציה לדמויות; מיובאים כ-Humanoid כדי שקידומת שמות העצמות תיפול</td>
+          <td>לצורך מקורות בלבד</td>
+        </tr>
+        <tr>
+          <td>Sketchfab · Quaternius · Kenney</td>
+          <td>שכונות, כלי רכב ואביזרי רחוב ברישיון CC0</td>
+          <td>לצורך מקורות בלבד</td>
+        </tr>
+        <tr>
+          <td><code>perf-sweep.sh</code> + <code>perf-report.py</code></td>
+          <td>מריץ את הבילד הבנוי 44 פעמים ללא השגחה, ומצמצם את קובצי ה-CSV לדוח אחד</td>
+          <td>פעם אחת לכל שאלת ביצועים</td>
+        </tr>
+        <tr>
+          <td><code>pixel-diff.py</code></td>
+          <td>משווה שני רינדורים מול רצפת רעש מדודה - מים מונפשים שונים אפילו מעצמם</td>
+          <td>כששינוי חזותי צריך להיות מוכח ולא רק מוצהר</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
-  <footer>
+  <footer class="en">
     The Block - Unity 6 (URP), macOS and Windows. Repository:
     <code>github.com/RoeeSivan/theblock-unity</code> · every figure on this page was read from the
     repository, not estimated.
   </footer>
+  <footer class="he">
+    ‏The Block - Unity 6 ‏(URP), ל-macOS ול-Windows. מאגר הקוד:
+    <code>github.com/RoeeSivan/theblock-unity</code> · כל מספר בעמוד הזה נקרא מתוך המאגר עצמו, ולא
+    הוערך באומדן.
+  </footer>
 </div>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var TITLES = {
+      en: 'The Block - Unity Architecture',
+      he: 'The Block - ארכיטקטורת Unity',
+    };
+    var KEY = 'theblock.docs.lang';
+
+    function apply(lang) {
+      if (lang !== 'he') lang = 'en';
+      root.setAttribute('data-lang', lang);
+      root.setAttribute('lang', lang);
+      root.setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
+      document.title = TITLES[lang];
+      var buttons = document.querySelectorAll('.langtoggle button');
+      for (var i = 0; i < buttons.length; i++) {
+        buttons[i].setAttribute('aria-pressed', buttons[i].getAttribute('data-lang') === lang ? 'true' : 'false');
+      }
+      try {
+        localStorage.setItem(KEY, lang);
+      } catch (e) {
+        /* private browsing - the toggle still works, it just does not stick */
+      }
+    }
+
+    var saved = null;
+    try {
+      saved = localStorage.getItem(KEY);
+    } catch (e) {}
+    if (saved !== 'en' && saved !== 'he') {
+      saved = (navigator.language || 'en').toLowerCase().indexOf('he') === 0 ? 'he' : 'en';
+    }
+    apply(saved);
+
+    document.querySelector('.langtoggle').addEventListener('click', function (event) {
+      var button = event.target.closest('button[data-lang]');
+      if (button) apply(button.getAttribute('data-lang'));
+    });
+  })();
+</script>
 
 </body>
 </html>
