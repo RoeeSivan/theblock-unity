@@ -2497,7 +2497,9 @@ conversation that was gone. That is the exact failure this § exists to stop.
 
 **Shipped 2026-08-19:** `Builds/macOS/The Block.app` → `~/Desktop/TheBlock-macOS.zip` →
 **uploaded to the user's Google Drive**, anyone-with-link, sent to friends as a link.
-⚠ **The link itself is not recorded here yet - paste it in.**
+The folder: <https://drive.google.com/drive/folders/186tblV6VY5XPdYJDbw1Z-ARdQ-WxO-Du> -
+recorded 2026-08-21, resolving the ⚠ that used to sit on this line. It is also reachable from this
+machine as rclone remote `gdrive:` with `--drive-root-folder-id 186tblV6VY5XPdYJDbw1Z-ARdQ-WxO-Du`.
 
 **The Drive folder holds FOUR items, not two - 2026-08-20.** The user's call: the install guides
 live *beside* the zips rather than behind a link, so a recipient opening the folder sees
@@ -2509,6 +2511,28 @@ the OS's own warning (the `xattr` line on macOS, More info → Run anyway on Win
 controls → the four missions. **Edit the repo copy and re-paste; never edit only the Doc**, or the
 recoverable copy is the stale one. The Windows doc deliberately makes **no performance claim** -
 the only Windows run so far was x86_64 under ARM emulation in a VM.
+
+**Re-shipped 2026-08-21 - the loading-art builds, and the first rebuild driven end-to-end by the
+agent rather than by hand.** Both players rebuilt at `368fdb8` (the loading screen wears the key
+art) over Unity MCP: `manage_build` → `Builds/macOS/The Block.app` in **54 s** (PlayerDataCache
+makes a rebuild ~1 min, not the feared quarter-hour; universal `x86_64`+`arm64` re-verified with
+`lipo`, zero symlinks re-checked before trusting `zip -r` again), platform switch →
+`windows64` build in **31 s**, Editor switched back to macOS per the rule three ¶ down. Zips, same
+recipe (Burst folder excluded): **`TheBlock-macOS-2026.zip`** 1,173,171,947 B / 239 entries and
+**`TheBlockUnity-Windows-2026.zip`** 1,169,901,152 B / 231 entries - each ~3 MB over its
+predecessor, which is the 2 MB jpg plus deflate noise. Uploaded with
+`rclone copyto ... --drive-root-folder-id <the id above>`, sizes verified byte-exact with
+`rclone lsl`. The `-2026` suffix is the user's convention for telling new from old; the user then
+deleted the two 2026-08-19 zips from the folder, so it again holds four items - two zips, two
+instruction Docs, names now suffixed. ⚠ **The INSTALL Docs still say the unsuffixed names** - if
+they are ever re-pasted from `docs/INSTALL-*.txt`, fix the filename in both first.
+**Local cleanup, the user's call - one Mac executable remains on the machine:**
+`Builds/macOS/The Block.app`. Trashed: all four Desktop zips (old and new - Drive is the copy of
+record), the stale Aug-18 Desktop copy of the app (`rm` - iCloud had evicted it and Finder refused
+to trash an undownloaded file, error -8013), the whole `Builds/Windows/` tree (a rebuild is 31 s
+plus a platform switch), both `BurstDebugInformation_DoNotShip` folders, the empty root `Windows/`
+leftover dir from the 2026-08-19 save-panel trap, and the Desktop source jpeg (byte-identical,
+md5-checked, to the committed `Assets/Resources/UI/LoadingArt.jpg`).
 
 **Measured on the artifact, not estimated:**
 
