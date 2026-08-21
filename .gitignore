@@ -9,6 +9,11 @@
 /[Mm]emoryCaptures/
 /[Rr]ecordings/
 
+# Unity's crash/dirty-scene autosave. It writes the whole open scene - 8 MB of World.unity - and it
+# is a copy of something already tracked, so committing it is pure noise.
+/[Aa]ssets/_Recovery/
+/[Aa]ssets/_Recovery.meta
+
 # Asset meta files for folders Unity ignores
 /[Aa]ssets/AssetStoreTools*
 /[Aa]ssets/Plugins/Editor/JetBrains*

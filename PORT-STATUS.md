@@ -99,6 +99,8 @@ unclear, re-test before inheriting.
 >
 > ### ✅ U38 is DONE - user-confirmed 2026-08-19. The crowd is twelve pack bodies at 360 looks, and it made the frame ~22 ms FASTER. Section below.
 >
+> ### ✅ The loading screen wears the key art - 2026-08-21, user-supplied cover, section below. It is the video's first frame.
+>
 > ### 🚩 NEXT ACTION: **the VIDEO. It is the only thing the rest of the submission waits on.**
 >
 > ### ✅ THE KANBAN BOARD IS DONE - 2026-08-19, https://trello.com/b/MWyCbhhx, 117 cards over both phases.
@@ -364,6 +366,55 @@ unclear, re-test before inheriting.
 >
 > *Ledger audited 2026-08-16: the U28b and U33 scene-rig debts are closed, a duplicated section and
 > four malformed table rows are fixed. Open-work census re-cut 2026-08-17 by the five decisions above.*
+
+### The loading screen wears the key art, 2026-08-21 - not a unit, and it is a submission asset
+
+> **The ask:** *"could we add in some cool way this picture that it will be in the loading? like we
+> have in games today."* The user supplied the cover themselves
+> (`Gemini_Generated_Image_y58fepy58fepy58f.jpeg`, 3168x1344), so this is shell polish rather than a
+> numbered unit - **but it is the first frame of the video**, which is why it is worth a section.
+
+**What it is.** `Assets/Scripts/Boot/LoadingScreen.cs`, rebuilt: the cover full-bleed, a slow zoom,
+a scrim, and the bar/status/tip docked along the bottom - the shape every shipped game's loading
+screen has, for the reason it has it. The art carries its own painted wordmark, so the UI **stops
+drawing one**; with no cover imported it falls back to the old dark backdrop and its own wordmark,
+so nothing hard-depends on the asset. Tips rotate every 3.2 s and every line is a binding that
+exists today - the same rule `ControlsGuide` holds itself to, and it matters more here, because a
+loading tip is read in the one state where the player cannot check it.
+
+**The art is loaded by `Resources.Load`, deliberately.** `Assets/Resources/UI/LoadingArt.jpg`, with
+its import settings in `Assets/Editor/LoadingArtImporter.cs` (mips **off**, `npotScale None`, BC7 -
+verified on the real asset as `3168x1344 BC7 mips=1`, 4.1 MB). A serialized reference would have
+been wiped the next time anyone ran **The Block → Build Menus**, which regenerates `Boot.unity`.
+
+**Two numbers are bounds, not taste, and both were measured:**
+
+- **Crop anchor X = 0.70.** The cover is 2.36:1 against 16:9, so a quarter of its width is off-screen
+  and *which* quarter decides whether the painted "BLOCK" survives. Centred clips the K.
+- **Ken Burns caps at 1.09.** At anchor 0.70 the crop shows image x 18.7-92.0% at zoom 1.03 and
+  21.5-91.0% at 1.09; the wordmark ends at 89.5%. 1.09 is the last stop that keeps the K inside.
+
+**It was verified by rendering it, not by guessing** - the panel driven to a RenderTexture in Edit
+mode over MCP (recipe in memory `render-ui-toolkit-panel-over-mcp`). That caught two faults a
+play-test would only have reported as "looks a bit washed":
+
+1. **A `backgroundImage` is not stretched to its element.** The scrim as a 1x256 alpha ramp drew at
+   the texture's own size, putting 0.22 of alpha under the tip row where the curve said 0.73. Setting
+   `backgroundSize` + `backgroundRepeat` + `backgroundPositionY` explicitly changed **zero pixels**.
+   It is 48 stacked solid rows now - no sizing semantics to get wrong, and they do not overlap, so it
+   costs no overdraw. Memory: `uitoolkit-background-image-not-stretched`.
+2. **The ramp reached full strength below where the text sits.** One smoothstep across the band left
+   the tip row's beach sand at sRGB 139. It ramps over the top 55% and holds a floor under that now:
+   sand at 63.
+
+⚠ **A trap worth carrying:** the readback is sRGB and the blending is linear, so a black scrim at
+alpha `a` gives `art_srgb * (1 - a)^(1/2.2)`. Computing "expected" the other way makes a correct 0.94
+scrim measure as 0.73, and most of the time spent here went into a bug that was not there.
+
+**Not confirmed by the user at the time of writing** - they said *"סומך עלייך שזה עובד טוב"* and asked
+for the push. To see it: open `Assets/Scenes/Boot.unity` and press Play. It is shown on every launch
+of a built player (Boot is scene 0) and on **Quit to Title** (`GameFlow.QuitToTitle`); it is not shown
+on a mission restart or a respawn, which do not reload a scene.
 
 ### U39, 2026-08-19 - the second falafel stand, the lane through the first, and an LOD1 that cannot exist
 
@@ -2417,7 +2468,7 @@ vanishes - that is what this ledger exists to stop, so it lives here.**
 | 2 | Trello / kanban board, used as discussed, **final screenshot** | ✅ **done 2026-08-19 - re-authored for both phases and published.** https://trello.com/b/MWyCbhhx · 117 cards · screenshots at `docs/kanban-board.png` (landscape, for the PDF) and `docs/kanban-final.png` (full height, every card). Dataset + tooling in `tools/kanban/`. **Re-shoot it if cards move before 1 Oct** - the brief wants the FINAL state |
 | 3 | 5-min video: idea + one-liner | ✗ |
 | 4 | …the list of major features implemented | ✗ |
-| 5 | …**a diagram of the APIs / tools / libraries + the flow**, what is called when | ✗ - **and Unity's is a different diagram, not the web one relabelled** |
+| 5 | …**a diagram of the APIs / tools / libraries + the flow**, what is called when | **the ASSET is built, the video section is not.** `docs/architecture-unity.html`, live at https://theblock-unity.vercel.app/, bilingual, **four** SVG diagrams: boot + PlayerPrefs · the per-frame call order · the Editor pipeline · toolchain/MCP. It is Unity's own diagram, not the web one relabelled. **Only two of the four belong in the video** - the per-frame call order (it IS "what is called when") and the Editor pipeline (it carries the pivot); the other two are depth for the repo. ⚠ This row read `✗` until 2026-08-21 and was stale - the page landed 2026-08-20 |
 | 6 | …a recording of the whole project running, all features, good resolution | ✗ - needs U30a |
 | 7 | Video on Google Drive, anyone-with-link | ✗ |
 | 8 | Moodle: a PDF holding video link + repo link + kanban screenshot | ✗ |
